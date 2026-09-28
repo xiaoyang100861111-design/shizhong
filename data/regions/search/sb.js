@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["sb"]=[["TN",107015,"Sbiba","斯比巴",2570,"卡塞林","sbiba 斯比巴 سبيبة 卡塞林 kasserine"],["TN",107016,"Sbikha","斯比哈",2564,"凯鲁万","sbikha 斯比哈 سبيخة 凯鲁万 kairouan"]];

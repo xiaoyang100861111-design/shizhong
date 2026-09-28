@@ -1,0 +1,81 @@
+/* Oriental gift effects are self-contained inside the provided picture container. */
+.soe-stage{--soe-duration:4200ms;--soe-accent:#f5ce8e;position:absolute;inset:0;z-index:70;isolation:isolate;overflow:hidden;contain:layout paint style;pointer-events:none;color:#fff6e6;font-family:inherit;background:#210f19;animation:soe-stage-in var(--soe-duration) ease both}
+.soe-stage,.soe-stage *{box-sizing:border-box}
+.soe-stage::before,.soe-stage::after,.soe-ornament::before,.soe-ornament::after,.soe-halo::before,.soe-halo::after{content:"";position:absolute;pointer-events:none}
+.soe-veil,.soe-ornament,.soe-halo,.soe-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.soe-veil{background:radial-gradient(ellipse 80% 60% at 50% 47%,rgba(141,51,41,.26),transparent 80%),radial-gradient(ellipse 78% 46% at 50% 92%,rgba(11,6,13,.93),transparent 100%),linear-gradient(165deg,#301424 0%,#481b24 46%,#180d1a 100%)}
+.soe-ornament{opacity:.9;background:repeating-linear-gradient(115deg,transparent 0 15px,rgba(255,213,147,.012) 16px 17px),radial-gradient(circle at 50% 46%,transparent 0 25%,rgba(255,223,157,.08) 25.3% 25.5%,transparent 26% 100%)}
+.soe-ornament::before{inset:12% 8%;border:1px solid rgba(255,214,136,.15);border-radius:48% 52% 47% 53%/35% 36% 64% 65%;transform:rotate(-10deg);box-shadow:0 0 24px rgba(250,178,83,.05),inset 0 0 30px rgba(250,178,83,.05)}
+.soe-ornament::after{left:50%;top:46%;width:min(76vw,320px);aspect-ratio:1;border:1px solid rgba(254,226,168,.16);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 11px rgba(255,219,150,.025),0 0 0 37px rgba(255,219,150,.025),0 0 80px rgba(248,151,65,.12)}
+.soe-halo{background:radial-gradient(ellipse 48% 32% at 50% 46%,rgba(255,211,129,.26),transparent 75%),radial-gradient(ellipse 28% 18% at 50% 46%,rgba(255,249,220,.21),transparent 80%);mix-blend-mode:screen;animation:soe-breathe 2.6s ease-in-out infinite alternate}
+.soe-halo::before{inset:0;background:linear-gradient(120deg,transparent 39%,rgba(255,236,185,.035) 48%,transparent 56%);transform:translateX(-110%);animation:soe-shine var(--soe-duration) ease-in-out both}
+.soe-halo::after{left:50%;top:46%;width:min(52vw,235px);aspect-ratio:1;border:1px solid rgba(255,232,187,.28);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 35px rgba(255,208,125,.16),inset 0 0 30px rgba(255,208,125,.12)}
+.soe-canvas{display:block;z-index:3;opacity:.96}
+.soe-art-wrap{position:absolute;z-index:4;left:50%;top:46%;width:min(72vw,330px);height:min(46vh,380px);min-height:190px;transform:translate(-50%,-50%);display:grid;place-items:center;filter:drop-shadow(0 27px 28px rgba(5,2,8,.48)) drop-shadow(0 0 32px color-mix(in srgb,var(--soe-accent),transparent 54%));animation:soe-art-enter var(--soe-duration) cubic-bezier(.15,.75,.18,1) both}
+.soe-art{display:block;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.soe-art-missing .soe-art{visibility:hidden}
+.soe-art-missing::after{content:"福";position:absolute;left:50%;top:50%;width:150px;aspect-ratio:1;border:2px solid rgba(255,227,165,.67);border-radius:22px;display:grid;place-items:center;transform:translate(-50%,-50%) rotate(45deg);font-family:serif;font-size:94px;font-weight:600;color:#ffe8b9;background:linear-gradient(135deg,rgba(126,28,30,.8),rgba(77,18,30,.8));box-shadow:0 0 0 8px rgba(255,220,149,.08),inset 0 0 40px rgba(239,182,100,.15);text-shadow:0 2px 14px rgba(255,219,154,.6)}
+.soe-copy{position:absolute;z-index:6;left:12px;right:12px;bottom:max(10%,44px);display:flex;align-items:center;flex-direction:column;gap:7px;text-align:center;text-shadow:0 2px 10px rgba(13,5,15,.85);animation:soe-copy-in var(--soe-duration) ease both}
+.soe-eyebrow{font-size:11px;letter-spacing:.27em;color:#ffe3ae;line-height:1.5;padding-left:.27em}
+.soe-sender{min-height:30px;max-width:100%;display:flex;align-items:center;gap:7px;color:#f8e8d4;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.soe-sender span{overflow:hidden;text-overflow:ellipsis}
+.soe-avatar{width:26px;height:26px;flex:none;border-radius:50%;object-fit:cover;border:1px solid rgba(255,233,187,.75);box-shadow:0 2px 9px rgba(0,0,0,.3)}
+.soe-gift-line{display:flex;align-items:baseline;justify-content:center;gap:8px;max-width:100%;white-space:nowrap}
+.soe-gift-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;font:600 clamp(22px,7vw,32px)/1.18 Georgia,"Songti SC","Noto Serif CJK SC",serif;letter-spacing:.06em;color:#ffedc7;-webkit-text-stroke:.2px #fff1d4}
+.soe-count{flex:none;color:#ffe5a4;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.soe-skip{position:absolute;z-index:8;right:10px;top:max(10px,env(safe-area-inset-top));min-width:44px;min-height:44px;padding:0 10px;border:1px solid rgba(255,235,195,.25);border-radius:22px;background:rgba(20,11,17,.42);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff2da;font:500 13px/1 inherit;cursor:pointer;pointer-events:auto}
+.soe-skip:focus-visible{outline:2px solid #fff0be;outline-offset:2px}
+
+/* Distinct scenery and material light for each source theme. */
+.soe-lantern .soe-veil{background:radial-gradient(ellipse 46% 42% at 50% 42%,rgba(252,155,62,.26),transparent),linear-gradient(145deg,#4d101e,#7e1925 44%,#240e1d)}
+.soe-lantern .soe-ornament::before{border-radius:8% 8% 45% 45%;inset:8% 17% 19%;border-color:rgba(255,207,121,.16);box-shadow:inset 0 0 38px rgba(225,79,39,.14)}
+.soe-lantern .soe-ornament::after{border-color:rgba(255,209,124,.22);box-shadow:0 0 0 18px rgba(234,119,50,.04),0 0 74px rgba(255,167,65,.26)}
+.soe-lantern .soe-art-wrap{animation-name:soe-lantern-rise}
+.soe-fan .soe-veil,.soe-scroll .soe-veil,.soe-scholar .soe-veil{background:radial-gradient(ellipse 80% 55% at 50% 47%,rgba(219,205,168,.24),transparent 86%),linear-gradient(163deg,#273039,#29333b 42%,#131b25)}
+.soe-fan .soe-ornament::after{width:min(84vw,380px);aspect-ratio:1.65;border-radius:100% 100% 12% 12%/100% 100% 12% 12%;border-bottom:3px solid rgba(244,228,181,.37);transform:translate(-50%,-43%) scaleX(.96);box-shadow:inset 0 25px 50px rgba(244,234,194,.08)}
+.soe-fan .soe-art-wrap{transform-origin:50% 86%;animation-name:soe-fan-open}
+.soe-porcelain .soe-veil{background:radial-gradient(ellipse at 50% 45%,rgba(53,118,156,.35),transparent 65%),linear-gradient(160deg,#102c49,#132e4a 43%,#0c2038)}
+.soe-porcelain .soe-ornament::after{width:min(75vw,320px);border:2px double rgba(205,230,243,.46);box-shadow:0 0 0 9px rgba(154,209,234,.05),0 0 0 19px rgba(154,209,234,.04),inset 0 0 30px rgba(209,239,254,.13)}
+.soe-porcelain .soe-art-wrap{animation-name:soe-porcelain-turn}
+.soe-phoenix .soe-veil{background:radial-gradient(ellipse at 56% 40%,rgba(234,128,102,.28),transparent 67%),linear-gradient(145deg,#4d2435,#743546 45%,#261626)}
+.soe-phoenix .soe-halo{background:radial-gradient(ellipse 54% 30% at 49% 47%,rgba(255,197,135,.38),transparent 75%),conic-gradient(from -25deg at 50% 46%,transparent,rgba(250,141,104,.08),transparent 45%,rgba(255,221,160,.12),transparent 65%)}
+.soe-phoenix .soe-art-wrap{animation-name:soe-phoenix-flight}
+.soe-dragon .soe-veil{background:radial-gradient(ellipse 65% 40% at 50% 48%,rgba(217,151,61,.25),transparent),linear-gradient(155deg,#1e2025,#41402d 43%,#151721)}
+.soe-dragon .soe-ornament::after{border:2px solid rgba(247,210,137,.32);box-shadow:0 0 0 8px rgba(255,194,88,.04),0 0 0 18px rgba(255,194,88,.025),0 0 65px rgba(255,170,70,.13)}
+.soe-dragon .soe-art-wrap{animation-name:soe-dragon-swoop}
+.soe-qilin .soe-veil{background:radial-gradient(ellipse at 50% 48%,rgba(183,114,55,.31),transparent 70%),linear-gradient(155deg,#313337,#65402e 53%,#241f28)}
+.soe-qilin .soe-ornament::after{border-radius:18%;transform:translate(-50%,-50%) rotate(45deg);border-color:rgba(255,221,154,.33)}
+.soe-qilin .soe-art-wrap{animation-name:soe-qilin-reveal}
+.soe-scroll .soe-ornament::after{width:min(91vw,405px);height:min(37vh,260px);aspect-ratio:auto;border-radius:12px;background:linear-gradient(90deg,rgba(226,208,168,.11),rgba(247,229,192,.21) 12%,rgba(250,237,204,.18) 88%,rgba(217,192,156,.11));border-color:rgba(251,231,186,.34);box-shadow:0 4px 16px rgba(0,0,0,.19),inset 8px 0 9px rgba(93,68,53,.18),inset -8px 0 9px rgba(93,68,53,.18);animation:soe-scroll-unfurl var(--soe-duration) cubic-bezier(.18,.72,.32,1) both}
+.soe-scroll .soe-art-wrap{animation-name:soe-scroll-art}
+.soe-crown .soe-veil{background:radial-gradient(ellipse 53% 39% at 50% 45%,rgba(232,143,95,.22),transparent),linear-gradient(155deg,#3d1225,#6b1833 48%,#220f24)}
+.soe-crown .soe-ornament::after{width:min(62vw,285px);border-color:rgba(255,220,140,.3);box-shadow:0 0 0 15px rgba(255,185,113,.04),0 0 0 34px rgba(255,205,142,.025)}
+.soe-crown .soe-art-wrap{animation-name:soe-crown-drop}
+.soe-guardian .soe-veil{background:radial-gradient(ellipse at 50% 47%,rgba(125,135,130,.26),transparent),linear-gradient(145deg,#172d35,#393344 48%,#1c222e)}
+.soe-guardian .soe-ornament::after{border:2px dashed rgba(236,226,173,.38);box-shadow:0 0 0 12px rgba(167,191,175,.05),0 0 0 34px rgba(211,184,200,.04);animation:soe-guardian-orbit 16s linear infinite}
+.soe-guardian .soe-art-wrap{animation-name:soe-guardian-gather}
+.soe-scholar .soe-ornament::after{width:min(68vw,300px);border-radius:10%;transform:translate(-50%,-50%) rotate(45deg);border-color:rgba(248,230,182,.34);box-shadow:inset 0 0 38px rgba(222,196,138,.08)}
+.soe-scholar .soe-art-wrap{animation-name:soe-scholar-lift}
+
+@keyframes soe-stage-in{0%{opacity:0}9%,84%{opacity:1}100%{opacity:0}}
+@keyframes soe-breathe{from{opacity:.7;transform:scale(.95)}to{opacity:1;transform:scale(1.06)}}
+@keyframes soe-shine{0%,20%{transform:translateX(-110%)}65%,100%{transform:translateX(110%)}}
+@keyframes soe-copy-in{0%,23%{opacity:0;transform:translateY(13px)}35%,86%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-5px)}}
+@keyframes soe-art-enter{0%,8%{opacity:0;transform:translate(-50%,-47%) scale(.68)}27%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-52%) scale(1.06)}}
+@keyframes soe-lantern-rise{0%,6%{opacity:0;transform:translate(-50%,20%) scale(.65)}28%{opacity:1;transform:translate(-50%,-50%) scale(1)}76%{opacity:1;transform:translate(-50%,-62%) scale(1.04)}100%{opacity:0;transform:translate(-50%,-96%) scale(.92)}}
+@keyframes soe-fan-open{0%,10%{opacity:0;transform:translate(-50%,-50%) scaleX(.08) rotate(-17deg)}35%,78%{opacity:1;transform:translate(-50%,-50%) scaleX(1) rotate(0)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(.15) rotate(14deg)}}
+@keyframes soe-porcelain-turn{0%,7%{opacity:0;transform:translate(-50%,-50%) scale(.67) rotate(-46deg)}30%,70%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}100%{opacity:0;transform:translate(-50%,-50%) scale(.9) rotate(22deg)}}
+@keyframes soe-phoenix-flight{0%,8%{opacity:0;transform:translate(-85%,-14%) rotate(-22deg) scale(.62)}35%{opacity:1;transform:translate(-50%,-50%) rotate(0) scale(1)}75%{opacity:1;transform:translate(-46%,-56%) rotate(5deg) scale(1.03)}100%{opacity:0;transform:translate(-5%,-105%) rotate(18deg) scale(.88)}}
+@keyframes soe-dragon-swoop{0%,8%{opacity:0;transform:translate(-118%,-11%) rotate(-25deg) scale(.62)}37%,75%{opacity:1;transform:translate(-50%,-50%) rotate(0) scale(1)}100%{opacity:0;transform:translate(22%,-92%) rotate(18deg) scale(1.12)}}
+@keyframes soe-qilin-reveal{0%,9%{opacity:0;transform:translate(-50%,-50%) scale(.22) rotate(-12deg)}34%{opacity:1;transform:translate(-50%,-50%) scale(1.08) rotate(2deg)}45%,81%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}100%{opacity:0;transform:translate(-50%,-52%) scale(1.13)}}
+@keyframes soe-scroll-unfurl{0%,10%{opacity:0;transform:translate(-50%,-50%) scaleX(.035)}37%,79%{opacity:1;transform:translate(-50%,-50%) scaleX(1)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(.96)}}
+@keyframes soe-scroll-art{0%,18%{opacity:0;transform:translate(-50%,-50%) scaleX(.25)}43%,80%{opacity:1;transform:translate(-50%,-50%) scaleX(1)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(1)}}
+@keyframes soe-crown-drop{0%,7%{opacity:0;transform:translate(-50%,-105%) scale(.72)}34%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}43%,82%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-44%) scale(1.08)}}
+@keyframes soe-guardian-orbit{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes soe-guardian-gather{0%,9%{opacity:0;transform:translate(-50%,-50%) scale(1.6) rotate(15deg)}36%,79%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}100%{opacity:0;transform:translate(-50%,-50%) scale(.75) rotate(-8deg)}}
+@keyframes soe-scholar-lift{0%,11%{opacity:0;transform:translate(-50%,5%) scale(.82)}38%,81%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-55%) scale(1.07)}}
+
+@media(max-width:360px){.soe-art-wrap{width:min(77vw,270px);height:min(42vh,300px)}.soe-copy{bottom:max(9%,35px)}.soe-gift-name{font-size:clamp(21px,7vw,26px)}}
+@media(max-height:570px){.soe-art-wrap{height:min(43vh,240px);min-height:130px;top:43%}.soe-ornament::after,.soe-halo::after{top:43%}.soe-copy{bottom:24px;gap:3px}}
+@media(prefers-reduced-motion:reduce){.soe-stage{animation:soe-reduced-fade var(--soe-duration) ease both}.soe-stage *,.soe-stage::before,.soe-stage::after,.soe-ornament::before,.soe-ornament::after,.soe-halo::before,.soe-halo::after{animation:none!important;transition:none!important}.soe-art-wrap{opacity:1;transform:translate(-50%,-50%)}.soe-copy{opacity:1;transform:none}}
+@keyframes soe-reduced-fade{0%{opacity:0}18%,83%{opacity:1}100%{opacity:0}}

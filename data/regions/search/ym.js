@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["ym"]=[["FR",48008,"Ymare","伊玛尔",5044,"滨海塞纳省","ymare 伊玛尔 滨海塞纳省 seine maritime"],["GB",50366,"Llanrhaeadr-ym-Mochnant","兰拉德瑞姆-莫克南特",2497,"登比郡","llanrhaeadr ym mochnant 兰拉德瑞姆 莫克南特 登比郡 denbighshire"],["GR",53355,"Ymittos","伊米托斯",2122,"阿提卡","ymittos 伊米托斯 υμηττος 阿提卡 attica"]];

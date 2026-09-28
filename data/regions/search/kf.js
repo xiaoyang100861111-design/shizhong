@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["kf"]=[["IL",57500,"Kfar Saba","卡法尔萨巴",1367,"中央","kfar saba 卡法尔萨巴 כפר סבא 中央 central"],["IL",57501,"Kfar Yasif","卡法尔·亚西夫",1366,"北方","kfar yasif 卡法尔 亚西夫 כפר יאסיף 北方 northern"]];

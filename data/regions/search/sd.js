@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["sd"]=[["KH",65016,"Srŏk Preăh Sdéch","斯洛克·普雷赫·斯德奇",3974,"波萝勉","srok preah sdech 斯洛克 普雷赫 斯德奇 អស អស 波萝勉 prey veng"]];

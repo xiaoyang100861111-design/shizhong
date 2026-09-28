@@ -1,0 +1,36 @@
+{
+  "counts": {
+    "people": 600,
+    "posts": 600,
+    "groups": 120,
+    "conversations": 100,
+    "services": 1300,
+    "orders": 120
+  },
+  "categories": {
+    "flower": 100,
+    "beauty": 100,
+    "guide": 100,
+    "delivery": 100,
+    "jobs": 100,
+    "clean": 100,
+    "travel": 100,
+    "car": 100,
+    "phone": 100,
+    "food": 100,
+    "visa": 100,
+    "repair": 100,
+    "market": 100
+  },
+  "uniqueNames": 1300,
+  "uniqueDescriptions": 1300,
+  "uniqueReviewBodies": 2600,
+  "uniqueBios": 600,
+  "uniquePostBodies": 600,
+  "uniqueChatMessages": 658,
+  "groupMessages": 540,
+  "checks": "Counts, unique IDs/names/descriptions/reviews, chunk/index correspondence, people/post/group references, local photo paths and lazy interaction checks passed.",
+  "entryBytes": 2530,
+  "avatarPhotos": 183,
+  "servicePhotoFiles": 67
+}

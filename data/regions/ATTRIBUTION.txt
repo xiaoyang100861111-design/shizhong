@@ -1,0 +1,10 @@
+Data by Countries States Cities Database
+https://github.com/dr5hn/countries-states-cities-database | ODbL v1.0
+
+Pinned commit: f3ba8b5b16635b0a39593e44f9f20a7a4f941f63
+Dataset version: 2026-09-26-f3ba8b5b1663
+
+This adapted country/state/city database is distributed under ODbL v1.0.
+See LICENSE-ODbL-1.0.txt and provenance.json for the license, source URLs, hashes and changes.
+All source place records are retained, including towns, districts and administrative entries.
+No claim of absolute worldwide completeness is made.

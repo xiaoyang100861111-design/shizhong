@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["yn"]=[["GB",52023,"Ynysybwl","Ynysybwl",2301,"朗达卡农塔夫","ynysybwl ynysybwl 朗达卡农塔夫 rhondda cynon taf"],["US",125928,"Santa Ynez","圣伊内斯",1416,"加利福尼亚州","santa ynez 圣伊内斯 加利福尼亚州 california"]];

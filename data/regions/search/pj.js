@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["pj"]=[["BA",8359,"Pjanići","皮亚尼奇",467,"波斯尼亚和黑塞哥维那联邦","pjanici 皮亚尼奇 zadovoljstvo 波斯尼亚和黑塞哥维那联邦 federation of bosnia and herzegovina"],["HR",54821,"Pojezerje","波耶泽尔耶",728,"杜布罗夫尼克-内雷特瓦","pojezerje 波耶泽尔耶 pjevaci 杜布罗夫尼克 内雷特瓦 dubrovnik neretva"]];

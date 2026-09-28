@@ -1,0 +1,65 @@
+{
+  "version": "20260927-friends1",
+  "date": "2026-09-27",
+  "method": "In-app browser UI interactions, screenshots and read-only DOM geometry on the local HTTP site",
+  "passed": true,
+  "cases": [
+    {
+      "name": "320px home list scroll and navigation containment",
+      "viewport": [320, 740],
+      "documentSize": [320, 740],
+      "appScrollTopAfterLoadMore": 3234.666748046875,
+      "appBottom": 666,
+      "navTop": 666,
+      "navBottom": 740,
+      "shellBottom": 740,
+      "passed": true
+    },
+    {
+      "name": "Desktop overlay and composer cover the entire application frame",
+      "viewport": [1023, 905],
+      "shellTop": 22,
+      "shellBottom": 883.3333740234375,
+      "chatBottom": 883.3333740234375,
+      "composerBottom": 883.3333740234375,
+      "documentHeight": 905,
+      "passed": true
+    },
+    {
+      "name": "Chat header portrait to decorated profile, gift price, effect preview, return to original profile and chat",
+      "person": "杜言希",
+      "gift": "dragon",
+      "priceRM": 195000,
+      "draftPreserved": true,
+      "scrollRestored": "Preserved; clamped to the new scroll maximum after resizing the viewport to 430x932",
+      "passed": true
+    },
+    {
+      "name": "Ordinary message portrait opens another friend's decorated profile",
+      "person": "林间 Luna",
+      "wornGifts": 3,
+      "profileWidth": 460,
+      "profileBottom": 883.3333740234375,
+      "brokenImages": 0,
+      "passed": true
+    },
+    {
+      "name": "320px global region selector retains search, results and close controls",
+      "query": "东京",
+      "result": "Japan / Tokyo city and prefecture results visible",
+      "selectionChanged": false,
+      "passed": true
+    },
+    {
+      "name": "320px feed publish button stays above the navigation",
+      "buttonBottom": 644,
+      "navTop": 666,
+      "pageTransform": "none",
+      "passed": true
+    }
+  ],
+  "limits": [
+    "Local HTTP verification; no upload to the public website was performed.",
+    "Desktop browser viewport emulation does not replace testing on a physical iOS or Android device."
+  ]
+}

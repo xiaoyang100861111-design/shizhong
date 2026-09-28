@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["yd"]=[["FR",48002,"Ydes","伊德斯",4982,"康塔尔省","ydes 伊德斯 康塔尔省 cantal"],["GR",53424,"Ýdra","Ýdra",2122,"阿提卡","ydra ydra υδρα 阿提卡 attica"]];

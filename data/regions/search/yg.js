@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["yg"]=[["FR",48007,"Ygos-Saint-Saturnin","伊戈斯-圣-萨蒂南",5008,"朗德","ygos saint saturnin 伊戈斯 圣 萨蒂南 朗德 landes"],["PY",89851,"Ygatimi","伊加蒂米",2771,"卡宁德尤","ygatimi 伊加蒂米 卡宁德尤 canindeyu"],["PY",89852,"Yguazú","伊瓜苏",2784,"上巴拉那州","yguazu 伊瓜苏 上巴拉那州 alto parana"]];

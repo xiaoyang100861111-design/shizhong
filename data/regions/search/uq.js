@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["uq"]=[["EG",31840,"Markaz al Uqşur","马克兹·阿尔·乌克苏尔",3242,"卢克索","markaz al uqsur 马克兹 阿尔 乌克苏尔 مركز الاقصر 卢克索 luxor"],["SA",148574,"Uqair","乌奎尔",2856,"东部省","uqair 乌奎尔 العقير 东部省 eastern province"],["SA",148824,"Al `Uqul","阿尔乌库尔",2851,"麦地那","al uqul 阿尔乌库尔 العقول 麦地那 al madinah"]];

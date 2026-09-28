@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-09-27T12:07:54.700Z",
+  "passed": true,
+  "counts": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "sources": {
+    "private-room.js": {
+      "sha256": "f06fb9d340d4c6a0ba3de19ee90621cb2859f27fd15393222f7f4a42739864d3",
+      "bytes": 27402
+    },
+    "lazy.js": {
+      "sha256": "a529ce5b0dcb0870d394f63e4674bcb6cdd27d1d0aa983efb6839fb67ae466d9",
+      "bytes": 10101
+    },
+    "app.js": {
+      "sha256": "60d4962b8fc02289ea9b634c716608222cb77095bd86d9b69b6d9aee13aca0b5",
+      "bytes": 23997
+    }
+  },
+  "scope": "Real private-room.js, lazy demand/close/profileChunks, and app.save with localStorage quota exception; minimal DOM and effects stubs. No browser, product edits, actual media capture or billing.",
+  "results": [
+    {
+      "name": "connecting rejects messages/gifts/preview and repeated entry keeps one connection",
+      "passed": true
+    },
+    {
+      "name": "cancelled connection cannot reopen via stale callback and cleans all resources",
+      "passed": true
+    },
+    {
+      "name": "closing before data finishes cancels pending room navigation",
+      "passed": true
+    },
+    {
+      "name": "connected session has two opener messages and one clock with no duplicate room",
+      "passed": true
+    },
+    {
+      "name": "preview leaves all persisted state and session spending unchanged",
+      "passed": true
+    },
+    {
+      "name": "duplicate gift action debits once and commits one matched global/session gift",
+      "passed": true
+    },
+    {
+      "name": "insufficient balance opens topup without deduction/history/effect",
+      "passed": true
+    },
+    {
+      "name": "real save quota failure rolls back every persisted field and session transaction",
+      "passed": true
+    },
+    {
+      "name": "retry after failed gift save commits exactly once",
+      "passed": true
+    },
+    {
+      "name": "invalid gift quantities and mismatched gift IDs cannot spend",
+      "passed": true
+    },
+    {
+      "name": "topup save failure rolls back and successful repeated claim credits only once",
+      "passed": true
+    },
+    {
+      "name": "finish saves one call, freezes elapsed time and cancels replies/timer/effect",
+      "passed": true
+    },
+    {
+      "name": "ended session rejects text, gifts, preview and credit claims",
+      "passed": true
+    },
+    {
+      "name": "return to lobby clears session/observer and preserves scroll",
+      "passed": true
+    },
+    {
+      "name": "failed call-record save exposes retry and retry stores only one call",
+      "passed": true
+    },
+    {
+      "name": "external overlay replacement saves once and removes every old resource",
+      "passed": true
+    },
+    {
+      "name": "older effect callback cannot clear latest effect running state",
+      "passed": true
+    },
+    {
+      "name": "blocked host cannot start a connection or alter financial state",
+      "passed": true
+    }
+  ],
+  "version": "20260927-private1",
+  "browser": {
+    "viewports": [
+      [
+        430,
+        932
+      ],
+      [
+        320,
+        740
+      ],
+      [
+        430,
+        480
+      ]
+    ],
+    "verified": [
+      "two-column waiting directory",
+      "instant connection without booking",
+      "text message and demo reply",
+      "camera state",
+      "profile panel",
+      "gift send: 139 to 138 points",
+      "gift message and record",
+      "end confirmation and summary",
+      "recent call entry"
+    ],
+    "mobile320": {
+      "documentWidth": 320,
+      "viewportWidth": 320,
+      "giftFooterBottom": 720,
+      "giftSummaryBottom": 648
+    },
+    "compressedHeight": {
+      "viewportHeight": 480,
+      "composerBottom": 383,
+      "controlsBottom": 452
+    },
+    "realDeviceKeyboardTested": false
+  }
+}

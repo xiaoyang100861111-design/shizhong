@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["dt"]=[["MX",73911,"San Juan Mixtepec -Dto. 08 -","圣胡安米斯特佩克 -Dto. 08 -",3448,"瓦哈卡州","san juan mixtepec dto 08 圣胡安米斯特佩克 dto 08 瓦哈卡州 oaxaca"],["MX",73912,"San Juan Mixtepec -Dto. 26 -","圣胡安米斯特佩克 -Dto. 26 -",3448,"瓦哈卡州","san juan mixtepec dto 26 圣胡安米斯特佩克 dto 26 瓦哈卡州 oaxaca"]];

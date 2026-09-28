@@ -1,0 +1,236 @@
+{
+  "source": "E:\\python\\shizhongapp\\regions.js",
+  "sourceSha256": "216b22d15019c3bbb84f483c656206c29c2d674156445b5eb7d8ce64dc45321f",
+  "dataDirectory": "E:\\python\\shizhongapp\\data\\regions",
+  "mode": "Node VM with minimal DOM stubs; no browser/network",
+  "tests": 35,
+  "passed": 35,
+  "failed": [],
+  "checks": [
+    {
+      "name": "legacy MY Penang migration",
+      "passed": true
+    },
+    {
+      "name": "migration preserves wallet/gifts/points/profile/orders/addresses",
+      "passed": true
+    },
+    {
+      "name": "numeric/string city and state IDs resolve identically",
+      "passed": true
+    },
+    {
+      "name": "MY George Town maps back to service city Penang",
+      "passed": true
+    },
+    {
+      "name": "pending source string ID remains intact",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold ＳãＯ  Paulo",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold İSTANBUL",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold 北京",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold New—York",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold é",
+      "passed": true
+    },
+    {
+      "name": "Unicode fold 🌏",
+      "passed": true
+    },
+    {
+      "name": "existing canonical location synchronizes legacy state.city",
+      "passed": true
+    },
+    {
+      "name": "state field/readForm round trip preserves empty city",
+      "passed": true
+    },
+    {
+      "name": "state selection supplies legacy label",
+      "passed": true
+    },
+    {
+      "name": "country field/readForm round trip preserves empty city",
+      "passed": true
+    },
+    {
+      "name": "country selection supplies legacy label",
+      "passed": true
+    },
+    {
+      "name": "applyLocation does not touch wallet or gifts",
+      "passed": true
+    },
+    {
+      "name": "non-region gift actions delegate unchanged",
+      "passed": true
+    },
+    {
+      "name": "reset retains fresh geographic and gift defaults",
+      "passed": true
+    },
+    {
+      "name": "field picker restores original form nodes",
+      "passed": true
+    },
+    {
+      "name": "field picker updates hidden canonical location only",
+      "passed": true
+    },
+    {
+      "name": "field selection preserves wallet/gifts",
+      "passed": true
+    },
+    {
+      "name": "field selection restores parent overlay",
+      "passed": true
+    },
+    {
+      "name": "save failure rolls back location and recent selections",
+      "passed": true
+    },
+    {
+      "name": "closing during metadata load prevents later DOM/render changes",
+      "passed": true
+    },
+    {
+      "name": "closing during country load prevents later refresh",
+      "passed": true
+    },
+    {
+      "name": "last country selection wins out-of-order loads",
+      "passed": true
+    },
+    {
+      "name": "metadata failure displays retry control",
+      "passed": true
+    },
+    {
+      "name": "metadata retry creates a fresh load and recovers",
+      "passed": true
+    },
+    {
+      "name": "concurrent country loads share one promise",
+      "passed": true
+    },
+    {
+      "name": "failed country load can retry",
+      "passed": true
+    },
+    {
+      "name": "timed-out country load can retry",
+      "passed": true
+    },
+    {
+      "name": "avatar read finishing while region picker is open survives form restore",
+      "passed": true
+    },
+    {
+      "name": "upload callback from a truly closed parent form remains rejected",
+      "passed": true
+    },
+    {
+      "name": "compositionend cancels stale previous-query search output",
+      "passed": true
+    }
+  ],
+  "build": "20260927-world1",
+  "catalog": {
+    "passed": 18,
+    "failed": 0,
+    "productDir": "E:/python/shizhongapp",
+    "testedFiles": [
+      "E:/python/shizhongapp/catalog.js",
+      "E:/python/shizhongapp/app.js"
+    ],
+    "build": "20260927-world1",
+    "tests": [
+      {
+        "name": "服务与人物样例归属 MY",
+        "passed": true
+      },
+      {
+        "name": "本国同城匹配",
+        "passed": true
+      },
+      {
+        "name": "同名异国城市不会视作附近",
+        "passed": true
+      },
+      {
+        "name": "分页键含国家",
+        "passed": true
+      },
+      {
+        "name": "国外首页清晰标明马来西亚精选并保留推荐",
+        "passed": true
+      },
+      {
+        "name": "国外附近服务呈现空态",
+        "passed": true
+      },
+      {
+        "name": "国外附近人物呈现空态",
+        "passed": true
+      },
+      {
+        "name": "联系人在外国定位下不显示虚假附近距离",
+        "passed": true
+      },
+      {
+        "name": "社交筛选保留独立原生城市 select",
+        "passed": true
+      },
+      {
+        "name": "国外活动页只介绍实际马来西亚体验",
+        "passed": true
+      },
+      {
+        "name": "固定服务订单使用 MY 快照且剔除 locationData",
+        "passed": true
+      },
+      {
+        "name": "通用需求保留所选全球地区并复制对象",
+        "passed": true
+      },
+      {
+        "name": "无表单地区时订单复制当前 canonical 地区",
+        "passed": true
+      },
+      {
+        "name": "旧订单显示已存城市或商家城市，不取当前位置",
+        "passed": true
+      },
+      {
+        "name": "固定商家表单替换整个地区控件并删除隐藏 canonical",
+        "passed": true
+      },
+      {
+        "name": "旧 MY 同城地址可保留预填",
+        "passed": true
+      },
+      {
+        "name": "缺服务城市退回 MY 吉隆坡而非外国定位",
+        "passed": true
+      },
+      {
+        "name": "产品 app.js 保留地区文案与赠礼接入（忽略构建版本）",
+        "passed": true
+      }
+    ]
+  }
+}

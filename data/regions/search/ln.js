@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["ln"]=[["CZ",22596,"Lenešice","莱内希采",4576,"Ústecký kraj","lenesice 莱内希采 lnenesice ustecky kraj ustecky kraj"],["DE",27039,"Lengede","伦格德",3008,"下萨克森州","lengede 伦格德 lngle 下萨克森州 lower saxony"],["PL",86929,"Lniano","利尼亚诺",1625,"库亚维-波美拉尼亚","lniano 利尼亚诺 lnian 库亚维 波美拉尼亚 kuyavia pomerania"]];

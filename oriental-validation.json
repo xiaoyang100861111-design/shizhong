@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "originalShop": 30,
+  "originalLive": 34,
+  "totalShop": 54,
+  "totalLive": 58,
+  "added": 24,
+  "subseries": [
+    "盛世雅物",
+    "上古四灵",
+    "金榜题名",
+    "十二时辰"
+  ],
+  "priceRM": {
+    "min": 100,
+    "max": 200000
+  },
+  "goldBeans": {
+    "min": 9,
+    "max": 29999,
+    "rankingMatchesRM": true
+  },
+  "wearable": 7,
+  "friendShowcasePreserved": true,
+  "shopBranches": true,
+  "studioFrameChoice": true,
+  "previewDispatch": true,
+  "avatarAutoRemoval": true,
+  "missingImages": []
+}

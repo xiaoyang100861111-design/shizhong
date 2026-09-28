@@ -1,0 +1,18 @@
+[
+  {
+    "file": "cake-table.jpg",
+    "source": "https://unsplash.com/photos/cake-beside-candles-and-flowers-DW_nQY7e8t8",
+    "author": "Brooke Lark",
+    "license": "Unsplash License",
+    "usage": "Illustrative editorial cover; not a photograph of the fictional merchant or exact SKU.",
+    "bytes": 127958
+  },
+  {
+    "file": "hair-salon.jpg",
+    "source": "https://unsplash.com/photos/barber-shop-interior-with-clients-receiving-haircuts-_EjaOZ0D8xY",
+    "author": "Chaps & Co",
+    "license": "Unsplash License",
+    "usage": "Illustrative editorial cover; not a photograph of the fictional merchant or exact SKU.",
+    "bytes": 99265
+  }
+]

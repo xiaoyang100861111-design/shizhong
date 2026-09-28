@@ -1,0 +1,8 @@
+官方公开文档礼物图标
+来源：https://partner.open-douyin.com/docs/resource/zh-CN/interaction/jierushuoming/hudongshuju/liwushuju
+本目录仅保存公开文档图片，不包含抖音原版礼物特效、音效或SDK。
+官方页面标示价格为抖币，不能直接解释为本应用RM价格。
+页面未声明独立站再分发或开源许可，licenseStatus明确记录为unknown；公开URL不等于取得通用商业授权。
+官方ID为页面所列不透明加密字符串。源URL、下载格式、缩放、尺寸与SHA-256见sources.json。
+
+另含 fluent-red-heart.png 和 fluent-party-popper.png：Microsoft Fluent Emoji 3D，MIT许可，具体提交与来源见 sources.json，完整许可见 LICENSE-MICROSOFT.txt。此MIT许可不适用于 douyin-*.png。

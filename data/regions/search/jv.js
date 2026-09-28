@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["jv"]=[["GE",52076,"Jvari","杰瓦里",908,"萨梅格列罗-上斯瓦涅季","jvari 杰瓦里 ჟვარი 萨梅格列罗 上斯瓦涅季 samegrelo zemo svaneti"]];

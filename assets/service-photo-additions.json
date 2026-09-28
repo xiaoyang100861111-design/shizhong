@@ -1,0 +1,292 @@
+{
+  "photos": [
+    {
+      "file": "ipoh-heritage-street.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "怡保",
+        "旧街场",
+        "新街场"
+      ],
+      "source": "https://www.pexels.com/photo/charming-old-world-architecture-in-ipoh-malaysia-36924477/",
+      "imageUrl": "https://images.pexels.com/photos/36924477/pexels-photo-36924477.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "怡保历史店屋与街巷",
+      "path": "assets/photos/ipoh-heritage-street.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 59170,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "johor-bahru-street.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "新山",
+        "柔佛",
+        "士都兰",
+        "彩虹花园"
+      ],
+      "source": "https://www.pexels.com/photo/charming-street-with-red-lanterns-in-johor-bahru-36889804/",
+      "imageUrl": "https://images.pexels.com/photos/36889804/pexels-photo-36889804.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "新山悬挂红灯笼的街道店屋",
+      "path": "assets/photos/johor-bahru-street.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 44910,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "petaling-jaya-city.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "八打灵再也",
+        "SS2",
+        "格拉那再也",
+        "白沙罗"
+      ],
+      "source": "https://www.pexels.com/photo/aerial-view-of-building-and-road-in-the-city-3714731/",
+      "imageUrl": "https://images.pexels.com/photos/3714731/pexels-photo-3714731.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "八打灵再也城市建筑与道路航拍",
+      "path": "assets/photos/petaling-jaya-city.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 58894,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "supermarket-groceries.webp",
+      "category": "market",
+      "categories": [
+        "market",
+        "delivery"
+      ],
+      "keywords": [
+        "超市",
+        "杂货",
+        "调味",
+        "粮油",
+        "零食",
+        "厨房用品",
+        "酱油",
+        "肉类"
+      ],
+      "source": "https://www.pexels.com/photo/woman-with-shopping-bag-choosing-food-in-supermarket-6097891/",
+      "imageUrl": "https://images.pexels.com/photos/6097891/pexels-photo-6097891.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "顾客手持购物袋在超市货架前挑选杂货",
+      "path": "assets/photos/supermarket-groceries.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 41648,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "mixed-fruit-basket.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "水果",
+        "香蕉",
+        "苹果",
+        "橙",
+        "梨",
+        "葡萄",
+        "西瓜"
+      ],
+      "source": "https://www.pexels.com/photo/fruit-basket-picnic-outdoors-on-sunny-day-28745404/",
+      "imageUrl": "https://images.pexels.com/photos/28745404/pexels-photo-28745404.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "装有香蕉、苹果与柑橘的水果篮",
+      "path": "assets/photos/mixed-fruit-basket.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 21794,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "stir-fried-noodles.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "炒面",
+        "炒粿条",
+        "炒米粉",
+        "哥罗面",
+        "干捞"
+      ],
+      "source": "https://www.pexels.com/photo/photograph-of-fried-noodles-with-vegetables-1815898/",
+      "imageUrl": "https://images.pexels.com/photos/1815898/pexels-photo-1815898.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "炒面搭配蔬菜、香菇与芝麻",
+      "path": "assets/photos/stir-fried-noodles.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 35704,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "fresh-coconut-drink.webp",
+      "category": "food",
+      "categories": [
+        "food",
+        "market"
+      ],
+      "keywords": [
+        "鲜椰子水",
+        "椰青",
+        "椰子水",
+        "椰汁"
+      ],
+      "source": "https://www.pexels.com/photo/fresh-coconut-drink-on-a-wooden-table-12580175/",
+      "imageUrl": "https://images.pexels.com/photos/12580175/pexels-photo-12580175.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "木桌上开盖插管的鲜椰子",
+      "path": "assets/photos/fresh-coconut-drink.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 15778,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "fruit-juice-glasses.webp",
+      "category": "food",
+      "categories": [
+        "food",
+        "market"
+      ],
+      "keywords": [
+        "果汁",
+        "西瓜汁",
+        "青柠",
+        "饮料",
+        "冰饮",
+        "芒果酸奶"
+      ],
+      "source": "https://www.pexels.com/photo/glasses-of-fruit-juices-7656388/",
+      "imageUrl": "https://images.pexels.com/photos/7656388/pexels-photo-7656388.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "多种颜色的鲜榨果蔬汁玻璃杯",
+      "path": "assets/photos/fruit-juice-glasses.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 18154,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "malaysian-kuih.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "九层糕",
+        "糯米糕",
+        "香兰",
+        "椰丝卷",
+        "小圆子",
+        "糕点"
+      ],
+      "source": "https://www.pexels.com/photo/traditional-indonesian-kuih-lapis-dessert-display-37208763/",
+      "imageUrl": "https://images.pexels.com/photos/37208763/pexels-photo-37208763.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "咖啡桌上的香兰千层糕点与茶饮",
+      "path": "assets/photos/malaysian-kuih.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 17186,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    },
+    {
+      "file": "rice-congee.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "粥",
+        "米粥",
+        "鸡丝粥",
+        "鱼片粥",
+        "南瓜粥"
+      ],
+      "source": "https://www.pexels.com/photo/delicious-homemade-rice-porridge-in-ceramic-bowl-32835478/",
+      "imageUrl": "https://images.pexels.com/photos/32835478/pexels-photo-32835478.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "陶瓷碗中的米粥与葱花",
+      "path": "assets/photos/rice-congee.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22574,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "qualityTarget": 75,
+      "encodingNote": "WebP质量目标75，纹理复杂照片可降低质量以减少体积。",
+      "visuallyVerified": true
+    }
+  ]
+}

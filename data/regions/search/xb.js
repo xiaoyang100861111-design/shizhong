@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["xb"]=[["MT",67814,"Ta’ Xbiex","塔·西比克斯",122,"塔·西比克斯","ta xbiex 塔 西比克斯 塔 西比克斯 ta xbiex"],["MX",76130,"Xbacab","Xbacab",3475,"坎佩切","xbacab xbacab xbab 坎佩切 campeche"]];

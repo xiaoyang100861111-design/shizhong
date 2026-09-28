@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["mf"]=[["CM",19219,"Mfoundi","姆丰迪",2660,"中心","mfoundi 姆丰迪 un memond 中心 centre"],["TZ",109130,"Kitangari","基坦加里",1476,"姆特瓦拉","kitangari 基坦加里 mfalme 姆特瓦拉 mtwara"]];

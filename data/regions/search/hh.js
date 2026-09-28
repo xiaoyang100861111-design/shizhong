@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["hh"]=[["DE",24119,"Billigheim-Ingenheim","比利格海姆-因根海姆",3019,"莱茵兰-普法尔茨州","billigheim ingenheim 比利格海姆 因根海姆 billiger hheim ingheim 莱茵兰 普法尔茨州 rhineland palatinate"],["SZ",105087,"Hhukwini","胡克维尼",969,"呼呼呼","hhukwini 胡克维尼 throughout 呼呼呼 hhohho"]];

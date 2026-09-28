@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["bw"]=[["NG",160138,"Bwari","布瓦里",293,"阿布贾联邦首都特区","bwari 布瓦里 阿布贾联邦首都特区 abuja federal capital territory"],["UG",110888,"Bweyogerere","布韦约杰雷雷",396,"中央","bweyogerere 布韦约杰雷雷 bweyogerere bweyogerere 中央 central"],["UG",110889,"Bwizibwera","布维齐布韦拉",370,"西","bwizibwera 布维齐布韦拉 come 西 western"]];

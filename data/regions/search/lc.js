@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["lc"]=[["AM",438,"Lchap’","Lchap’",2028,"格加尔库尼克","lchap lchap լչապ 格加尔库尼克 gegharkunik"],["AM",439,"Lchashen","拉查申",2028,"格加尔库尼克","lchashen 拉查申 լճաշեն 格加尔库尼克 gegharkunik"]];

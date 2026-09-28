@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2026-09-27T13:26:35.561Z",
+  "passed": true,
+  "counts": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0
+  },
+  "sources": {
+    "chat-tools.js": {
+      "sha256": "8668fde41aba229262424d9a25a706886f6a83e6681d475fc11133830cc1c236",
+      "bytes": 41433
+    },
+    "gifts.js": {
+      "sha256": "83f17a220c072f8d15ec24a605a3b4a812524f282b131dbec3ada9edff1c30ab",
+      "bytes": 45669
+    },
+    "lazy.js": {
+      "sha256": "a529ce5b0dcb0870d394f63e4674bcb6cdd27d1d0aa983efb6839fb67ae466d9",
+      "bytes": 10101
+    },
+    "catalog.js": {
+      "sha256": "705393f48094a0b7b108a8fedeae617e19801731294081b8c2994e2eefcc1838",
+      "bytes": 54783
+    },
+    "app.js": {
+      "sha256": "0ab7df3cb752debb935dd3864e7f7548ac1944120b42248af0f4e3f8255f8e40",
+      "bytes": 24696
+    }
+  },
+  "scope": "Actual chat-tools IIFE, actual gifts rememberChat/captureNavigation/openGiftChat, catalog chatInfo/conversationMessages, lazy demand/close/personDetail and app.save. Controlled minimal DOM, IndexedDB completion, pointer events and microphone permission boundaries. No product edits or browser.",
+  "results": [
+    {
+      "name": "decimal amount parser accepts positive cents and rejects invalid/unsafe formats",
+      "passed": true
+    },
+    {
+      "name": "insufficient amount cannot create confirmation transaction",
+      "passed": true
+    },
+    {
+      "name": "repeated pay debits once with one message and numeric RM ledger",
+      "passed": true
+    },
+    {
+      "name": "refund is applied once and settled record cannot be claimed again",
+      "passed": true
+    },
+    {
+      "name": "simulated recipient claim never credits sender and cannot later refund",
+      "passed": true
+    },
+    {
+      "name": "pay save failure restores complete state and keeps request retryable",
+      "passed": true
+    },
+    {
+      "name": "retry after failed payment commits one transaction",
+      "passed": true
+    },
+    {
+      "name": "refund save failure restores wallet ledger and pending message",
+      "passed": true
+    },
+    {
+      "name": "refund retry still credits once after rollback object replacement",
+      "passed": true
+    },
+    {
+      "name": "final payment checks latest balance after confirmation",
+      "passed": true
+    },
+    {
+      "name": "cancelling tool restores same composer node, draft and chat scroll",
+      "passed": true
+    },
+    {
+      "name": "stale upload after switching chat creates no message in either chat and deletes blob",
+      "passed": true
+    },
+    {
+      "name": "media message save failure rolls back metadata and deletes committed blob",
+      "passed": true
+    },
+    {
+      "name": "attachment database failure does not append a message or save state",
+      "passed": true
+    },
+    {
+      "name": "double attachment submit writes one blob and one metadata message",
+      "passed": true
+    },
+    {
+      "name": "late microphone permission after leaving stops tracks without recording or message",
+      "passed": true
+    },
+    {
+      "name": "successful financial send preserves upstream chat return destination",
+      "passed": true
+    },
+    {
+      "name": "cold profile navigation returns to contact-card detail before chat",
+      "passed": true
+    },
+    {
+      "name": "late old recording data cannot contaminate the next chat recording",
+      "passed": true
+    },
+    {
+      "name": "failed call-record save preserves retry and retry appends exactly once",
+      "passed": true
+    },
+    {
+      "name": "pointer cancellation before hold threshold starts no recording or permission request",
+      "passed": true
+    },
+    {
+      "name": "release before microphone permission invalidates request and stops late tracks",
+      "passed": true
+    },
+    {
+      "name": "upward hold cancellation releases recording tracks and ignores final audio chunk",
+      "passed": true
+    },
+    {
+      "name": "failed text save retains draft and DOM; retry sends once without replacing chat",
+      "passed": true
+    }
+  ]
+}

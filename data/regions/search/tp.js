@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["tp"]=[["MX",73932,"San Juan Tepa","圣胡安特帕",3470,"伊达尔戈","san juan tepa 圣胡安特帕 san juan tpa 伊达尔戈 hidalgo"],["RU",101910,"Tpig","特猪",1850,"达吉斯坦","tpig 特猪 тпиг 达吉斯坦 dagestan"]];

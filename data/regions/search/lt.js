@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["lt"]=[["UZ",129970,"Oltinko‘l","奥尔廷科尔",2548,"卡拉卡尔帕克斯坦","oltinko l 奥尔廷科尔 ltinkova 卡拉卡尔帕克斯坦 karakalpakstan"]];

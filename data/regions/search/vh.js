@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["vh"]=[["ZA",131287,"Vhembe","Vhembe区自治市",933,"林波波省","vhembe vhembe区自治市 vhembe district municipality 林波波省 limpopo"]];

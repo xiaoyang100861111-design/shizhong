@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["ws"]=[["PL",87771,"Powstańców Śląskich Wschód","波斯坦科夫·斯拉斯基·沃肖德",1629,"下西里西亚","powstancow slaskich wschod 波斯坦科夫 斯拉斯基 沃肖德 下西里西亚 lower silesia"],["PL",88610,"Wschowa","弗斯霍瓦",1631,"卢布斯卡","wschowa 弗斯霍瓦 卢布斯卡 lubusz"]];

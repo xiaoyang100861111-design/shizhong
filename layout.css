@@ -1,0 +1,212 @@
+/*
+ * App viewport ownership.
+ * Load after styles.css, catalog.css, gifts.css and regions.css.
+ * #app scrolls; the navigation occupies its own row; dialogs fill the same frame.
+ * --visual-viewport-height/top are supplied by lazy.js, including keyboard resize.
+ */
+:root {
+  --layout-frame-gap: 0px;
+  --layout-frame-radius: 0px;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+#app-shell.app-shell {
+  position: fixed;
+  top: calc(var(--visual-viewport-top, 0px) + var(--layout-frame-gap));
+  right: 0;
+  bottom: auto;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  height: max(0px, calc(var(--visual-viewport-height, 100dvh) - var(--layout-frame-gap) - var(--layout-frame-gap)));
+  min-height: 0;
+  min-width: 0;
+  margin: 0 auto;
+  padding-top: var(--safe-top, 0px);
+  border-radius: var(--layout-frame-radius);
+  overflow: hidden;
+  /* Bind fixed utility layers to this frame, without transforming a scrollport. */
+  contain: layout paint;
+  isolation: isolate;
+}
+
+#app-shell > #app {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding-bottom: 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: 76px 16px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #ded8de transparent;
+}
+
+#app-shell > #bottom-nav.bottom-nav {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  height: calc(74px + var(--safe, 0px));
+  min-height: calc(74px + var(--safe, 0px));
+  margin: 0;
+  border-radius: 0;
+}
+
+#app-shell > #overlay-root {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  min-width: 0;
+  min-height: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#app-shell > #overlay-root > :is(.full-screen, .overlay-backdrop) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+  pointer-events: auto;
+}
+
+#app-shell > #overlay-root > .full-screen {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+/* A persistent page transform would anchor fixed publish controls to the long list. */
+#app-shell #app .page { animation:layout-page-in .2s ease both; }
+@keyframes layout-page-in { from { opacity:.35; } to { opacity:1; } }
+#app-shell > #overlay-root > .full-screen::-webkit-scrollbar { display:none; }
+
+#app-shell > #overlay-root > .gift-underlay {
+  pointer-events: none;
+}
+
+#app-shell > #overlay-root > .overlay-backdrop {
+  overflow: hidden;
+}
+
+/* The backdrop already ends at the frame bottom: no second desktop 22px gap. */
+#app-shell > #overlay-root > .overlay-backdrop > .sheet {
+  max-width: 100%;
+  max-height: calc(100% - 12px);
+  margin-bottom: 0;
+  border-radius: 24px 24px 0 0;
+}
+
+/* Preserve the region sheet's own fixed search and independently scrolling list. */
+#app-shell > #overlay-root > .overlay-backdrop > .sheet.region-sheet {
+  height: min(90dvh, 820px);
+  max-height: calc(100% - 12px);
+}
+
+/* Chat owns exactly three rows: header, flexible message scrollport, composer. */
+#app-shell > #overlay-root > .full-screen.chat-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+#app-shell .chat-screen > :is(.detail-header, .gift-chat-header, .chat-composer) {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+#app-shell .chat-screen > .chat-log {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 16px;
+}
+
+#app-shell .chat-screen > .chat-composer {
+  margin: 0;
+  padding-bottom: calc(12px + var(--safe, 0px));
+}
+
+/* Fixed utilities now use the contained frame, so remove viewport offsets. */
+#app-shell .floating-button {
+  position: fixed;
+  right: max(18px, var(--safe-right, 0px));
+  bottom: calc(96px + var(--safe, 0px));
+  left: auto;
+  margin: 0;
+}
+
+#app-shell > .resource-loading {
+  top: var(--safe-top, 0px);
+  max-width: none;
+}
+
+#app-shell > #storage-notice {
+  top: 0;
+  max-width: none;
+}
+
+#app-shell > .gift-effect-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+}
+
+/* Background scrolling must remain locked while a modal is open. */
+#app-shell:has(> #overlay-root > [role="dialog"]) > #app,
+#app-shell:has(> #overlay-root > .overlay-backdrop) > #app {
+  overflow-y: hidden;
+}
+
+/* #app's scrollport starts below the shell's safe top padding. */
+#app-shell #app .page-controls {
+  top: 0;
+}
+
+@media (min-width: 1000px) {
+  :root {
+    --layout-frame-gap: 22px;
+    --layout-frame-radius: 27px;
+  }
+}
+
+@media (max-width: 359px) {
+  #app-shell .floating-button { right: 14px; }
+}
+
+/* Every friend's portrait is a round, keyboard accessible profile entry. */
+.chat-avatar-button{position:relative;display:block;flex:0 0 35px;width:35px;height:35px;min-width:0;padding:0;border-radius:50%;line-height:0;align-self:flex-start}
+.chat-avatar-button::after{content:"";position:absolute;inset:-5px;border-radius:50%}
+.chat-avatar-button .avatar{width:100%;height:100%;border-radius:50%;aspect-ratio:1;object-fit:cover}
+.gift-chat-header .chat-avatar-button{flex-basis:38px;width:38px;height:38px;align-self:center}
+.friend-profile-screen .detail-content{padding-top:19px}

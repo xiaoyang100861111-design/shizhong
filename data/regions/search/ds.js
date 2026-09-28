@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["ds"]=[["AM",376,"Dsegh","德塞格",2029,"洛瑞","dsegh 德塞格 դսեղ 洛瑞 lori"],["CM",19171,"Dschang","德尚",2664,"西方","dschang 德尚 西方 west"]];

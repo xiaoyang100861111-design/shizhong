@@ -1,0 +1,194 @@
+{
+  "generatedAt": "2026-09-27T09:44:25.599Z",
+  "siteDirectory": "E:\\python\\shizhongapp",
+  "method": "Node VM; production gifts.js and actual save/reset/menu/demand/close/chat wrappers; controlled DOM, localStorage and data-chunk fixtures; no product writes",
+  "original17AssertionsUnchanged": true,
+  "assertionBlockSha256": "7139fd450bd22018ba7258738a7a488daf566f4b6f0ecc98aaf688cec09fcd3e",
+  "fixtureUpdates": [
+    "#app scroll container with scrollTop and scrollTo",
+    "Persistent overlay nodes with childNodes and replaceChildren",
+    "Restored input values, selection range, scroll positions and focus",
+    "Overlay querySelectorAll support for navigation snapshots",
+    "People IDs preserved for avatar navigation"
+  ],
+  "limitations": [
+    "Does not replace real browser layout, pointer dragging, image decoding or visual validation."
+  ],
+  "sourceHashes": {
+    "app.js": "859b215254345da46fd1eb8d94ea603bc6b5d3137262841cdc5064738ad67e65",
+    "flows.js": "9fef61051f331e5b678213c5d6da140143033239cd077aef8d90465fc5a7cc3b",
+    "lazy.js": "a529ce5b0dcb0870d394f63e4674bcb6cdd27d1d0aa983efb6839fb67ae466d9",
+    "gifts.js": "29e53b0c610b589f852e000f1dd8757c1deb45a808e886da981030943546fbf9",
+    "gift-data.js": "d6412e15d5df1cb63d9dcf39a90c05eac5fbbe3e93abade6c1e35d8a256c79cb"
+  },
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "name": "gift_navigation_invalidates_older_lazy_request",
+      "status": "passed",
+      "durationMs": 14,
+      "evidence": {
+        "visibleTitle": "礼物商城"
+      }
+    },
+    {
+      "name": "studio_cancel_returns_to_actual_collection_or_shop",
+      "status": "passed",
+      "durationMs": 4,
+      "evidence": {
+        "collectionTab": "purchases",
+        "shopRestored": true
+      }
+    },
+    {
+      "name": "studio_shop_back_preserves_unsaved_background",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "draft": "rose-mist",
+        "saved": "crimson-gold"
+      }
+    },
+    {
+      "name": "studio_purchase_and_wear_preserves_draft_then_saves",
+      "status": "passed",
+      "durationMs": 7,
+      "evidence": {
+        "background": "rose-mist",
+        "stickers": 1,
+        "wallet": 900
+      }
+    },
+    {
+      "name": "cancel_review_retains_gift_note_without_mutation",
+      "status": "passed",
+      "durationMs": 4,
+      "evidence": {
+        "noteRetained": true,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "wallpaper_and_message_detail_preserve_unsent_chat_text",
+      "status": "passed",
+      "durationMs": 2,
+      "evidence": {
+        "cancelWallpaper": true,
+        "applyWallpaper": true,
+        "closeGiftMessage": true
+      }
+    },
+    {
+      "name": "escape_dismisses_effect_without_closing_gift_detail",
+      "status": "passed",
+      "durationMs": 4,
+      "evidence": {
+        "firstEscape": "effect only",
+        "secondEscape": "detail back to shop"
+      }
+    },
+    {
+      "name": "save_failure_rolls_back_purchase_and_retry_succeeds_once",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "failedStateRolledBack": true,
+        "retryWallet": 900,
+        "transactions": 1
+      }
+    },
+    {
+      "name": "duplicate_purchase_confirmation_is_idempotent",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "wallet": 900,
+        "owned": 1,
+        "bills": 1
+      }
+    },
+    {
+      "name": "owned_send_decrements_inventory_and_trims_only_excess_decorations",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "wallet": 1000,
+        "owned": 1,
+        "remainingDecorations": 2,
+        "messages": 1
+      }
+    },
+    {
+      "name": "save_failure_rolls_back_owned_send_and_decoration_removal",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "inventory": 1,
+        "decorations": 1,
+        "noMessageCreated": true
+      }
+    },
+    {
+      "name": "insufficient_balance_never_debits_and_topup_cancel_is_read_only",
+      "status": "passed",
+      "durationMs": 4,
+      "evidence": {
+        "wallet": 88,
+        "transactions": 0,
+        "topupCancelled": true
+      }
+    },
+    {
+      "name": "topup_saves_amount_once_and_resumes_same_confirmation",
+      "status": "passed",
+      "durationMs": 4,
+      "evidence": {
+        "toppedUp": 12,
+        "finalWallet": 0,
+        "owned": 1
+      }
+    },
+    {
+      "name": "sending_handles_asynchronous_and_synchronous_chat_wrappers",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "asynchronousChat": true,
+        "cachedChat": true,
+        "wallet": 900
+      }
+    },
+    {
+      "name": "reset_restores_default_gifts_wallet_and_persisted_state",
+      "status": "passed",
+      "durationMs": 7,
+      "evidence": {
+        "wallet": 88,
+        "owned": 0,
+        "transactions": 0,
+        "messages": 0,
+        "background": "crimson-gold"
+      }
+    },
+    {
+      "name": "studio_shop_shortcut_and_cancel_do_not_destroy_resumable_draft",
+      "status": "passed",
+      "durationMs": 3,
+      "evidence": {
+        "noStaleDraftReturn": true
+      }
+    },
+    {
+      "name": "leaving_studio_does_not_leave_a_stale_shop_return_callback",
+      "status": "passed",
+      "durationMs": 5,
+      "evidence": {
+        "purchaseReturnsToCollection": true
+      }
+    }
+  ]
+}

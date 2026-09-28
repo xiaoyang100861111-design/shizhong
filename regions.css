@@ -1,0 +1,625 @@
+/* Global region picker and compact form entry. */
+.location-button .region-location-name{max-width:116px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.region-field-button{display:flex;align-items:center;gap:10px;width:100%;min-height:50px;text-align:left}
+.region-field-button .region-field-label{flex:1;min-width:0;overflow-wrap:anywhere}
+.region-field-button .ico{flex-shrink:0;width:18px;height:18px}
+.region-service-note{margin:16px 0 0;padding:12px 14px;background:#fff7e8;border:1px solid #f0e1c3;border-radius:12px;color:#997544;font-size:12px;line-height:1.7}
+.sheet.region-sheet .region-confirm-action{padding:14px 20px max(16px,env(safe-area-inset-bottom))}
+.sheet.region-sheet .region-confirm-action .primary-button{width:100%}
+.sheet.region-sheet .region-custom-fields{padding:20px;font-size:14px;line-height:1.8}
+.sheet.region-sheet .region-custom-fields .form-group{margin-top:18px}
+.sheet.region-sheet .region-custom-fields input,.sheet.region-sheet .region-custom-fields select{font-size:16px;width:100%;box-sizing:border-box}
+.sheet.region-sheet .region-source-button{font:inherit;color:#a38275;text-decoration:underline;padding:0;background:none;border:0;min-height:24px}
+.sheet.region-sheet {
+  --region-ink: #29242a;
+  --region-muted: #8c858c;
+  --region-line: #f0ecee;
+  --region-red: var(--red, #e8313e);
+  --region-gold: #e6bc56;
+  --region-gutter: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  height: min(90dvh, 820px);
+  max-height: calc(var(--visual-viewport-height, 100dvh) - var(--safe-top, 0px) - 12px);
+  min-height: 0;
+  margin-bottom: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #ffffffa6;
+  border-bottom: 0;
+  border-radius: 25px 25px 0 0;
+  background: #fff;
+  color: var(--region-ink);
+  box-shadow: 0 -14px 54px #39242b21;
+  overscroll-behavior: none;
+  container-name: region-sheet;
+  container-type: size;
+}
+
+.sheet.region-sheet *,
+.sheet.region-sheet *::before,
+.sheet.region-sheet *::after { box-sizing: border-box; }
+
+.sheet.region-sheet > .sheet-handle {
+  flex: 0 0 4px;
+  width: 32px;
+  height: 4px;
+  margin: 9px auto 0;
+  border-radius: 3px;
+  background: #e2dce0;
+}
+
+.sheet.region-sheet > .sheet-header {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  min-height: 58px;
+  gap: 12px;
+  padding: 6px var(--region-gutter) 8px;
+  background: #fff;
+}
+
+.sheet.region-sheet > .sheet-header h2 {
+  min-width: 0;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 760;
+  line-height: 1.4;
+  letter-spacing: -.3px;
+}
+
+.sheet.region-sheet > .sheet-header .icon-button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #898087;
+  background: #f6f3f5;
+}
+
+.sheet.region-sheet > .sheet-body {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sheet.region-sheet .region-picker {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  padding-bottom: max(8px, var(--safe, env(safe-area-inset-bottom, 0px)));
+  background: #fff;
+}
+
+/* These siblings never scroll; only .region-results owns vertical scrolling. */
+.sheet.region-sheet .region-picker > :not(.region-results) { flex-shrink: 0; }
+.sheet.region-sheet :is(button, input, select) { font: inherit; }
+.sheet.region-sheet button { touch-action: manipulation; }
+.sheet.region-sheet button:disabled { opacity: .45; cursor: default; }
+.sheet.region-sheet :is(button, select):focus-visible {
+  outline: 3px solid #efc760;
+  outline-offset: -3px;
+}
+
+.sheet.region-sheet .region-search {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  margin: 2px var(--region-gutter) 10px;
+  padding: 3px 4px 3px 13px;
+  border: 1px solid #f0ebee;
+  border-radius: 15px;
+  background: #f6f4f6;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.sheet.region-sheet .region-search:focus-within {
+  border-color: #edacb2;
+  background: #fff;
+  box-shadow: 0 0 0 3px #e8313e0a;
+}
+.sheet.region-sheet .region-search > :is(.ico, svg) {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  color: #9d9098;
+}
+.sheet.region-sheet .region-search input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--region-ink);
+  caret-color: var(--region-red);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.sheet.region-sheet .region-search input::placeholder { color: #a29ba2; opacity: 1; }
+.sheet.region-sheet .region-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.sheet.region-sheet .region-search button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  color: #9d8e97;
+  background: transparent;
+}
+.sheet.region-sheet .region-search button :is(.ico, svg) { width: 17px; height: 17px; }
+.sheet.region-sheet [hidden] { display: none !important; }
+
+.sheet.region-sheet .region-scope-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 var(--region-gutter) 12px;
+  padding: 4px;
+  border-radius: 13px;
+  background: #f7f4f4;
+}
+.sheet.region-sheet .region-scope-tabs > button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 8px;
+  border: 0;
+  border-radius: 10px;
+  color: #8b7e84;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  background: transparent;
+}
+.sheet.region-sheet .region-scope-tabs > :is(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  color: #bd2c39;
+  background: #fff;
+  box-shadow: 0 2px 7px #52333c09;
+}
+
+.sheet.region-sheet .region-current {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 9px;
+  margin: 0 var(--region-gutter) 11px;
+  padding: 10px 12px;
+  border-left: 3px solid #e8c66e;
+  border-radius: 0 10px 10px 0;
+  color: #765b37;
+  background: #fff9ec;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sheet.region-sheet .region-current :is(h3, h4, .region-label) {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #a18c6c;
+}
+.sheet.region-sheet .region-current strong { font-size: 14px; font-weight: 700; color: #554235; }
+.sheet.region-sheet .region-current :is(p, small) { margin: 0; font-size: 11px; color: #988772; overflow-wrap: anywhere; }
+
+.sheet.region-sheet .region-recent {
+  margin: 0 var(--region-gutter) 9px;
+  min-width: 0;
+}
+.sheet.region-sheet .region-recent :is(h3, h4, .region-section-title) {
+  margin: 0 0 6px;
+  padding: 0;
+  color: #9a8f96;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  background: transparent;
+}
+.sheet.region-sheet .region-recent > :is(div, .region-chip-wrap),
+.sheet.region-sheet .region-recent .region-recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sheet.region-sheet .region-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ece6e9;
+  border-radius: 10px;
+  color: #786b74;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-chip:is(.active, .is-active, [aria-pressed="true"], [aria-selected="true"]) {
+  border-color: #f4c7cd;
+  color: #c33241;
+  background: #fff2f3;
+}
+
+.sheet.region-sheet .region-country-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 var(--region-gutter) 7px;
+}
+.sheet.region-sheet .region-country-heading > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 7px 8px 7px 0;
+  border: 0;
+  color: #b84a55;
+  background: transparent;
+  font-size: 12px;
+}
+.sheet.region-sheet .region-country-heading button :is(.ico, svg) { width: 16px; height: 16px; }
+.sheet.region-sheet .region-country-heading > :is(strong, h3, .region-country-name) {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-country-heading > :is(small, .region-city-count) {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--region-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet.region-sheet .region-state-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 var(--region-gutter) 10px;
+}
+.sheet.region-sheet .region-state-filter label {
+  flex: 0 0 auto;
+  color: #94848d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.sheet.region-sheet .region-state-filter select {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #ece5e9;
+  border-radius: 11px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #5c4b56;
+  background-color: #fff;
+  appearance: auto;
+  -webkit-appearance: menulist;
+}
+
+.sheet.region-sheet .region-continent-filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 0 0 9px;
+  padding: 0 var(--region-gutter) 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet.region-sheet .region-continent-filters::-webkit-scrollbar { display: none; }
+.sheet.region-sheet .region-continent-filters > button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #ede7ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #887983;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.sheet.region-sheet .region-continent-filters > :is(.active, .is-active, [aria-pressed="true"], [aria-selected="true"]) {
+  border-color: #efd9a6;
+  background: #fff7e3;
+  color: #9a7029;
+}
+
+.sheet.region-sheet .region-results {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 7px;
+  border-top: 1px solid var(--region-line);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: 34px 0 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #e2d8dd transparent;
+  background: #fff;
+}
+.sheet.region-sheet .region-section-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 9px var(--region-gutter) 8px;
+  border-bottom: 1px solid #f4f0f2;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: .4px;
+  color: #a08f98;
+  background: #fbf9fa;
+}
+
+/* Dense list rows, rather than individual cards. */
+.sheet.region-sheet :is(.region-country-row, .region-city-row) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-width: 0;
+  min-height: 66px;
+  margin: 0;
+  padding: 11px var(--region-gutter);
+  border: 0;
+  border-bottom: 1px solid #f4f0f2;
+  border-radius: 0;
+  text-align: left;
+  color: var(--region-ink);
+  background: #fff;
+  box-shadow: none;
+  transition: background-color .14s ease;
+}
+.sheet.region-sheet :is(.region-country-row, .region-city-row):active { background: #fcf4f5; }
+.sheet.region-sheet :is(.region-country-row, .region-city-row):is(.active, .is-selected, [aria-selected="true"], [aria-pressed="true"]) {
+  background: #fff3f4;
+}
+.sheet.region-sheet .region-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid #ece7e9;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 1px 3px #31252b09;
+}
+.sheet.region-sheet .region-flag img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.sheet.region-sheet .region-flag.region-flag-compact {
+  flex-basis: 24px;
+  width: 24px;
+  height: 19px;
+  padding: 1px;
+  border-radius: 3px;
+}
+.sheet.region-sheet .region-current small,
+.sheet.region-sheet .region-country-heading > strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sheet.region-sheet .region-row-main {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.sheet.region-sheet .region-row-main strong {
+  display: block;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-row-main small {
+  display: block;
+  min-width: 0;
+  color: #a2979f;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.sheet.region-sheet .region-row-meta {
+  flex: 0 1 30%;
+  min-width: 0;
+  max-width: 106px;
+  margin-left: auto;
+  color: #a4979f;
+  text-align: right;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-row-meta :is(span, small) { display: block; font-size: inherit; }
+.sheet.region-sheet .region-selected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--region-red);
+}
+.sheet.region-sheet .region-selected :is(svg, .ico),
+.sheet.region-sheet :is(svg, .ico).region-selected { width: 18px; height: 18px; }
+
+.sheet.region-sheet :is(.region-loading, .region-empty) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 174px;
+  padding: 28px 28px 32px;
+  text-align: center;
+  color: #a2929b;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.sheet.region-sheet :is(.region-loading, .region-empty) > :is(svg, .ico) { width: 28px; height: 28px; color: #d4adb3; }
+.sheet.region-sheet :is(.region-loading, .region-empty) :is(strong, h3) { color: #6b5662; font-size: 14px; font-weight: 650; }
+.sheet.region-sheet :is(.region-loading, .region-empty) p { max-width: 28em; margin: 0; overflow-wrap: anywhere; }
+.sheet.region-sheet .region-source-note {
+  margin: 0;
+  padding: 8px var(--region-gutter);
+  color: #aa9ea5;
+  font-size: 10px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-source-note a { color: #967f89; text-underline-offset: 3px; text-decoration: underline; }
+.sheet.region-sheet .region-load-more {
+  display: block;
+  width: calc(100% - 2 * var(--region-gutter));
+  min-height: 44px;
+  margin: 12px var(--region-gutter) 6px;
+  padding: 10px 16px;
+  border: 1px solid #eee3e7;
+  border-radius: 11px;
+  color: #aa5b67;
+  background: #fffbfc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sheet.region-sheet .region-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px var(--region-gutter);
+  border: 0;
+  border-top: 1px solid var(--region-line);
+  border-radius: 0;
+  background: #fff;
+  color: #9c8c95;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+.sheet.region-sheet .region-custom :is(.ico, svg) { width: 15px; height: 15px; }
+.sheet.region-sheet .region-confirm-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin: 4px var(--region-gutter) 10px;
+  padding: 11px 13px;
+  border: 1px solid #f1e0bb;
+  border-radius: 12px;
+  background: #fff9ec;
+  color: #897352;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.sheet.region-sheet .region-confirm-summary strong { color: #674d2d; font-size: 14px; font-weight: 700; }
+.sheet.region-sheet .region-confirm-summary p { flex-basis: 100%; margin: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .sheet.region-sheet :is(.region-country-row, .region-city-row):hover { background: #fdf6f7; }
+  .sheet.region-sheet :is(.region-chip, .region-load-more, .region-custom):hover { color: #bb3e4b; background: #fff6f6; }
+}
+@media (max-width: 359px) {
+  .sheet.region-sheet { --region-gutter: 14px; }
+  .sheet.region-sheet > .sheet-header h2 { font-size: 18px; }
+  .sheet.region-sheet .region-scope-tabs > button { padding-right: 4px; padding-left: 4px; font-size: 12px; }
+  .sheet.region-sheet :is(.region-country-row, .region-city-row) { gap: 8px; }
+  .sheet.region-sheet .region-flag { flex-basis: 36px; width: 36px; height: 28px; }
+  .sheet.region-sheet .region-row-main strong { font-size: 13px; }
+  .sheet.region-sheet .region-row-meta { max-width: 77px; flex-basis: 27%; }
+}
+@media (min-width: 1000px) {
+  .sheet.region-sheet {
+    margin-bottom: 22px;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - 44px);
+    border-bottom: 1px solid #ffffffa6;
+    border-radius: 25px;
+  }
+}
+/* The container height follows visualViewport, including the iOS keyboard. */
+@container region-sheet (max-height: 660px) {
+  .sheet.region-sheet .region-current { padding-top: 7px; padding-bottom: 7px; margin-bottom: 8px; }
+  .sheet.region-sheet .region-recent { display: none; }
+  .sheet.region-sheet .region-scope-tabs { margin-bottom: 8px; }
+}
+@container region-sheet (max-height: 440px) {
+  .sheet.region-sheet .region-current,
+  .sheet.region-sheet .region-source-note { display: none; }
+  .sheet.region-sheet > .sheet-header { min-height: 48px; padding-top: 2px; padding-bottom: 2px; }
+  .sheet.region-sheet .region-search { margin-bottom: 6px; }
+  .sheet.region-sheet .region-state-filter { margin-bottom: 6px; }
+  .sheet.region-sheet .region-country-heading { min-height: 44px; padding-bottom: 0; }
+  .sheet.region-sheet .region-continent-filters { margin-bottom: 5px; }
+  .sheet.region-sheet .region-custom { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet.region-sheet,
+  .sheet.region-sheet *,
+  .sheet.region-sheet *::before,
+  .sheet.region-sheet *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

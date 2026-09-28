@@ -1,0 +1,7 @@
+# Release archives and raw sources (kept locally, not versioned)
+*.zip
+*.tgz
+vendor/package/
+node_modules/
+dist/
+.qa/

@@ -1,0 +1,30 @@
+{
+  "cases": [
+    {
+      "name": "24 catalog editions have distinct art, titles and color scenes",
+      "pass": true
+    },
+    {
+      "name": "theme aliases and Chinese name priority",
+      "pass": true
+    },
+    {
+      "name": "ten stages create and clean up",
+      "pass": true
+    },
+    {
+      "name": "replace, skip, hidden, detach all complete once",
+      "pass": true
+    },
+    {
+      "name": "reduced motion uses no canvas loop and duration 1150ms",
+      "pass": true
+    },
+    {
+      "name": "paint caps 30/45 FPS and 32/56 particles",
+      "pass": true
+    }
+  ],
+  "passed": 6,
+  "failed": 0
+}

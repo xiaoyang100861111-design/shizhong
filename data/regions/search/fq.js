@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["fq"]=[["MA",67055,"Al Fqih Ben Çalah","阿尔菲基赫·本·恰拉",3317,"海尼夫拉","al fqih ben calah 阿尔菲基赫 本 恰拉 الفقيه بن جلاه 海尼夫拉 khenifra"],["MA",67121,"Fquih Ben Salah","费基赫本萨拉赫省",3317,"海尼夫拉","fquih ben salah 费基赫本萨拉赫省 ولاية الفقيه بن صالح 海尼夫拉 khenifra"]];

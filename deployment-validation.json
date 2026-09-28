@@ -1,0 +1,28 @@
+{
+  "version": "20260928-avatar1",
+  "demoBalanceVersion": "20260927-funds1",
+  "resourceModes": [
+    "root",
+    "subdirectory",
+    "local"
+  ],
+  "imageReferences": 615,
+  "uniqueImageFiles": 595,
+  "animatedAvatars": 9,
+  "orientalImages": 24,
+  "orientalShopRecords": 24,
+  "orientalLiveRecords": 24,
+  "entryResources": 36,
+  "liveGiftRecords": 58,
+  "liveGiftPNGs": 20,
+  "liveGiftSourceRecords": 20,
+  "liveGiftDocuments": [
+    "sources.json",
+    "catalog.json",
+    "reusable-fallbacks.json",
+    "ATTRIBUTION.txt",
+    "LICENSE-MICROSOFT.txt"
+  ],
+  "versionedLivePNGReferencesChecked": 20,
+  "failures": []
+}

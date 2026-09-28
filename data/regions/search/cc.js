@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["cc"]=[["PE",80597,"Ccaquiracunca","卡基拉昆卡",3691,"库斯科","ccaquiracunca 卡基拉昆卡 ccaquiracca 库斯科 cusco"],["PE",80598,"Ccolo","科洛",3681,"阿雷基帕","ccolo 科洛 阿雷基帕 arequipa"],["PE",80599,"Ccuntuma","昆图马",3691,"库斯科","ccuntuma 昆图马 库斯科 cusco"]];

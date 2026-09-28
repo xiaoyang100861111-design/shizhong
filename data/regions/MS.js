@@ -1,0 +1,2 @@
+window.SHIZHONG_REGION_CHUNKS=window.SHIZHONG_REGION_CHUNKS||Object.create(null);
+window.SHIZHONG_REGION_CHUNKS["MS"]={"countryCode":"MS","states":[{"id":5419,"name":"圣彼得","en":"Saint Peter","code":"01","type":"parish","parentId":null,"aliases":[]},{"id":5420,"name":"圣乔治","en":"Saint Georges","code":"02","type":"parish","parentId":null,"aliases":[]},{"id":5421,"name":"圣安东尼","en":"Saint Anthony","code":"03","type":"parish","parentId":null,"aliases":[]}],"cities":[]};

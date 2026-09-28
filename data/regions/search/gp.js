@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["gp"]=[["ZW",131440,"Gwanda District","关达区",1952,"南马塔贝莱兰省","gwanda district 关达区 gpog district 南马塔贝莱兰省 matabeleland south"]];

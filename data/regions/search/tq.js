@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["tq"]=[["GE",52129,"Tqibuli","齐布利",905,"伊梅列季","tqibuli 齐布利 ტილაბი 伊梅列季 imereti"],["GE",52130,"Tqvarch'eli","特瓦尔切利",901,"阿布哈兹","tqvarch eli 特瓦尔切利 阿布哈兹 abkhazia"]];

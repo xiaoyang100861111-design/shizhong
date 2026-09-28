@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["hm"]=[["AU",5620,"Hmas Cerberus","赫马斯·塞伯鲁斯",3903,"维多利亚","hmas cerberus 赫马斯 塞伯鲁斯 维多利亚 victoria"],["KH",64985,"Srok Stueng Hav","斯洛克·斯图恩·哈夫",3989,"西哈努克城","srok stueng hav 斯洛克 斯图恩 哈夫 សរក stund hm 西哈努克城 sihanoukville"]];

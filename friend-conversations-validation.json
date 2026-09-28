@@ -1,0 +1,426 @@
+{
+  "mode": "Node VM logic only; actual product function and modules; no browser/network/product writes",
+  "productDirectory": "E:/python/shizhongapp",
+  "generatedAt": "2026-09-27T09:44:06.322Z",
+  "sources": [
+    {
+      "file": "data/catalog-index.js",
+      "bytes": 411906,
+      "sha256": "f474c6d9cf4cd2364090e66f51bd3bee00dacb6df79721ad8fc7d3d384cadc25"
+    },
+    {
+      "file": "app.js",
+      "bytes": 23997,
+      "sha256": "859b215254345da46fd1eb8d94ea603bc6b5d3137262841cdc5064738ad67e65"
+    },
+    {
+      "file": "catalog.js",
+      "bytes": 54777,
+      "sha256": "a059fe1433d9bcf6d68e97b5f7f942f28b642d018014f58f0fe38bac2183b5ad"
+    },
+    {
+      "file": "lazy.js",
+      "bytes": 10101,
+      "sha256": "a529ce5b0dcb0870d394f63e4674bcb6cdd27d1d0aa983efb6839fb67ae466d9"
+    },
+    {
+      "file": "data/people.js",
+      "bytes": 314408,
+      "sha256": "71dbad8aa3ff68d1eceab6d641b6cc2630bb24b52d5c48dd65c40927a68a0efc"
+    },
+    {
+      "file": "data/groups.js",
+      "bytes": 260777,
+      "sha256": "7f48ba595b4f264e4b6c1bba456ba761380b13a9b5a620f5fe3feebff6dd4cc8"
+    },
+    {
+      "file": "data/conversations.js",
+      "bytes": 94828,
+      "sha256": "4195ef7f877c63f4cc4a4ec5bc7b77772388551020c842f064f1a48ef5535b52"
+    },
+    {
+      "file": "data/profiles-0.js",
+      "bytes": 74428,
+      "sha256": "9426f2db2cf5d3d6c1bb0b8094cb7b5a4a0ef705a619457ccde703a819eeea85"
+    },
+    {
+      "file": "data/profiles-1.js",
+      "bytes": 74015,
+      "sha256": "9401f2c3d256786c6f1f761a12b447c063849b468d5ade9b2aa3c4daf988f787"
+    },
+    {
+      "file": "data/profiles-2.js",
+      "bytes": 74264,
+      "sha256": "1a6dcaac51dfaf212c3c05e58a3dea71637d9c5693e00ab5f8dd942a28b5a186"
+    },
+    {
+      "file": "data/profiles-3.js",
+      "bytes": 74232,
+      "sha256": "8384bc10878dea4f1e37462939e36ec8f2ac6aa4d91fab1501459df569d3fbdf"
+    },
+    {
+      "file": "data/profiles-4.js",
+      "bytes": 74074,
+      "sha256": "67c1324b2dc9bb9fc21c2b4b4a1e6d3b4243fee8906ccb32a956a67fee90575f"
+    },
+    {
+      "file": "data/profiles-5.js",
+      "bytes": 74301,
+      "sha256": "7a695b2effdfac632728432e48af233c1262f6e04fdd21bd1277e4e12fc19101"
+    },
+    {
+      "file": "data/profiles-6.js",
+      "bytes": 74114,
+      "sha256": "7bb734428dea8bfcdc1479cc12d8c05b4c37473c80c2e1e9081cb1d736d51347"
+    },
+    {
+      "file": "data/profiles-7.js",
+      "bytes": 74264,
+      "sha256": "1965b63567e167aa577a31715c9baa1707fa4defaa5ca952659d40a92df8280e"
+    },
+    {
+      "file": "data/profiles-8.js",
+      "bytes": 74362,
+      "sha256": "50afa6712301b9a81f3a943c05e892a71e53809f28b73dbb947bbb769e305ce2"
+    },
+    {
+      "file": "data/profiles-9.js",
+      "bytes": 74204,
+      "sha256": "0e054664eb54ec0a80eaaaccf4fb1a075509033bb5c2dfd0d458db7957669686"
+    },
+    {
+      "file": "data/profiles-10.js",
+      "bytes": 74384,
+      "sha256": "24ed60ad7ff77d28ec25f4d9dbacc489fd405b4ab7d2e4b70c0910a5c3849597"
+    },
+    {
+      "file": "data/profiles-11.js",
+      "bytes": 74120,
+      "sha256": "a04521f20230198d41611032951178e85c27f20010d09d8eaa9f005541b2cf25"
+    },
+    {
+      "file": "gift-data.js",
+      "bytes": 10416,
+      "sha256": "d6412e15d5df1cb63d9dcf39a90c05eac5fbbe3e93abade6c1e35d8a256c79cb"
+    },
+    {
+      "file": "friend-showcase.js",
+      "bytes": 10312,
+      "sha256": "9380f4a054b08f7e1e55a71b2f013618bd497b66d18e8fa60778f2f4a84cf4e2"
+    }
+  ],
+  "counts": {
+    "friends": 604,
+    "groups": 123,
+    "merchantConversations": 1306,
+    "demoGifts": 1208,
+    "repeatedFriendCalls": 1208,
+    "nonFriendChecks": 1432,
+    "minMergedRows": 6,
+    "maxMergedRows": 13
+  },
+  "topSix": [
+    {
+      "id": "castle",
+      "name": "鎏金童话城堡",
+      "price": 200000
+    },
+    {
+      "id": "dragon",
+      "name": "赤金祥云神龙",
+      "price": 195000
+    },
+    {
+      "id": "rocket",
+      "name": "逐梦星际火箭",
+      "price": 185000
+    },
+    {
+      "id": "ringed-planet",
+      "name": "星环漫游行星",
+      "price": 175000
+    },
+    {
+      "id": "earth",
+      "name": "蔚蓝同心地球",
+      "price": 162000
+    },
+    {
+      "id": "satellite",
+      "name": "遥远问候卫星",
+      "price": 150000
+    }
+  ],
+  "giftFrequency": {
+    "castle": 224,
+    "satellite": 184,
+    "ringed-planet": 201,
+    "rocket": 213,
+    "dragon": 196,
+    "earth": 190
+  },
+  "tests": 17,
+  "passed": 17,
+  "failed": [],
+  "checks": [
+    {
+      "name": "actual friend dataset includes 600 generated + 4 legacy unique people",
+      "passed": true,
+      "details": {
+        "people": 604
+      }
+    },
+    {
+      "name": "friend module initialization does not modify persisted state",
+      "passed": true
+    },
+    {
+      "name": "gift catalog contains 30 unique records and six most expensive choices",
+      "passed": true
+    },
+    {
+      "name": "every friend has exactly two computed demo gifts; no duplicated histories",
+      "passed": true,
+      "details": {
+        "tested": 604,
+        "failures": []
+      }
+    },
+    {
+      "name": "repeated conversation/demoMessages calls are deterministic and do not accumulate rows",
+      "passed": true,
+      "details": {
+        "tested": 604,
+        "failures": []
+      }
+    },
+    {
+      "name": "all persisted text and gift messages remain appended in original order and identity",
+      "passed": true,
+      "details": {
+        "tested": 604,
+        "failures": []
+      }
+    },
+    {
+      "name": "base conversations remain intact; friends without history receive their own greeting",
+      "passed": true,
+      "details": {
+        "tested": 604,
+        "failures": []
+      }
+    },
+    {
+      "name": "two distinct real top-six gifts use exact catalog prices and showcase ownership",
+      "passed": true,
+      "details": {
+        "tested": 1208,
+        "failures": []
+      }
+    },
+    {
+      "name": "one received and one sent demo gift per friend, with globally unique stable message IDs",
+      "passed": true,
+      "details": {
+        "uniqueDemoIds": 1208,
+        "failures": []
+      }
+    },
+    {
+      "name": "display offsets remain chronological; source absolute gift time is removed",
+      "passed": true,
+      "details": {
+        "tested": 604,
+        "failures": []
+      }
+    },
+    {
+      "name": "all groups, local group, support, merchants and unknown IDs receive no friend demo gifts",
+      "passed": true,
+      "details": {
+        "tested": 1432,
+        "groups": 123,
+        "merchants": 1306,
+        "failures": []
+      }
+    },
+    {
+      "name": "wallet, gifts, transactions, messages and complete persisted state stay unchanged",
+      "passed": true,
+      "details": {
+        "failures": []
+      }
+    },
+    {
+      "name": "loaded people, conversations, groups and gift catalog stay unchanged",
+      "passed": true
+    },
+    {
+      "name": "no localStorage writes occur during module loading or conversation computation",
+      "passed": true,
+      "details": {
+        "writes": 0
+      }
+    },
+    {
+      "name": "all 604 friend computations complete without exceptions",
+      "passed": true,
+      "details": {
+        "errors": []
+      }
+    },
+    {
+      "name": "last base offset of one minute allows equal one-minute demo gifts without reversal",
+      "passed": true,
+      "details": [
+        {
+          "baseLast": 1,
+          "offsets": [
+            1,
+            1,
+            1
+          ],
+          "passed": true
+        },
+        {
+          "baseLast": 2,
+          "offsets": [
+            2,
+            1,
+            1
+          ],
+          "passed": true
+        },
+        {
+          "baseLast": 3,
+          "offsets": [
+            3,
+            2,
+            1
+          ],
+          "passed": true
+        },
+        {
+          "baseLast": 45,
+          "offsets": [
+            45,
+            44,
+            43
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "missing optional friend module preserves the existing base conversation",
+      "passed": true
+    }
+  ],
+  "samples": [
+    {
+      "personId": "p1",
+      "baseRows": 1,
+      "demoGifts": [
+        {
+          "self": false,
+          "giftId": "castle",
+          "price": 200000,
+          "text": "[礼物示例] 收到鎏金童话城堡 · 把一点星光留给你，愿今天也有好心情。",
+          "timeOffsetMinutes": 44,
+          "id": "friend-demo-p1-received",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "把一点星光留给你，愿今天也有好心情。"
+        },
+        {
+          "self": true,
+          "giftId": "satellite",
+          "price": 150000,
+          "text": "[礼物示例] 送出遥远问候卫星 · 这份小小的心意，送给认真生活的你。",
+          "timeOffsetMinutes": 43,
+          "id": "friend-demo-p1-sent",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "这份小小的心意，送给认真生活的你。"
+        }
+      ],
+      "localTailIds": [
+        "saved-p1-1",
+        "saved-p1-2",
+        "saved-p1-gift"
+      ]
+    },
+    {
+      "personId": "u0001",
+      "baseRows": 6,
+      "demoGifts": [
+        {
+          "self": false,
+          "giftId": "rocket",
+          "price": 185000,
+          "text": "[礼物示例] 收到逐梦星际火箭 · 上次聊的故事我还记得，愿下一次也很开心。",
+          "timeOffsetMinutes": 794,
+          "id": "friend-demo-u0001-received",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "上次聊的故事我还记得，愿下一次也很开心。"
+        },
+        {
+          "self": true,
+          "giftId": "dragon",
+          "price": 195000,
+          "text": "[礼物示例] 送出赤金祥云神龙 · 把这份闪耀送给你，谢谢你分享有趣的日常。",
+          "timeOffsetMinutes": 793,
+          "id": "friend-demo-u0001-sent",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "把这份闪耀送给你，谢谢你分享有趣的日常。"
+        }
+      ],
+      "localTailIds": [
+        "saved-u0001-1",
+        "saved-u0001-2",
+        "saved-u0001-gift"
+      ]
+    },
+    {
+      "personId": "u0600",
+      "baseRows": 1,
+      "demoGifts": [
+        {
+          "self": false,
+          "giftId": "rocket",
+          "price": 185000,
+          "text": "[礼物示例] 收到逐梦星际火箭 · 把一点星光留给你，愿今天也有好心情。",
+          "timeOffsetMinutes": 44,
+          "id": "friend-demo-u0600-received",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "把一点星光留给你，愿今天也有好心情。"
+        },
+        {
+          "self": true,
+          "giftId": "castle",
+          "price": 200000,
+          "text": "[礼物示例] 送出鎏金童话城堡 · 这份小小的心意，送给认真生活的你。",
+          "timeOffsetMinutes": 43,
+          "id": "friend-demo-u0600-sent",
+          "kind": "gift",
+          "type": "gift",
+          "demo": true,
+          "note": "这份小小的心意，送给认真生活的你。"
+        }
+      ],
+      "localTailIds": [
+        "saved-u0600-1",
+        "saved-u0600-2",
+        "saved-u0600-gift"
+      ]
+    }
+  ]
+}

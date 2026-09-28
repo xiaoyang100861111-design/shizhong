@@ -1,0 +1,200 @@
+[
+  {
+    "id": "douyin-magic-wand",
+    "name": "仙女棒",
+    "image": "live-gifts/douyin-magic-wand.png",
+    "officialId": "n1/Dg1905sj1FyoBlQBvmbaDZFBNaKuKZH6zxHkv8Lg5x2cRfrKUTb8gzMs=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-yellow-magic-wand",
+    "name": "黄色仙女棒",
+    "image": "live-gifts/douyin-yellow-magic-wand.png",
+    "officialId": "eplFUy7i0B0fiv0Iym1MpOZa5XmUE8g/WUAyJ6Tc+UJJDpcs7pzclNOz/WM=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-blue-magic-wand",
+    "name": "蓝色仙女棒",
+    "image": "live-gifts/douyin-blue-magic-wand.png",
+    "officialId": "4I66OIE1HKWfM7PNvAHtAgYUSNlggSEgcpo3ai8GYQXAWqjrDuH8NtjsWEQ=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-green-magic-wand",
+    "name": "绿色仙女棒",
+    "image": "live-gifts/douyin-green-magic-wand.png",
+    "officialId": "XHS+QR5Cv0b9ydsZZ5mLkrhPtMTTdrLsgfWNU/QX2IfUy2P6dmDaRHJT+0U=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-purple-magic-wand",
+    "name": "紫色仙女棒",
+    "image": "live-gifts/douyin-purple-magic-wand.png",
+    "officialId": "gs+95ujNzXXSCtLTv97fWgbApTQi0sqz1BULB+7w62g+v4sFxINvxOIrXCw=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-power-pill",
+    "name": "能力药丸",
+    "image": "live-gifts/douyin-power-pill.png",
+    "officialId": "28rYzVFNyXEXFC8HI+f/WG+I7a6lfl3OyZZjUS+CVuwCgYZrPrUdytGHu0c=",
+    "officialValue": 10,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-magic-mirror",
+    "name": "魔法镜",
+    "image": "live-gifts/douyin-magic-mirror.png",
+    "officialId": "fJs8HKQ0xlPRixn8JAUiL2gFRiLD9S6IFCFdvZODSnhyo9YN8q7xUuVVyZI=",
+    "officialValue": 19,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-donut",
+    "name": "甜甜圈",
+    "image": "live-gifts/douyin-donut.png",
+    "officialId": "PJ0FFeaDzXUreuUBZH6Hs+b56Jh0tQjrq0bIrrlZmv13GSAL9Q1hf59fjGk=",
+    "officialValue": 52,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-energy-battery",
+    "name": "能量电池",
+    "image": "live-gifts/douyin-energy-battery.png",
+    "officialId": "IkkadLfz7O/a5UR45p/OOCCG6ewAWVbsuzR/Z+v1v76CBU+mTG/wPjqdpfg=",
+    "officialValue": 99,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-love-burst",
+    "name": "爱的爆炸",
+    "image": "live-gifts/douyin-love-burst.png",
+    "officialId": "gx7pmjQfhBaDOG2XkWI2peZ66YFWkCWRjZXpTqb23O/epru+sxWyTV/3Ufs=",
+    "officialValue": 199,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-party-microphone",
+    "name": "派对话筒",
+    "image": "live-gifts/douyin-party-microphone.png",
+    "officialId": "YbLESoUj053FWVYPWUNOAtp4FYnb+/eZbyrLi7ndArVFz14rivgxf0cFrKs=",
+    "officialValue": 299,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-mystery-airdrop",
+    "name": "神秘空投",
+    "image": "live-gifts/douyin-mystery-airdrop.png",
+    "officialId": "pGLo7HKNk1i4djkicmJXf6iWEyd+pfPBjbsHmd3WcX0Ierm2UdnRR7UINvI=",
+    "officialValue": 520,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-strawberry-dessert",
+    "name": "草莓甜点",
+    "image": "live-gifts/douyin-strawberry-dessert.png",
+    "officialId": "rHSYLYmWZvy2eal+foarBgE5qDJe3j2e96icNOhTSO/t2G0W8UVnXN3mltM=",
+    "officialValue": 666,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-super-airdrop",
+    "name": "超级空投",
+    "image": "live-gifts/douyin-super-airdrop.png",
+    "officialId": "lsEGaeC++k/yZbzTU2ST64EukfpPENQmqEZxaK9v1+7etK+qnCRKOnDyjsE=",
+    "officialValue": 888,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-life-potion",
+    "name": "生命药水",
+    "image": "live-gifts/douyin-life-potion.png",
+    "officialId": "CwaE5Zyq2ZvwgA4S9udpz1BTWMAM41FRkMN5WI5J8E7QJEUT6VFZK0USxig=",
+    "officialValue": 999,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-super-jet",
+    "name": "超能喷射",
+    "image": "live-gifts/douyin-super-jet.png",
+    "officialId": "P7zDZzpeO215SpUptB+aURb1+zC14UC9MY1+MHszKoF0p5gzYk8CNEbey60=",
+    "officialValue": 1200,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-rare-treasure",
+    "name": "稀有宝箱",
+    "image": "live-gifts/douyin-rare-treasure.png",
+    "officialId": "rROiXLcY2saGvxHt3fAkYbWvbbikhEzbo0wpI794zEv+A2SCLrkNKYZEVuE=",
+    "officialValue": 3000,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  },
+  {
+    "id": "douyin-lucky-cube",
+    "name": "幸运魔方",
+    "image": "live-gifts/douyin-lucky-cube.png",
+    "officialId": "9tPFzcpEQFovisU3j3coz5tqj/qQ5LHJQJWob/X5bLbxm1s7kYLj0aGSb4k=",
+    "officialValue": 1,
+    "officialUnit": "抖币",
+    "appDemoPrice": null,
+    "assetKind": "official public documentation gift icon; not an animation file",
+    "licenseStatus": "unknown for independent-app redistribution"
+  }
+]

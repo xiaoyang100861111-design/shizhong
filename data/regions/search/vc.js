@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["vc"]=[["CZ",22776,"Nová Včelnice","新弗切尔尼采",4639,"Jihočeský kraj","nova vcelnice 新弗切尔尼采 jihocesky kraj jihocesky kraj"],["CZ",23313,"Včelná","弗切尔纳",4639,"Jihočeský kraj","vcelna 弗切尔纳 jihocesky kraj jihocesky kraj"]];

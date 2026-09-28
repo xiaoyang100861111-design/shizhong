@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["cm"]=[["PL",86095,"Cmolas","克莫拉斯",1626,"喀尔巴阡山脉","cmolas 克莫拉斯 喀尔巴阡山脉 subcarpathia"],["PL",88754,"Ćmielów","Ćmielów",1630,"圣十字学院","cmielow cmielow 圣十字学院 holy cross"]];

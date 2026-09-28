@@ -1,0 +1,2276 @@
+{
+  "version": "2026-09-26-f3ba8b5b1663",
+  "commit": "f3ba8b5b16635b0a39593e44f9f20a7a4f941f63",
+  "counts": {
+    "countries": 250,
+    "states": 5308,
+    "cities": 153336
+  },
+  "validSourceCityIds": 152970,
+  "generatedPendingIds": 366,
+  "uniqueIds": 153336,
+  "sourceDownloads": {
+    "sourceFiles": 229,
+    "uncompressedBytes": 173414899,
+    "httpTransferBytes": 29745633
+  },
+  "coverage": {
+    "stateZhCnNonempty": 5296,
+    "stateZhCnWithHan": 5251,
+    "cityZhCnNonempty": 150430,
+    "cityZhCnWithHan": 149404,
+    "cityDisplayLocalWithHan": 149747,
+    "cityNativeNonempty": 151272,
+    "cityOriginalNameHasLatin": 153323,
+    "cityHasExtraAliases": 40577,
+    "citySourcePinyinField": 0,
+    "cityCoordinatePair": 153336,
+    "countryZhCnNonempty": 250,
+    "countryZhCnWithHan": 250
+  },
+  "coveragePercent": {
+    "citiesWithChineseTranslationHan": 97.4357,
+    "citiesWithChineseDisplayLocalHan": 97.6594
+  },
+  "types": {
+    "capital": 281,
+    "city": 99142,
+    "adm1": 3442,
+    "section": 5404,
+    "municipality": 209,
+    "adm2": 17802,
+    "adm3": 15759,
+    "district": 2547,
+    "locality": 319,
+    "adm4": 3909,
+    "region": 4,
+    "county": 1416,
+    "province": 36,
+    "gov_seat": 6,
+    "(unspecified)": 1900,
+    "village": 10,
+    "prefecture": 369,
+    "town": 80,
+    "cities": 11,
+    "township": 145,
+    "subdistrict": 1,
+    "area": 12,
+    "administrative zone": 5,
+    "banner": 52,
+    "special municipality": 6,
+    "destroyed": 3,
+    "historical_capital": 1,
+    "adm5": 16,
+    "religious": 2,
+    "regency": 390,
+    "settlement": 9,
+    "parish": 16,
+    "abandoned": 15,
+    "historical": 9,
+    "oblast": 8
+  },
+  "countryChunks": [
+    {
+      "code": "AD",
+      "states": 7,
+      "cities": 10,
+      "bytes": 1679,
+      "gzipBytes": 741,
+      "sha256": "7658b3acb7fff372a8665ca288cac3d3ed10afd1c2e23b983558354c6a9c1bc0"
+    },
+    {
+      "code": "AE",
+      "states": 7,
+      "cities": 43,
+      "bytes": 5120,
+      "gzipBytes": 2179,
+      "sha256": "82d2e8f83a77aa419fff92b3e1658ea683293e4a90b5966e4eea5f465c770c2f"
+    },
+    {
+      "code": "AF",
+      "states": 34,
+      "cities": 100,
+      "bytes": 12869,
+      "gzipBytes": 5095,
+      "sha256": "be4d36f2070fc64091a7fd92418bde281bb073d9181a776974ac698345aec29f"
+    },
+    {
+      "code": "AG",
+      "states": 8,
+      "cities": 9,
+      "bytes": 1660,
+      "gzipBytes": 725,
+      "sha256": "ac4094e63af33af5a3442454f159780b94bcfdc385555477ef441ed72fb0fd05"
+    },
+    {
+      "code": "AI",
+      "states": 14,
+      "cities": 0,
+      "bytes": 1672,
+      "gzipBytes": 521,
+      "sha256": "d0b1930eb4aad5ebbb792b0c7d845a47171124ee6a6227d8700dd1cf890c794c"
+    },
+    {
+      "code": "AL",
+      "states": 12,
+      "cities": 143,
+      "bytes": 12679,
+      "gzipBytes": 4184,
+      "sha256": "353eb41ac63870a89678e1ff4c533a5bbc0f47eae8e3d41d51420a8af3f7809e"
+    },
+    {
+      "code": "AM",
+      "states": 11,
+      "cities": 308,
+      "bytes": 28131,
+      "gzipBytes": 9852,
+      "sha256": "38dc376bb28078a3ff646ccf5775fbdc6d30813073a97230918c6802cc64ca01"
+    },
+    {
+      "code": "AO",
+      "states": 18,
+      "cities": 72,
+      "bytes": 7095,
+      "gzipBytes": 2725,
+      "sha256": "be2a1de2d62f711dcecc69482f573ff0d8c34e1c28f37e7d68c0440c39a28ec7"
+    },
+    {
+      "code": "AQ",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "7c3a5ad5b35433794cb3a3828ffcfbb7c1361663f88ba66b0d731ec304cae6ba"
+    },
+    {
+      "code": "AR",
+      "states": 24,
+      "cities": 1136,
+      "bytes": 98111,
+      "gzipBytes": 33375,
+      "sha256": "8216deec05320df96ebf22b90f7c417584331ff7442cd4dc59625857a711d141"
+    },
+    {
+      "code": "AS",
+      "states": 5,
+      "cities": 14,
+      "bytes": 1872,
+      "gzipBytes": 882,
+      "sha256": "d8997c3a4e180a3ff0afe9ff87560f6cb109a90dfcd93940fc26e45e66a8c307"
+    },
+    {
+      "code": "AT",
+      "states": 9,
+      "cities": 2360,
+      "bytes": 192150,
+      "gzipBytes": 61312,
+      "sha256": "40747dd815fab6782a272801b7badef1b9ebcadbf1a06c8463271ede9e723cb0"
+    },
+    {
+      "code": "AU",
+      "states": 8,
+      "cities": 4147,
+      "bytes": 321923,
+      "gzipBytes": 104058,
+      "sha256": "87296654848b086d34070dd04cbc9f355e1203811999e722f4f88619114af0d0"
+    },
+    {
+      "code": "AW",
+      "states": 9,
+      "cities": 12,
+      "bytes": 1968,
+      "gzipBytes": 696,
+      "sha256": "844e875b7e42763ecf96d1f4ae763d36eb9da55901700e1482d0823d01e9b77d"
+    },
+    {
+      "code": "AX",
+      "states": 16,
+      "cities": 12,
+      "bytes": 2642,
+      "gzipBytes": 818,
+      "sha256": "18860e25c23cc27684c74204318ceb7bc53d8c023b42407f1236fb0e579c5f42"
+    },
+    {
+      "code": "AZ",
+      "states": 78,
+      "cities": 180,
+      "bytes": 23727,
+      "gzipBytes": 8241,
+      "sha256": "6f1078ad395d964c9ca021b66e1bdf45f05d5e7f81eaf410e74f24fd096f74a5"
+    },
+    {
+      "code": "BA",
+      "states": 3,
+      "cities": 232,
+      "bytes": 18257,
+      "gzipBytes": 7236,
+      "sha256": "e75e85589c0e3c5598f175ef1a459cd402e140f0729ffb1f84e36495217036a0"
+    },
+    {
+      "code": "BB",
+      "states": 11,
+      "cities": 7,
+      "bytes": 1869,
+      "gzipBytes": 728,
+      "sha256": "c032f18b7ef7720fcbc3bfd5062a64fe22aa001243847dcb2e362c5f3f2aa2e5"
+    },
+    {
+      "code": "BD",
+      "states": 72,
+      "cities": 64,
+      "bytes": 18400,
+      "gzipBytes": 4873,
+      "sha256": "a93871fcdd6239b240bc5297cb57e2a29aeb066350e1b0017dcf1497464a4570"
+    },
+    {
+      "code": "BE",
+      "states": 13,
+      "cities": 549,
+      "bytes": 41712,
+      "gzipBytes": 15243,
+      "sha256": "b275ff516eb3eee58398bfbafd79fc378fc690563a84366c5824a138a52d68ca"
+    },
+    {
+      "code": "BF",
+      "states": 58,
+      "cities": 92,
+      "bytes": 13701,
+      "gzipBytes": 4154,
+      "sha256": "a81cff676ba40bfd4a5ab68801ecaa6089e8e58a1da70ba7a0c2fc67f58e73f7"
+    },
+    {
+      "code": "BG",
+      "states": 28,
+      "cities": 504,
+      "bytes": 56600,
+      "gzipBytes": 15202,
+      "sha256": "fa17ec958c591f71756ff66ca503490ee0e8462c05fb31aa40a62a418159715d"
+    },
+    {
+      "code": "BH",
+      "states": 4,
+      "cities": 9,
+      "bytes": 1417,
+      "gzipBytes": 717,
+      "sha256": "298505e99fdcf846ee9f876aa211bdde563d60ac3f40ee00a5f3a71cf63dd868"
+    },
+    {
+      "code": "BI",
+      "states": 18,
+      "cities": 17,
+      "bytes": 3294,
+      "gzipBytes": 1052,
+      "sha256": "9f79c98ef095321a6a15be982ccdeab63d1b88e9daeb242c77064dd11ebde7f9"
+    },
+    {
+      "code": "BJ",
+      "states": 12,
+      "cities": 36,
+      "bytes": 4091,
+      "gzipBytes": 1770,
+      "sha256": "ffe2d7c0e2c790971324dd4c54d48679f6d92e9c7a0e8debf7bbb44b02d61cb9"
+    },
+    {
+      "code": "BL",
+      "states": 1,
+      "cities": 1,
+      "bytes": 372,
+      "gzipBytes": 263,
+      "sha256": "91741c648b81c2073838864458a37f6d449fac31d001aac61a718b173ac61fee"
+    },
+    {
+      "code": "BM",
+      "states": 9,
+      "cities": 9,
+      "bytes": 1808,
+      "gzipBytes": 699,
+      "sha256": "5d6b8acd818e1e807bdf2b76d97f685db2653a149245cb34cf50a8f547d7689b"
+    },
+    {
+      "code": "BN",
+      "states": 4,
+      "cities": 9,
+      "bytes": 1286,
+      "gzipBytes": 672,
+      "sha256": "37d24d9b7bb3d8b36f27a1ef4a8066725de3106880a6fb8beda3746170f7635c"
+    },
+    {
+      "code": "BO",
+      "states": 9,
+      "cities": 228,
+      "bytes": 20235,
+      "gzipBytes": 7033,
+      "sha256": "90b4f6068a65ebc480cf873178569bdfe72fb6d2c0a200f0b7ec37673d26c7aa"
+    },
+    {
+      "code": "BQ",
+      "states": 3,
+      "cities": 8,
+      "bytes": 1170,
+      "gzipBytes": 630,
+      "sha256": "f66b265b4f32fc5fac21048af814ce1790accdfca61d79df80a72efe4f920b2b"
+    },
+    {
+      "code": "BR",
+      "states": 27,
+      "cities": 5629,
+      "bytes": 467420,
+      "gzipBytes": 150615,
+      "sha256": "2bb7c2a7074eebd580435832e86c070af406e4b9755a530e1603286794201147"
+    },
+    {
+      "code": "BS",
+      "states": 32,
+      "cities": 21,
+      "bytes": 5367,
+      "gzipBytes": 1690,
+      "sha256": "76d613060ac045cd558d9f2120b07f639c8bf5590a6923394c1b6d6f4988f3f3"
+    },
+    {
+      "code": "BT",
+      "states": 20,
+      "cities": 57,
+      "bytes": 7567,
+      "gzipBytes": 2540,
+      "sha256": "b2764cd2812cc0effed91805d9bc9848902b5842f2beec6072f6e349374da842"
+    },
+    {
+      "code": "BV",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "cc4677111d549ea8a40fe1f27ffa34643b94dbc7671f732327f9bcc7d7541502"
+    },
+    {
+      "code": "BW",
+      "states": 16,
+      "cities": 75,
+      "bytes": 7560,
+      "gzipBytes": 2932,
+      "sha256": "fbb9566d9c456ef1d7248cfd8de49b20656ae00e247ff55f292d6159300e68d2"
+    },
+    {
+      "code": "BY",
+      "states": 7,
+      "cities": 329,
+      "bytes": 32428,
+      "gzipBytes": 11051,
+      "sha256": "ac705a6da16e9cf1d06102859a2dadcf420698354f014b9b1827ceac678a3830"
+    },
+    {
+      "code": "BZ",
+      "states": 6,
+      "cities": 13,
+      "bytes": 1806,
+      "gzipBytes": 861,
+      "sha256": "c8f4022e2dc9c15753a5c5dd4907677649dd881d840a9d57a10e756638dc3033"
+    },
+    {
+      "code": "CA",
+      "states": 13,
+      "cities": 1080,
+      "bytes": 84524,
+      "gzipBytes": 31331,
+      "sha256": "5c345394a66da1ae3a4aeafceb2fe3e5ad97816e36f88bb0f58412a4a51029e7"
+    },
+    {
+      "code": "CC",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "24f3968e26b4c19c921b710e8ea5afc114e959b2056732f7a72df54251830aaf"
+    },
+    {
+      "code": "CD",
+      "states": 26,
+      "cities": 67,
+      "bytes": 7887,
+      "gzipBytes": 3077,
+      "sha256": "9802a3964bb05262580ab024397aef3e7c41f92f86313b421766dc02f5d8eb0a"
+    },
+    {
+      "code": "CF",
+      "states": 17,
+      "cities": 42,
+      "bytes": 5096,
+      "gzipBytes": 2073,
+      "sha256": "b3b611e017c650c740d011d933e259af2a6dfc6df8c04f9b5261629ffa47a503"
+    },
+    {
+      "code": "CG",
+      "states": 12,
+      "cities": 17,
+      "bytes": 2678,
+      "gzipBytes": 1097,
+      "sha256": "380f59ad787a7c15942931cf7ff5ab330ac7ff504434996877ff61e1b6df11d2"
+    },
+    {
+      "code": "CH",
+      "states": 26,
+      "cities": 1507,
+      "bytes": 125585,
+      "gzipBytes": 42296,
+      "sha256": "b7f4d56fc8902f4fee896de4b4fd303ca6f386d2dd6c718cc37680b9f0182af5"
+    },
+    {
+      "code": "CI",
+      "states": 14,
+      "cities": 95,
+      "bytes": 8629,
+      "gzipBytes": 3547,
+      "sha256": "21c7df2e46f4a63a6905f25c0f2a528fc3367983f5e74a64e1c3f7769e027447"
+    },
+    {
+      "code": "CK",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "83e9779ac6439a19174249cb435eb90c80b790f083c223a53133f837d125acbd"
+    },
+    {
+      "code": "CL",
+      "states": 16,
+      "cities": 300,
+      "bytes": 25543,
+      "gzipBytes": 9153,
+      "sha256": "ab89a483a5a1af88c5f0bde0ab9d094c4d546e5369187da8a9ee64cf0c5c11c3"
+    },
+    {
+      "code": "CM",
+      "states": 10,
+      "cities": 139,
+      "bytes": 11131,
+      "gzipBytes": 4489,
+      "sha256": "2d42c2cb769062bdf9d01e444327cd7007c05829efdeaad8bc7aeb6b2c56959a"
+    },
+    {
+      "code": "CN",
+      "states": 34,
+      "cities": 4133,
+      "bytes": 306855,
+      "gzipBytes": 103702,
+      "sha256": "96779c1f039094ea177dc206c87e05d62d1364e54bb1a65d6b3d35d45d8c0634"
+    },
+    {
+      "code": "CO",
+      "states": 33,
+      "cities": 1122,
+      "bytes": 88644,
+      "gzipBytes": 31184,
+      "sha256": "b8671687a75ea9eaab0137837e39dcd27ab7a6748890aa9506d80658015bc0dc"
+    },
+    {
+      "code": "CR",
+      "states": 7,
+      "cities": 159,
+      "bytes": 12590,
+      "gzipBytes": 4611,
+      "sha256": "63dcad2b710cb9b8be68642b63143186bf76a7da8e185622d98981a00f9b9dd0"
+    },
+    {
+      "code": "CU",
+      "states": 16,
+      "cities": 192,
+      "bytes": 17658,
+      "gzipBytes": 6485,
+      "sha256": "76854548ff0bf1d1066ec36198250037b64d4f7dc29a64e0d6aab846bb35d507"
+    },
+    {
+      "code": "CV",
+      "states": 24,
+      "cities": 28,
+      "bytes": 5307,
+      "gzipBytes": 1808,
+      "sha256": "48f030e2d673b6c266d3c6faa84bff725298426ebf6c0efeba25ed019ea45b65"
+    },
+    {
+      "code": "CW",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "894945fb43d58558757e8e150ce99b4bac7c22ceff712b9f139d0f1b9c485213"
+    },
+    {
+      "code": "CX",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "d6cdbac97a3d99bd4299d2cc15e4bed6d02ca8695c402090b6e9dd1957a26a7f"
+    },
+    {
+      "code": "CY",
+      "states": 6,
+      "cities": 95,
+      "bytes": 9740,
+      "gzipBytes": 4027,
+      "sha256": "f75e08255d26dee0b9fc5cd8bf2bea9f729149b671ecd82b8884a143f6a2ab85"
+    },
+    {
+      "code": "CZ",
+      "states": 90,
+      "cities": 1355,
+      "bytes": 118076,
+      "gzipBytes": 37651,
+      "sha256": "dc97ea731bdc16b9f70b321fb68730cb2dd2af5cb89a6d0cc08b9e3e35c3c608"
+    },
+    {
+      "code": "DE",
+      "states": 16,
+      "cities": 7107,
+      "bytes": 546881,
+      "gzipBytes": 175444,
+      "sha256": "2c2c2374032f9c8acfdff0a7f8dc33193840708581713f725ece9e35e8dc57a9"
+    },
+    {
+      "code": "DJ",
+      "states": 6,
+      "cities": 12,
+      "bytes": 1747,
+      "gzipBytes": 811,
+      "sha256": "1ec704c3cbe62801fabb99d8322b9380386059326c2e08f3a096b6c393453ae8"
+    },
+    {
+      "code": "DK",
+      "states": 5,
+      "cities": 430,
+      "bytes": 32654,
+      "gzipBytes": 10984,
+      "sha256": "382b4a36f97466287a18ef72b5107b420ed87216c9aa130a8f8f3125156da0be"
+    },
+    {
+      "code": "DM",
+      "states": 10,
+      "cities": 17,
+      "bytes": 2568,
+      "gzipBytes": 1055,
+      "sha256": "6f83066b42e247a8731a73672ed568105a38f033762e25b1c18ea5e0afb3cb13"
+    },
+    {
+      "code": "DO",
+      "states": 42,
+      "cities": 207,
+      "bytes": 21673,
+      "gzipBytes": 7473,
+      "sha256": "eb4c7e2f7859b2c22e72f2bac632bf8e5046316ecd429b923279095b8a9ded8b"
+    },
+    {
+      "code": "DZ",
+      "states": 58,
+      "cities": 293,
+      "bytes": 34095,
+      "gzipBytes": 11909,
+      "sha256": "836ae0e489748e8fc931f6ab5097326fe21371ca0665a1736d433b2607e47be3"
+    },
+    {
+      "code": "EC",
+      "states": 24,
+      "cities": 114,
+      "bytes": 11682,
+      "gzipBytes": 4503,
+      "sha256": "4a8d7a11efd8473734a5092b0d1c54245b0a6f3a677dfbbcb897fad1e5f5db6b"
+    },
+    {
+      "code": "EE",
+      "states": 94,
+      "cities": 162,
+      "bytes": 24021,
+      "gzipBytes": 6471,
+      "sha256": "6b17175688b52f6b90a32bfbf65df14d06cb60051ac9700de77c231de9353043"
+    },
+    {
+      "code": "EG",
+      "states": 27,
+      "cities": 163,
+      "bytes": 18530,
+      "gzipBytes": 7111,
+      "sha256": "0a0421755eb84fe261314c453f0353588e5d56e981c872338885af398e9e055d"
+    },
+    {
+      "code": "EH",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "03d5cc0c9cac376d38057a452c6bd12678786ccfd6854bb7d604eb7aa56a822a"
+    },
+    {
+      "code": "ER",
+      "states": 6,
+      "cities": 11,
+      "bytes": 1881,
+      "gzipBytes": 968,
+      "sha256": "e3db4e417d830aac942189a1e63876389ba5a2eed5a05e0f2c1f0f1060fb3405"
+    },
+    {
+      "code": "ES",
+      "states": 69,
+      "cities": 8405,
+      "bytes": 730205,
+      "gzipBytes": 249137,
+      "sha256": "70b865e225eaa13b41fb90d15ff62bf3d4466ba59383294f64f422c5593b56d4"
+    },
+    {
+      "code": "ET",
+      "states": 13,
+      "cities": 144,
+      "bytes": 14177,
+      "gzipBytes": 5809,
+      "sha256": "5cad7b305a7c0e8ddd388a2b10b300996c2224ba91dd3bdf597ad99744fd267f"
+    },
+    {
+      "code": "FI",
+      "states": 18,
+      "cities": 437,
+      "bytes": 33727,
+      "gzipBytes": 11566,
+      "sha256": "357e2b59bb853b593bb62415536725bdd29c913d7018a6e162103273aa9ce82b"
+    },
+    {
+      "code": "FJ",
+      "states": 19,
+      "cities": 20,
+      "bytes": 3879,
+      "gzipBytes": 1231,
+      "sha256": "5e9b4fdfd0091d8df837df0d80468cf10dae963a0ae157399e345a15c4d40974"
+    },
+    {
+      "code": "FK",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "75b931a6be91ea020494e4559939b0cea56ef7609c232c148b95d8424ca149f2"
+    },
+    {
+      "code": "FM",
+      "states": 4,
+      "cities": 80,
+      "bytes": 8154,
+      "gzipBytes": 2711,
+      "sha256": "37d64ed4cbaccd0104ba0190685ee84ab38774d8350d6ee81e17149b3bed6ead"
+    },
+    {
+      "code": "FO",
+      "states": 6,
+      "cities": 27,
+      "bytes": 2713,
+      "gzipBytes": 1140,
+      "sha256": "dc3c62dad028c38f58001573bdd7ed00d2ea4dd608f86ddcf485116e36927fbf"
+    },
+    {
+      "code": "FR",
+      "states": 124,
+      "cities": 10534,
+      "bytes": 837665,
+      "gzipBytes": 281212,
+      "sha256": "c60736c1fd84418b38a278a74f886e3a6fbc3dddb983a463230b05744afe83c0"
+    },
+    {
+      "code": "GA",
+      "states": 9,
+      "cities": 28,
+      "bytes": 3180,
+      "gzipBytes": 1380,
+      "sha256": "a24f82dbcb083831cefa9c5e2c8bc8bae4a8e3bf9aec077fa8515a2814997dd5"
+    },
+    {
+      "code": "GB",
+      "states": 221,
+      "cities": 3881,
+      "bytes": 314954,
+      "gzipBytes": 105234,
+      "sha256": "d998e78d389926214a6e0cd6b5dc0922f3e31369e4174b674ab1d19380c2a95d"
+    },
+    {
+      "code": "GD",
+      "states": 7,
+      "cities": 7,
+      "bytes": 1467,
+      "gzipBytes": 657,
+      "sha256": "a678715a7949428a4b43cf63e0df0f289b22796666c484fdb32a5ccf777268b8"
+    },
+    {
+      "code": "GE",
+      "states": 12,
+      "cities": 110,
+      "bytes": 12962,
+      "gzipBytes": 4831,
+      "sha256": "a1ff1da53dbfa54247905ddf37909351d03b61206bd4bd024afdcfc95a09cb12"
+    },
+    {
+      "code": "GF",
+      "states": 1,
+      "cities": 22,
+      "bytes": 1939,
+      "gzipBytes": 764,
+      "sha256": "687082aa463188f8212284fe614c8be4e0725f4cb17a0e3f1e8992e7474fe4c1"
+    },
+    {
+      "code": "GG",
+      "states": 12,
+      "cities": 5,
+      "bytes": 1794,
+      "gzipBytes": 635,
+      "sha256": "c26e3699532dc236d650ee94958774cc93a315cb9d5f154c3092cec13f6f50ef"
+    },
+    {
+      "code": "GH",
+      "states": 16,
+      "cities": 121,
+      "bytes": 10990,
+      "gzipBytes": 4385,
+      "sha256": "62faa85e47c59dd3f2f4e19f6edd73821f6279fb59990a1f8e401f5b307d0dc6"
+    },
+    {
+      "code": "GI",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "6d8821ba701fec5e074bd9237664af3185627ec2065f590e91f45ad7c4ecc6c9"
+    },
+    {
+      "code": "GL",
+      "states": 5,
+      "cities": 18,
+      "bytes": 2254,
+      "gzipBytes": 1023,
+      "sha256": "058fd4586f86edbd7fe73dd551854bbcaa5eb656c0df703664e02e1bee8d9070"
+    },
+    {
+      "code": "GM",
+      "states": 6,
+      "cities": 104,
+      "bytes": 8888,
+      "gzipBytes": 3057,
+      "sha256": "5ca13563513dd37e57141ee7f2fdb7344dd073cf6ed9f88a633dc666020c9d7f"
+    },
+    {
+      "code": "GN",
+      "states": 41,
+      "cities": 54,
+      "bytes": 9191,
+      "gzipBytes": 2497,
+      "sha256": "28faa6bc0168d87cfa143feb0dbfa8a602b1c67a41b0488d020dcb22cc34bbfe"
+    },
+    {
+      "code": "GP",
+      "states": 2,
+      "cities": 32,
+      "bytes": 3047,
+      "gzipBytes": 1380,
+      "sha256": "ea8206e12079cf5a1ed4895adfe0238727c739802400db25bc916556a92bf99f"
+    },
+    {
+      "code": "GQ",
+      "states": 10,
+      "cities": 26,
+      "bytes": 3193,
+      "gzipBytes": 1425,
+      "sha256": "d770f48232f9af21e7ad9a5114dc538fec9db510fd56032d67c98f8a2ffa72aa"
+    },
+    {
+      "code": "GR",
+      "states": 15,
+      "cities": 1103,
+      "bytes": 106101,
+      "gzipBytes": 37134,
+      "sha256": "aa782fbddf0c63ffb241c3f26df61810061e59be5561b63bd990c79cba7ad8ec"
+    },
+    {
+      "code": "GS",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "e638282636671c5b0fb666167111644d094647438103def9d41853b9df37abb1"
+    },
+    {
+      "code": "GT",
+      "states": 22,
+      "cities": 382,
+      "bytes": 35970,
+      "gzipBytes": 11217,
+      "sha256": "2af9c417869614bf87f7e52b68166a383d4dfa18b634e3ca29142ecc0a01e768"
+    },
+    {
+      "code": "GU",
+      "states": 19,
+      "cities": 25,
+      "bytes": 4147,
+      "gzipBytes": 1335,
+      "sha256": "8d436ac109b2d4f300c0b4e7b2c3a0bc4ffec6f6ba8309c6bd5047eefbe0dd79"
+    },
+    {
+      "code": "GW",
+      "states": 12,
+      "cities": 15,
+      "bytes": 2498,
+      "gzipBytes": 993,
+      "sha256": "86eee67e433b7288a9fefa29b21946688a867334641a36bb214e5e9c6eed7f33"
+    },
+    {
+      "code": "GY",
+      "states": 10,
+      "cities": 14,
+      "bytes": 2612,
+      "gzipBytes": 1182,
+      "sha256": "c4a29b533a9c9d21833161d70416fa423bdb7fefaa25f8778194815ce6717edb"
+    },
+    {
+      "code": "HK",
+      "states": 18,
+      "cities": 27,
+      "bytes": 3883,
+      "gzipBytes": 1260,
+      "sha256": "ec3af8ad322e2966d24641a4b9fa220413f5f7db732ed0fe896d4a337ec48a49"
+    },
+    {
+      "code": "HM",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "a6dec764ff7e147836bb7ff4859f5aae6e4886be89fe986a89d67dc4e226a078"
+    },
+    {
+      "code": "HN",
+      "states": 18,
+      "cities": 545,
+      "bytes": 44756,
+      "gzipBytes": 13986,
+      "sha256": "5bc6db1da6871cbcd6d3089dbca79c58a48da04e8db2dc683545c4cc26eefed7"
+    },
+    {
+      "code": "HR",
+      "states": 20,
+      "cities": 663,
+      "bytes": 52997,
+      "gzipBytes": 18078,
+      "sha256": "f119a8c44e8ae31977c2380824a623a14ea87c865438148ea88deecb72d93666"
+    },
+    {
+      "code": "HT",
+      "states": 10,
+      "cities": 124,
+      "bytes": 11105,
+      "gzipBytes": 4174,
+      "sha256": "6301d87da2a1658ecb98641e9d99885930cc0b3f6b6694840599dd7cbe8be88e"
+    },
+    {
+      "code": "HU",
+      "states": 43,
+      "cities": 1074,
+      "bytes": 89596,
+      "gzipBytes": 28359,
+      "sha256": "afb06b25fef4974cbabe0129676388ebaca4fe584527b8a03991113f957f2618"
+    },
+    {
+      "code": "ID",
+      "states": 45,
+      "cities": 799,
+      "bytes": 74106,
+      "gzipBytes": 23146,
+      "sha256": "8aaa0bc81eacd54f07ac388bf61ed073e11a056396e3d6092682e467908aa490"
+    },
+    {
+      "code": "IE",
+      "states": 30,
+      "cities": 370,
+      "bytes": 30330,
+      "gzipBytes": 10203,
+      "sha256": "8a01f6a3fbf44fe9095bb19f06de322b318e5bbc6b60b80b523460f3a4d3829d"
+    },
+    {
+      "code": "IL",
+      "states": 6,
+      "cities": 150,
+      "bytes": 14462,
+      "gzipBytes": 5856,
+      "sha256": "ac8f04d9de9c0bcb0cafbeb54711912189a6095b6fc15a0f2b0261a7a8da2f3a"
+    },
+    {
+      "code": "IM",
+      "states": 6,
+      "cities": 16,
+      "bytes": 1989,
+      "gzipBytes": 852,
+      "sha256": "6313cd6ae5932ed296eb5a8b735da988e51fdc5e179581c563951ed705bb9da0"
+    },
+    {
+      "code": "IN",
+      "states": 36,
+      "cities": 4198,
+      "bytes": 410179,
+      "gzipBytes": 131084,
+      "sha256": "dd0bfd223b0ac54b6dd154c5b0f475ea1151fe35f031f7ff5bf4f4264279c178"
+    },
+    {
+      "code": "IO",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "a790931373279c7da94a3b9e34a27b70832b41b8379d6cdab92b23cea8b374c2"
+    },
+    {
+      "code": "IQ",
+      "states": 19,
+      "cities": 135,
+      "bytes": 15083,
+      "gzipBytes": 5873,
+      "sha256": "1f8e975eb52ead76befa18d5fe74e80e1ae005bcf9bed1ad0491aea97acd82f0"
+    },
+    {
+      "code": "IR",
+      "states": 31,
+      "cities": 1847,
+      "bytes": 173612,
+      "gzipBytes": 62049,
+      "sha256": "3c155ee3994dee6382ea8c0409cfd570285cb2610a1e11e122d7b48c3a4ad71f"
+    },
+    {
+      "code": "IS",
+      "states": 72,
+      "cities": 73,
+      "bytes": 17110,
+      "gzipBytes": 4612,
+      "sha256": "08e73345e6e0c9dca12e951cfb51f0f604229c5f06827c811a416115eabbeee2"
+    },
+    {
+      "code": "IT",
+      "states": 126,
+      "cities": 9852,
+      "bytes": 792899,
+      "gzipBytes": 263012,
+      "sha256": "d8452b7b799fb88b27369abc6412a9275b5c801196e18cb7391b548be45c0461"
+    },
+    {
+      "code": "JE",
+      "states": 12,
+      "cities": 51,
+      "bytes": 7593,
+      "gzipBytes": 2546,
+      "sha256": "57ee1eef88dc3262196954b8818cc425b61a70a2c9eb0febef465cbd356935fd"
+    },
+    {
+      "code": "JM",
+      "states": 14,
+      "cities": 837,
+      "bytes": 64771,
+      "gzipBytes": 22282,
+      "sha256": "0ebd56ceda854d89e3301a81878afafd7a69e85d60a2aa3ca47db2cb7d4ef135"
+    },
+    {
+      "code": "JO",
+      "states": 12,
+      "cities": 82,
+      "bytes": 8587,
+      "gzipBytes": 3422,
+      "sha256": "d5a58b7cad4a974b8c856184a643947708f759420d0ce534e3d5b0736591c0d2"
+    },
+    {
+      "code": "JP",
+      "states": 47,
+      "cities": 1655,
+      "bytes": 131384,
+      "gzipBytes": 42895,
+      "sha256": "3b8c371b326e7842a3de453a0f9eda17ba9a7ca5b542d61b9ffe630af161ee02"
+    },
+    {
+      "code": "KE",
+      "states": 47,
+      "cities": 145,
+      "bytes": 15274,
+      "gzipBytes": 5300,
+      "sha256": "61515ec18e08cde30e202aabfa2adeb9252e3ef7817bbd9c600493c4a6d9fdfe"
+    },
+    {
+      "code": "KG",
+      "states": 9,
+      "cities": 53,
+      "bytes": 6034,
+      "gzipBytes": 2495,
+      "sha256": "eab590e0114bcd30e5d4dbcae680aa25ebe59d4caf4cf53f5748b6487cd95eb6"
+    },
+    {
+      "code": "KH",
+      "states": 25,
+      "cities": 107,
+      "bytes": 15478,
+      "gzipBytes": 5283,
+      "sha256": "d6e406c33bed4879ad5b8cc6e6adac61db991e7c9adcadb85002d2ceee0afe1c"
+    },
+    {
+      "code": "KI",
+      "states": 3,
+      "cities": 37,
+      "bytes": 3386,
+      "gzipBytes": 1489,
+      "sha256": "1d8a04f19fba8b95ea980ee16c626dee6585a159dd46fa85a3f00880e286ad28"
+    },
+    {
+      "code": "KM",
+      "states": 3,
+      "cities": 88,
+      "bytes": 8165,
+      "gzipBytes": 3054,
+      "sha256": "52cb956ecc75a2c6fe4a002076798b3f4778bb2a0b2968547d6d2276e4c090b6"
+    },
+    {
+      "code": "KN",
+      "states": 16,
+      "cities": 13,
+      "bytes": 3123,
+      "gzipBytes": 1124,
+      "sha256": "b04c89d82c23f51a06a3969f88c342177d0eb2b6c3e512360ad84869d892bae1"
+    },
+    {
+      "code": "KP",
+      "states": 13,
+      "cities": 80,
+      "bytes": 8250,
+      "gzipBytes": 3285,
+      "sha256": "04eb726ad8542f63a956a3741feb1eeeef8e269c0bef4cba180a3a25e14a97c7"
+    },
+    {
+      "code": "KR",
+      "states": 17,
+      "cities": 308,
+      "bytes": 26761,
+      "gzipBytes": 9053,
+      "sha256": "625d74965934d9a1030a5e87c405ba0a493b7dd972eff3bc4d6e1dc3f35e5e31"
+    },
+    {
+      "code": "KW",
+      "states": 6,
+      "cities": 25,
+      "bytes": 3287,
+      "gzipBytes": 1441,
+      "sha256": "6b424d3a72c560f8229fccbe0f3e2536721a25f86cb5374d9b425cd5e34eab6d"
+    },
+    {
+      "code": "KY",
+      "states": 3,
+      "cities": 7,
+      "bytes": 1026,
+      "gzipBytes": 530,
+      "sha256": "e4b3a0100718e91785f12dee5f410bbf4cbfd681a92ad538d7cc3523987814a6"
+    },
+    {
+      "code": "KZ",
+      "states": 20,
+      "cities": 259,
+      "bytes": 25738,
+      "gzipBytes": 10139,
+      "sha256": "4a1120b3241b7526bfe2fa64ac7f9afe86b7f79d1e6038bb60e6271eac6d6b3f"
+    },
+    {
+      "code": "LA",
+      "states": 18,
+      "cities": 76,
+      "bytes": 10682,
+      "gzipBytes": 3531,
+      "sha256": "86434030388f193cb639413cddf6bf51465dfbf0a764006b104bb3b34e645f3e"
+    },
+    {
+      "code": "LB",
+      "states": 8,
+      "cities": 26,
+      "bytes": 3446,
+      "gzipBytes": 1507,
+      "sha256": "68ad119eb24242175e00f314b70c5824754e08a0ecda55df639e0a3105c6c371"
+    },
+    {
+      "code": "LC",
+      "states": 10,
+      "cities": 479,
+      "bytes": 41792,
+      "gzipBytes": 14464,
+      "sha256": "5145b5297722671f304c470154b4c905b6ee6fa0788c649d3f1927f9032c3f48"
+    },
+    {
+      "code": "LI",
+      "states": 11,
+      "cities": 11,
+      "bytes": 2083,
+      "gzipBytes": 723,
+      "sha256": "a719bb2a7af613c32131173e7055c74579fac2703d3a53b5a413153b13bb1aa0"
+    },
+    {
+      "code": "LK",
+      "states": 34,
+      "cities": 147,
+      "bytes": 20327,
+      "gzipBytes": 6495,
+      "sha256": "b445c798bda4e8ec856e6d7187c5db852dfa6ec399472e9cf5ec3baa64436a11"
+    },
+    {
+      "code": "LR",
+      "states": 15,
+      "cities": 18,
+      "bytes": 3081,
+      "gzipBytes": 1259,
+      "sha256": "fec505eadae01079db38e404d391173b9eca7445c9cdb15b95c2d760901d3de6"
+    },
+    {
+      "code": "LS",
+      "states": 10,
+      "cities": 12,
+      "bytes": 2210,
+      "gzipBytes": 847,
+      "sha256": "9a4c34251341d3181a0f2365cdcc2df4b0c01c365d71d70e7fc6d40b0e62b5b6"
+    },
+    {
+      "code": "LT",
+      "states": 70,
+      "cities": 128,
+      "bytes": 18459,
+      "gzipBytes": 5103,
+      "sha256": "1df30c894c1decb3566b19c936c1667caffc486f8c96c9ba62181b61de7e9364"
+    },
+    {
+      "code": "LU",
+      "states": 12,
+      "cities": 144,
+      "bytes": 13027,
+      "gzipBytes": 5064,
+      "sha256": "5d165f32b07f21dc2a12a0877e7c7014178ee2d479026655fae4325c37cfbd15"
+    },
+    {
+      "code": "LV",
+      "states": 43,
+      "cities": 125,
+      "bytes": 14042,
+      "gzipBytes": 4607,
+      "sha256": "2f1642a3ad05b2549e67733255f2265d719d26610dd92545f863043870aae603"
+    },
+    {
+      "code": "LY",
+      "states": 22,
+      "cities": 54,
+      "bytes": 7455,
+      "gzipBytes": 2900,
+      "sha256": "2f0dc248673335c5371e6bb3c75cb8384d0f07d23976679a480269cca9acfabe"
+    },
+    {
+      "code": "MA",
+      "states": 87,
+      "cities": 222,
+      "bytes": 31986,
+      "gzipBytes": 10578,
+      "sha256": "a342d4401a1d9ad3cd8e3c36b913c71519791d23d0446b2fb0d6bd00f0ead356"
+    },
+    {
+      "code": "MC",
+      "states": 17,
+      "cities": 17,
+      "bytes": 3397,
+      "gzipBytes": 1045,
+      "sha256": "191bb9b963b4259690b3f531ee0f420042ea5242efc627b53aad2fe9b54ecea5"
+    },
+    {
+      "code": "MD",
+      "states": 37,
+      "cities": 72,
+      "bytes": 9612,
+      "gzipBytes": 3163,
+      "sha256": "2b6aeccc415fbd3a511e849491cf71b0e7fc3e4c7bbb41d93f67344fb72c2d4f"
+    },
+    {
+      "code": "ME",
+      "states": 25,
+      "cities": 40,
+      "bytes": 6850,
+      "gzipBytes": 2404,
+      "sha256": "9945271147b9ccf91877d41ed9cd9ca09d1c118f2681ee231cf4b6f1051b1c87"
+    },
+    {
+      "code": "MF",
+      "states": 1,
+      "cities": 1,
+      "bytes": 352,
+      "gzipBytes": 247,
+      "sha256": "07d100b5623f24a1d5f1dc722c6d4b83cd0a48cb5e66765364feea6145069e82"
+    },
+    {
+      "code": "MG",
+      "states": 6,
+      "cities": 9,
+      "bytes": 1600,
+      "gzipBytes": 713,
+      "sha256": "c69601fc417ee3f208c5ba51c5accebeb3d1f167b85f8d996cbc0ec7dc69ba3c"
+    },
+    {
+      "code": "MH",
+      "states": 26,
+      "cities": 26,
+      "bytes": 5448,
+      "gzipBytes": 1685,
+      "sha256": "9c680654a3fada743b18d1f4ac6f0aee9722b38827477900b5c38a7436958c06"
+    },
+    {
+      "code": "MK",
+      "states": 80,
+      "cities": 194,
+      "bytes": 28104,
+      "gzipBytes": 8805,
+      "sha256": "2973cd80eff5d182423686c9236a3983fc06389010141e865213eea727ef7928"
+    },
+    {
+      "code": "ML",
+      "states": 11,
+      "cities": 47,
+      "bytes": 4726,
+      "gzipBytes": 1965,
+      "sha256": "682b8a672452ed7704c9b0bafd43b5a9513fa2bd8ff7785d3348e83141440f54"
+    },
+    {
+      "code": "MM",
+      "states": 15,
+      "cities": 74,
+      "bytes": 8903,
+      "gzipBytes": 3384,
+      "sha256": "b02f4d54eb9d9a7c266be766de7905c0d8ca17b4d2858a102c24ff9881b7c100"
+    },
+    {
+      "code": "MN",
+      "states": 22,
+      "cities": 40,
+      "bytes": 6524,
+      "gzipBytes": 2479,
+      "sha256": "d446c4f5c43c8eca83db94a51d60db2d76d195e44b9a78d622e4400d19f23d40"
+    },
+    {
+      "code": "MO",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "f0b38bac93e8a31dd99d5c09d06c45bdd5667b96c507d1b8a488a1fdd8c23247"
+    },
+    {
+      "code": "MP",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "7c4fbba8b2d056917fef277d31f8e299130a411c1af510109bcaa682bddf72a2"
+    },
+    {
+      "code": "MQ",
+      "states": 4,
+      "cities": 34,
+      "bytes": 3446,
+      "gzipBytes": 1504,
+      "sha256": "c8459429a4ef4b0cf3bb7056efdcf36b34b2c2902fc3cff7e40d7c8565fd829d"
+    },
+    {
+      "code": "MR",
+      "states": 15,
+      "cities": 42,
+      "bytes": 5901,
+      "gzipBytes": 2461,
+      "sha256": "8fe55a25bedd81912b78bff8355513bdbc73bfd9fe6f0611398e7664fdf70e6b"
+    },
+    {
+      "code": "MS",
+      "states": 3,
+      "cities": 0,
+      "bytes": 491,
+      "gzipBytes": 265,
+      "sha256": "6681b059fb49cb8a27ca9a6fc802ff7fd3bd6d72f7843a000805b558de6a8ab9"
+    },
+    {
+      "code": "MT",
+      "states": 68,
+      "cities": 87,
+      "bytes": 14003,
+      "gzipBytes": 3798,
+      "sha256": "ac7d36cd3ee9b0487c00ae7954b7009e31762f720bf72ce1aa4a5a5ec6ada62f"
+    },
+    {
+      "code": "MU",
+      "states": 12,
+      "cities": 168,
+      "bytes": 15952,
+      "gzipBytes": 6350,
+      "sha256": "a5bbbf4c2e4006a70fc56218bcb7d708852bb50bc6e844a7fd9d3d4af7381c44"
+    },
+    {
+      "code": "MV",
+      "states": 21,
+      "cities": 21,
+      "bytes": 4865,
+      "gzipBytes": 1689,
+      "sha256": "c3cce88fe7f89dcb1dd5aa8f77fd8550b5b30532a5d90f3333a16eb7218b5623"
+    },
+    {
+      "code": "MW",
+      "states": 31,
+      "cities": 61,
+      "bytes": 8698,
+      "gzipBytes": 2609,
+      "sha256": "516457230c93d68e28e44d8d8a588c988de9516612604498f18bb4cb4c24e2e6"
+    },
+    {
+      "code": "MX",
+      "states": 32,
+      "cities": 9321,
+      "bytes": 840807,
+      "gzipBytes": 263603,
+      "sha256": "32fdd4ef038ebd895feb2c74cf2c14ceba39c6e4f62c720d544e01e76cb536a7"
+    },
+    {
+      "code": "MY",
+      "states": 16,
+      "cities": 223,
+      "bytes": 17785,
+      "gzipBytes": 6531,
+      "sha256": "4f7d64652e0539d46c36a71fed4950032f4eb3dcad09631e6888c148e4a451f2"
+    },
+    {
+      "code": "MZ",
+      "states": 11,
+      "cities": 38,
+      "bytes": 4336,
+      "gzipBytes": 1790,
+      "sha256": "800251930016fc4635fc4fa1d270bb83e951c758632eec1ab2ed7c84ac609218"
+    },
+    {
+      "code": "NA",
+      "states": 14,
+      "cities": 48,
+      "bytes": 5175,
+      "gzipBytes": 2037,
+      "sha256": "561ada89ea50797fadf23bcc42625429698fbfe7ae9625d8dee08106c86786f3"
+    },
+    {
+      "code": "NC",
+      "states": 3,
+      "cities": 10,
+      "bytes": 1272,
+      "gzipBytes": 663,
+      "sha256": "7ad5c27345d6eef094a349f337d0c8b1b2cb30443d74940b6dd30ffe1be3813f"
+    },
+    {
+      "code": "NE",
+      "states": 8,
+      "cities": 71,
+      "bytes": 6452,
+      "gzipBytes": 2428,
+      "sha256": "fa9ec1c002e1a3c6423e6f3b686812b2dda3c3bfdc8032e6813c244fc5bf29cf"
+    },
+    {
+      "code": "NF",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "84b317343b1e0597894e1382ba17af813ae7282c021a7c74413a5f3ee1ecc687"
+    },
+    {
+      "code": "NG",
+      "states": 37,
+      "cities": 491,
+      "bytes": 39026,
+      "gzipBytes": 15352,
+      "sha256": "2b2d4ebb03e99c0fd8a422864e925b6f3ec774caa51eb91ae4734fc2de9b5177"
+    },
+    {
+      "code": "NI",
+      "states": 17,
+      "cities": 155,
+      "bytes": 14595,
+      "gzipBytes": 5336,
+      "sha256": "845ebd3728c28185b1a79522d3c7ecebbeb794da672f49ddcea57ad9285685eb"
+    },
+    {
+      "code": "NL",
+      "states": 12,
+      "cities": 1644,
+      "bytes": 123186,
+      "gzipBytes": 40086,
+      "sha256": "39c91a0c48a0ba0c78f61d2ce2fb36fbb1b12cf947d75da71e50a3dda40e9237"
+    },
+    {
+      "code": "NO",
+      "states": 17,
+      "cities": 666,
+      "bytes": 48986,
+      "gzipBytes": 17288,
+      "sha256": "5efb0398817fc4ef4a27455c536e4e8d9b17268e5c6b9c8371e02e0ab1fb4376"
+    },
+    {
+      "code": "NP",
+      "states": 7,
+      "cities": 77,
+      "bytes": 8854,
+      "gzipBytes": 3659,
+      "sha256": "0e3f483eda8b522a0857ad1f4787ec9b992739f845a3e4bb7c0b1aa5a7ea55a3"
+    },
+    {
+      "code": "NR",
+      "states": 14,
+      "cities": 7,
+      "bytes": 2204,
+      "gzipBytes": 784,
+      "sha256": "860147e079107d20c540e4c43909262235744fe5738e4ad17468c76a82e3971a"
+    },
+    {
+      "code": "NU",
+      "states": 14,
+      "cities": 0,
+      "bytes": 1743,
+      "gzipBytes": 606,
+      "sha256": "271a025862127548cb0bf80d77c2bdda50e80d802e39cc9dc6f8cd725d781b64"
+    },
+    {
+      "code": "NZ",
+      "states": 17,
+      "cities": 160,
+      "bytes": 14285,
+      "gzipBytes": 5277,
+      "sha256": "9c9c8fa097a60e8cbf3aee89aa2818c702f3bc5a3283e496e90a659588d8a3ed"
+    },
+    {
+      "code": "OM",
+      "states": 11,
+      "cities": 28,
+      "bytes": 4113,
+      "gzipBytes": 1741,
+      "sha256": "c44d687f61b992ba6c7b473b37af592b20db4be0271bcaba6bfa0b65416dfed1"
+    },
+    {
+      "code": "PA",
+      "states": 14,
+      "cities": 551,
+      "bytes": 45322,
+      "gzipBytes": 15617,
+      "sha256": "a87e8dfa67e5526adeb2d2cfe6780d4c425488366222d94742a8d32fcc56dd54"
+    },
+    {
+      "code": "PE",
+      "states": 26,
+      "cities": 485,
+      "bytes": 41559,
+      "gzipBytes": 13918,
+      "sha256": "d4f54b66d36d6c8cfe394cabe62b29f4b7a1d36a027da1949aab84dff10ca559"
+    },
+    {
+      "code": "PF",
+      "states": 5,
+      "cities": 48,
+      "bytes": 4904,
+      "gzipBytes": 2155,
+      "sha256": "e9bab9a350a0c8690fa1a44d5de7d7ecf10ff9beb50798fddfda677ce8c77a4c"
+    },
+    {
+      "code": "PG",
+      "states": 22,
+      "cities": 100,
+      "bytes": 10312,
+      "gzipBytes": 3973,
+      "sha256": "a6ce4351c1f094660e88fd2e9f8d9cb5df09fd681d15f7ae0c7ac9719e20b8de"
+    },
+    {
+      "code": "PH",
+      "states": 99,
+      "cities": 5357,
+      "bytes": 421055,
+      "gzipBytes": 143831,
+      "sha256": "bc613cf87fec1bc056594bfc3dd4bad85423de11bdc7d5de682b3f552e44e743"
+    },
+    {
+      "code": "PK",
+      "states": 7,
+      "cities": 456,
+      "bytes": 43047,
+      "gzipBytes": 16449,
+      "sha256": "90757e49d460b6704f49adfc08344778ba3f04d39e12f5023624667d9181a2bc"
+    },
+    {
+      "code": "PL",
+      "states": 16,
+      "cities": 2810,
+      "bytes": 216300,
+      "gzipBytes": 71502,
+      "sha256": "4c5537c208f4bcdea3633f9961fad5bf1283ab075139b704e0230b614a1c557a"
+    },
+    {
+      "code": "PM",
+      "states": 1,
+      "cities": 2,
+      "bytes": 483,
+      "gzipBytes": 296,
+      "sha256": "0900324ba4602fbf3b49ba6b11a0f21ce29b356159c48dabe2a7740b9aac13e7"
+    },
+    {
+      "code": "PN",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "6c02842f94e818676f79ca7da988336757dbaf6acd6a6558471ddb5290008ae9"
+    },
+    {
+      "code": "PR",
+      "states": 78,
+      "cities": 78,
+      "bytes": 15300,
+      "gzipBytes": 3968,
+      "sha256": "301d6757b85a49fea7c3f518fe6fe47dde858d23c3a2c6ecc3305781915a5899"
+    },
+    {
+      "code": "PS",
+      "states": 16,
+      "cities": 132,
+      "bytes": 14488,
+      "gzipBytes": 5461,
+      "sha256": "35168160a4597f360e170f5adceef91aab5c99bd6844ba832d4f757d9f89f65d"
+    },
+    {
+      "code": "PT",
+      "states": 20,
+      "cities": 1296,
+      "bytes": 106904,
+      "gzipBytes": 35349,
+      "sha256": "75bedec8eff52651f7e232bc867b7903129e513d3b3c041b3605d630e44748b3"
+    },
+    {
+      "code": "PW",
+      "states": 16,
+      "cities": 15,
+      "bytes": 3149,
+      "gzipBytes": 1149,
+      "sha256": "937191761d31fdb52926353cf820ca9491b7afb40ca4b50430e6c332929c9206"
+    },
+    {
+      "code": "PY",
+      "states": 18,
+      "cities": 152,
+      "bytes": 15083,
+      "gzipBytes": 5746,
+      "sha256": "63abde5d53c8d8827ee8b33a5a0ef3b026b3a151a61e6735b41d20499a8c325d"
+    },
+    {
+      "code": "QA",
+      "states": 8,
+      "cities": 15,
+      "bytes": 2608,
+      "gzipBytes": 1182,
+      "sha256": "4c3e02171d3de15c544c3826d02f4fce8062c53a5a6039d4dc57d70cbf322f27"
+    },
+    {
+      "code": "RE",
+      "states": 4,
+      "cities": 24,
+      "bytes": 2591,
+      "gzipBytes": 1151,
+      "sha256": "c60142931c22fb461446b3f9ce1e0b47d4088a1a631b66fc8506235249d3bd22"
+    },
+    {
+      "code": "RO",
+      "states": 42,
+      "cities": 7949,
+      "bytes": 633159,
+      "gzipBytes": 190694,
+      "sha256": "09bb98bb73f4c6bdf984ddc61cff71fa1214f93ec4d51a3db6e502c732fc4700"
+    },
+    {
+      "code": "RS",
+      "states": 32,
+      "cities": 379,
+      "bytes": 39373,
+      "gzipBytes": 14272,
+      "sha256": "2b49631193af41d66e51f386d88c2f4db4a790ff32737bcdebe239f95511ea32"
+    },
+    {
+      "code": "RU",
+      "states": 83,
+      "cities": 5523,
+      "bytes": 566985,
+      "gzipBytes": 175617,
+      "sha256": "96ee100164c81b0fa030fb0962012b935a72d78936217b316e670bb1712575bd"
+    },
+    {
+      "code": "RW",
+      "states": 5,
+      "cities": 12,
+      "bytes": 1587,
+      "gzipBytes": 797,
+      "sha256": "ea19c4825289ee6ad79bc1c1f8798d464e67bf0684d2db93882d5c67e249b272"
+    },
+    {
+      "code": "SA",
+      "states": 13,
+      "cities": 399,
+      "bytes": 36668,
+      "gzipBytes": 12874,
+      "sha256": "4ed57158528c9016f5d568f07532b6f5634fe60767aa1444eb9f791f23534d8e"
+    },
+    {
+      "code": "SB",
+      "states": 10,
+      "cities": 7,
+      "bytes": 1819,
+      "gzipBytes": 782,
+      "sha256": "1408dd9c466737184285a74d7bab4d3cfee68c704b93c8179076a9d2cdd89d84"
+    },
+    {
+      "code": "SC",
+      "states": 27,
+      "cities": 9,
+      "bytes": 3938,
+      "gzipBytes": 1202,
+      "sha256": "78a31e1da37f141060389453dbeb5fe02f2a872ff7d464bb2e278a47d9d5e7d8"
+    },
+    {
+      "code": "SD",
+      "states": 18,
+      "cities": 71,
+      "bytes": 8555,
+      "gzipBytes": 3384,
+      "sha256": "7f5e2984b890600ab32367200c024d42217ae84481fca8a771aa5493abe5c140"
+    },
+    {
+      "code": "SE",
+      "states": 21,
+      "cities": 800,
+      "bytes": 61141,
+      "gzipBytes": 20449,
+      "sha256": "29d5b9f9408357df33644ede36d525f3572a14999a3a3da59c90e25908d9f6cd"
+    },
+    {
+      "code": "SG",
+      "states": 5,
+      "cities": 26,
+      "bytes": 2590,
+      "gzipBytes": 1118,
+      "sha256": "d218f74279f276fbf1b22f197208100924e64a1b484f564360aca4222481cb46"
+    },
+    {
+      "code": "SH",
+      "states": 8,
+      "cities": 0,
+      "bytes": 1037,
+      "gzipBytes": 410,
+      "sha256": "65a01dc1bf64bdf593d9ea3cc70c39f877fffe2885e33cd62d6486c4540ce775"
+    },
+    {
+      "code": "SI",
+      "states": 212,
+      "cities": 312,
+      "bytes": 50359,
+      "gzipBytes": 13132,
+      "sha256": "43a045ade4f0e2d53bbd88ad541808b85fb60cbab7bce7d0ff88a40477b7588a"
+    },
+    {
+      "code": "SJ",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "ce1675c9e3361e42c170be2bb2a3789aceaa16d6f43d5c9cbb71c64a9c13b4a8"
+    },
+    {
+      "code": "SK",
+      "states": 8,
+      "cities": 233,
+      "bytes": 20399,
+      "gzipBytes": 6709,
+      "sha256": "eb0494b92bd74b3f300052de1e39bcf98478800b4f02e857e898ea66618bc45c"
+    },
+    {
+      "code": "SL",
+      "states": 5,
+      "cities": 91,
+      "bytes": 7477,
+      "gzipBytes": 3068,
+      "sha256": "18ef651d817caa9cbe2f1a6af9d45b33b8efa6ddcc9061f305518193b65ae47c"
+    },
+    {
+      "code": "SM",
+      "states": 9,
+      "cities": 9,
+      "bytes": 1932,
+      "gzipBytes": 723,
+      "sha256": "dea12e1cf2ca447a1cd5b7e497642d32deb75be183a967e22e6c50bc90470732"
+    },
+    {
+      "code": "SN",
+      "states": 14,
+      "cities": 73,
+      "bytes": 7422,
+      "gzipBytes": 2813,
+      "sha256": "29b77a537f5dcd11dbe409b0539c606bf080e16da5ed5c52da33ea154eed31e5"
+    },
+    {
+      "code": "SO",
+      "states": 18,
+      "cities": 51,
+      "bytes": 5753,
+      "gzipBytes": 2304,
+      "sha256": "1f6c76241e67112d08cc1d354a11127a68dc63ba89cde01dd3ecac3c497d3939"
+    },
+    {
+      "code": "SR",
+      "states": 10,
+      "cities": 13,
+      "bytes": 2286,
+      "gzipBytes": 939,
+      "sha256": "f67281be8465858b8293ec89522cab09b12011e53138202a9a4b3893a1f6fa33"
+    },
+    {
+      "code": "SS",
+      "states": 10,
+      "cities": 1,
+      "bytes": 1342,
+      "gzipBytes": 507,
+      "sha256": "384ae52ea6095a1442316f1492cc4c63419a1cf4efedd4f34cd90ca02c55fbff"
+    },
+    {
+      "code": "ST",
+      "states": 7,
+      "cities": 7,
+      "bytes": 1531,
+      "gzipBytes": 760,
+      "sha256": "753b2a7b5e68da49769c82105e7a5f31122e2aaad21bcf0c0e48b31516b728f1"
+    },
+    {
+      "code": "SV",
+      "states": 14,
+      "cities": 100,
+      "bytes": 9817,
+      "gzipBytes": 3498,
+      "sha256": "0071ed7ce74282f85e469bf114e7f7384a2e48a1f328e12d0a4968fe6614367b"
+    },
+    {
+      "code": "SX",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "96340ee4a19fa9276cbc416bc35a1cde0f2e1fe411163a70cbd1906ff70a9265"
+    },
+    {
+      "code": "SY",
+      "states": 14,
+      "cities": 142,
+      "bytes": 14911,
+      "gzipBytes": 5776,
+      "sha256": "167e98684d81431bcb1e31f9724f05d115ffd84104b4f40088558e4cb7e1a447"
+    },
+    {
+      "code": "SZ",
+      "states": 4,
+      "cities": 34,
+      "bytes": 3400,
+      "gzipBytes": 1571,
+      "sha256": "3563c3778678db6c657805824366c1e502ad9d858aef076e7875f02ece7bb717"
+    },
+    {
+      "code": "TC",
+      "states": 6,
+      "cities": 0,
+      "bytes": 862,
+      "gzipBytes": 367,
+      "sha256": "f412d4d15a5f00b7a603064d921a9acc9c4760bd5f71a79b93a32be75e9f100e"
+    },
+    {
+      "code": "TD",
+      "states": 23,
+      "cities": 49,
+      "bytes": 6291,
+      "gzipBytes": 2407,
+      "sha256": "1c824824324100fc804c9fe63098b290c5561ce14706b40837333426c1b8d577"
+    },
+    {
+      "code": "TF",
+      "states": 5,
+      "cities": 5,
+      "bytes": 1235,
+      "gzipBytes": 539,
+      "sha256": "6cde6836abe5e47d319aeead9be124f6d71ab68bf28bf85448b00df8bcd63a5d"
+    },
+    {
+      "code": "TG",
+      "states": 5,
+      "cities": 22,
+      "bytes": 2210,
+      "gzipBytes": 1022,
+      "sha256": "9948637bf4939749769dea37be84cef6acf3e6a27e2e33d3a4334392ca3d740c"
+    },
+    {
+      "code": "TH",
+      "states": 78,
+      "cities": 1241,
+      "bytes": 152634,
+      "gzipBytes": 43749,
+      "sha256": "ac8ea48b0e283b886435f9aa1bfaf48f210eb5231cecac55c84f06a8730034f4"
+    },
+    {
+      "code": "TJ",
+      "states": 5,
+      "cities": 71,
+      "bytes": 7316,
+      "gzipBytes": 3178,
+      "sha256": "45cd5619ae227b30b10f5b0ecab9b08d2aac8853470b3adab31ed5e3815e34db"
+    },
+    {
+      "code": "TK",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "a3957032d7a83f621af95822fcfdd5538443a5d96657f944bd64cdc4ce975ba8"
+    },
+    {
+      "code": "TL",
+      "states": 13,
+      "cities": 55,
+      "bytes": 5858,
+      "gzipBytes": 2307,
+      "sha256": "ce63e6de7050e6fe62ea79a577d97f03076dcb90b236f0fffb506fe5fa663697"
+    },
+    {
+      "code": "TM",
+      "states": 6,
+      "cities": 30,
+      "bytes": 3060,
+      "gzipBytes": 1388,
+      "sha256": "2615d9a192b6119dbfa9abfcf2992f11711005c9e4b78b50e0cde40eb2822653"
+    },
+    {
+      "code": "TN",
+      "states": 24,
+      "cities": 165,
+      "bytes": 17954,
+      "gzipBytes": 6665,
+      "sha256": "91e730a53475622e083f3427be829244f07febc0269d1dd0e6c7d84c6c1fb423"
+    },
+    {
+      "code": "TO",
+      "states": 5,
+      "cities": 8,
+      "bytes": 1279,
+      "gzipBytes": 638,
+      "sha256": "b3d2df6811cb729962b2deb5a0df08ced727a771e8f2fe83cedc77091d05124d"
+    },
+    {
+      "code": "TR",
+      "states": 81,
+      "cities": 980,
+      "bytes": 80654,
+      "gzipBytes": 26991,
+      "sha256": "32482bea6da30f424c0bc1cd7dc4f42cbaf4db408a832a4029d9002db84bf8c3"
+    },
+    {
+      "code": "TT",
+      "states": 17,
+      "cities": 25,
+      "bytes": 4162,
+      "gzipBytes": 1530,
+      "sha256": "104fbc8a49160cb17fee89b6700d065babd0c3ea646e9d05b1428dc32b6cecf9"
+    },
+    {
+      "code": "TV",
+      "states": 8,
+      "cities": 9,
+      "bytes": 1913,
+      "gzipBytes": 815,
+      "sha256": "d32a7edac86b09c48c63db64e7eb0d799adac18b1947f7e58aaa550008dfbc1e"
+    },
+    {
+      "code": "TW",
+      "states": 22,
+      "cities": 383,
+      "bytes": 45652,
+      "gzipBytes": 14443,
+      "sha256": "88ed8beedf624aa8173fe4bc0655ad57b9ca616b48fde3353ca1cf43b99952fa"
+    },
+    {
+      "code": "TZ",
+      "states": 31,
+      "cities": 303,
+      "bytes": 24880,
+      "gzipBytes": 8327,
+      "sha256": "be45589b386e4cb6d791c1df22053b5b48c8956d168e6643e34e6d39a1325d86"
+    },
+    {
+      "code": "UA",
+      "states": 27,
+      "cities": 1819,
+      "bytes": 184783,
+      "gzipBytes": 60612,
+      "sha256": "6e3f6e9b8d5f7765d1d5b3c8403388b5d711e1fc632f3c362a38ebed04402f0d"
+    },
+    {
+      "code": "UG",
+      "states": 139,
+      "cities": 91,
+      "bytes": 21742,
+      "gzipBytes": 5711,
+      "sha256": "b2c97c1d399827a323f409740ee4672a1b4ac2393df1ab023ad1e44bc78272dc"
+    },
+    {
+      "code": "UM",
+      "states": 9,
+      "cities": 0,
+      "bytes": 1168,
+      "gzipBytes": 432,
+      "sha256": "8ada870905aeedb5f00ba3cdacefef7e23d51b347dc65a276355fa8ed1e8eca2"
+    },
+    {
+      "code": "US",
+      "states": 60,
+      "cities": 16731,
+      "bytes": 1273183,
+      "gzipBytes": 393483,
+      "sha256": "92f4cba4d3aca3edbeeb584fa61db4ce0252fbd6ff8db51f516e883bb2888806"
+    },
+    {
+      "code": "UY",
+      "states": 19,
+      "cities": 2010,
+      "bytes": 149673,
+      "gzipBytes": 46223,
+      "sha256": "b5af0e8ce51a4fab38b01a9a94a169cdb9afd7a028a697eaa657c22abadefa72"
+    },
+    {
+      "code": "UZ",
+      "states": 14,
+      "cities": 135,
+      "bytes": 12148,
+      "gzipBytes": 4572,
+      "sha256": "b9ff434d697254d298a59c0a9abb4ddb18ae99175f7b33f1e5f6e75d5d893380"
+    },
+    {
+      "code": "VA",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "599a1daa1c3644934b6173c59578f646719e8e707b0eeb421550d6c1d2988173"
+    },
+    {
+      "code": "VC",
+      "states": 6,
+      "cities": 9,
+      "bytes": 1507,
+      "gzipBytes": 703,
+      "sha256": "6a5d8baa4616ede86013ed32f287b16a7aa1bfe9299edb3b6a9aada5d1d14d9e"
+    },
+    {
+      "code": "VE",
+      "states": 25,
+      "cities": 136,
+      "bytes": 13903,
+      "gzipBytes": 5270,
+      "sha256": "6119dfa96b27c390f457d654d39527be73b18a5cc057bd6e389937b67606d813"
+    },
+    {
+      "code": "VG",
+      "states": 0,
+      "cities": 0,
+      "bytes": 164,
+      "gzipBytes": 124,
+      "sha256": "eef9069c9f8a3b5f3d61b3420d2724057d6002700283588f876aaa713b089178"
+    },
+    {
+      "code": "VI",
+      "states": 3,
+      "cities": 20,
+      "bytes": 2070,
+      "gzipBytes": 945,
+      "sha256": "fb20957042db075cc26b8f2ea0c05f1517463a6c5161fc3965b25d25665e3823"
+    },
+    {
+      "code": "VN",
+      "states": 34,
+      "cities": 488,
+      "bytes": 43351,
+      "gzipBytes": 13535,
+      "sha256": "9941cf24b9fc86104c431b6cdbc0a85ca0675d720d25784de6bbbe7638aa81c8"
+    },
+    {
+      "code": "VU",
+      "states": 6,
+      "cities": 7,
+      "bytes": 1299,
+      "gzipBytes": 622,
+      "sha256": "7b9e576650a1b26bdb30c9776fe114beca71eb7b77a6e3de3079870cc9477177"
+    },
+    {
+      "code": "WF",
+      "states": 3,
+      "cities": 3,
+      "bytes": 773,
+      "gzipBytes": 447,
+      "sha256": "ebc69b42142150ee41c6f3ebfba451f306f7f902a05f87abeb3eaee72229118b"
+    },
+    {
+      "code": "WS",
+      "states": 11,
+      "cities": 20,
+      "bytes": 2937,
+      "gzipBytes": 1172,
+      "sha256": "18b1eedfab733ec008483e53456a27ba6eeac140f8f77e6f30fba7c13a2d43d3"
+    },
+    {
+      "code": "XK",
+      "states": 7,
+      "cities": 59,
+      "bytes": 4510,
+      "gzipBytes": 1541,
+      "sha256": "50a97dc4d2b267e22649e19e17ec76dd974500542647dfad31a8ac0576b32e69"
+    },
+    {
+      "code": "YE",
+      "states": 22,
+      "cities": 339,
+      "bytes": 32742,
+      "gzipBytes": 11922,
+      "sha256": "cfa7df171d675245d45cc68b3f7bd77c816654a8d883405052330c776c7a317c"
+    },
+    {
+      "code": "YT",
+      "states": 17,
+      "cities": 57,
+      "bytes": 5631,
+      "gzipBytes": 1737,
+      "sha256": "ae13329056a65214c324f7ac58e2f4e04189d7fe011da095e9495d9d02713202"
+    },
+    {
+      "code": "ZA",
+      "states": 9,
+      "cities": 314,
+      "bytes": 27903,
+      "gzipBytes": 10699,
+      "sha256": "ba6e6bbd154d8f7b188786e9c2c8d0c85c006a247415e85717a83a6a578e4dda"
+    },
+    {
+      "code": "ZM",
+      "states": 10,
+      "cities": 71,
+      "bytes": 6703,
+      "gzipBytes": 2739,
+      "sha256": "0582cf7a91dd0c5071af730cfff4bbe1241ed3bb11a315856bb98cb474779f15"
+    },
+    {
+      "code": "ZW",
+      "states": 10,
+      "cities": 109,
+      "bytes": 10405,
+      "gzipBytes": 3808,
+      "sha256": "f79826b02d1691fc33d543df0175d48aa0de08b6cd18c0d89a72c9fe4269e3ce"
+    }
+  ],
+  "metaBytes": 50657,
+  "metaGzipBytes": 13060,
+  "countryChunksBytes": 13174706,
+  "countryChunksGzipBytes": 4334556,
+  "largestByBytes": [
+    {
+      "code": "US",
+      "states": 60,
+      "cities": 16731,
+      "bytes": 1273183,
+      "gzipBytes": 393483,
+      "sha256": "92f4cba4d3aca3edbeeb584fa61db4ce0252fbd6ff8db51f516e883bb2888806"
+    },
+    {
+      "code": "MX",
+      "states": 32,
+      "cities": 9321,
+      "bytes": 840807,
+      "gzipBytes": 263603,
+      "sha256": "32fdd4ef038ebd895feb2c74cf2c14ceba39c6e4f62c720d544e01e76cb536a7"
+    },
+    {
+      "code": "FR",
+      "states": 124,
+      "cities": 10534,
+      "bytes": 837665,
+      "gzipBytes": 281212,
+      "sha256": "c60736c1fd84418b38a278a74f886e3a6fbc3dddb983a463230b05744afe83c0"
+    },
+    {
+      "code": "IT",
+      "states": 126,
+      "cities": 9852,
+      "bytes": 792899,
+      "gzipBytes": 263012,
+      "sha256": "d8452b7b799fb88b27369abc6412a9275b5c801196e18cb7391b548be45c0461"
+    },
+    {
+      "code": "ES",
+      "states": 69,
+      "cities": 8405,
+      "bytes": 730205,
+      "gzipBytes": 249137,
+      "sha256": "70b865e225eaa13b41fb90d15ff62bf3d4466ba59383294f64f422c5593b56d4"
+    },
+    {
+      "code": "RO",
+      "states": 42,
+      "cities": 7949,
+      "bytes": 633159,
+      "gzipBytes": 190694,
+      "sha256": "09bb98bb73f4c6bdf984ddc61cff71fa1214f93ec4d51a3db6e502c732fc4700"
+    },
+    {
+      "code": "RU",
+      "states": 83,
+      "cities": 5523,
+      "bytes": 566985,
+      "gzipBytes": 175617,
+      "sha256": "96ee100164c81b0fa030fb0962012b935a72d78936217b316e670bb1712575bd"
+    },
+    {
+      "code": "DE",
+      "states": 16,
+      "cities": 7107,
+      "bytes": 546881,
+      "gzipBytes": 175444,
+      "sha256": "2c2c2374032f9c8acfdff0a7f8dc33193840708581713f725ece9e35e8dc57a9"
+    },
+    {
+      "code": "BR",
+      "states": 27,
+      "cities": 5629,
+      "bytes": 467420,
+      "gzipBytes": 150615,
+      "sha256": "2bb7c2a7074eebd580435832e86c070af406e4b9755a530e1603286794201147"
+    },
+    {
+      "code": "PH",
+      "states": 99,
+      "cities": 5357,
+      "bytes": 421055,
+      "gzipBytes": 143831,
+      "sha256": "bc613cf87fec1bc056594bfc3dd4bad85423de11bdc7d5de682b3f552e44e743"
+    }
+  ],
+  "zeroCityCountries": [
+    "AI",
+    "AQ",
+    "BV",
+    "CC",
+    "CK",
+    "CW",
+    "CX",
+    "EH",
+    "FK",
+    "GI",
+    "GS",
+    "HM",
+    "IO",
+    "MO",
+    "MP",
+    "MS",
+    "NF",
+    "NU",
+    "PN",
+    "SH",
+    "SJ",
+    "SX",
+    "TC",
+    "TK",
+    "UM",
+    "VA",
+    "VG"
+  ],
+  "sourceIssues": {
+    "missingCityParents": [],
+    "missingStateParents": [],
+    "outOfRangeCoordinates": []
+  },
+  "validation": {
+    "allCountriesRetained": true,
+    "allStatesRetained": true,
+    "allCityRowsRetained": true,
+    "allStableIdsUnique": true,
+    "allCityCountryStateReferencesValid": true,
+    "hotIdsValid": true
+  },
+  "samples": {
+    "CN": [
+      [
+        19271,
+        "Aba",
+        "阿坝藏族羌族自治州",
+        2277,
+        31.9015694,
+        102.2229237,
+        [],
+        "prefecture",
+        null
+      ],
+      [
+        19272,
+        "Acheng",
+        "阿城",
+        2265,
+        45.54545,
+        126.97703,
+        [],
+        "adm4",
+        null
+      ]
+    ],
+    "MY": [
+      [
+        76409,
+        "Alor Gajah",
+        "亚罗牙也",
+        1941,
+        2.3804,
+        102.2089,
+        [],
+        "city",
+        null
+      ],
+      [
+        76410,
+        "Alor Setar",
+        "亚罗士打",
+        1947,
+        6.12104,
+        100.36014,
+        [],
+        "adm1",
+        null
+      ]
+    ],
+    "US": [
+      [
+        110965,
+        "Abbeville",
+        "阿布维尔",
+        1455,
+        31.99212,
+        -83.30682,
+        [],
+        "city",
+        null
+      ],
+      [
+        110966,
+        "Abbeville",
+        "阿布维尔",
+        1457,
+        29.97465,
+        -92.13429,
+        [],
+        "city",
+        null
+      ]
+    ]
+  }
+}

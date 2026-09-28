@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["kp"]=[["GH",52186,"Kpandae","克潘达",51,"北方","kpandae 克潘达 北方 northern"],["GH",52187,"Kpandu","克潘杜",56,"沃尔特","kpandu 克潘杜 kandu 沃尔特 volta"],["TG",105166,"Kpalimé","克帕利梅",2577,"高原","kpalime 克帕利梅 calme 高原 plateaux"]];

@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["tk"]=[["HR",54937,"Tkon","特孔",727,"扎达尔","tkon 特孔 扎达尔 zadar"],["RU",99374,"Krasnyy Tkach","红特卡奇",1882,"莫斯科","krasnyy tkach 红特卡奇 красныи ткач 莫斯科 moscow"],["RU",99384,"Krasnyye Tkachi","红特卡奇",1851,"雅罗斯拉夫尔","krasnyye tkachi 红特卡奇 красные ткачи 雅罗斯拉夫尔 yaroslavl"]];

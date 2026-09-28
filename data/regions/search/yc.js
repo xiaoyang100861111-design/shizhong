@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["yc"]=[["FR",48001,"Ychoux","伊舒",5008,"朗德","ychoux 伊舒 朗德 landes"],["PY",89831,"San Pedro de Ycuamandiyú","圣佩德罗-德伊夸曼迪尤",2776,"圣佩德罗","san pedro de ycuamandiyu 圣佩德罗 德伊夸曼迪尤 圣佩德罗 san pedro"]];

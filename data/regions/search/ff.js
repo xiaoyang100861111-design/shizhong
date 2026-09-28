@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["ff"]=[["GB",48556,"Blaenau-Ffestiniog","布莱奈-费斯蒂尼奥格",2379,"圭内斯","blaenau ffestiniog 布莱奈 费斯蒂尼奥格 blaenau festiniog 圭内斯 gwynedd"]];

@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["nw"]=[["MA",67265,"Zawyat an Nwaçer","扎维亚特·安·努瓦切尔",3303,"卡萨布兰卡-塞塔特","zawyat an nwacer 扎维亚特 安 努瓦切尔 زاوية النواصر 卡萨布兰卡 塞塔特 casablanca settat"],["MX",70065,"El Nith","埃尔·尼斯",3470,"伊达尔戈","el nith 埃尔 尼斯 el nw 伊达尔戈 hidalgo"]];

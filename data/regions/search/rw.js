@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["rw"]=[["MZ",76606,"Mandimba","曼丁巴",3333,"尼亚萨","mandimba 曼丁巴 rwe 尼亚萨 niassa"],["RW",102803,"Rwamagana","鲁瓦马加纳",261,"东","rwamagana 鲁瓦马加纳 东 eastern"]];

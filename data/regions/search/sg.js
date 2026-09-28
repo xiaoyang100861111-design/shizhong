@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["sg"]=[["IT",60831,"Sgonico","斯戈尼科",1763,"的里雅斯特","sgonico 斯戈尼科 的里雅斯特 trieste"],["IT",60832,"Sgurgola","斯古尔戈拉",1776,"弗罗西诺内","sgurgola 斯古尔戈拉 弗罗西诺内 frosinone"]];

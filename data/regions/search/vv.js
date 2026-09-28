@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["vv"]=[["RU",102418,"Vvedenskoye","弗韦坚斯科耶",1915,"库尔干","vvedenskoye 弗韦坚斯科耶 введенское 库尔干 kurgan"],["UA",110754,"Vvedenka","维坚卡",4686,"哈尔科夫斯卡","vvedenka 维坚卡 введенка 哈尔科夫斯卡 kharkivska"]];

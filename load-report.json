@@ -1,0 +1,368 @@
+{
+  "version": "20260928-avatar1",
+  "serviceCounts": {
+    "flower": 100,
+    "beauty": 100,
+    "guide": 100,
+    "delivery": 100,
+    "jobs": 100,
+    "clean": 100,
+    "travel": 100,
+    "car": 100,
+    "phone": 100,
+    "food": 100,
+    "visa": 100,
+    "repair": 100,
+    "market": 100
+  },
+  "people": 600,
+  "posts": 600,
+  "groups": 120,
+  "conversations": 100,
+  "orders": 120,
+  "catalogIndexBytes": 411906,
+  "initialDataIncludes": "Service list fields and historical orders only. Detail, people, feed, group and conversation datasets load on demand.",
+  "chunks": {
+    "catalog-index.js": 411906,
+    "conversations.js": 94828,
+    "groups.js": 260777,
+    "people.js": 314408,
+    "posts.js": 449192,
+    "profiles-0.js": 74428,
+    "profiles-1.js": 74015,
+    "profiles-10.js": 74384,
+    "profiles-11.js": 74120,
+    "profiles-2.js": 74264,
+    "profiles-3.js": 74232,
+    "profiles-4.js": 74074,
+    "profiles-5.js": 74301,
+    "profiles-6.js": 74114,
+    "profiles-7.js": 74264,
+    "profiles-8.js": 74362,
+    "profiles-9.js": 74204,
+    "search.js": 827067,
+    "services-beauty.js": 370623,
+    "services-car.js": 358669,
+    "services-clean.js": 342125,
+    "services-delivery.js": 352407,
+    "services-flower.js": 375783,
+    "services-food.js": 263059,
+    "services-guide.js": 361519,
+    "services-jobs.js": 436261,
+    "services-market.js": 312578,
+    "services-phone.js": 395654,
+    "services-repair.js": 356321,
+    "services-travel.js": 357492,
+    "services-visa.js": 413441
+  },
+  "servicePhotos": 69,
+  "initialCoreFiles": {
+    "index.html": 4266,
+    "assets/optimized/logo.jpg": 10814,
+    "styles.css": 42508,
+    "avatar-media.css": 582,
+    "catalog.css": 9011,
+    "gifts.css": 62520,
+    "personal-qr.css": 4404,
+    "regions.css": 17832,
+    "friend-showcase.css": 10030,
+    "live-room.css": 37686,
+    "live-effects.css": 10031,
+    "oriental-effects.css": 13707,
+    "private-room.css": 38864,
+    "chat-tools.css": 29268,
+    "vip.css": 9847,
+    "vip-entry.css": 13071,
+    "layout.css": 5669,
+    "assets/optimized/hero.jpg": 72240,
+    "data/catalog-index.js": 411906,
+    "app.js": 25577,
+    "flows.js": 51375,
+    "catalog.js": 54963,
+    "lazy.js": 10241,
+    "gift-data.js": 21588,
+    "gifts.js": 52628,
+    "personal-qr.js": 11251,
+    "friend-showcase.js": 11555,
+    "regions.js": 23627,
+    "live-data.js": 26002,
+    "live-effects.js": 12255,
+    "oriental-effects.js": 17827,
+    "live-room.js": 27702,
+    "private-room.js": 28133,
+    "chat-tools.js": 41433,
+    "vip-entry.js": 10564,
+    "vip.js": 11441
+  },
+  "initialCoreBytes": 1242418,
+  "initialCoreNote": "Deduplicated static entry resource bytes before HTTP compression/cache; includes all entry JS/CSS, the service index, logo and hero. Excludes lazy list photos, gift artwork, people/profile/conversation chunks and global region datasets. Not a measured network timing.",
+  "servedImageFormat": "JPEG photos and avatars; PNG gift artwork and country/region flags",
+  "giftCount": 54,
+  "giftArtworkBytes": 21856092,
+  "giftModuleBytes": {
+    "gift-data.js": 21588,
+    "gifts.js": 52628,
+    "gifts.css": 62520
+  },
+  "htmlEntryBytes": 4266,
+  "giftLoading": "Local transparent PNG artwork; all 24 Oriental images load when their cards or effects are opened. No external image host.",
+  "regions": {
+    "startupDatasetBytes": 0,
+    "moduleBytes": 23627,
+    "cssBytes": 17832,
+    "metaBytes": 50657,
+    "countries": 250,
+    "states": 5308,
+    "cityTownDistrictRecords": 153336,
+    "loading": "metadata on picker open; country and query shards on demand; never all at startup",
+    "sourceCommit": "f3ba8b5b16635b0a39593e44f9f20a7a4f941f63",
+    "license": "ODbL-1.0",
+    "flags": {
+      "count": 250,
+      "bytes": 119158,
+      "format": "PNG, original aspect ratio",
+      "source": "Flagpedia / FlagCDN",
+      "loading": "Local images, loaded on demand in the region picker; no flag requests at startup"
+    }
+  },
+  "releaseStatus": {
+    "preparedLocally": true,
+    "uploaded": false,
+    "note": "Local avatar and personal-QR deployment ZIP prepared and verified; no upload was performed."
+  },
+  "friendModuleBytes": {
+    "friend-showcase.js": 11555,
+    "friend-showcase.css": 10030,
+    "layout.css": 5669
+  },
+  "friends": {
+    "generatedPeople": 600,
+    "legacyPeople": 4,
+    "totalPeople": 604,
+    "displayedGiftsPerPerson": [
+      3,
+      4
+    ],
+    "giftPoolSize": 6,
+    "giftPriceRangeRM": [
+      150000,
+      200000
+    ],
+    "demoGiftMessagesPerPerson": 2,
+    "totalDemoGiftMessages": 1208,
+    "demoMessagesComputedOnRead": true,
+    "changesWalletInventoryOrPersistedHistory": false
+  },
+  "validation": {
+    "friendShowcaseChecksPassed": 12,
+    "friendConversationChecksPassed": 17,
+    "browserConfirmed": [
+      "desktop",
+      "430px",
+      "320px"
+    ],
+    "browserPending": [],
+    "mobile320": {
+      "viewport": [
+        320,
+        740
+      ],
+      "document": [
+        320,
+        740
+      ],
+      "mainBottom": 666,
+      "navTop": 666,
+      "navBottom": 740,
+      "shellBottom": 740,
+      "longListScrollTop": 3234.67,
+      "composeButtonBottom": 644,
+      "regionTokyoSearchPassed": true
+    },
+    "desktop1023": {
+      "viewport": [
+        1023,
+        905
+      ],
+      "profileAndShell": {
+        "top": 22,
+        "bottom": 883.33,
+        "width": 460
+      },
+      "brokenImages": 0
+    },
+    "reports": [
+      "friend-validation.json",
+      "friend-conversations-validation.json",
+      "gift-flow-validation.json",
+      "layout-browser-validation.json",
+      "live-room-validation.json",
+      "live-effects-validation.json",
+      "private-room-validation.json",
+      "chat-tools-validation.json",
+      "vip-validation.json",
+      "vip-entry-validation.json"
+    ],
+    "orientalCatalogChecksPassed": true,
+    "orientalEngineCheckGroupsPassed": 6,
+    "orientalAssetModesChecked": [
+      "root",
+      "subdirectory",
+      "local"
+    ]
+  },
+  "liveModuleBytes": {
+    "live-data.js": 26002,
+    "live-room.js": 27702,
+    "live-room.css": 37686,
+    "live-effects.js": 12255,
+    "live-effects.css": 10031,
+    "oriental-effects.js": 17827,
+    "oriental-effects.css": 13707
+  },
+  "live": {
+    "giftCount": 58,
+    "officialPublicIcons": 18,
+    "fluentGifts": 16,
+    "effectKinds": 7,
+    "newArtworkCount": 20,
+    "newArtworkBytes": 1091392,
+    "currency": "local demo points, independent from RM collectibles",
+    "realStreamingConnected": false,
+    "behaviorChecksPassed": 30,
+    "browserWidths": [
+      430,
+      320
+    ],
+    "orientalGiftCount": 24,
+    "orientalEffectScenes": 24,
+    "orientalMotionFamilies": 10,
+    "orientalArtworkBytes": 20906180
+  },
+  "privateModuleBytes": {
+    "private-room.js": 28133,
+    "private-room.css": 38864
+  },
+  "privateChat": {
+    "hosts": 300,
+    "columns": 2,
+    "bookingRequired": false,
+    "giftCount": 58,
+    "effectKinds": 7,
+    "newImageBytes": 0,
+    "realMediaConnected": false,
+    "chargesRMWallet": false,
+    "recentCallLimit": 50,
+    "behaviorChecksPassed": 18,
+    "browserViewports": [
+      [
+        430,
+        932
+      ],
+      [
+        320,
+        740
+      ],
+      [
+        430,
+        480
+      ]
+    ],
+    "orientalGiftCount": 24,
+    "orientalEffectScenes": 24
+  },
+  "demoBalances": {
+    "points": 1000000000,
+    "walletRM": 800000000,
+    "migration": "once per account version; keeps other stored data"
+  },
+  "chatTools": {
+    "moduleBytes": {
+      "chat-tools.js": 41433,
+      "chat-tools.css": 29268
+    },
+    "behaviorChecksPassed": 24,
+    "attachmentStorage": "IndexedDB blobs with localStorage message metadata",
+    "fileLimitMB": 20,
+    "imageLimitMB": 5,
+    "voiceLimitSeconds": 60,
+    "callsAreSimulation": true,
+    "realPayments": false,
+    "browserViewports": [
+      [
+        320,
+        740
+      ],
+      [
+        430,
+        480
+      ],
+      [
+        430,
+        932
+      ]
+    ],
+    "physicalDeviceMicrophoneLocationAndKeyboardTested": false
+  },
+  "vip": {
+    "moduleBytes": {
+      "vip.js": 11402,
+      "vip.css": 9847,
+      "vip-entry.js": 10564,
+      "vip-entry.css": 13071
+    },
+    "defaultLevel": 10,
+    "initialGrowth": 1000,
+    "maximumDemoLevel": 75,
+    "officialDouyinThresholds": false,
+    "themeUnlockLevels": [
+      10,
+      20,
+      35,
+      50
+    ],
+    "newArtworkBytes": 0,
+    "publicRoomCommentIntervalMs": 2200,
+    "logicChecksPassed": 13,
+    "effectCheckGroupsPassed": 9,
+    "browserViewports": [
+      [
+        320,
+        740
+      ],
+      [
+        430,
+        932
+      ]
+    ],
+    "demoBalanceVersion": "20260927-funds1",
+    "historicalReportsRerun": false
+  },
+  "oriental": {
+    "name": "盛世华章",
+    "giftCount": 24,
+    "seriesCount": 4,
+    "optimizedTransparentPNGBytes": 20906180,
+    "originalTransparentPNGBytes": 55930592,
+    "motionFamilies": 10,
+    "individualScenes": 24,
+    "realTime3DModels": false,
+    "externalImageDependencies": false,
+    "prototypeOnly": true
+  },
+  "animatedAvatars": {
+    "count": 9,
+    "totalBytes": 3524495,
+    "format": "APNG",
+    "loading": "Only selected avatar instances load these local animations; full-screen covers keep their original still photos.",
+    "sourceManifest": "assets/animated-avatars/manifest.json"
+  },
+  "personalQR": {
+    "entryModules": [
+      "personal-qr.js",
+      "personal-qr.css"
+    ],
+    "qrLibrary": "vendor/qrcode-generator-2.0.4.js",
+    "loading": "QR generator is fetched only when the personal card is opened."
+  }
+}

@@ -1,0 +1,4127 @@
+{
+  "passed": true,
+  "version": "2026-09-26-f3ba8b5b1663",
+  "sourceDirectory": "E:\\python\\msuupay\\work\\shizhong-regions\\data\\regions",
+  "outputDirectory": "E:\\python\\msuupay\\work\\shizhong-regions\\data\\regions",
+  "countryCount": 250,
+  "sourceCities": 153336,
+  "sourceUniqueCities": 153336,
+  "indexedUniqueCities": 153336,
+  "coverageMatchesSource": true,
+  "sourceStates": 5308,
+  "indexedAdmins": 5308,
+  "stablePendingCityIds": 366,
+  "duplicateSourceIds": [],
+  "emptyCityNames": [],
+  "unresolvedStates": [],
+  "shardCount": 566,
+  "totalShardRows": 439824,
+  "totalShardBytes": 56276626,
+  "maxShard": {
+    "key": "u3",
+    "count": 15133,
+    "bytes": 2036231
+  },
+  "latinShardCount": 533,
+  "maxLatinShard": {
+    "key": "sa",
+    "count": 11199,
+    "bytes": 1563698
+  },
+  "unicodeShardCount": 32,
+  "maxUnicodeShard": {
+    "key": "u3",
+    "count": 15133,
+    "bytes": 2036231
+  },
+  "generatedShardFileCount": 566,
+  "staleShardFiles": false,
+  "searchMetaBytes": 18106,
+  "adminsBytes": 369553,
+  "normalization": {
+    "algorithm": "NFKD -> strip Unicode Mark -> lowercase -> non Letter/Number to spaces -> trim and collapse spaces",
+    "input": "São Paulo",
+    "folded": "sao paulo",
+    "asciiFolded": "sao paulo",
+    "equivalentResults": true,
+    "matchCount": 84,
+    "exactCityNameMatches": [
+      {
+        "countryCode": "BR",
+        "id": 15101,
+        "en": "São Paulo",
+        "local": "圣保罗",
+        "stateId": 2021,
+        "stateName": "圣保罗"
+      },
+      {
+        "countryCode": "PT",
+        "id": 143678,
+        "en": "São Paulo",
+        "local": "圣保罗",
+        "stateId": 4859,
+        "stateName": "瓜尔达"
+      }
+    ]
+  },
+  "chineseQueries": {
+    "纽约": {
+      "normalized": "纽约",
+      "shard": "u29",
+      "matchCount": 35,
+      "exactNameMatchCount": 0,
+      "cityNameSubstringMatchCount": 5,
+      "cityNameSamples": [
+        {
+          "countryCode": "US",
+          "id": 115719,
+          "en": "East New York",
+          "local": "东纽约",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 122795,
+          "en": "New York City",
+          "local": "纽约市",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 122797,
+          "en": "New York Mills",
+          "local": "纽约米尔斯",
+          "stateId": 1420,
+          "stateName": "明尼苏达州"
+        },
+        {
+          "countryCode": "US",
+          "id": 122798,
+          "en": "New York Mills",
+          "local": "纽约米尔斯",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 128938,
+          "en": "West New York",
+          "local": "西纽约",
+          "stateId": 1417,
+          "stateName": "新泽西州"
+        }
+      ],
+      "samples": [
+        {
+          "countryCode": "US",
+          "id": 111940,
+          "en": "Baychester",
+          "local": "贝切斯特",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 111952,
+          "en": "Bayport",
+          "local": "贝波特",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 111961,
+          "en": "Bayville",
+          "local": "贝维尔",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112025,
+          "en": "Bedford",
+          "local": "贝德福德",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112030,
+          "en": "Bedford Hills",
+          "local": "贝德福德山",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112077,
+          "en": "Bellaire",
+          "local": "贝莱尔",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112084,
+          "en": "Belle Harbor",
+          "local": "贝尔港",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112100,
+          "en": "Bellerose",
+          "local": "贝勒罗斯",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112101,
+          "en": "Bellerose Terrace",
+          "local": "贝勒罗斯露台",
+          "stateId": 1452,
+          "stateName": "纽约"
+        },
+        {
+          "countryCode": "US",
+          "id": 112123,
+          "en": "Bellmore",
+          "local": "贝尔莫尔",
+          "stateId": 1452,
+          "stateName": "纽约"
+        }
+      ],
+      "note": "索引检索文本命中可能来自城市名称、别名或州省上下文；另列城市名直接命中，不添加拼音或自造译名。"
+    },
+    "东京": {
+      "normalized": "东京",
+      "shard": "u28",
+      "matchCount": 8,
+      "exactNameMatchCount": 1,
+      "cityNameSubstringMatchCount": 4,
+      "cityNameSamples": [
+        {
+          "countryCode": "JP",
+          "id": 64146,
+          "en": "Nishi-Tokyo-shi",
+          "local": "西东京市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 64155,
+          "en": "Nishitōkyō-shi",
+          "local": "西东京市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 64500,
+          "en": "Tokyo",
+          "local": "东京",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "MX",
+          "id": 75438,
+          "en": "Tepexco",
+          "local": "东京石油公司",
+          "stateId": 3476,
+          "stateName": "普埃布拉"
+        }
+      ],
+      "samples": [
+        {
+          "countryCode": "JP",
+          "id": 63336,
+          "en": "Fuchū-shi",
+          "local": "府中市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 63458,
+          "en": "Higashi-murayama-shi",
+          "local": "东村山市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 63461,
+          "en": "Higashikurume-shi",
+          "local": "东久留米市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 63465,
+          "en": "Higashimurayama",
+          "local": "东村山",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 63468,
+          "en": "Higashiyamato",
+          "local": "东大和",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 63469,
+          "en": "Higashiyamato-shi",
+          "local": "东大和市",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "JP",
+          "id": 64500,
+          "en": "Tokyo",
+          "local": "东京",
+          "stateId": 823,
+          "stateName": "东京"
+        },
+        {
+          "countryCode": "MX",
+          "id": 75438,
+          "en": "Tepexco",
+          "local": "东京石油公司",
+          "stateId": 3476,
+          "stateName": "普埃布拉"
+        }
+      ],
+      "note": "索引检索文本命中可能来自城市名称、别名或州省上下文；另列城市名直接命中，不添加拼音或自造译名。"
+    },
+    "北京": {
+      "normalized": "北京",
+      "shard": "u23",
+      "matchCount": 5,
+      "exactNameMatchCount": 2,
+      "cityNameSubstringMatchCount": 5,
+      "cityNameSamples": [
+        {
+          "countryCode": "CN",
+          "id": 19332,
+          "en": "Beijing",
+          "local": "北京",
+          "stateId": 2257,
+          "stateName": "北京市"
+        },
+        {
+          "countryCode": "US",
+          "id": 122761,
+          "en": "New Pekin",
+          "local": "新北京",
+          "stateId": 1440,
+          "stateName": "印第安纳州"
+        },
+        {
+          "countryCode": "US",
+          "id": 123077,
+          "en": "North Pekin",
+          "local": "北北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        },
+        {
+          "countryCode": "US",
+          "id": 123986,
+          "en": "Pekin",
+          "local": "北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        },
+        {
+          "countryCode": "US",
+          "id": 126709,
+          "en": "South Pekin",
+          "local": "南北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        }
+      ],
+      "samples": [
+        {
+          "countryCode": "CN",
+          "id": 19332,
+          "en": "Beijing",
+          "local": "北京",
+          "stateId": 2257,
+          "stateName": "北京市"
+        },
+        {
+          "countryCode": "CN",
+          "id": 157080,
+          "en": "Haidian",
+          "local": "海淀",
+          "stateId": 2257,
+          "stateName": "北京市"
+        },
+        {
+          "countryCode": "US",
+          "id": 123077,
+          "en": "North Pekin",
+          "local": "北北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        },
+        {
+          "countryCode": "US",
+          "id": 123986,
+          "en": "Pekin",
+          "local": "北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        },
+        {
+          "countryCode": "US",
+          "id": 126709,
+          "en": "South Pekin",
+          "local": "南北京",
+          "stateId": 1425,
+          "stateName": "伊利诺伊州"
+        }
+      ],
+      "note": "索引检索文本命中可能来自城市名称、别名或州省上下文；另列城市名直接命中，不添加拼音或自造译名。"
+    }
+  },
+  "springfield": {
+    "exactNameCount": 23,
+    "countryStateCount": 23,
+    "queryShard": "sp",
+    "queryResultCount": 28,
+    "allSameNameCitiesReturned": true,
+    "countries": [
+      "AU",
+      "JM",
+      "US"
+    ],
+    "results": [
+      {
+        "countryCode": "AU",
+        "id": 7310,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 3905,
+        "stateName": "昆士兰州"
+      },
+      {
+        "countryCode": "JM",
+        "id": 63016,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 3748,
+        "stateName": "金斯顿"
+      },
+      {
+        "countryCode": "JM",
+        "id": 63017,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 3743,
+        "stateName": "圣伊丽莎白"
+      },
+      {
+        "countryCode": "US",
+        "id": 126889,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1436,
+        "stateName": "佛罗里达"
+      },
+      {
+        "countryCode": "US",
+        "id": 126890,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1425,
+        "stateName": "伊利诺伊州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126891,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1455,
+        "stateName": "乔治亚州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126892,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1419,
+        "stateName": "肯塔基州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126893,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1451,
+        "stateName": "密苏里州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126894,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1422,
+        "stateName": "宾夕法尼亚州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126895,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1454,
+        "stateName": "田纳西州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126896,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1427,
+        "stateName": "弗吉尼亚州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126897,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1433,
+        "stateName": "马萨诸塞州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126898,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1426,
+        "stateName": "密歇根州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126899,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1408,
+        "stateName": "内布拉斯加州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126900,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1417,
+        "stateName": "新泽西州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126901,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1404,
+        "stateName": "新罕布什尔"
+      },
+      {
+        "countryCode": "US",
+        "id": 126902,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1420,
+        "stateName": "明尼苏达州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126903,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1452,
+        "stateName": "纽约"
+      },
+      {
+        "countryCode": "US",
+        "id": 126904,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1409,
+        "stateName": "佛蒙特"
+      },
+      {
+        "countryCode": "US",
+        "id": 126905,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1445,
+        "stateName": "南达科他州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126906,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1450,
+        "stateName": "科罗拉多州"
+      },
+      {
+        "countryCode": "US",
+        "id": 126907,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 1415,
+        "stateName": "俄勒冈州"
+      },
+      {
+        "countryCode": "US",
+        "id": 141731,
+        "en": "Springfield",
+        "local": "斯普林菲尔德",
+        "stateId": 4851,
+        "stateName": "俄亥俄州"
+      }
+    ]
+  },
+  "indexingRules": {
+    "allOriginalCities": true,
+    "populationCutoff": false,
+    "cityIdentity": "countryCode|String(cityId)",
+    "shardIdentity": "Each city occurs at most once in each shard",
+    "shardKeys": "Each folded city en/local/alias token: first two ASCII letters -> two-letter key; single initial ASCII letter -> one-letter key; Unicode Number -> d0; other -> u(codePoint % 32). Two-letter alphabetic keys cannot collide with Unicode u0-u31 keys.",
+    "singleLetterQueries": "UI should show country/admin results and ask for a second ASCII letter before loading city shards; Chinese single-character searches remain supported.",
+    "chinese": "Only the initial character of a whole source token creates a shard; no invented pinyin or aliases",
+    "stateContext": "stateName and state.en are in searchText; admins foldAliases includes state name/en/source aliases"
+  },
+  "countryStats": [
+    {
+      "code": "AD",
+      "cities": 10,
+      "states": 7
+    },
+    {
+      "code": "AE",
+      "cities": 43,
+      "states": 7
+    },
+    {
+      "code": "AF",
+      "cities": 100,
+      "states": 34
+    },
+    {
+      "code": "AG",
+      "cities": 9,
+      "states": 8
+    },
+    {
+      "code": "AI",
+      "cities": 0,
+      "states": 14
+    },
+    {
+      "code": "AL",
+      "cities": 143,
+      "states": 12
+    },
+    {
+      "code": "AM",
+      "cities": 308,
+      "states": 11
+    },
+    {
+      "code": "AO",
+      "cities": 72,
+      "states": 18
+    },
+    {
+      "code": "AQ",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "AR",
+      "cities": 1136,
+      "states": 24
+    },
+    {
+      "code": "AS",
+      "cities": 14,
+      "states": 5
+    },
+    {
+      "code": "AT",
+      "cities": 2360,
+      "states": 9
+    },
+    {
+      "code": "AU",
+      "cities": 4147,
+      "states": 8
+    },
+    {
+      "code": "AW",
+      "cities": 12,
+      "states": 9
+    },
+    {
+      "code": "AX",
+      "cities": 12,
+      "states": 16
+    },
+    {
+      "code": "AZ",
+      "cities": 180,
+      "states": 78
+    },
+    {
+      "code": "BA",
+      "cities": 232,
+      "states": 3
+    },
+    {
+      "code": "BB",
+      "cities": 7,
+      "states": 11
+    },
+    {
+      "code": "BD",
+      "cities": 64,
+      "states": 72
+    },
+    {
+      "code": "BE",
+      "cities": 549,
+      "states": 13
+    },
+    {
+      "code": "BF",
+      "cities": 92,
+      "states": 58
+    },
+    {
+      "code": "BG",
+      "cities": 504,
+      "states": 28
+    },
+    {
+      "code": "BH",
+      "cities": 9,
+      "states": 4
+    },
+    {
+      "code": "BI",
+      "cities": 17,
+      "states": 18
+    },
+    {
+      "code": "BJ",
+      "cities": 36,
+      "states": 12
+    },
+    {
+      "code": "BL",
+      "cities": 1,
+      "states": 1
+    },
+    {
+      "code": "BM",
+      "cities": 9,
+      "states": 9
+    },
+    {
+      "code": "BN",
+      "cities": 9,
+      "states": 4
+    },
+    {
+      "code": "BO",
+      "cities": 228,
+      "states": 9
+    },
+    {
+      "code": "BQ",
+      "cities": 8,
+      "states": 3
+    },
+    {
+      "code": "BR",
+      "cities": 5629,
+      "states": 27
+    },
+    {
+      "code": "BS",
+      "cities": 21,
+      "states": 32
+    },
+    {
+      "code": "BT",
+      "cities": 57,
+      "states": 20
+    },
+    {
+      "code": "BV",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "BW",
+      "cities": 75,
+      "states": 16
+    },
+    {
+      "code": "BY",
+      "cities": 329,
+      "states": 7
+    },
+    {
+      "code": "BZ",
+      "cities": 13,
+      "states": 6
+    },
+    {
+      "code": "CA",
+      "cities": 1080,
+      "states": 13
+    },
+    {
+      "code": "CC",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "CD",
+      "cities": 67,
+      "states": 26
+    },
+    {
+      "code": "CF",
+      "cities": 42,
+      "states": 17
+    },
+    {
+      "code": "CG",
+      "cities": 17,
+      "states": 12
+    },
+    {
+      "code": "CH",
+      "cities": 1507,
+      "states": 26
+    },
+    {
+      "code": "CI",
+      "cities": 95,
+      "states": 14
+    },
+    {
+      "code": "CK",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "CL",
+      "cities": 300,
+      "states": 16
+    },
+    {
+      "code": "CM",
+      "cities": 139,
+      "states": 10
+    },
+    {
+      "code": "CN",
+      "cities": 4133,
+      "states": 34
+    },
+    {
+      "code": "CO",
+      "cities": 1122,
+      "states": 33
+    },
+    {
+      "code": "CR",
+      "cities": 159,
+      "states": 7
+    },
+    {
+      "code": "CU",
+      "cities": 192,
+      "states": 16
+    },
+    {
+      "code": "CV",
+      "cities": 28,
+      "states": 24
+    },
+    {
+      "code": "CW",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "CX",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "CY",
+      "cities": 95,
+      "states": 6
+    },
+    {
+      "code": "CZ",
+      "cities": 1355,
+      "states": 90
+    },
+    {
+      "code": "DE",
+      "cities": 7107,
+      "states": 16
+    },
+    {
+      "code": "DJ",
+      "cities": 12,
+      "states": 6
+    },
+    {
+      "code": "DK",
+      "cities": 430,
+      "states": 5
+    },
+    {
+      "code": "DM",
+      "cities": 17,
+      "states": 10
+    },
+    {
+      "code": "DO",
+      "cities": 207,
+      "states": 42
+    },
+    {
+      "code": "DZ",
+      "cities": 293,
+      "states": 58
+    },
+    {
+      "code": "EC",
+      "cities": 114,
+      "states": 24
+    },
+    {
+      "code": "EE",
+      "cities": 162,
+      "states": 94
+    },
+    {
+      "code": "EG",
+      "cities": 163,
+      "states": 27
+    },
+    {
+      "code": "EH",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "ER",
+      "cities": 11,
+      "states": 6
+    },
+    {
+      "code": "ES",
+      "cities": 8405,
+      "states": 69
+    },
+    {
+      "code": "ET",
+      "cities": 144,
+      "states": 13
+    },
+    {
+      "code": "FI",
+      "cities": 437,
+      "states": 18
+    },
+    {
+      "code": "FJ",
+      "cities": 20,
+      "states": 19
+    },
+    {
+      "code": "FK",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "FM",
+      "cities": 80,
+      "states": 4
+    },
+    {
+      "code": "FO",
+      "cities": 27,
+      "states": 6
+    },
+    {
+      "code": "FR",
+      "cities": 10534,
+      "states": 124
+    },
+    {
+      "code": "GA",
+      "cities": 28,
+      "states": 9
+    },
+    {
+      "code": "GB",
+      "cities": 3881,
+      "states": 221
+    },
+    {
+      "code": "GD",
+      "cities": 7,
+      "states": 7
+    },
+    {
+      "code": "GE",
+      "cities": 110,
+      "states": 12
+    },
+    {
+      "code": "GF",
+      "cities": 22,
+      "states": 1
+    },
+    {
+      "code": "GG",
+      "cities": 5,
+      "states": 12
+    },
+    {
+      "code": "GH",
+      "cities": 121,
+      "states": 16
+    },
+    {
+      "code": "GI",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "GL",
+      "cities": 18,
+      "states": 5
+    },
+    {
+      "code": "GM",
+      "cities": 104,
+      "states": 6
+    },
+    {
+      "code": "GN",
+      "cities": 54,
+      "states": 41
+    },
+    {
+      "code": "GP",
+      "cities": 32,
+      "states": 2
+    },
+    {
+      "code": "GQ",
+      "cities": 26,
+      "states": 10
+    },
+    {
+      "code": "GR",
+      "cities": 1103,
+      "states": 15
+    },
+    {
+      "code": "GS",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "GT",
+      "cities": 382,
+      "states": 22
+    },
+    {
+      "code": "GU",
+      "cities": 25,
+      "states": 19
+    },
+    {
+      "code": "GW",
+      "cities": 15,
+      "states": 12
+    },
+    {
+      "code": "GY",
+      "cities": 14,
+      "states": 10
+    },
+    {
+      "code": "HK",
+      "cities": 27,
+      "states": 18
+    },
+    {
+      "code": "HM",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "HN",
+      "cities": 545,
+      "states": 18
+    },
+    {
+      "code": "HR",
+      "cities": 663,
+      "states": 20
+    },
+    {
+      "code": "HT",
+      "cities": 124,
+      "states": 10
+    },
+    {
+      "code": "HU",
+      "cities": 1074,
+      "states": 43
+    },
+    {
+      "code": "ID",
+      "cities": 799,
+      "states": 45
+    },
+    {
+      "code": "IE",
+      "cities": 370,
+      "states": 30
+    },
+    {
+      "code": "IL",
+      "cities": 150,
+      "states": 6
+    },
+    {
+      "code": "IM",
+      "cities": 16,
+      "states": 6
+    },
+    {
+      "code": "IN",
+      "cities": 4198,
+      "states": 36
+    },
+    {
+      "code": "IO",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "IQ",
+      "cities": 135,
+      "states": 19
+    },
+    {
+      "code": "IR",
+      "cities": 1847,
+      "states": 31
+    },
+    {
+      "code": "IS",
+      "cities": 73,
+      "states": 72
+    },
+    {
+      "code": "IT",
+      "cities": 9852,
+      "states": 126
+    },
+    {
+      "code": "JE",
+      "cities": 51,
+      "states": 12
+    },
+    {
+      "code": "JM",
+      "cities": 837,
+      "states": 14
+    },
+    {
+      "code": "JO",
+      "cities": 82,
+      "states": 12
+    },
+    {
+      "code": "JP",
+      "cities": 1655,
+      "states": 47
+    },
+    {
+      "code": "KE",
+      "cities": 145,
+      "states": 47
+    },
+    {
+      "code": "KG",
+      "cities": 53,
+      "states": 9
+    },
+    {
+      "code": "KH",
+      "cities": 107,
+      "states": 25
+    },
+    {
+      "code": "KI",
+      "cities": 37,
+      "states": 3
+    },
+    {
+      "code": "KM",
+      "cities": 88,
+      "states": 3
+    },
+    {
+      "code": "KN",
+      "cities": 13,
+      "states": 16
+    },
+    {
+      "code": "KP",
+      "cities": 80,
+      "states": 13
+    },
+    {
+      "code": "KR",
+      "cities": 308,
+      "states": 17
+    },
+    {
+      "code": "KW",
+      "cities": 25,
+      "states": 6
+    },
+    {
+      "code": "KY",
+      "cities": 7,
+      "states": 3
+    },
+    {
+      "code": "KZ",
+      "cities": 259,
+      "states": 20
+    },
+    {
+      "code": "LA",
+      "cities": 76,
+      "states": 18
+    },
+    {
+      "code": "LB",
+      "cities": 26,
+      "states": 8
+    },
+    {
+      "code": "LC",
+      "cities": 479,
+      "states": 10
+    },
+    {
+      "code": "LI",
+      "cities": 11,
+      "states": 11
+    },
+    {
+      "code": "LK",
+      "cities": 147,
+      "states": 34
+    },
+    {
+      "code": "LR",
+      "cities": 18,
+      "states": 15
+    },
+    {
+      "code": "LS",
+      "cities": 12,
+      "states": 10
+    },
+    {
+      "code": "LT",
+      "cities": 128,
+      "states": 70
+    },
+    {
+      "code": "LU",
+      "cities": 144,
+      "states": 12
+    },
+    {
+      "code": "LV",
+      "cities": 125,
+      "states": 43
+    },
+    {
+      "code": "LY",
+      "cities": 54,
+      "states": 22
+    },
+    {
+      "code": "MA",
+      "cities": 222,
+      "states": 87
+    },
+    {
+      "code": "MC",
+      "cities": 17,
+      "states": 17
+    },
+    {
+      "code": "MD",
+      "cities": 72,
+      "states": 37
+    },
+    {
+      "code": "ME",
+      "cities": 40,
+      "states": 25
+    },
+    {
+      "code": "MF",
+      "cities": 1,
+      "states": 1
+    },
+    {
+      "code": "MG",
+      "cities": 9,
+      "states": 6
+    },
+    {
+      "code": "MH",
+      "cities": 26,
+      "states": 26
+    },
+    {
+      "code": "MK",
+      "cities": 194,
+      "states": 80
+    },
+    {
+      "code": "ML",
+      "cities": 47,
+      "states": 11
+    },
+    {
+      "code": "MM",
+      "cities": 74,
+      "states": 15
+    },
+    {
+      "code": "MN",
+      "cities": 40,
+      "states": 22
+    },
+    {
+      "code": "MO",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "MP",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "MQ",
+      "cities": 34,
+      "states": 4
+    },
+    {
+      "code": "MR",
+      "cities": 42,
+      "states": 15
+    },
+    {
+      "code": "MS",
+      "cities": 0,
+      "states": 3
+    },
+    {
+      "code": "MT",
+      "cities": 87,
+      "states": 68
+    },
+    {
+      "code": "MU",
+      "cities": 168,
+      "states": 12
+    },
+    {
+      "code": "MV",
+      "cities": 21,
+      "states": 21
+    },
+    {
+      "code": "MW",
+      "cities": 61,
+      "states": 31
+    },
+    {
+      "code": "MX",
+      "cities": 9321,
+      "states": 32
+    },
+    {
+      "code": "MY",
+      "cities": 223,
+      "states": 16
+    },
+    {
+      "code": "MZ",
+      "cities": 38,
+      "states": 11
+    },
+    {
+      "code": "NA",
+      "cities": 48,
+      "states": 14
+    },
+    {
+      "code": "NC",
+      "cities": 10,
+      "states": 3
+    },
+    {
+      "code": "NE",
+      "cities": 71,
+      "states": 8
+    },
+    {
+      "code": "NF",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "NG",
+      "cities": 491,
+      "states": 37
+    },
+    {
+      "code": "NI",
+      "cities": 155,
+      "states": 17
+    },
+    {
+      "code": "NL",
+      "cities": 1644,
+      "states": 12
+    },
+    {
+      "code": "NO",
+      "cities": 666,
+      "states": 17
+    },
+    {
+      "code": "NP",
+      "cities": 77,
+      "states": 7
+    },
+    {
+      "code": "NR",
+      "cities": 7,
+      "states": 14
+    },
+    {
+      "code": "NU",
+      "cities": 0,
+      "states": 14
+    },
+    {
+      "code": "NZ",
+      "cities": 160,
+      "states": 17
+    },
+    {
+      "code": "OM",
+      "cities": 28,
+      "states": 11
+    },
+    {
+      "code": "PA",
+      "cities": 551,
+      "states": 14
+    },
+    {
+      "code": "PE",
+      "cities": 485,
+      "states": 26
+    },
+    {
+      "code": "PF",
+      "cities": 48,
+      "states": 5
+    },
+    {
+      "code": "PG",
+      "cities": 100,
+      "states": 22
+    },
+    {
+      "code": "PH",
+      "cities": 5357,
+      "states": 99
+    },
+    {
+      "code": "PK",
+      "cities": 456,
+      "states": 7
+    },
+    {
+      "code": "PL",
+      "cities": 2810,
+      "states": 16
+    },
+    {
+      "code": "PM",
+      "cities": 2,
+      "states": 1
+    },
+    {
+      "code": "PN",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "PR",
+      "cities": 78,
+      "states": 78
+    },
+    {
+      "code": "PS",
+      "cities": 132,
+      "states": 16
+    },
+    {
+      "code": "PT",
+      "cities": 1296,
+      "states": 20
+    },
+    {
+      "code": "PW",
+      "cities": 15,
+      "states": 16
+    },
+    {
+      "code": "PY",
+      "cities": 152,
+      "states": 18
+    },
+    {
+      "code": "QA",
+      "cities": 15,
+      "states": 8
+    },
+    {
+      "code": "RE",
+      "cities": 24,
+      "states": 4
+    },
+    {
+      "code": "RO",
+      "cities": 7949,
+      "states": 42
+    },
+    {
+      "code": "RS",
+      "cities": 379,
+      "states": 32
+    },
+    {
+      "code": "RU",
+      "cities": 5523,
+      "states": 83
+    },
+    {
+      "code": "RW",
+      "cities": 12,
+      "states": 5
+    },
+    {
+      "code": "SA",
+      "cities": 399,
+      "states": 13
+    },
+    {
+      "code": "SB",
+      "cities": 7,
+      "states": 10
+    },
+    {
+      "code": "SC",
+      "cities": 9,
+      "states": 27
+    },
+    {
+      "code": "SD",
+      "cities": 71,
+      "states": 18
+    },
+    {
+      "code": "SE",
+      "cities": 800,
+      "states": 21
+    },
+    {
+      "code": "SG",
+      "cities": 26,
+      "states": 5
+    },
+    {
+      "code": "SH",
+      "cities": 0,
+      "states": 8
+    },
+    {
+      "code": "SI",
+      "cities": 312,
+      "states": 212
+    },
+    {
+      "code": "SJ",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "SK",
+      "cities": 233,
+      "states": 8
+    },
+    {
+      "code": "SL",
+      "cities": 91,
+      "states": 5
+    },
+    {
+      "code": "SM",
+      "cities": 9,
+      "states": 9
+    },
+    {
+      "code": "SN",
+      "cities": 73,
+      "states": 14
+    },
+    {
+      "code": "SO",
+      "cities": 51,
+      "states": 18
+    },
+    {
+      "code": "SR",
+      "cities": 13,
+      "states": 10
+    },
+    {
+      "code": "SS",
+      "cities": 1,
+      "states": 10
+    },
+    {
+      "code": "ST",
+      "cities": 7,
+      "states": 7
+    },
+    {
+      "code": "SV",
+      "cities": 100,
+      "states": 14
+    },
+    {
+      "code": "SX",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "SY",
+      "cities": 142,
+      "states": 14
+    },
+    {
+      "code": "SZ",
+      "cities": 34,
+      "states": 4
+    },
+    {
+      "code": "TC",
+      "cities": 0,
+      "states": 6
+    },
+    {
+      "code": "TD",
+      "cities": 49,
+      "states": 23
+    },
+    {
+      "code": "TF",
+      "cities": 5,
+      "states": 5
+    },
+    {
+      "code": "TG",
+      "cities": 22,
+      "states": 5
+    },
+    {
+      "code": "TH",
+      "cities": 1241,
+      "states": 78
+    },
+    {
+      "code": "TJ",
+      "cities": 71,
+      "states": 5
+    },
+    {
+      "code": "TK",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "TL",
+      "cities": 55,
+      "states": 13
+    },
+    {
+      "code": "TM",
+      "cities": 30,
+      "states": 6
+    },
+    {
+      "code": "TN",
+      "cities": 165,
+      "states": 24
+    },
+    {
+      "code": "TO",
+      "cities": 8,
+      "states": 5
+    },
+    {
+      "code": "TR",
+      "cities": 980,
+      "states": 81
+    },
+    {
+      "code": "TT",
+      "cities": 25,
+      "states": 17
+    },
+    {
+      "code": "TV",
+      "cities": 9,
+      "states": 8
+    },
+    {
+      "code": "TW",
+      "cities": 383,
+      "states": 22
+    },
+    {
+      "code": "TZ",
+      "cities": 303,
+      "states": 31
+    },
+    {
+      "code": "UA",
+      "cities": 1819,
+      "states": 27
+    },
+    {
+      "code": "UG",
+      "cities": 91,
+      "states": 139
+    },
+    {
+      "code": "UM",
+      "cities": 0,
+      "states": 9
+    },
+    {
+      "code": "US",
+      "cities": 16731,
+      "states": 60
+    },
+    {
+      "code": "UY",
+      "cities": 2010,
+      "states": 19
+    },
+    {
+      "code": "UZ",
+      "cities": 135,
+      "states": 14
+    },
+    {
+      "code": "VA",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "VC",
+      "cities": 9,
+      "states": 6
+    },
+    {
+      "code": "VE",
+      "cities": 136,
+      "states": 25
+    },
+    {
+      "code": "VG",
+      "cities": 0,
+      "states": 0
+    },
+    {
+      "code": "VI",
+      "cities": 20,
+      "states": 3
+    },
+    {
+      "code": "VN",
+      "cities": 488,
+      "states": 34
+    },
+    {
+      "code": "VU",
+      "cities": 7,
+      "states": 6
+    },
+    {
+      "code": "WF",
+      "cities": 3,
+      "states": 3
+    },
+    {
+      "code": "WS",
+      "cities": 20,
+      "states": 11
+    },
+    {
+      "code": "XK",
+      "cities": 59,
+      "states": 7
+    },
+    {
+      "code": "YE",
+      "cities": 339,
+      "states": 22
+    },
+    {
+      "code": "YT",
+      "cities": 57,
+      "states": 17
+    },
+    {
+      "code": "ZA",
+      "cities": 314,
+      "states": 9
+    },
+    {
+      "code": "ZM",
+      "cities": 71,
+      "states": 10
+    },
+    {
+      "code": "ZW",
+      "cities": 109,
+      "states": 10
+    }
+  ],
+  "shards": {
+    "a": {
+      "count": 213,
+      "bytes": 28060
+    },
+    "aa": {
+      "count": 57,
+      "bytes": 6925
+    },
+    "ab": {
+      "count": 621,
+      "bytes": 80012
+    },
+    "ac": {
+      "count": 416,
+      "bytes": 52607
+    },
+    "ad": {
+      "count": 368,
+      "bytes": 46652
+    },
+    "ae": {
+      "count": 22,
+      "bytes": 3157
+    },
+    "af": {
+      "count": 103,
+      "bytes": 13135
+    },
+    "ag": {
+      "count": 666,
+      "bytes": 90824
+    },
+    "ah": {
+      "count": 134,
+      "bytes": 18072
+    },
+    "ai": {
+      "count": 364,
+      "bytes": 46112
+    },
+    "aj": {
+      "count": 59,
+      "bytes": 7256
+    },
+    "ak": {
+      "count": 205,
+      "bytes": 25257
+    },
+    "al": {
+      "count": 3216,
+      "bytes": 424932
+    },
+    "am": {
+      "count": 1096,
+      "bytes": 153295
+    },
+    "an": {
+      "count": 2078,
+      "bytes": 280503
+    },
+    "ao": {
+      "count": 29,
+      "bytes": 3372
+    },
+    "ap": {
+      "count": 271,
+      "bytes": 33589
+    },
+    "aq": {
+      "count": 73,
+      "bytes": 9897
+    },
+    "ar": {
+      "count": 1970,
+      "bytes": 247072
+    },
+    "as": {
+      "count": 672,
+      "bytes": 84760
+    },
+    "at": {
+      "count": 477,
+      "bytes": 60787
+    },
+    "au": {
+      "count": 619,
+      "bytes": 78382
+    },
+    "av": {
+      "count": 275,
+      "bytes": 33949
+    },
+    "aw": {
+      "count": 36,
+      "bytes": 4344
+    },
+    "ax": {
+      "count": 34,
+      "bytes": 4386
+    },
+    "ay": {
+      "count": 195,
+      "bytes": 24414
+    },
+    "az": {
+      "count": 214,
+      "bytes": 26684
+    },
+    "b": {
+      "count": 34,
+      "bytes": 4691
+    },
+    "ba": {
+      "count": 5228,
+      "bytes": 652209
+    },
+    "bc": {
+      "count": 1,
+      "bytes": 189
+    },
+    "be": {
+      "count": 3355,
+      "bytes": 424416
+    },
+    "bh": {
+      "count": 127,
+      "bytes": 15807
+    },
+    "bi": {
+      "count": 1128,
+      "bytes": 136372
+    },
+    "bj": {
+      "count": 23,
+      "bytes": 2794
+    },
+    "bl": {
+      "count": 664,
+      "bytes": 85833
+    },
+    "bn": {
+      "count": 3,
+      "bytes": 550
+    },
+    "bo": {
+      "count": 2648,
+      "bytes": 332728
+    },
+    "br": {
+      "count": 2051,
+      "bytes": 258433
+    },
+    "bs": {
+      "count": 1,
+      "bytes": 240
+    },
+    "bu": {
+      "count": 1851,
+      "bytes": 224911
+    },
+    "bw": {
+      "count": 3,
+      "bytes": 490
+    },
+    "by": {
+      "count": 123,
+      "bytes": 16215
+    },
+    "bz": {
+      "count": 2,
+      "bytes": 316
+    },
+    "c": {
+      "count": 24,
+      "bytes": 3671
+    },
+    "ca": {
+      "count": 6422,
+      "bytes": 812414
+    },
+    "cb": {
+      "count": 1,
+      "bytes": 213
+    },
+    "cc": {
+      "count": 3,
+      "bytes": 404
+    },
+    "ce": {
+      "count": 1432,
+      "bytes": 179321
+    },
+    "ch": {
+      "count": 3532,
+      "bytes": 443327
+    },
+    "ci": {
+      "count": 1304,
+      "bytes": 161876
+    },
+    "ck": {
+      "count": 1,
+      "bytes": 204
+    },
+    "cl": {
+      "count": 630,
+      "bytes": 76879
+    },
+    "cm": {
+      "count": 2,
+      "bytes": 325
+    },
+    "cn": {
+      "count": 1,
+      "bytes": 227
+    },
+    "co": {
+      "count": 6723,
+      "bytes": 856940
+    },
+    "cr": {
+      "count": 1236,
+      "bytes": 162012
+    },
+    "cs": {
+      "count": 34,
+      "bytes": 4424
+    },
+    "cu": {
+      "count": 959,
+      "bytes": 117659
+    },
+    "cv": {
+      "count": 1,
+      "bytes": 224
+    },
+    "cw": {
+      "count": 4,
+      "bytes": 572
+    },
+    "cy": {
+      "count": 40,
+      "bytes": 5058
+    },
+    "cz": {
+      "count": 60,
+      "bytes": 7175
+    },
+    "d": {
+      "count": 489,
+      "bytes": 68975
+    },
+    "da": {
+      "count": 1671,
+      "bytes": 209242
+    },
+    "dd": {
+      "count": 1,
+      "bytes": 230
+    },
+    "de": {
+      "count": 9380,
+      "bytes": 1392713
+    },
+    "dh": {
+      "count": 105,
+      "bytes": 12934
+    },
+    "di": {
+      "count": 1950,
+      "bytes": 261837
+    },
+    "dj": {
+      "count": 29,
+      "bytes": 3482
+    },
+    "dk": {
+      "count": 1,
+      "bytes": 242
+    },
+    "dl": {
+      "count": 2,
+      "bytes": 367
+    },
+    "dm": {
+      "count": 14,
+      "bytes": 2565
+    },
+    "dn": {
+      "count": 12,
+      "bytes": 2174
+    },
+    "do": {
+      "count": 2548,
+      "bytes": 351081
+    },
+    "dr": {
+      "count": 426,
+      "bytes": 54615
+    },
+    "ds": {
+      "count": 2,
+      "bytes": 262
+    },
+    "dt": {
+      "count": 2,
+      "bytes": 465
+    },
+    "du": {
+      "count": 1015,
+      "bytes": 127446
+    },
+    "dv": {
+      "count": 20,
+      "bytes": 3017
+    },
+    "dw": {
+      "count": 8,
+      "bytes": 1154
+    },
+    "dy": {
+      "count": 34,
+      "bytes": 4166
+    },
+    "dz": {
+      "count": 78,
+      "bytes": 10181
+    },
+    "e": {
+      "count": 156,
+      "bytes": 24018
+    },
+    "ea": {
+      "count": 549,
+      "bytes": 66779
+    },
+    "eb": {
+      "count": 94,
+      "bytes": 11966
+    },
+    "ec": {
+      "count": 121,
+      "bytes": 15690
+    },
+    "ed": {
+      "count": 189,
+      "bytes": 22618
+    },
+    "ee": {
+      "count": 14,
+      "bytes": 1567
+    },
+    "ef": {
+      "count": 29,
+      "bytes": 3964
+    },
+    "eg": {
+      "count": 102,
+      "bytes": 12737
+    },
+    "eh": {
+      "count": 21,
+      "bytes": 2741
+    },
+    "ei": {
+      "count": 165,
+      "bytes": 20735
+    },
+    "ej": {
+      "count": 103,
+      "bytes": 16950
+    },
+    "ek": {
+      "count": 45,
+      "bytes": 5856
+    },
+    "el": {
+      "count": 2028,
+      "bytes": 269029
+    },
+    "em": {
+      "count": 227,
+      "bytes": 30932
+    },
+    "en": {
+      "count": 856,
+      "bytes": 116788
+    },
+    "eo": {
+      "count": 3,
+      "bytes": 410
+    },
+    "ep": {
+      "count": 94,
+      "bytes": 11320
+    },
+    "eq": {
+      "count": 12,
+      "bytes": 1610
+    },
+    "er": {
+      "count": 350,
+      "bytes": 42634
+    },
+    "es": {
+      "count": 982,
+      "bytes": 131270
+    },
+    "et": {
+      "count": 248,
+      "bytes": 35096
+    },
+    "eu": {
+      "count": 124,
+      "bytes": 16190
+    },
+    "ev": {
+      "count": 128,
+      "bytes": 16013
+    },
+    "ew": {
+      "count": 13,
+      "bytes": 1601
+    },
+    "ex": {
+      "count": 87,
+      "bytes": 11503
+    },
+    "ey": {
+      "count": 35,
+      "bytes": 4475
+    },
+    "ez": {
+      "count": 29,
+      "bytes": 3594
+    },
+    "f": {
+      "count": 8,
+      "bytes": 1071
+    },
+    "fa": {
+      "count": 1063,
+      "bytes": 127785
+    },
+    "fd": {
+      "count": 1,
+      "bytes": 249
+    },
+    "fe": {
+      "count": 791,
+      "bytes": 102360
+    },
+    "ff": {
+      "count": 1,
+      "bytes": 271
+    },
+    "fg": {
+      "count": 1,
+      "bytes": 186
+    },
+    "fh": {
+      "count": 1,
+      "bytes": 238
+    },
+    "fi": {
+      "count": 513,
+      "bytes": 64390
+    },
+    "fj": {
+      "count": 9,
+      "bytes": 1130
+    },
+    "fl": {
+      "count": 503,
+      "bytes": 63915
+    },
+    "fn": {
+      "count": 2,
+      "bytes": 479
+    },
+    "fo": {
+      "count": 1084,
+      "bytes": 134650
+    },
+    "fq": {
+      "count": 2,
+      "bytes": 465
+    },
+    "fr": {
+      "count": 1309,
+      "bytes": 183882
+    },
+    "fs": {
+      "count": 1,
+      "bytes": 216
+    },
+    "ft": {
+      "count": 1,
+      "bytes": 221
+    },
+    "fu": {
+      "count": 500,
+      "bytes": 60035
+    },
+    "fw": {
+      "count": 1,
+      "bytes": 261
+    },
+    "fy": {
+      "count": 10,
+      "bytes": 1250
+    },
+    "g": {
+      "count": 32,
+      "bytes": 4215
+    },
+    "ga": {
+      "count": 1746,
+      "bytes": 214433
+    },
+    "gb": {
+      "count": 10,
+      "bytes": 1150
+    },
+    "gc": {
+      "count": 1,
+      "bytes": 256
+    },
+    "gd": {
+      "count": 9,
+      "bytes": 1250
+    },
+    "ge": {
+      "count": 969,
+      "bytes": 126918
+    },
+    "gf": {
+      "count": 1,
+      "bytes": 207
+    },
+    "gg": {
+      "count": 1,
+      "bytes": 256
+    },
+    "gh": {
+      "count": 206,
+      "bytes": 24988
+    },
+    "gi": {
+      "count": 614,
+      "bytes": 75575
+    },
+    "gj": {
+      "count": 12,
+      "bytes": 1370
+    },
+    "gl": {
+      "count": 392,
+      "bytes": 48571
+    },
+    "gm": {
+      "count": 10,
+      "bytes": 1403
+    },
+    "gn": {
+      "count": 32,
+      "bytes": 4227
+    },
+    "go": {
+      "count": 1422,
+      "bytes": 182840
+    },
+    "gp": {
+      "count": 1,
+      "bytes": 259
+    },
+    "gq": {
+      "count": 1,
+      "bytes": 267
+    },
+    "gr": {
+      "count": 2222,
+      "bytes": 286189
+    },
+    "gs": {
+      "count": 8,
+      "bytes": 1135
+    },
+    "gu": {
+      "count": 1545,
+      "bytes": 193923
+    },
+    "gv": {
+      "count": 5,
+      "bytes": 774
+    },
+    "gw": {
+      "count": 39,
+      "bytes": 4680
+    },
+    "gy": {
+      "count": 50,
+      "bytes": 6037
+    },
+    "gz": {
+      "count": 4,
+      "bytes": 514
+    },
+    "h": {
+      "count": 26,
+      "bytes": 2983
+    },
+    "ha": {
+      "count": 2302,
+      "bytes": 276082
+    },
+    "he": {
+      "count": 1454,
+      "bytes": 181024
+    },
+    "hh": {
+      "count": 2,
+      "bytes": 433
+    },
+    "hi": {
+      "count": 1272,
+      "bytes": 157781
+    },
+    "hj": {
+      "count": 11,
+      "bytes": 1291
+    },
+    "hl": {
+      "count": 25,
+      "bytes": 3293
+    },
+    "hm": {
+      "count": 2,
+      "bytes": 417
+    },
+    "hn": {
+      "count": 5,
+      "bytes": 731
+    },
+    "ho": {
+      "count": 1516,
+      "bytes": 185372
+    },
+    "hp": {
+      "count": 1,
+      "bytes": 190
+    },
+    "hr": {
+      "count": 63,
+      "bytes": 9328
+    },
+    "hs": {
+      "count": 5,
+      "bytes": 648
+    },
+    "hu": {
+      "count": 1324,
+      "bytes": 156265
+    },
+    "hv": {
+      "count": 16,
+      "bytes": 2098
+    },
+    "hw": {
+      "count": 10,
+      "bytes": 1301
+    },
+    "hy": {
+      "count": 45,
+      "bytes": 4924
+    },
+    "i": {
+      "count": 170,
+      "bytes": 25159
+    },
+    "ia": {
+      "count": 61,
+      "bytes": 7002
+    },
+    "ib": {
+      "count": 146,
+      "bytes": 17997
+    },
+    "ic": {
+      "count": 70,
+      "bytes": 8344
+    },
+    "id": {
+      "count": 61,
+      "bytes": 7612
+    },
+    "ie": {
+      "count": 26,
+      "bytes": 3074
+    },
+    "if": {
+      "count": 22,
+      "bytes": 2576
+    },
+    "ig": {
+      "count": 196,
+      "bytes": 26084
+    },
+    "ih": {
+      "count": 20,
+      "bytes": 2602
+    },
+    "ii": {
+      "count": 35,
+      "bytes": 4733
+    },
+    "ij": {
+      "count": 29,
+      "bytes": 3608
+    },
+    "ik": {
+      "count": 54,
+      "bytes": 5996
+    },
+    "il": {
+      "count": 315,
+      "bytes": 40337
+    },
+    "im": {
+      "count": 285,
+      "bytes": 41514
+    },
+    "in": {
+      "count": 948,
+      "bytes": 125679
+    },
+    "io": {
+      "count": 60,
+      "bytes": 7946
+    },
+    "ip": {
+      "count": 91,
+      "bytes": 10322
+    },
+    "iq": {
+      "count": 5,
+      "bytes": 620
+    },
+    "ir": {
+      "count": 216,
+      "bytes": 26614
+    },
+    "is": {
+      "count": 634,
+      "bytes": 81422
+    },
+    "it": {
+      "count": 363,
+      "bytes": 43711
+    },
+    "iu": {
+      "count": 9,
+      "bytes": 1077
+    },
+    "iv": {
+      "count": 118,
+      "bytes": 15896
+    },
+    "iw": {
+      "count": 28,
+      "bytes": 2806
+    },
+    "ix": {
+      "count": 98,
+      "bytes": 15914
+    },
+    "iy": {
+      "count": 9,
+      "bytes": 1124
+    },
+    "iz": {
+      "count": 141,
+      "bytes": 17495
+    },
+    "j": {
+      "count": 18,
+      "bytes": 2894
+    },
+    "ja": {
+      "count": 1341,
+      "bytes": 176786
+    },
+    "jb": {
+      "count": 2,
+      "bytes": 383
+    },
+    "je": {
+      "count": 465,
+      "bytes": 61325
+    },
+    "jh": {
+      "count": 35,
+      "bytes": 4252
+    },
+    "ji": {
+      "count": 485,
+      "bytes": 51261
+    },
+    "jm": {
+      "count": 1,
+      "bytes": 265
+    },
+    "jo": {
+      "count": 1115,
+      "bytes": 155662
+    },
+    "jr": {
+      "count": 3,
+      "bytes": 420
+    },
+    "ju": {
+      "count": 900,
+      "bytes": 122420
+    },
+    "jv": {
+      "count": 1,
+      "bytes": 263
+    },
+    "jy": {
+      "count": 4,
+      "bytes": 591
+    },
+    "k": {
+      "count": 82,
+      "bytes": 11900
+    },
+    "ka": {
+      "count": 2482,
+      "bytes": 320683
+    },
+    "kb": {
+      "count": 2,
+      "bytes": 316
+    },
+    "kc": {
+      "count": 2,
+      "bytes": 384
+    },
+    "kd": {
+      "count": 1,
+      "bytes": 198
+    },
+    "ke": {
+      "count": 643,
+      "bytes": 76611
+    },
+    "kf": {
+      "count": 2,
+      "bytes": 347
+    },
+    "kg": {
+      "count": 1,
+      "bytes": 213
+    },
+    "kh": {
+      "count": 679,
+      "bytes": 89834
+    },
+    "ki": {
+      "count": 938,
+      "bytes": 112257
+    },
+    "kj": {
+      "count": 4,
+      "bytes": 613
+    },
+    "kl": {
+      "count": 241,
+      "bytes": 31953
+    },
+    "km": {
+      "count": 3,
+      "bytes": 545
+    },
+    "kn": {
+      "count": 106,
+      "bytes": 13512
+    },
+    "ko": {
+      "count": 1375,
+      "bytes": 175657
+    },
+    "kp": {
+      "count": 3,
+      "bytes": 375
+    },
+    "kr": {
+      "count": 721,
+      "bytes": 106601
+    },
+    "ks": {
+      "count": 24,
+      "bytes": 3470
+    },
+    "kt": {
+      "count": 1,
+      "bytes": 234
+    },
+    "ku": {
+      "count": 728,
+      "bytes": 89433
+    },
+    "kv": {
+      "count": 25,
+      "bytes": 3183
+    },
+    "kw": {
+      "count": 30,
+      "bytes": 3426
+    },
+    "ky": {
+      "count": 150,
+      "bytes": 23043
+    },
+    "kz": {
+      "count": 1,
+      "bytes": 238
+    },
+    "l": {
+      "count": 219,
+      "bytes": 29116
+    },
+    "la": {
+      "count": 6226,
+      "bytes": 809622
+    },
+    "lb": {
+      "count": 1,
+      "bytes": 210
+    },
+    "lc": {
+      "count": 2,
+      "bytes": 341
+    },
+    "ld": {
+      "count": 1,
+      "bytes": 216
+    },
+    "le": {
+      "count": 2535,
+      "bytes": 324536
+    },
+    "lg": {
+      "count": 1,
+      "bytes": 210
+    },
+    "lh": {
+      "count": 20,
+      "bytes": 2492
+    },
+    "li": {
+      "count": 1647,
+      "bytes": 192845
+    },
+    "lj": {
+      "count": 31,
+      "bytes": 4344
+    },
+    "ll": {
+      "count": 254,
+      "bytes": 33913
+    },
+    "lm": {
+      "count": 1,
+      "bytes": 202
+    },
+    "ln": {
+      "count": 3,
+      "bytes": 480
+    },
+    "lo": {
+      "count": 2266,
+      "bytes": 296835
+    },
+    "lt": {
+      "count": 1,
+      "bytes": 258
+    },
+    "lu": {
+      "count": 1286,
+      "bytes": 154335
+    },
+    "lv": {
+      "count": 1,
+      "bytes": 211
+    },
+    "lw": {
+      "count": 3,
+      "bytes": 460
+    },
+    "ly": {
+      "count": 179,
+      "bytes": 21941
+    },
+    "lz": {
+      "count": 1,
+      "bytes": 197
+    },
+    "m": {
+      "count": 21,
+      "bytes": 2722
+    },
+    "ma": {
+      "count": 7213,
+      "bytes": 925808
+    },
+    "mb": {
+      "count": 44,
+      "bytes": 4637
+    },
+    "mc": {
+      "count": 87,
+      "bytes": 10422
+    },
+    "me": {
+      "count": 2126,
+      "bytes": 267012
+    },
+    "mf": {
+      "count": 2,
+      "bytes": 309
+    },
+    "mg": {
+      "count": 8,
+      "bytes": 1038
+    },
+    "mh": {
+      "count": 12,
+      "bytes": 1573
+    },
+    "mi": {
+      "count": 2342,
+      "bytes": 306288
+    },
+    "mj": {
+      "count": 5,
+      "bytes": 664
+    },
+    "mk": {
+      "count": 5,
+      "bytes": 650
+    },
+    "ml": {
+      "count": 22,
+      "bytes": 2933
+    },
+    "mm": {
+      "count": 4,
+      "bytes": 573
+    },
+    "mn": {
+      "count": 14,
+      "bytes": 1989
+    },
+    "mo": {
+      "count": 3939,
+      "bytes": 499906
+    },
+    "mp": {
+      "count": 14,
+      "bytes": 1595
+    },
+    "mq": {
+      "count": 1,
+      "bytes": 188
+    },
+    "mr": {
+      "count": 27,
+      "bytes": 3493
+    },
+    "ms": {
+      "count": 16,
+      "bytes": 1886
+    },
+    "mt": {
+      "count": 21,
+      "bytes": 2295
+    },
+    "mu": {
+      "count": 1649,
+      "bytes": 220685
+    },
+    "mv": {
+      "count": 7,
+      "bytes": 828
+    },
+    "mw": {
+      "count": 20,
+      "bytes": 2090
+    },
+    "my": {
+      "count": 122,
+      "bytes": 15189
+    },
+    "mz": {
+      "count": 4,
+      "bytes": 476
+    },
+    "n": {
+      "count": 29,
+      "bytes": 3597
+    },
+    "na": {
+      "count": 1778,
+      "bytes": 228086
+    },
+    "nc": {
+      "count": 4,
+      "bytes": 549
+    },
+    "nd": {
+      "count": 19,
+      "bytes": 2414
+    },
+    "ne": {
+      "count": 1515,
+      "bytes": 193066
+    },
+    "ng": {
+      "count": 88,
+      "bytes": 10399
+    },
+    "nh": {
+      "count": 18,
+      "bytes": 2072
+    },
+    "ni": {
+      "count": 913,
+      "bytes": 118963
+    },
+    "nj": {
+      "count": 6,
+      "bytes": 799
+    },
+    "nk": {
+      "count": 21,
+      "bytes": 2602
+    },
+    "nn": {
+      "count": 1,
+      "bytes": 193
+    },
+    "no": {
+      "count": 2219,
+      "bytes": 292776
+    },
+    "ns": {
+      "count": 14,
+      "bytes": 1645
+    },
+    "nt": {
+      "count": 11,
+      "bytes": 1247
+    },
+    "nu": {
+      "count": 552,
+      "bytes": 72195
+    },
+    "nw": {
+      "count": 2,
+      "bytes": 433
+    },
+    "ny": {
+      "count": 121,
+      "bytes": 16530
+    },
+    "nz": {
+      "count": 5,
+      "bytes": 824
+    },
+    "o": {
+      "count": 73,
+      "bytes": 8713
+    },
+    "oa": {
+      "count": 197,
+      "bytes": 22451
+    },
+    "ob": {
+      "count": 669,
+      "bytes": 102729
+    },
+    "oc": {
+      "count": 248,
+      "bytes": 33099
+    },
+    "od": {
+      "count": 141,
+      "bytes": 17232
+    },
+    "oe": {
+      "count": 107,
+      "bytes": 14133
+    },
+    "of": {
+      "count": 291,
+      "bytes": 41130
+    },
+    "og": {
+      "count": 82,
+      "bytes": 10195
+    },
+    "oh": {
+      "count": 47,
+      "bytes": 6075
+    },
+    "oi": {
+      "count": 64,
+      "bytes": 7660
+    },
+    "oj": {
+      "count": 70,
+      "bytes": 9949
+    },
+    "ok": {
+      "count": 281,
+      "bytes": 41980
+    },
+    "ol": {
+      "count": 576,
+      "bytes": 74557
+    },
+    "om": {
+      "count": 100,
+      "bytes": 11815
+    },
+    "on": {
+      "count": 273,
+      "bytes": 32890
+    },
+    "oo": {
+      "count": 59,
+      "bytes": 7121
+    },
+    "op": {
+      "count": 135,
+      "bytes": 17687
+    },
+    "oq": {
+      "count": 6,
+      "bytes": 684
+    },
+    "or": {
+      "count": 1024,
+      "bytes": 130777
+    },
+    "os": {
+      "count": 421,
+      "bytes": 54739
+    },
+    "ot": {
+      "count": 220,
+      "bytes": 26576
+    },
+    "ou": {
+      "count": 238,
+      "bytes": 29710
+    },
+    "ov": {
+      "count": 79,
+      "bytes": 9761
+    },
+    "ow": {
+      "count": 32,
+      "bytes": 3576
+    },
+    "ox": {
+      "count": 55,
+      "bytes": 6630
+    },
+    "oy": {
+      "count": 38,
+      "bytes": 4491
+    },
+    "oz": {
+      "count": 78,
+      "bytes": 10407
+    },
+    "p": {
+      "count": 22,
+      "bytes": 2879
+    },
+    "pa": {
+      "count": 4276,
+      "bytes": 533872
+    },
+    "pc": {
+      "count": 2,
+      "bytes": 307
+    },
+    "pe": {
+      "count": 2228,
+      "bytes": 291482
+    },
+    "pf": {
+      "count": 55,
+      "bytes": 7155
+    },
+    "ph": {
+      "count": 344,
+      "bytes": 45585
+    },
+    "pi": {
+      "count": 1963,
+      "bytes": 247231
+    },
+    "pj": {
+      "count": 2,
+      "bytes": 461
+    },
+    "pk": {
+      "count": 1,
+      "bytes": 209
+    },
+    "pl": {
+      "count": 853,
+      "bytes": 110879
+    },
+    "pn": {
+      "count": 7,
+      "bytes": 965
+    },
+    "po": {
+      "count": 2845,
+      "bytes": 364850
+    },
+    "pr": {
+      "count": 1757,
+      "bytes": 236159
+    },
+    "ps": {
+      "count": 26,
+      "bytes": 3476
+    },
+    "pt": {
+      "count": 9,
+      "bytes": 1063
+    },
+    "pu": {
+      "count": 1146,
+      "bytes": 142323
+    },
+    "pw": {
+      "count": 4,
+      "bytes": 633
+    },
+    "py": {
+      "count": 75,
+      "bytes": 9720
+    },
+    "q": {
+      "count": 7,
+      "bytes": 1209
+    },
+    "qa": {
+      "count": 161,
+      "bytes": 20114
+    },
+    "qe": {
+      "count": 16,
+      "bytes": 2418
+    },
+    "qg": {
+      "count": 1,
+      "bytes": 222
+    },
+    "qh": {
+      "count": 1,
+      "bytes": 242
+    },
+    "qi": {
+      "count": 161,
+      "bytes": 15621
+    },
+    "qo": {
+      "count": 24,
+      "bytes": 2753
+    },
+    "qq": {
+      "count": 1,
+      "bytes": 181
+    },
+    "qr": {
+      "count": 1,
+      "bytes": 189
+    },
+    "qu": {
+      "count": 746,
+      "bytes": 91307
+    },
+    "qv": {
+      "count": 1,
+      "bytes": 198
+    },
+    "r": {
+      "count": 29,
+      "bytes": 3527
+    },
+    "ra": {
+      "count": 2811,
+      "bytes": 408086
+    },
+    "rc": {
+      "count": 1,
+      "bytes": 208
+    },
+    "re": {
+      "count": 1493,
+      "bytes": 189656
+    },
+    "rg": {
+      "count": 4,
+      "bytes": 613
+    },
+    "rh": {
+      "count": 100,
+      "bytes": 13725
+    },
+    "ri": {
+      "count": 1861,
+      "bytes": 239372
+    },
+    "rj": {
+      "count": 1,
+      "bytes": 192
+    },
+    "rm": {
+      "count": 1,
+      "bytes": 231
+    },
+    "rn": {
+      "count": 1,
+      "bytes": 215
+    },
+    "ro": {
+      "count": 2406,
+      "bytes": 299781
+    },
+    "rq": {
+      "count": 1,
+      "bytes": 249
+    },
+    "rr": {
+      "count": 21,
+      "bytes": 2668
+    },
+    "rs": {
+      "count": 2,
+      "bytes": 338
+    },
+    "rt": {
+      "count": 3,
+      "bytes": 498
+    },
+    "ru": {
+      "count": 656,
+      "bytes": 78225
+    },
+    "rw": {
+      "count": 2,
+      "bytes": 292
+    },
+    "ry": {
+      "count": 94,
+      "bytes": 11489
+    },
+    "rz": {
+      "count": 24,
+      "bytes": 2651
+    },
+    "s": {
+      "count": 154,
+      "bytes": 19422
+    },
+    "sa": {
+      "count": 11199,
+      "bytes": 1563698
+    },
+    "sb": {
+      "count": 2,
+      "bytes": 304
+    },
+    "sc": {
+      "count": 868,
+      "bytes": 110117
+    },
+    "sd": {
+      "count": 1,
+      "bytes": 272
+    },
+    "se": {
+      "count": 2162,
+      "bytes": 281450
+    },
+    "sf": {
+      "count": 20,
+      "bytes": 2620
+    },
+    "sg": {
+      "count": 2,
+      "bytes": 329
+    },
+    "sh": {
+      "count": 2077,
+      "bytes": 236515
+    },
+    "si": {
+      "count": 1648,
+      "bytes": 207634
+    },
+    "sj": {
+      "count": 11,
+      "bytes": 1410
+    },
+    "sk": {
+      "count": 360,
+      "bytes": 51456
+    },
+    "sl": {
+      "count": 258,
+      "bytes": 35084
+    },
+    "sm": {
+      "count": 150,
+      "bytes": 19203
+    },
+    "sn": {
+      "count": 59,
+      "bytes": 7362
+    },
+    "so": {
+      "count": 2047,
+      "bytes": 256956
+    },
+    "sp": {
+      "count": 657,
+      "bytes": 81672
+    },
+    "sq": {
+      "count": 18,
+      "bytes": 2283
+    },
+    "sr": {
+      "count": 118,
+      "bytes": 17700
+    },
+    "ss": {
+      "count": 1,
+      "bytes": 273
+    },
+    "st": {
+      "count": 1838,
+      "bytes": 239426
+    },
+    "su": {
+      "count": 2532,
+      "bytes": 336446
+    },
+    "sv": {
+      "count": 127,
+      "bytes": 17959
+    },
+    "sw": {
+      "count": 117,
+      "bytes": 14439
+    },
+    "sy": {
+      "count": 113,
+      "bytes": 14448
+    },
+    "sz": {
+      "count": 123,
+      "bytes": 15573
+    },
+    "t": {
+      "count": 26,
+      "bytes": 3101
+    },
+    "ta": {
+      "count": 2335,
+      "bytes": 278063
+    },
+    "tb": {
+      "count": 4,
+      "bytes": 696
+    },
+    "tc": {
+      "count": 11,
+      "bytes": 1325
+    },
+    "td": {
+      "count": 1,
+      "bytes": 315
+    },
+    "te": {
+      "count": 1593,
+      "bytes": 212927
+    },
+    "th": {
+      "count": 1198,
+      "bytes": 148336
+    },
+    "ti": {
+      "count": 951,
+      "bytes": 117456
+    },
+    "tj": {
+      "count": 7,
+      "bytes": 951
+    },
+    "tk": {
+      "count": 3,
+      "bytes": 467
+    },
+    "tl": {
+      "count": 207,
+      "bytes": 33775
+    },
+    "tm": {
+      "count": 2,
+      "bytes": 345
+    },
+    "tn": {
+      "count": 1,
+      "bytes": 326
+    },
+    "to": {
+      "count": 2046,
+      "bytes": 255859
+    },
+    "tp": {
+      "count": 2,
+      "bytes": 331
+    },
+    "tq": {
+      "count": 2,
+      "bytes": 333
+    },
+    "tr": {
+      "count": 1250,
+      "bytes": 158336
+    },
+    "ts": {
+      "count": 147,
+      "bytes": 18526
+    },
+    "tt": {
+      "count": 1,
+      "bytes": 210
+    },
+    "tu": {
+      "count": 859,
+      "bytes": 103228
+    },
+    "tv": {
+      "count": 11,
+      "bytes": 1428
+    },
+    "tw": {
+      "count": 103,
+      "bytes": 14777
+    },
+    "ty": {
+      "count": 100,
+      "bytes": 12745
+    },
+    "tz": {
+      "count": 28,
+      "bytes": 3618
+    },
+    "u": {
+      "count": 20,
+      "bytes": 3012
+    },
+    "ua": {
+      "count": 16,
+      "bytes": 1908
+    },
+    "ub": {
+      "count": 67,
+      "bytes": 8245
+    },
+    "uc": {
+      "count": 42,
+      "bytes": 4946
+    },
+    "ud": {
+      "count": 78,
+      "bytes": 9933
+    },
+    "ue": {
+      "count": 25,
+      "bytes": 2913
+    },
+    "uf": {
+      "count": 13,
+      "bytes": 1744
+    },
+    "ug": {
+      "count": 47,
+      "bytes": 6071
+    },
+    "uh": {
+      "count": 21,
+      "bytes": 2949
+    },
+    "ui": {
+      "count": 35,
+      "bytes": 4328
+    },
+    "uj": {
+      "count": 27,
+      "bytes": 3157
+    },
+    "uk": {
+      "count": 28,
+      "bytes": 3480
+    },
+    "ul": {
+      "count": 163,
+      "bytes": 20264
+    },
+    "um": {
+      "count": 127,
+      "bytes": 15910
+    },
+    "un": {
+      "count": 489,
+      "bytes": 61673
+    },
+    "uo": {
+      "count": 6,
+      "bytes": 727
+    },
+    "up": {
+      "count": 125,
+      "bytes": 16453
+    },
+    "uq": {
+      "count": 3,
+      "bytes": 501
+    },
+    "ur": {
+      "count": 325,
+      "bytes": 41212
+    },
+    "us": {
+      "count": 189,
+      "bytes": 24480
+    },
+    "ut": {
+      "count": 116,
+      "bytes": 15367
+    },
+    "uu": {
+      "count": 5,
+      "bytes": 598
+    },
+    "uv": {
+      "count": 24,
+      "bytes": 2980
+    },
+    "uw": {
+      "count": 3,
+      "bytes": 431
+    },
+    "ux": {
+      "count": 8,
+      "bytes": 1126
+    },
+    "uy": {
+      "count": 19,
+      "bytes": 2351
+    },
+    "uz": {
+      "count": 33,
+      "bytes": 3875
+    },
+    "v": {
+      "count": 23,
+      "bytes": 4105
+    },
+    "va": {
+      "count": 2398,
+      "bytes": 310365
+    },
+    "vc": {
+      "count": 2,
+      "bytes": 359
+    },
+    "ve": {
+      "count": 1562,
+      "bytes": 205295
+    },
+    "vh": {
+      "count": 1,
+      "bytes": 244
+    },
+    "vi": {
+      "count": 3296,
+      "bytes": 437251
+    },
+    "vk": {
+      "count": 1,
+      "bytes": 226
+    },
+    "vl": {
+      "count": 105,
+      "bytes": 14717
+    },
+    "vm": {
+      "count": 1,
+      "bytes": 239
+    },
+    "vn": {
+      "count": 4,
+      "bytes": 590
+    },
+    "vo": {
+      "count": 534,
+      "bytes": 69861
+    },
+    "vr": {
+      "count": 105,
+      "bytes": 13576
+    },
+    "vs": {
+      "count": 9,
+      "bytes": 1221
+    },
+    "vt": {
+      "count": 9,
+      "bytes": 1663
+    },
+    "vu": {
+      "count": 81,
+      "bytes": 9371
+    },
+    "vv": {
+      "count": 2,
+      "bytes": 371
+    },
+    "vw": {
+      "count": 1,
+      "bytes": 177
+    },
+    "vy": {
+      "count": 82,
+      "bytes": 12170
+    },
+    "vz": {
+      "count": 1,
+      "bytes": 237
+    },
+    "w": {
+      "count": 13,
+      "bytes": 1716
+    },
+    "wa": {
+      "count": 1357,
+      "bytes": 160699
+    },
+    "we": {
+      "count": 1291,
+      "bytes": 158682
+    },
+    "wh": {
+      "count": 215,
+      "bytes": 24849
+    },
+    "wi": {
+      "count": 948,
+      "bytes": 114193
+    },
+    "wl": {
+      "count": 1,
+      "bytes": 200
+    },
+    "wo": {
+      "count": 566,
+      "bytes": 69185
+    },
+    "wr": {
+      "count": 51,
+      "bytes": 6155
+    },
+    "ws": {
+      "count": 2,
+      "bytes": 415
+    },
+    "wu": {
+      "count": 173,
+      "bytes": 18954
+    },
+    "wy": {
+      "count": 82,
+      "bytes": 9949
+    },
+    "x": {
+      "count": 10,
+      "bytes": 1247
+    },
+    "xa": {
+      "count": 80,
+      "bytes": 10664
+    },
+    "xb": {
+      "count": 2,
+      "bytes": 316
+    },
+    "xc": {
+      "count": 2,
+      "bytes": 366
+    },
+    "xe": {
+      "count": 16,
+      "bytes": 1978
+    },
+    "xg": {
+      "count": 1,
+      "bytes": 218
+    },
+    "xh": {
+      "count": 4,
+      "bytes": 593
+    },
+    "xi": {
+      "count": 346,
+      "bytes": 34231
+    },
+    "xm": {
+      "count": 1,
+      "bytes": 193
+    },
+    "xo": {
+      "count": 78,
+      "bytes": 11920
+    },
+    "xp": {
+      "count": 1,
+      "bytes": 198
+    },
+    "xu": {
+      "count": 57,
+      "bytes": 5851
+    },
+    "xv": {
+      "count": 4,
+      "bytes": 739
+    },
+    "xx": {
+      "count": 6,
+      "bytes": 1087
+    },
+    "xy": {
+      "count": 4,
+      "bytes": 687
+    },
+    "y": {
+      "count": 144,
+      "bytes": 22915
+    },
+    "ya": {
+      "count": 654,
+      "bytes": 78521
+    },
+    "yb": {
+      "count": 12,
+      "bytes": 2071
+    },
+    "yc": {
+      "count": 2,
+      "bytes": 355
+    },
+    "yd": {
+      "count": 2,
+      "bytes": 276
+    },
+    "ye": {
+      "count": 392,
+      "bytes": 52473
+    },
+    "yf": {
+      "count": 1,
+      "bytes": 225
+    },
+    "yg": {
+      "count": 3,
+      "bytes": 447
+    },
+    "yh": {
+      "count": 1,
+      "bytes": 192
+    },
+    "yi": {
+      "count": 106,
+      "bytes": 10069
+    },
+    "yk": {
+      "count": 1,
+      "bytes": 216
+    },
+    "yl": {
+      "count": 9,
+      "bytes": 1259
+    },
+    "ym": {
+      "count": 3,
+      "bytes": 483
+    },
+    "yn": {
+      "count": 2,
+      "bytes": 345
+    },
+    "yo": {
+      "count": 263,
+      "bytes": 28676
+    },
+    "yp": {
+      "count": 7,
+      "bytes": 868
+    },
+    "yr": {
+      "count": 5,
+      "bytes": 835
+    },
+    "ys": {
+      "count": 7,
+      "bytes": 914
+    },
+    "yt": {
+      "count": 5,
+      "bytes": 647
+    },
+    "yu": {
+      "count": 292,
+      "bytes": 32086
+    },
+    "yv": {
+      "count": 21,
+      "bytes": 2808
+    },
+    "yy": {
+      "count": 1,
+      "bytes": 208
+    },
+    "yz": {
+      "count": 4,
+      "bytes": 642
+    },
+    "z": {
+      "count": 19,
+      "bytes": 2656
+    },
+    "za": {
+      "count": 839,
+      "bytes": 111734
+    },
+    "zb": {
+      "count": 18,
+      "bytes": 2313
+    },
+    "zd": {
+      "count": 42,
+      "bytes": 6077
+    },
+    "ze": {
+      "count": 279,
+      "bytes": 35199
+    },
+    "zg": {
+      "count": 14,
+      "bytes": 2009
+    },
+    "zh": {
+      "count": 270,
+      "bytes": 30286
+    },
+    "zi": {
+      "count": 236,
+      "bytes": 29668
+    },
+    "zl": {
+      "count": 32,
+      "bytes": 4147
+    },
+    "zm": {
+      "count": 15,
+      "bytes": 2041
+    },
+    "zn": {
+      "count": 14,
+      "bytes": 1970
+    },
+    "zo": {
+      "count": 210,
+      "bytes": 27185
+    },
+    "zr": {
+      "count": 8,
+      "bytes": 1216
+    },
+    "zs": {
+      "count": 11,
+      "bytes": 1322
+    },
+    "zu": {
+      "count": 210,
+      "bytes": 27628
+    },
+    "zv": {
+      "count": 20,
+      "bytes": 2801
+    },
+    "zw": {
+      "count": 35,
+      "bytes": 4296
+    },
+    "zy": {
+      "count": 19,
+      "bytes": 2321
+    },
+    "d0": {
+      "count": 265,
+      "bytes": 41792
+    },
+    "u0": {
+      "count": 3781,
+      "bytes": 524434
+    },
+    "u1": {
+      "count": 8627,
+      "bytes": 1092736
+    },
+    "u2": {
+      "count": 5466,
+      "bytes": 682752
+    },
+    "u3": {
+      "count": 15133,
+      "bytes": 2036231
+    },
+    "u4": {
+      "count": 1828,
+      "bytes": 216118
+    },
+    "u5": {
+      "count": 7844,
+      "bytes": 983420
+    },
+    "u6": {
+      "count": 6052,
+      "bytes": 736210
+    },
+    "u7": {
+      "count": 4279,
+      "bytes": 533065
+    },
+    "u8": {
+      "count": 6501,
+      "bytes": 815269
+    },
+    "u9": {
+      "count": 9276,
+      "bytes": 1131402
+    },
+    "u10": {
+      "count": 4541,
+      "bytes": 566646
+    },
+    "u11": {
+      "count": 4984,
+      "bytes": 622059
+    },
+    "u12": {
+      "count": 8001,
+      "bytes": 983014
+    },
+    "u13": {
+      "count": 3640,
+      "bytes": 459496
+    },
+    "u14": {
+      "count": 6048,
+      "bytes": 749483
+    },
+    "u15": {
+      "count": 5955,
+      "bytes": 735909
+    },
+    "u16": {
+      "count": 4165,
+      "bytes": 516735
+    },
+    "u17": {
+      "count": 7105,
+      "bytes": 884669
+    },
+    "u18": {
+      "count": 2095,
+      "bytes": 266820
+    },
+    "u19": {
+      "count": 5468,
+      "bytes": 679883
+    },
+    "u20": {
+      "count": 10429,
+      "bytes": 1298604
+    },
+    "u21": {
+      "count": 3826,
+      "bytes": 479658
+    },
+    "u22": {
+      "count": 1826,
+      "bytes": 224605
+    },
+    "u23": {
+      "count": 10710,
+      "bytes": 1425617
+    },
+    "u24": {
+      "count": 3101,
+      "bytes": 377509
+    },
+    "u25": {
+      "count": 5722,
+      "bytes": 717739
+    },
+    "u26": {
+      "count": 6830,
+      "bytes": 874559
+    },
+    "u27": {
+      "count": 2752,
+      "bytes": 345294
+    },
+    "u28": {
+      "count": 6112,
+      "bytes": 781461
+    },
+    "u29": {
+      "count": 3906,
+      "bytes": 490833
+    },
+    "u30": {
+      "count": 5700,
+      "bytes": 710326
+    },
+    "u31": {
+      "count": 10166,
+      "bytes": 1281255
+    }
+  }
+}

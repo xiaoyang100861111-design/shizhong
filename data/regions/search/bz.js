@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["bz"]=[["CZ",22190,"Bzenec","布泽内茨",4602,"Jihomoravský kraj","bzenec 布泽内茨 jihomoravsky kraj jihomoravsky kraj"],["MA",67096,"Bzou","布佐",3317,"海尼夫拉","bzou 布佐 بزو 海尼夫拉 khenifra"]];

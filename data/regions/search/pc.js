@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["pc"]=[["CZ",22923,"Pchery","普切里",4554,"Středočeský kraj","pchery 普切里 stredocesky kraj stredocesky kraj"],["PL",87361,"Pcim","皮西姆",1635,"小波兰","pcim 皮西姆 小波兰 lesser poland"]];

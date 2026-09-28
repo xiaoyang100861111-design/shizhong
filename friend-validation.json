@@ -1,0 +1,73 @@
+{
+  "passed": 12,
+  "failed": 0,
+  "peopleCount": 604,
+  "uniqueVisuals": 604,
+  "demoGiftMessages": 1208,
+  "highestGiftIds": [
+    "castle",
+    "dragon",
+    "rocket",
+    "ringed-planet",
+    "earth",
+    "satellite"
+  ],
+  "backgroundCounts": {
+    "crimson-gold": 105,
+    "rose-mist": 103,
+    "mint-light": 89,
+    "midnight-stars": 98,
+    "kl-night": 108,
+    "cream-solid": 101
+  },
+  "tests": [
+    {
+      "name": "600+ 人物均按 ID 生成，重复姓名互不影响",
+      "passed": true
+    },
+    {
+      "name": "所有人物每次调用和刷新结果一致",
+      "passed": true
+    },
+    {
+      "name": "每人拥有并佩戴最高价格前六款中的3至4件不同礼物",
+      "passed": true
+    },
+    {
+      "name": "全部人物实际背景摆放组合不重复",
+      "passed": true
+    },
+    {
+      "name": "六种背景和四种布局均有覆盖",
+      "passed": true
+    },
+    {
+      "name": "摆件在320和430宽度不会超出左右边界，点击目标至少44px",
+      "passed": true
+    },
+    {
+      "name": "每位人物均有2条方向不同的稳定赠礼示例，无ID冲突",
+      "passed": true
+    },
+    {
+      "name": "客服/商家/群组/不存在的用户不会自动拥有赠礼示例",
+      "passed": true
+    },
+    {
+      "name": "每个主页和收藏卡有真实圆头像与可点击礼物价格",
+      "passed": true
+    },
+    {
+      "name": "人物显示字段均转义",
+      "passed": true
+    },
+    {
+      "name": "调用只返回新对象，不共享可被外部修改的陈列或聊天数据",
+      "passed": true
+    },
+    {
+      "name": "全部调用没有读取/改写访客状态或改动人物礼物数据源",
+      "passed": true
+    }
+  ]
+}

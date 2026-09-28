@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["td"]=[["PK",85383,"Chak Two Hundred Forty-Nine TDA","Chak 二百四十九 TDA",3176,"旁遮普","chak two hundred forty nine tda chak 二百四十九 tda چک دو سو اڑتالیس ٹی ڈی اے 旁遮普 punjab"]];

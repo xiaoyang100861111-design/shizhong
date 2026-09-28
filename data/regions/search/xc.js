@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["xc"]=[["MX",72422,"Nuevo Xcán","新 Xcán",3467,"金塔纳罗奥州","nuevo xcan 新 xcan 金塔纳罗奥州 quintana roo"],["MX",76131,"Xcanatún","埃克斯卡纳通",3466,"尤卡坦州","xcanatun 埃克斯卡纳通 xcanat encogido de hombros 尤卡坦州 yucatan"]];

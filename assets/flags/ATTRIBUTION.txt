@@ -1,0 +1,21 @@
+适中 · 本地国家/地区旗帜图片
+
+提供者：Flagpedia.net / FlagCDN
+主页：https://flagpedia.net/
+下载与使用说明：https://flagpedia.net/download
+API 文档：https://flagpedia.net/download/api
+使用条款：https://flagpedia.net/terms
+源代码列表：https://flagcdn.com/en/codes.json
+下载时间（UTC）：2026-09-27T09:57:51.938608+00:00
+
+本目录 250 张 PNG 按 data/regions/meta.js 的实际国家/地区代码逐一下载，
+地址格式为 https://flagcdn.com/w80/{小写代码}.png，包含 xk.png。
+每张宽 80 像素，高度由原旗帜比例决定；保留 CDN 原始字节，未裁切、拉伸或重绘。
+建议界面用 object-fit: contain 展示，避免把正方形、非矩形等旗帜拉伸到统一比例。
+所有代码直接对应，未使用其他国家旗帜作替代；具体 URL、尺寸、文件大小和 SHA-256 见 sources.json。
+
+Flagpedia 的下载页面与条款声明旗帜图片属于公有领域，可用于商业和非商业项目；
+提供者说明其图像基于 Wikimedia Commons 的矢量文件。此说明针对旗帜图片，
+不将提供者网站的文字、设计或程序代码视为公有领域。
+本项目保留来源链接并在本地提供图片，运行时不依赖外部 CDN。
+XK 沿用 CSC 地区数据与 FlagCDN 对 Kosovo 使用的代码；目录名称为国家/地区。

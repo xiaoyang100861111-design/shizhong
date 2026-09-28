@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["kb"]=[["CZ",22507,"Kbely","克贝利",4598,"Praha, Hlavní město","kbely 克贝利 praha hlavni mesto praha hlavni mesto"],["VN",130322,"Huyện KBang","玄克邦",3813,"嘉莱","huyen kbang 玄克邦 嘉莱 gia lai"]];

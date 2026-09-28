@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "tests": [
+    "Loading the module creates no RAF or timer.",
+    "All seven effects render, retain pointer access beneath them, cap DPR at 2 and draw at most 90 particles per frame. Skip clears DOM, RAF and timers.",
+    "Replacement and repeated stop clean up once and call each completion exactly once.",
+    "Unknown effect falls back to galaxy; viewport resize remains safe and natural completion cleans every resource.",
+    "Removing the live container cancels RAF, timer and effect DOM immediately.",
+    "Page visibility change stops the effect and releases resources.",
+    "Reduced motion shows a static 1.35-second presentation with no canvas or RAF."
+  ]
+}

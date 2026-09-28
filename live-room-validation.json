@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-09-27T11:46:33.746Z",
+  "passed": true,
+  "counts": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0
+  },
+  "sources": {
+    "live-room.js": {
+      "sha256": "561b57380725d70ac716083d7a69c1f006eaf44ba74156ba060870675443b8da",
+      "bytes": 26144
+    },
+    "lazy.js": {
+      "sha256": "a529ce5b0dcb0870d394f63e4674bcb6cdd27d1d0aa983efb6839fb67ae466d9",
+      "bytes": 10101
+    },
+    "catalog.js": {
+      "sha256": "a059fe1433d9bcf6d68e97b5f7f942f28b642d018014f58f0fe38bac2183b5ad",
+      "bytes": 54777
+    },
+    "app.js": {
+      "sha256": "a394a8df47bf11361f9b5a01af403f329af4bf7acf8aa6d8981923c2db225a02",
+      "bytes": 23994
+    }
+  },
+  "scope": "Actual live-room.js; actual lazy demand/close/profileChunks/chatChunks; actual app save with quota exception; actual catalog personDetail/nextRoom; minimal DOM and effect/chat renderer boundaries. Effect completion ordering injected to match live-effects emitEnd microtasks. No browser or product edits.",
+  "results": [
+    {
+      "name": "module import does not debit, persist or start timers",
+      "passed": true
+    },
+    {
+      "name": "opening a room starts exactly one timer and six seed comments",
+      "passed": true
+    },
+    {
+      "name": "gift preview changes no financial/history state and does not save",
+      "passed": true
+    },
+    {
+      "name": "rapid duplicate send action debits exactly once and records exactly one gift",
+      "passed": true
+    },
+    {
+      "name": "successful gift leaves wallet, gift inventory and existing private chat unchanged",
+      "passed": true
+    },
+    {
+      "name": "successful gift adds one local gift comment and one effect",
+      "passed": true
+    },
+    {
+      "name": "insufficient balance opens demo topup without mutation/save/effect",
+      "passed": true
+    },
+    {
+      "name": "topup repeated action credits only once",
+      "passed": true
+    },
+    {
+      "name": "real save quota failure restores every state field",
+      "passed": true
+    },
+    {
+      "name": "failed save emits no comment/effect and keeps send available",
+      "passed": true
+    },
+    {
+      "name": "retry after failed save succeeds once",
+      "passed": true
+    },
+    {
+      "name": "invalid quantities and mismatched gift IDs do not charge",
+      "passed": true
+    },
+    {
+      "name": "leaving room clears interval/observer/effect and overlay",
+      "passed": true
+    },
+    {
+      "name": "returning to room restores draft without duplicate seed comments",
+      "passed": true
+    },
+    {
+      "name": "deleted draft stays deleted after exit and re-entry",
+      "passed": true
+    },
+    {
+      "name": "switching rooms leaves only one active timer and observer",
+      "passed": true
+    },
+    {
+      "name": "external overlay replacement stops room interval and effects",
+      "passed": true
+    },
+    {
+      "name": "private-chat navigation stops live resources and installs return route",
+      "passed": true
+    },
+    {
+      "name": "return from private chat restores room draft without altering saved messages",
+      "passed": true
+    },
+    {
+      "name": "friend decorated profile opens with live return route",
+      "passed": true
+    },
+    {
+      "name": "return from friend profile restores one live session",
+      "passed": true
+    },
+    {
+      "name": "closing panel cancels pending full-profile display",
+      "passed": true
+    },
+    {
+      "name": "newer user card wins over pending prior full-profile display",
+      "passed": true
+    },
+    {
+      "name": "closing user panel cancels pending chat navigation",
+      "passed": true
+    },
+    {
+      "name": "self full-profile does not stop room into an unsupported empty destination",
+      "passed": true
+    },
+    {
+      "name": "self decorated-home action leaves live room and navigates to own page",
+      "passed": true
+    },
+    {
+      "name": "exiting room cancels pending profile request",
+      "passed": true
+    },
+    {
+      "name": "failed topup save restores complete state and keeps topup panel",
+      "passed": true
+    },
+    {
+      "name": "old effect completion cannot clear newer effect running flag",
+      "passed": true
+    },
+    {
+      "name": "current effect completion clears its own running flag",
+      "passed": true
+    }
+  ]
+}

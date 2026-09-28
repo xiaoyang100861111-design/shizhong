@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["cn"]=[["UY",162366,"Parque Postel Cnel. Adrian Medina","",3204,"圣何塞","parque postel cnel adrian medina 圣何塞 san jose"]];

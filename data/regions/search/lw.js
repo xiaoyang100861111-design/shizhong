@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["lw"]=[["MM",67682,"Pyin Oo Lwin","彬乌伦",2134,"曼德勒","pyin oo lwin 彬乌伦 ပငဥလင 曼德勒 mandalay"],["PL",86973,"Lwówek","勒沃维克",1634,"大波兰","lwowek 勒沃维克 大波兰 greater poland"],["PL",86974,"Lwówek Śląski","希隆语 Lwówek",1629,"下西里西亚","lwowek slaski 希隆语 lwowek 下西里西亚 lower silesia"]];

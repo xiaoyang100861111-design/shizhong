@@ -1,0 +1,1747 @@
+{
+  "version": 1,
+  "basePath": "assets/photos/",
+  "usageNote": "图片是类目与服务场景示意图，不是虚构商家的商品或工作人员实拍。",
+  "categoryDefaults": {
+    "clean": "living-room.webp",
+    "guide": "malacca-heritage-street.webp",
+    "market": "vegetable-basket.webp",
+    "food": "nasi-lemak.webp",
+    "jobs": "office-team.webp",
+    "car": "driver-interior.webp",
+    "flower": "rose-bouquet.webp",
+    "repair": "handyman-tools.webp",
+    "travel": "malaysia-coast.webp",
+    "delivery": "parcel-courier.webp",
+    "beauty": "barber-salon.webp",
+    "phone": "smartphone-in-hands.webp",
+    "visa": "documents-consultation.webp"
+  },
+  "matchingNote": "优先在categories包含当前类目的照片中按服务名称匹配keywords；未命中时使用categoryDefaults。关键词仅用于场景相近的示意图，不能当作实际SKU外观声明。",
+  "photos": [
+    {
+      "file": "living-room.webp",
+      "category": "clean",
+      "categories": [
+        "clean"
+      ],
+      "keywords": [
+        "客厅",
+        "沙发",
+        "家庭保洁",
+        "入住",
+        "退租",
+        "清洁"
+      ],
+      "source": "https://unsplash.com/photos/living-room-L7EwHkq1B2s",
+      "author": "Kara Eads",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "整洁客厅的真实室内照片",
+      "path": "assets/photos/living-room.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 27784,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "kuala-lumpur-skyline.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "吉隆坡",
+        "城市",
+        "夜景",
+        "双子塔",
+        "夜色",
+        "夜游"
+      ],
+      "source": "https://unsplash.com/photos/a-view-of-a-city-skyline-at-night-B7EmR14MNd0",
+      "author": "Muhammad Faiz Zulkeflee",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "吉隆坡夜晚城市天际线",
+      "path": "assets/photos/kuala-lumpur-skyline.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 12874,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "strawberries-bowl.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "草莓",
+        "莓果",
+        "水果",
+        "果篮"
+      ],
+      "source": "https://unsplash.com/photos/bunch-of-strawberries-in-bowl-WmVJkVEasy4",
+      "author": "Hans Vivek",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "一碗新鲜草莓",
+      "path": "assets/photos/strawberries-bowl.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 14124,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "nasi-lemak.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "椰浆饭",
+        "参巴",
+        "炸鸡饭"
+      ],
+      "source": "https://unsplash.com/photos/nasi-lemak-served-on-banana-leaf-with-spoon-o5UmAx8vEjg",
+      "author": "You Le",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "香蕉叶上盛放的椰浆饭",
+      "path": "assets/photos/nasi-lemak.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 24048,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "cafe-toast.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "早午餐",
+        "吐司",
+        "三明治",
+        "早餐",
+        "班尼迪克"
+      ],
+      "source": "https://unsplash.com/photos/tuna-on-bread-with-whip-cream-and-pepper-on-round-plate-on-top-of-table-bypcCMcIoVE",
+      "author": "Christine Siracusa",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "咖啡馆开放式吐司早午餐",
+      "path": "assets/photos/cafe-toast.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 19212,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "celebration-cake.webp",
+      "category": "flower",
+      "categories": [
+        "flower",
+        "food"
+      ],
+      "keywords": [
+        "蛋糕",
+        "奶油",
+        "生日",
+        "甜品",
+        "芝士"
+      ],
+      "source": "https://unsplash.com/photos/cake-beside-candles-and-flowers-DW_nQY7e8t8",
+      "author": "Brooke Lark",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "桌面上的庆祝蛋糕、蜡烛与鲜花",
+      "path": "assets/photos/celebration-cake.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 33274,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "barber-salon.webp",
+      "category": "beauty",
+      "categories": [
+        "beauty",
+        "jobs"
+      ],
+      "keywords": [
+        "剪发",
+        "短发",
+        "长发",
+        "头发",
+        "理发",
+        "造型",
+        "发根",
+        "发尾",
+        "洗吹"
+      ],
+      "source": "https://unsplash.com/photos/barber-shop-interior-with-clients-receiving-haircuts-_EjaOZ0D8xY",
+      "author": "Chaps & Co",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "caption": "真实理发店工作场景",
+      "path": "assets/photos/barber-salon.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22740,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "kitchen-cleaning.webp",
+      "category": "clean",
+      "categories": [
+        "clean"
+      ],
+      "keywords": [
+        "厨房",
+        "灶台",
+        "油污",
+        "台面",
+        "餐前",
+        "餐后"
+      ],
+      "source": "https://www.pexels.com/photo/a-person-cleaning-a-kitchen-counter-5591908/",
+      "imageUrl": "https://images.pexels.com/photos/5591908/pexels-photo-5591908.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "戴手套的人擦拭厨房台面",
+      "path": "assets/photos/kitchen-cleaning.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 12164,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "vacuum-cleaning.webp",
+      "category": "clean",
+      "categories": [
+        "clean"
+      ],
+      "keywords": [
+        "地毯",
+        "吸尘",
+        "床垫",
+        "布艺",
+        "卧室",
+        "周末"
+      ],
+      "source": "https://www.pexels.com/photo/photo-of-a-woman-using-a-vacuum-cleaner-6196694/",
+      "imageUrl": "https://images.pexels.com/photos/6196694/pexels-photo-6196694.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "工作人员使用吸尘器清洁室内地面",
+      "path": "assets/photos/vacuum-cleaning.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 15444,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "sink-cleaning-tools.webp",
+      "category": "clean",
+      "categories": [
+        "clean",
+        "market"
+      ],
+      "keywords": [
+        "洗碗",
+        "清洁用品",
+        "刷子",
+        "浴室",
+        "洗手",
+        "水槽"
+      ],
+      "source": "https://www.pexels.com/photo/close-up-view-of-kitchen-cleaning-equipment-10568353/",
+      "imageUrl": "https://images.pexels.com/photos/10568353/pexels-photo-10568353.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "水槽旁的清洁刷与洗涤用品",
+      "path": "assets/photos/sink-cleaning-tools.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 12630,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "tropical-produce.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "火龙果",
+        "南瓜",
+        "蔬果",
+        "番石榴",
+        "木瓜",
+        "芒果",
+        "热带"
+      ],
+      "source": "https://www.pexels.com/photo/fruits-and-vegetables-on-wicker-basket-5709270/",
+      "imageUrl": "https://images.pexels.com/photos/5709270/pexels-photo-5709270.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "藤篮中的火龙果、南瓜与热带植物食材",
+      "path": "assets/photos/tropical-produce.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 39162,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "vegetable-basket.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "蔬菜",
+        "白菜",
+        "菜心",
+        "西兰花",
+        "茄子",
+        "胡萝卜",
+        "黄瓜",
+        "青豆",
+        "秋葵",
+        "长豆"
+      ],
+      "source": "https://www.pexels.com/photo/a-basket-of-fresh-fruits-and-vegetables-6223028/",
+      "imageUrl": "https://images.pexels.com/photos/6223028/pexels-photo-6223028.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "装有花椰菜与茄子的鲜蔬菜篮",
+      "path": "assets/photos/vegetable-basket.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 24168,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "milk-and-eggs.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "牛奶",
+        "鸡蛋",
+        "鹌鹑蛋",
+        "酸奶",
+        "乳品",
+        "黄油",
+        "芝士"
+      ],
+      "source": "https://www.pexels.com/photo/fresh-milk-in-a-glass-pitcher-and-fresh-eggs-on-a-table-7782392/",
+      "imageUrl": "https://images.pexels.com/photos/7782392/pexels-photo-7782392.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "餐桌上的玻璃奶壶与鲜鸡蛋",
+      "path": "assets/photos/milk-and-eggs.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 29844,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "noodle-soup.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "汤面",
+        "拉面",
+        "板面",
+        "叻沙",
+        "云吞面",
+        "河粉",
+        "米粉",
+        "冬阴功"
+      ],
+      "source": "https://www.pexels.com/photo/noodles-with-soup-in-a-bowl-9044318/",
+      "imageUrl": "https://images.pexels.com/photos/9044318/pexels-photo-9044318.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "带绿色香草配料的热汤面",
+      "path": "assets/photos/noodle-soup.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22782,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "pan-fried-dumplings.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "饺子",
+        "锅贴",
+        "煎饺",
+        "云吞",
+        "饺"
+      ],
+      "source": "https://www.pexels.com/photo/close-up-photo-of-delicious-dumplings-7287704/",
+      "imageUrl": "https://images.pexels.com/photos/7287704/pexels-photo-7287704.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "表面金黄的煎饺与葱花",
+      "path": "assets/photos/pan-fried-dumplings.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 12516,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "fried-rice.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "炒饭",
+        "扬州",
+        "炒粿条",
+        "炒米粉",
+        "炒面"
+      ],
+      "source": "https://www.pexels.com/photo/fried-rice-on-the-plate-4940832/",
+      "imageUrl": "https://images.pexels.com/photos/4940832/pexels-photo-4940832.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "一盘配蔬菜的炒饭",
+      "path": "assets/photos/fried-rice.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 30284,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "basil-pizza.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "披萨",
+        "比萨",
+        "薄饼"
+      ],
+      "source": "https://www.pexels.com/photo/close-up-of-pizza-10779681/",
+      "imageUrl": "https://images.pexels.com/photos/10779681/pexels-photo-10779681.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "番茄、芝士与罗勒披萨",
+      "path": "assets/photos/basil-pizza.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 58192,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "tomato-pasta.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "意面",
+        "意大利面",
+        "肉酱面",
+        "奶油面"
+      ],
+      "source": "https://www.pexels.com/photo/delicious-pasta-on-served-table-5692293/",
+      "imageUrl": "https://images.pexels.com/photos/5692293/pexels-photo-5692293.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "桌上的番茄酱意大利面",
+      "path": "assets/photos/tomato-pasta.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 24680,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "grilled-panini.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "三明治",
+        "帕尼尼",
+        "汉堡",
+        "鸡肉卷"
+      ],
+      "source": "https://www.pexels.com/photo/burgers-and-salad-16760249/",
+      "imageUrl": "https://images.pexels.com/photos/16760249/pexels-photo-16760249.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "烤帕尼尼三明治与新鲜沙拉",
+      "path": "assets/photos/grilled-panini.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 21592,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "chicken-satay.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "沙爹",
+        "鸡串",
+        "烤串"
+      ],
+      "source": "https://www.pexels.com/photo/traditional-indonesian-satay-with-rice-cakes-37106134/",
+      "imageUrl": "https://images.pexels.com/photos/37106134/pexels-photo-37106134.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "鸡肉沙爹串与花生酱、米糕",
+      "path": "assets/photos/chicken-satay.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 29364,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "office-team.webp",
+      "category": "jobs",
+      "categories": [
+        "jobs"
+      ],
+      "keywords": [
+        "行政",
+        "运营",
+        "文员",
+        "经理",
+        "助理",
+        "会计",
+        "数据",
+        "财务",
+        "编辑",
+        "设计",
+        "专员",
+        "人事",
+        "采购"
+      ],
+      "source": "https://www.pexels.com/photo/people-working-in-an-office-7707012/",
+      "imageUrl": "https://images.pexels.com/photos/7707012/pexels-photo-7707012.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "办公室同事在电脑前协作",
+      "path": "assets/photos/office-team.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22466,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "warehouse-worker.webp",
+      "category": "jobs",
+      "categories": [
+        "jobs",
+        "delivery"
+      ],
+      "keywords": [
+        "仓库",
+        "仓储",
+        "分拣",
+        "盘点",
+        "物流",
+        "包装",
+        "搬运"
+      ],
+      "source": "https://www.pexels.com/photo/man-walking-in-a-warehouse-4480799/",
+      "imageUrl": "https://images.pexels.com/photos/4480799/pexels-photo-4480799.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "仓库货架之间的工作人员",
+      "path": "assets/photos/warehouse-worker.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 30206,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "restaurant-chef.webp",
+      "category": "jobs",
+      "categories": [
+        "jobs"
+      ],
+      "keywords": [
+        "厨师",
+        "后厨",
+        "厨务",
+        "餐饮",
+        "厨工",
+        "烘焙",
+        "烹饪"
+      ],
+      "source": "https://www.pexels.com/photo/chef-cooking-in-kitchen-3438708/",
+      "imageUrl": "https://images.pexels.com/photos/3438708/pexels-photo-3438708.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "餐厅商业厨房中的厨师",
+      "path": "assets/photos/restaurant-chef.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 17472,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "cafe-baristas.webp",
+      "category": "jobs",
+      "categories": [
+        "jobs"
+      ],
+      "keywords": [
+        "咖啡",
+        "茶饮",
+        "调饮",
+        "咖啡师",
+        "餐厅服务"
+      ],
+      "source": "https://www.pexels.com/photo/baristas-during-work-16537981/",
+      "imageUrl": "https://images.pexels.com/photos/16537981/pexels-photo-16537981.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "咖啡馆柜台后工作的咖啡师",
+      "path": "assets/photos/cafe-baristas.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 36962,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "driver-interior.webp",
+      "category": "car",
+      "categories": [
+        "car"
+      ],
+      "keywords": [
+        "接送",
+        "用车",
+        "短途",
+        "通勤",
+        "送机",
+        "接机",
+        "司机"
+      ],
+      "source": "https://www.pexels.com/photo/person-driving-car-3767206/",
+      "imageUrl": "https://images.pexels.com/photos/3767206/pexels-photo-3767206.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "从后排观察司机与乘客的公路行车场景",
+      "path": "assets/photos/driver-interior.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22296,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "rose-bouquet.webp",
+      "category": "flower",
+      "categories": [
+        "flower"
+      ],
+      "keywords": [
+        "玫瑰",
+        "蔷薇",
+        "花束",
+        "香槟",
+        "粉色",
+        "红色"
+      ],
+      "source": "https://www.pexels.com/photo/roses-and-flowers-bouquet-19659092/",
+      "imageUrl": "https://images.pexels.com/photos/19659092/pexels-photo-19659092.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "粉紫色玫瑰搭配桉叶的花束",
+      "path": "assets/photos/rose-bouquet.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 36320,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "florist-workshop.webp",
+      "category": "flower",
+      "categories": [
+        "flower",
+        "jobs"
+      ],
+      "keywords": [
+        "花艺",
+        "花店",
+        "花篮",
+        "桌花",
+        "插花",
+        "花盒"
+      ],
+      "source": "https://www.pexels.com/photo/focused-female-arranging-bouquet-of-roses-6765777/",
+      "imageUrl": "https://images.pexels.com/photos/6765777/pexels-photo-6765777.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "花艺师在桌边整理玫瑰花束",
+      "path": "assets/photos/florist-workshop.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 34598,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "manicure-hands.webp",
+      "category": "beauty",
+      "categories": [
+        "beauty"
+      ],
+      "keywords": [
+        "美甲",
+        "指甲",
+        "甲面",
+        "凝胶",
+        "手部",
+        "卸甲",
+        "修甲",
+        "法式"
+      ],
+      "source": "https://www.pexels.com/photo/close-up-photo-of-manicuring-of-nails-6135684/",
+      "imageUrl": "https://images.pexels.com/photos/6135684/pexels-photo-6135684.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "专业修甲过程中的手部特写",
+      "path": "assets/photos/manicure-hands.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 13348,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "makeup-artist.webp",
+      "category": "beauty",
+      "categories": [
+        "beauty"
+      ],
+      "keywords": [
+        "化妆",
+        "彩妆",
+        "底妆",
+        "眉",
+        "眼妆",
+        "唇妆",
+        "日常妆",
+        "通勤妆"
+      ],
+      "source": "https://www.pexels.com/photo/makeup-artist-brushing-woman-s-face-7510157/",
+      "imageUrl": "https://images.pexels.com/photos/7510157/pexels-photo-7510157.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "化妆师用刷具为客人上底妆",
+      "path": "assets/photos/makeup-artist.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 11594,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "laptop-repair.webp",
+      "category": "repair",
+      "categories": [
+        "repair",
+        "jobs"
+      ],
+      "keywords": [
+        "电脑",
+        "笔记本",
+        "硬盘",
+        "主板",
+        "系统",
+        "资料迁移",
+        "技术"
+      ],
+      "source": "https://www.pexels.com/photo/a-man-fixing-a-laptop-7639370/",
+      "imageUrl": "https://images.pexels.com/photos/7639370/pexels-photo-7639370.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "维修人员检查笔记本内部元件",
+      "path": "assets/photos/laptop-repair.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 30474,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "plumbing-repair.webp",
+      "category": "repair",
+      "categories": [
+        "repair",
+        "jobs"
+      ],
+      "keywords": [
+        "水管",
+        "水龙头",
+        "水槽",
+        "漏水",
+        "角阀",
+        "排水",
+        "管道"
+      ],
+      "source": "https://www.pexels.com/photo/plumber-repairing-pipe-with-wrench-indoors-32588548/",
+      "imageUrl": "https://images.pexels.com/photos/32588548/pexels-photo-32588548.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "维修人员使用扳手检修管道",
+      "path": "assets/photos/plumbing-repair.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 34248,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "passport-luggage.webp",
+      "category": "visa",
+      "categories": [
+        "visa",
+        "travel"
+      ],
+      "keywords": [
+        "护照",
+        "出行",
+        "签证",
+        "行李",
+        "材料",
+        "清单",
+        "旅行文件"
+      ],
+      "source": "https://www.pexels.com/photo/smartphone-and-passport-on-suitcase-20805603/",
+      "imageUrl": "https://images.pexels.com/photos/20805603/pexels-photo-20805603.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "行李箱上的护照与手机",
+      "path": "assets/photos/passport-luggage.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 56956,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "parcel-courier.webp",
+      "category": "delivery",
+      "categories": [
+        "delivery",
+        "jobs"
+      ],
+      "keywords": [
+        "快递",
+        "小件",
+        "取件",
+        "取送",
+        "代送",
+        "包裹",
+        "同城"
+      ],
+      "source": "https://www.pexels.com/photo/a-delivery-person-checking-his-phone-while-holding-packages-9461803/",
+      "imageUrl": "https://images.pexels.com/photos/9461803/pexels-photo-9461803.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "配送员手持纸箱查看手机",
+      "path": "assets/photos/parcel-courier.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 23254,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "parcel-handover.webp",
+      "category": "delivery",
+      "categories": [
+        "delivery"
+      ],
+      "keywords": [
+        "签收",
+        "上门",
+        "寄件",
+        "取货",
+        "转交",
+        "凭证"
+      ],
+      "source": "https://www.pexels.com/photo/customer-signing-in-cellphone-after-receiving-parcel-from-delivery-courier-6721914/",
+      "imageUrl": "https://images.pexels.com/photos/6721914/pexels-photo-6721914.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "收件人在配送员设备上确认签收",
+      "path": "assets/photos/parcel-handover.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 18572,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "penang-street.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "槟城",
+        "街巷",
+        "老街",
+        "街区",
+        "老店",
+        "市场",
+        "买菜",
+        "地方文化"
+      ],
+      "source": "https://www.pexels.com/photo/street-scene-in-ayer-itam-penang-malaysia-36796574/",
+      "imageUrl": "https://images.pexels.com/photos/36796574/pexels-photo-36796574.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "槟城亚依淡街边店屋与当地生活",
+      "path": "assets/photos/penang-street.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 46480,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "malacca-heritage-street.webp",
+      "category": "guide",
+      "categories": [
+        "guide",
+        "travel"
+      ],
+      "keywords": [
+        "马六甲",
+        "文化",
+        "历史",
+        "散步",
+        "步行",
+        "老城",
+        "相机",
+        "拍照"
+      ],
+      "source": "https://www.pexels.com/photo/charming-street-in-malacca-malaysia-35045180/",
+      "imageUrl": "https://images.pexels.com/photos/35045180/pexels-photo-35045180.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "马六甲历史街道与彩色建筑",
+      "path": "assets/photos/malacca-heritage-street.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 44812,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "malaysia-coast.webp",
+      "category": "travel",
+      "categories": [
+        "travel",
+        "guide"
+      ],
+      "keywords": [
+        "海边",
+        "海岸",
+        "沙滩",
+        "海景",
+        "周末",
+        "自然",
+        "亲子"
+      ],
+      "source": "https://www.pexels.com/photo/aerial-view-of-coast-line-8387173/",
+      "imageUrl": "https://images.pexels.com/photos/8387173/pexels-photo-8387173.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "马来西亚登嘉楼海岸航拍",
+      "path": "assets/photos/malaysia-coast.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 23912,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "hotel-bedroom.webp",
+      "category": "travel",
+      "categories": [
+        "travel",
+        "clean"
+      ],
+      "keywords": [
+        "酒店",
+        "住宿",
+        "房间",
+        "卧室",
+        "旅店",
+        "床铺",
+        "民宿"
+      ],
+      "source": "https://www.pexels.com/photo/bedroom-in-hotel-20778678/",
+      "imageUrl": "https://images.pexels.com/photos/20778678/pexels-photo-20778678.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "暖色灯光下的酒店卧室",
+      "path": "assets/photos/hotel-bedroom.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 13722,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "smartphone-in-hands.webp",
+      "category": "phone",
+      "categories": [
+        "phone",
+        "repair"
+      ],
+      "keywords": [
+        "手机",
+        "充值",
+        "Hotlink",
+        "CelcomDigi",
+        "U Mobile",
+        "unifi",
+        "Tune Talk",
+        "预付",
+        "通讯",
+        "设置",
+        "权限",
+        "备份",
+        "应用"
+      ],
+      "source": "https://www.pexels.com/photo/hands-holding-smartphone-6786892/",
+      "imageUrl": "https://images.pexels.com/photos/6786892/pexels-photo-6786892.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "双手持握真实智能手机的近景",
+      "path": "assets/photos/smartphone-in-hands.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 11804,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "bill-review-desk.webp",
+      "category": "phone",
+      "categories": [
+        "phone",
+        "jobs"
+      ],
+      "keywords": [
+        "账单",
+        "余额",
+        "费用",
+        "扣款",
+        "凭证",
+        "对账",
+        "财务",
+        "报销",
+        "计算"
+      ],
+      "source": "https://www.pexels.com/photo/a-woman-working-at-the-office-5900130/",
+      "imageUrl": "https://images.pexels.com/photos/5900130/pexels-photo-5900130.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "使用计算器与电脑整理票据",
+      "path": "assets/photos/bill-review-desk.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 18280,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "documents-consultation.webp",
+      "category": "visa",
+      "categories": [
+        "visa",
+        "phone"
+      ],
+      "keywords": [
+        "文件",
+        "材料",
+        "核对",
+        "翻译",
+        "说明",
+        "预约",
+        "目录",
+        "签字",
+        "复印",
+        "咨询"
+      ],
+      "source": "https://www.pexels.com/photo/people-doing-paperwork-at-a-desk-8152735/",
+      "imageUrl": "https://images.pexels.com/photos/8152735/pexels-photo-8152735.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "两人在办公桌前核对并签署文件",
+      "path": "assets/photos/documents-consultation.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 20002,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "air-conditioner-service.webp",
+      "category": "repair",
+      "categories": [
+        "repair",
+        "jobs"
+      ],
+      "keywords": [
+        "空调",
+        "冷气",
+        "散热",
+        "制冷",
+        "保养",
+        "压缩机"
+      ],
+      "source": "https://www.pexels.com/photo/man-checking-an-air-conditioner-5463575/",
+      "imageUrl": "https://images.pexels.com/photos/5463575/pexels-photo-5463575.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "技术人员使用仪表检查室外空调机组",
+      "path": "assets/photos/air-conditioner-service.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 51920,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "electrical-work.webp",
+      "category": "repair",
+      "categories": [
+        "repair",
+        "jobs"
+      ],
+      "keywords": [
+        "电路",
+        "灯具",
+        "插座",
+        "电线",
+        "开关",
+        "电工",
+        "配电"
+      ],
+      "source": "https://www.pexels.com/photo/electrician-working-with-cables-21812143/",
+      "imageUrl": "https://images.pexels.com/photos/21812143/pexels-photo-21812143.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "电工检查配电柜内线缆",
+      "path": "assets/photos/electrical-work.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 43712,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "handyman-tools.webp",
+      "category": "repair",
+      "categories": [
+        "repair",
+        "market"
+      ],
+      "keywords": [
+        "家具",
+        "螺丝",
+        "门窗",
+        "纱窗",
+        "把手",
+        "层板",
+        "五金",
+        "安装",
+        "工具"
+      ],
+      "source": "https://www.pexels.com/photo/carpentry-tools-on-a-wooden-surface-5484718/",
+      "imageUrl": "https://images.pexels.com/photos/5484718/pexels-photo-5484718.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "木质工作台上的锤子、手锯与卷尺",
+      "path": "assets/photos/handyman-tools.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 23642,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "facial-mask-spa.webp",
+      "category": "beauty",
+      "categories": [
+        "beauty"
+      ],
+      "keywords": [
+        "面部",
+        "洁面",
+        "面膜",
+        "保湿",
+        "护肤",
+        "清洁",
+        "护理"
+      ],
+      "source": "https://www.pexels.com/photo/facial-mask-on-skin-7622921/",
+      "imageUrl": "https://images.pexels.com/photos/7622921/pexels-photo-7622921.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "日常面膜护肤场景",
+      "path": "assets/photos/facial-mask-spa.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 8962,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "pink-tulips-vase.webp",
+      "category": "flower",
+      "categories": [
+        "flower"
+      ],
+      "keywords": [
+        "郁金香",
+        "花瓶",
+        "瓶插",
+        "鲜花",
+        "百合",
+        "康乃馨",
+        "桔梗",
+        "向日葵"
+      ],
+      "source": "https://www.pexels.com/photo/tulips-in-vase-11254033/",
+      "imageUrl": "https://images.pexels.com/photos/11254033/pexels-photo-11254033.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "玻璃花瓶中的粉色郁金香",
+      "path": "assets/photos/pink-tulips-vase.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 23634,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "passenger-van.webp",
+      "category": "car",
+      "categories": [
+        "car"
+      ],
+      "keywords": [
+        "多人",
+        "家庭出行",
+        "团体",
+        "行李较多",
+        "商务接送",
+        "七座",
+        "包车"
+      ],
+      "source": "https://www.pexels.com/photo/white-passenger-van-in-suburban-setting-35831389/",
+      "imageUrl": "https://images.pexels.com/photos/35831389/pexels-photo-35831389.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "停放于城市建筑旁的白色乘用厢型车",
+      "path": "assets/photos/passenger-van.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 24354,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "iced-coffee.webp",
+      "category": "food",
+      "categories": [
+        "food",
+        "market"
+      ],
+      "keywords": [
+        "咖啡",
+        "拿铁",
+        "美式",
+        "白咖啡",
+        "冷萃",
+        "冰饮",
+        "咖啡豆"
+      ],
+      "source": "https://www.pexels.com/photo/iced-coffee-drink-in-a-glass-7937431/",
+      "imageUrl": "https://images.pexels.com/photos/7937431/pexels-photo-7937431.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "玻璃杯中的冰咖啡",
+      "path": "assets/photos/iced-coffee.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 12960,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "chicken-curry.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "咖喱",
+        "仁当",
+        "印度",
+        "香料",
+        "鸡饭"
+      ],
+      "source": "https://www.pexels.com/photo/chicken-curry-in-a-bowl-7353379/",
+      "imageUrl": "https://images.pexels.com/photos/7353379/pexels-photo-7353379.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "咖喱鸡与长粒米饭、青柠",
+      "path": "assets/photos/chicken-curry.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 45538,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "roasted-chicken.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "烤鸡",
+        "鸡腿",
+        "鸡翅",
+        "烧鸡",
+        "鸡扒",
+        "炸鸡"
+      ],
+      "source": "https://www.pexels.com/photo/roasted-chicken-on-a-white-plate-6163330/",
+      "imageUrl": "https://images.pexels.com/photos/6163330/pexels-photo-6163330.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "白盘中的香草烤鸡",
+      "path": "assets/photos/roasted-chicken.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 21418,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "fresh-salad-bowl.webp",
+      "category": "food",
+      "categories": [
+        "food"
+      ],
+      "keywords": [
+        "沙拉",
+        "沙律",
+        "蔬菜碗",
+        "轻食",
+        "素食",
+        "烫青菜"
+      ],
+      "source": "https://www.pexels.com/photo/photo-of-a-salad-in-a-bowl-4519052/",
+      "imageUrl": "https://images.pexels.com/photos/4519052/pexels-photo-4519052.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "新鲜生菜、黄瓜与萝卜沙拉",
+      "path": "assets/photos/fresh-salad-bowl.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 13662,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "bakery-bread.webp",
+      "category": "market",
+      "categories": [
+        "market",
+        "food"
+      ],
+      "keywords": [
+        "面包",
+        "贝果",
+        "可颂",
+        "面粉",
+        "烘焙",
+        "吐司",
+        "馒头",
+        "包子"
+      ],
+      "source": "https://www.pexels.com/photo/bread-in-bakery-27165965/",
+      "imageUrl": "https://images.pexels.com/photos/27165965/pexels-photo-27165965.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "面包店里的乡村面包与谷物面包",
+      "path": "assets/photos/bakery-bread.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 17778,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "fresh-fish-market.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "鱼",
+        "虾",
+        "花蛤",
+        "水产",
+        "海鲜",
+        "鱿鱼",
+        "鲈鱼",
+        "三文鱼"
+      ],
+      "source": "https://www.pexels.com/photo/raw-fish-selling-at-local-market-7451965/",
+      "imageUrl": "https://images.pexels.com/photos/7451965/pexels-photo-7451965.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "当地市场冰台上的鲜鱼",
+      "path": "assets/photos/fresh-fish-market.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 54454,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "raw-chicken-breast.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "鸡胸",
+        "鸡腿肉",
+        "鸡翅",
+        "鸡肉"
+      ],
+      "source": "https://www.pexels.com/photo/raw-chicken-breasts-6107733/",
+      "imageUrl": "https://images.pexels.com/photos/6107733/pexels-photo-6107733.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "搭配香草的生鸡胸肉食材",
+      "path": "assets/photos/raw-chicken-breast.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 22590,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "rice-grain-bowls.webp",
+      "category": "market",
+      "categories": [
+        "market"
+      ],
+      "keywords": [
+        "米",
+        "糙米",
+        "糯米",
+        "燕麦",
+        "粮油",
+        "干货",
+        "淀粉",
+        "红豆",
+        "绿豆",
+        "芝麻"
+      ],
+      "source": "https://www.pexels.com/photo/close-up-of-variety-of-rice-in-bowls-8108069/",
+      "imageUrl": "https://images.pexels.com/photos/8108069/pexels-photo-8108069.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "陶瓷碗中的不同米类与谷物",
+      "path": "assets/photos/rice-grain-bowls.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 21580,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "retail-cashier.webp",
+      "category": "jobs",
+      "categories": [
+        "jobs"
+      ],
+      "keywords": [
+        "收银",
+        "门店",
+        "店员",
+        "零售",
+        "销售",
+        "店长",
+        "超市",
+        "客服"
+      ],
+      "source": "https://www.pexels.com/photo/woman-working-as-a-cashier-3801439/",
+      "imageUrl": "https://images.pexels.com/photos/3801439/pexels-photo-3801439.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "小店柜台内工作的收银员",
+      "path": "assets/photos/retail-cashier.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 17686,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    },
+    {
+      "file": "airport-traveler.webp",
+      "category": "car",
+      "categories": [
+        "car",
+        "travel",
+        "visa"
+      ],
+      "keywords": [
+        "机场",
+        "航班",
+        "送机",
+        "接机",
+        "抵达",
+        "离境",
+        "出发",
+        "行李"
+      ],
+      "source": "https://www.pexels.com/photo/traveler-in-modern-airport-terminal-with-luggage-32176173/",
+      "imageUrl": "https://images.pexels.com/photos/32176173/pexels-photo-32176173.jpeg?auto=compress&cs=tinysrgb&w=900",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "caption": "现代机场航站楼里携带行李的旅客",
+      "path": "assets/photos/airport-traveler.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 35172,
+      "quality": 75,
+      "downloaded": true,
+      "usage": "真实图库摄影；仅作服务场景或品类示意，不代表虚构商家、员工或实际商品批次。",
+      "visuallyVerified": true,
+      "verificationNote": "已通过全量缩略联系表检查为真实摄影，内容与caption一致。"
+    }
+  ]
+}

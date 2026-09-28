@@ -1,0 +1,2 @@
+window.SHIZHONG_REGION_CHUNKS=window.SHIZHONG_REGION_CHUNKS||Object.create(null);
+window.SHIZHONG_REGION_CHUNKS["PM"]={"countryCode":"PM","states":[{"id":5821,"name":"Saint-Pierre-et-Miquelon","en":"Saint-Pierre and Miquelon","code":"01","type":"overseas collectivity","parentId":null,"aliases":[]}],"cities":[[162132,"Miquelon-Langlade","Miquelon-Langlade",5821,47.09722222,-56.38138889,[],null,null],[162133,"Saint-Pierre","Saint-Pierre",5821,46.77833333,-56.1775,[],null,null]]};

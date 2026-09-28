@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["uw"]=[["JP",64613,"Uwajima","宇和岛",865,"爱媛县","uwajima 宇和岛 宇和島 爱媛县 ehime"],["JP",64614,"Uwajima-shi","宇和岛市",865,"爱媛县","uwajima shi 宇和岛市 宇和島市 爱媛县 ehime"],["TZ",109300,"Uwelini","乌韦利尼",1472,"南奔巴岛","uwelini 乌韦利尼 uko misri 南奔巴岛 pemba south"]];

@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["fn"]=[["MA",67120,"Fnidek","弗尼德克",3324,"丹吉尔-得土安-胡塞马","fnidek 弗尼德克 فنيدك 丹吉尔 得土安 胡塞马 tanger tetouan al hoceima"],["MA",67156,"M'Diq-Fnideq","姆迪克·弗尼迪克",3324,"丹吉尔-得土安-胡塞马","m diq fnideq 姆迪克 弗尼迪克 المضيق الفنيدق 丹吉尔 得土安 胡塞马 tanger tetouan al hoceima"]];

@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["rs"]=[["PK",85407,"Dandot RS","丹多特 RS",3176,"旁遮普","dandot rs 丹多特 rs ڈینڈوٹ ار ایس 旁遮普 punjab"],["YE",130676,"Al A'rsh","阿尔什",1240,"阿尔贝达","al a rsh 阿尔什 العرش 阿尔贝达 al bayda"]];

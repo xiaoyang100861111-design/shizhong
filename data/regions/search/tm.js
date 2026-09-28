@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["tm"]=[["MA",67261,"Tmourghout","特穆尔格豪特",3313,"菲斯-梅克内斯","tmourghout 特穆尔格豪特 تمورغاوت 菲斯 梅克内斯 fes meknes"],["PH",85016,"Tamiso","塔米索",1344,"巴丹","tamiso 塔米索 tmeeso 巴丹 bataan"]];

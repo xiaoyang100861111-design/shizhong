@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["dl"]=[["CZ",22256,"Dlouhá Třebová","德洛哈·特热博瓦",4588,"帕尔杜比奇州","dlouha trebova 德洛哈 特热博瓦 帕尔杜比奇州 pardubicky kraj"],["RO",94722,"Jamu Mare","贾穆·马雷",4748,"蒂米什","jamu mare 贾穆 马雷 dl 蒂米什 timis"]];

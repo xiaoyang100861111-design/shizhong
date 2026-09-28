@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "tests": [
+    "No idle RAF, timer or stage at module load.",
+    "VIP below 10 creates no full-screen effect.",
+    "All four themes render local images, preserve background clicks, cap canvas DPR at 2, and clear DOM/RAF/timers/animations on skip.",
+    "New playback replaces old; stale stop handles cannot remove the new stage; completion runs once per token.",
+    "Natural completion cleans resources at approximately 3.8 seconds.",
+    "Container removal immediately releases effect resources.",
+    "Hidden page immediately clears the effect.",
+    "320-short: content fits, reduced motion is static with no canvas/RAF and ends at 1.2 seconds.",
+    "keyboard-container: content fits, reduced motion is static with no canvas/RAF and ends at 1.2 seconds."
+  ],
+  "themes": [
+    {
+      "theme": "vpe-stage vpe-gold",
+      "zIndex": "110",
+      "stageHeight": 880,
+      "contentTop": 172.8671875,
+      "contentBottom": 636.7265625,
+      "dpr": 2,
+      "images": true
+    },
+    {
+      "theme": "vpe-stage vpe-rose",
+      "zIndex": "110",
+      "stageHeight": 880,
+      "contentTop": 172.8671875,
+      "contentBottom": 636.7265625,
+      "dpr": 2,
+      "images": true
+    },
+    {
+      "theme": "vpe-stage vpe-cosmic",
+      "zIndex": "110",
+      "stageHeight": 880,
+      "contentTop": 172.8671875,
+      "contentBottom": 636.7265625,
+      "dpr": 2,
+      "images": true
+    },
+    {
+      "theme": "vpe-stage vpe-imperial",
+      "zIndex": "110",
+      "stageHeight": 880,
+      "contentTop": 172.8671875,
+      "contentBottom": 636.7265625,
+      "dpr": 2,
+      "images": true
+    }
+  ],
+  "sourceHashes": {
+    "vip-entry.js": "a2aaaaf28c31ce0a1b7b436ed5b0112ccc2248ad142c302860e7b487b958d9a5",
+    "vip-entry.css": "435cac5eadede5cc3b302de229e738ce197217a6d255e9a7a8cd96ce2412f16a"
+  },
+  "scope": "Isolated effect lifecycle and layout checks; identical source bytes copied to the product, plus product UI checks documented in 交互检查.md."
+}

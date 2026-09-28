@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-09-27T13:48:33.322Z",
+  "site": "E:/python/shizhongapp",
+  "scope": "Unit validation: executes complete production vip.js plus actual app initialState/save/escaping/button helpers; DOM rendering and storage are controlled fixtures. Credit checks mutate financial state to verify VIP calculation independence, not real payment integration.",
+  "sourceHashes": {
+    "app.js": "c4e0a1a9c55484ff77459c320e82ec9e60454811b6ebad8e038c75478b58c66d",
+    "vip.js": "563df7f77cef65874fb6490573f52b6c669fdd36fb93d63dd87cb275a5a178dc"
+  },
+  "total": 13,
+  "passed": 13,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "Existing account receives VIP10 once and retains historical XP, funds and all unrelated state",
+      "pass": true
+    },
+    {
+      "name": "Reset defaults also start at VIP10 without historic XP or financial changes",
+      "pass": true
+    },
+    {
+      "name": "75 thresholds are finite, strictly increasing and preserve the published milestones",
+      "pass": true
+    },
+    {
+      "name": "Additional honorXp accumulates after the legacy baseline and upgrades at the exact threshold",
+      "pass": true
+    },
+    {
+      "name": "Large successful XP increments cross multiple levels and stop at level75",
+      "pass": true
+    },
+    {
+      "name": "Refresh preserves upgraded level, original baseline and worn theme without remigration",
+      "pass": true
+    },
+    {
+      "name": "Crediting gold beans or RM, and recording red-envelope/transfer changes, adds no growth",
+      "pass": true
+    },
+    {
+      "name": "Locked themes cannot be worn, including forged direct action calls",
+      "pass": true
+    },
+    {
+      "name": "Unlocked theme is persisted without changing balances, history or baseline",
+      "pass": true
+    },
+    {
+      "name": "Theme save failure rolls back the entire state and retains the previous persisted selection",
+      "pass": true
+    },
+    {
+      "name": "Entrance toggle saves on success and rolls back on storage failure",
+      "pass": true
+    },
+    {
+      "name": "Previewing a locked theme does not unlock it, change growth or save any account state",
+      "pass": true
+    },
+    {
+      "name": "Eligible entrance and preview stop gift effects before playing; disabled automatic entrance leaves gift effects intact",
+      "pass": true
+    }
+  ]
+}

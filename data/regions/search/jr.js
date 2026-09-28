@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["jr"]=[["AM",421,"Jrahovit","贾拉霍维特",2024,"亚拉腊山","jrahovit 贾拉霍维特 ջրահովիտ 亚拉腊山 ararat"],["AM",422,"Jrashen","杰拉申",2030,"埃里温","jrashen 杰拉申 ջրաշեն 埃里温 yerevan"],["AM",423,"Jrashen","杰拉申",2029,"洛瑞","jrashen 杰拉申 ջրաշեն 洛瑞 lori"]];

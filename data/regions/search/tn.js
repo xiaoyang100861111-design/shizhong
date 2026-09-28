@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["tn"]=[["MA",67048,"Agadir-Ida-ou-Tnan","阿加迪尔-伊达乌特南",3297,"Assa-Zag（EH-部分）","agadir ida ou tnan 阿加迪尔 伊达乌特南 اكادير ايدا او تانان assa zag eh 部分 assa zag eh partial"]];

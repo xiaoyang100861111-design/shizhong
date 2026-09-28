@@ -1,0 +1,3580 @@
+{
+  "provider": "Random User Generator",
+  "verifiedAt": "2026-09-27T06:37:04.663351+00:00",
+  "purpose": "Portrait placeholders for fictional people in an H5 interface demonstration. These photographs do not identify the fictional people, represent real accounts, or imply personal endorsement.",
+  "officialSources": {
+    "photoCollection": "https://randomuser.me/photos",
+    "documentation": "https://randomuser.me/documentation",
+    "copyrightNotice": "https://randomuser.me/copyright",
+    "linkedLegacyUsageFAQ": "https://web.archive.org/web/20160811185628/http://uifaces.com/faq"
+  },
+  "sourceVerification": [
+    "The official photos page offers 200 profile faces, without needing generated user data.",
+    "Official documentation describes Random User as a service for application testing.",
+    "The copyright notice states that photographs were selected from the authorized section of UI Faces.",
+    "The linked legacy FAQ describes mockup use, distinguishes the authorized section, and asks that real faces be paired with fictional names. It separately calls for permission before using a face beside a fabricated testimonial."
+  ],
+  "usageNotes": [
+    "Use only as clearly fictional interface demonstration avatars, not real identities or real account photographs.",
+    "Do not imply that a depicted person made a testimonial or endorses the product.",
+    "Source men/women folders are retained as source categories, not verified personal attributes.",
+    "Local files require no runtime requests to the provider. Render with object-fit: cover and a circular mask in the interface.",
+    "Load only avatars visible in the current page or list; do not preload the whole collection on the homepage."
+  ],
+  "namingPattern": "assets/avatars/{men|women}-{sourceIndex:03d}.jpg",
+  "dimensions": "At most 128px on the longer edge; preserve each source crop",
+  "count": 183,
+  "totalBytes": 912629,
+  "maxBytes": 11745,
+  "uniqueSha256": 183,
+  "failed": [],
+  "skippedDuplicates": [
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/17.jpg",
+      "duplicateOf": "assets/avatars/men-015.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/52.jpg",
+      "duplicateOf": "assets/avatars/men-018.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/66.jpg",
+      "duplicateOf": "assets/avatars/men-031.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/67.jpg",
+      "duplicateOf": "assets/avatars/men-004.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/84.jpg",
+      "duplicateOf": "assets/avatars/men-027.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/87.jpg",
+      "duplicateOf": "assets/avatars/men-011.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/93.jpg",
+      "duplicateOf": "assets/avatars/men-023.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/99.jpg",
+      "duplicateOf": "assets/avatars/men-072.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/men/98.jpg",
+      "duplicateOf": "assets/avatars/men-037.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/47.jpg",
+      "duplicateOf": "assets/avatars/women-024.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/51.jpg",
+      "duplicateOf": "assets/avatars/women-048.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/56.jpg",
+      "duplicateOf": "assets/avatars/women-033.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/58.jpg",
+      "duplicateOf": "assets/avatars/women-023.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/62.jpg",
+      "duplicateOf": "assets/avatars/women-036.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/89.jpg",
+      "duplicateOf": "assets/avatars/women-030.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/99.jpg",
+      "duplicateOf": "assets/avatars/women-015.jpg"
+    },
+    {
+      "sourceUrl": "https://randomuser.me/api/portraits/women/98.jpg",
+      "duplicateOf": "assets/avatars/women-001.jpg"
+    }
+  ],
+  "files": [
+    {
+      "id": "men-000",
+      "file": "assets/avatars/men-000.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 0,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/0.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 127,
+      "height": 128,
+      "bytes": 3341,
+      "sha256": "24039e8da39b09deb6c4a0ea559cbf63014ed00d937ca9a21f00cabfe34cab01",
+      "sourceSha256": "24039e8da39b09deb6c4a0ea559cbf63014ed00d937ca9a21f00cabfe34cab01",
+      "originalDimensions": [
+        127,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-001",
+      "file": "assets/avatars/men-001.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 1,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/1.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3598,
+      "sha256": "b1f6209ae26207ebe11c243a659f0e5e15a0a48232261ecf3c05211a40af2225",
+      "sourceSha256": "b1f6209ae26207ebe11c243a659f0e5e15a0a48232261ecf3c05211a40af2225",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-002",
+      "file": "assets/avatars/men-002.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 2,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/2.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4701,
+      "sha256": "716cfb40836039a4e9e34d89320b6398ba7871ea7882e32b7397029586f6dda7",
+      "sourceSha256": "716cfb40836039a4e9e34d89320b6398ba7871ea7882e32b7397029586f6dda7",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-003",
+      "file": "assets/avatars/men-003.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 3,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/3.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5631,
+      "sha256": "4cff4f892ece6dca0865313df96f11ac30e11b6dcbf3b9a86bad86a3049aa6e1",
+      "sourceSha256": "4cff4f892ece6dca0865313df96f11ac30e11b6dcbf3b9a86bad86a3049aa6e1",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-004",
+      "file": "assets/avatars/men-004.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 4,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/4.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6336,
+      "sha256": "d1db668ef30403e132bab1de4720f1c9159e8ba03dc0f3d65d5bf95f3985b80a",
+      "sourceSha256": "d1db668ef30403e132bab1de4720f1c9159e8ba03dc0f3d65d5bf95f3985b80a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-005",
+      "file": "assets/avatars/men-005.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 5,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/5.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3249,
+      "sha256": "32afb68c9233445d08f7c4af3e781f648c6eeeb7dadeb5bdd341a003684d1c93",
+      "sourceSha256": "32afb68c9233445d08f7c4af3e781f648c6eeeb7dadeb5bdd341a003684d1c93",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-006",
+      "file": "assets/avatars/men-006.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 6,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/6.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4834,
+      "sha256": "af66f803b7eca79bf82dcf20589825a624672f03141b801dc0e2adf2e858cd26",
+      "sourceSha256": "af66f803b7eca79bf82dcf20589825a624672f03141b801dc0e2adf2e858cd26",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-007",
+      "file": "assets/avatars/men-007.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 7,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/7.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4988,
+      "sha256": "f25b1b7a6a351c0f748d81bf4fcaf8c5a2f8ed036563c2693d4c1ca3718d9d5d",
+      "sourceSha256": "f25b1b7a6a351c0f748d81bf4fcaf8c5a2f8ed036563c2693d4c1ca3718d9d5d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-008",
+      "file": "assets/avatars/men-008.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 8,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/8.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5352,
+      "sha256": "b471183ac240bde44afd6592c20daa6d5cae530c67c6c03952c72a034f021fef",
+      "sourceSha256": "b471183ac240bde44afd6592c20daa6d5cae530c67c6c03952c72a034f021fef",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-009",
+      "file": "assets/avatars/men-009.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 9,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/9.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2438,
+      "sha256": "6252a3b6790cbb48919cb8ea756a4e1ce829f3271a141731226871b3c3df9d6d",
+      "sourceSha256": "6252a3b6790cbb48919cb8ea756a4e1ce829f3271a141731226871b3c3df9d6d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-010",
+      "file": "assets/avatars/men-010.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 10,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/10.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5422,
+      "sha256": "a2c119fd54bdd0e0148ab84a5fe314357a8e5c9dd7c15c0ef574749128437830",
+      "sourceSha256": "a2c119fd54bdd0e0148ab84a5fe314357a8e5c9dd7c15c0ef574749128437830",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-011",
+      "file": "assets/avatars/men-011.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 11,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/11.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5147,
+      "sha256": "21d6722e3baa38cb075afdc599a60c8861440a6dea431e7a8ff43f86d05190b9",
+      "sourceSha256": "21d6722e3baa38cb075afdc599a60c8861440a6dea431e7a8ff43f86d05190b9",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-012",
+      "file": "assets/avatars/men-012.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 12,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/12.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5610,
+      "sha256": "a501a0a3424e4bf370d77ee94bcc76545df3c9322fe7154d96bcd55b840b5037",
+      "sourceSha256": "a501a0a3424e4bf370d77ee94bcc76545df3c9322fe7154d96bcd55b840b5037",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-013",
+      "file": "assets/avatars/men-013.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 13,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/13.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4181,
+      "sha256": "56eb13218bfcbdfa4f6f950990d4666d616ad1f9e17777c976ccc79c781b68c6",
+      "sourceSha256": "56eb13218bfcbdfa4f6f950990d4666d616ad1f9e17777c976ccc79c781b68c6",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-014",
+      "file": "assets/avatars/men-014.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 14,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/14.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6741,
+      "sha256": "2f61d9e108f2a1074fb07703cadf176da43f5efb8782537cf07048680fc74e44",
+      "sourceSha256": "2f61d9e108f2a1074fb07703cadf176da43f5efb8782537cf07048680fc74e44",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-015",
+      "file": "assets/avatars/men-015.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 15,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/15.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3805,
+      "sha256": "e86e44eaa9cb076c9d359973ce68af0e0cd85bb5dac2e72b259582941a57621b",
+      "sourceSha256": "e86e44eaa9cb076c9d359973ce68af0e0cd85bb5dac2e72b259582941a57621b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-016",
+      "file": "assets/avatars/men-016.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 16,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/16.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5973,
+      "sha256": "9e1584030edf906c915a6dfd6cb3b7d3084f3991f46b28737dd46127f45c8fe3",
+      "sourceSha256": "9e1584030edf906c915a6dfd6cb3b7d3084f3991f46b28737dd46127f45c8fe3",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-018",
+      "file": "assets/avatars/men-018.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 18,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/18.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4344,
+      "sha256": "6cff624a3918ef93fa859e2c4cdb4634ceca702242654071804da9fbf0b617bc",
+      "sourceSha256": "6cff624a3918ef93fa859e2c4cdb4634ceca702242654071804da9fbf0b617bc",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-019",
+      "file": "assets/avatars/men-019.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 19,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/19.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6947,
+      "sha256": "c493b0a6d9a42ed0a102bcd31360d00491e23ac5cb4f7cbf8ae9c61f577ccccc",
+      "sourceSha256": "c493b0a6d9a42ed0a102bcd31360d00491e23ac5cb4f7cbf8ae9c61f577ccccc",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-020",
+      "file": "assets/avatars/men-020.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 20,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/20.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4726,
+      "sha256": "2459813f9531f51e3a3dcc894f29d7135d9b7cff2a50f04043a6d59c4709e9ca",
+      "sourceSha256": "2459813f9531f51e3a3dcc894f29d7135d9b7cff2a50f04043a6d59c4709e9ca",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-021",
+      "file": "assets/avatars/men-021.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 21,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/21.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4335,
+      "sha256": "3560ff7cbc9e86c333fccefe248e3ea5cdade4e46f6b2fc85d84755896cb2e5a",
+      "sourceSha256": "3560ff7cbc9e86c333fccefe248e3ea5cdade4e46f6b2fc85d84755896cb2e5a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-022",
+      "file": "assets/avatars/men-022.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 22,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/22.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4752,
+      "sha256": "9aac54d62e727561f6958213b8a3649230a3bba61ba5ddf63c69d3c6e4aecb0a",
+      "sourceSha256": "9aac54d62e727561f6958213b8a3649230a3bba61ba5ddf63c69d3c6e4aecb0a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-023",
+      "file": "assets/avatars/men-023.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 23,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/23.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5615,
+      "sha256": "ca627d33f20754d25814a1d622a9f4837d56d5809c6fa7c14f2f2be7e3f36a05",
+      "sourceSha256": "ca627d33f20754d25814a1d622a9f4837d56d5809c6fa7c14f2f2be7e3f36a05",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-024",
+      "file": "assets/avatars/men-024.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 24,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/24.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3280,
+      "sha256": "e83c69af63e3f7ed9000d3956109e11e2292ed363551b81b66473f981c83d112",
+      "sourceSha256": "aa71ceacc335c50de5d72536473637050da921b5439ea9b4fb289b8f76c5720e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Resized to a maximum of 128px and optimized as JPEG",
+      "demoOnly": true
+    },
+    {
+      "id": "men-025",
+      "file": "assets/avatars/men-025.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 25,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/25.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4829,
+      "sha256": "f61f4b3793465be0aa4c3b577a6ccb95ae48ccfb751e7aaa6b5477aadc5255a8",
+      "sourceSha256": "f61f4b3793465be0aa4c3b577a6ccb95ae48ccfb751e7aaa6b5477aadc5255a8",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-026",
+      "file": "assets/avatars/men-026.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 26,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/26.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 9975,
+      "sha256": "3877dd3ab7f10169e7aee68c1b550f5cc875dc5c030d77cb50095b5038bdf98d",
+      "sourceSha256": "3877dd3ab7f10169e7aee68c1b550f5cc875dc5c030d77cb50095b5038bdf98d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-027",
+      "file": "assets/avatars/men-027.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 27,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/27.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4051,
+      "sha256": "0939e4e89294f566a05be48754bd62dab535e01a85e1f96b6bcc7b26a968f294",
+      "sourceSha256": "0939e4e89294f566a05be48754bd62dab535e01a85e1f96b6bcc7b26a968f294",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-028",
+      "file": "assets/avatars/men-028.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 28,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/28.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5024,
+      "sha256": "421ebb300c84634c3d9d7ba92a2780264a4e333b0cc4c1da8d8b98f9830fc420",
+      "sourceSha256": "421ebb300c84634c3d9d7ba92a2780264a4e333b0cc4c1da8d8b98f9830fc420",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-029",
+      "file": "assets/avatars/men-029.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 29,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/29.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6516,
+      "sha256": "ee463534f5237559e041e9525c2c8475402585f4c4dbb469d3d89df4da3665bf",
+      "sourceSha256": "ee463534f5237559e041e9525c2c8475402585f4c4dbb469d3d89df4da3665bf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-030",
+      "file": "assets/avatars/men-030.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 30,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/30.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4349,
+      "sha256": "9aee1f71c504bfad8f152e0c732c309f88a641f9fe6271be877352a4ae1a96ff",
+      "sourceSha256": "9aee1f71c504bfad8f152e0c732c309f88a641f9fe6271be877352a4ae1a96ff",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-031",
+      "file": "assets/avatars/men-031.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 31,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/31.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5616,
+      "sha256": "858ff02a00279d25f120a1b6bf7c56a18bd1e0130a5745a6d109de0cade1a26c",
+      "sourceSha256": "858ff02a00279d25f120a1b6bf7c56a18bd1e0130a5745a6d109de0cade1a26c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-032",
+      "file": "assets/avatars/men-032.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 32,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/32.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5242,
+      "sha256": "a634d4f02fe5b77804943c1d74b8d70e35ffe26454e0e9af9717432a2c72bfde",
+      "sourceSha256": "a634d4f02fe5b77804943c1d74b8d70e35ffe26454e0e9af9717432a2c72bfde",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-033",
+      "file": "assets/avatars/men-033.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 33,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/33.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5109,
+      "sha256": "ae1d49872fdd6f8d9aa933f6ca8bce8cb1ba7e87dfb9d2926661184cb7bfe26d",
+      "sourceSha256": "ae1d49872fdd6f8d9aa933f6ca8bce8cb1ba7e87dfb9d2926661184cb7bfe26d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-034",
+      "file": "assets/avatars/men-034.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 34,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/34.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4305,
+      "sha256": "ab6b8ebdea8a9039f0eb67bbff470eaeb747a23503959bf0bd14aa2c2da2b0f6",
+      "sourceSha256": "ab6b8ebdea8a9039f0eb67bbff470eaeb747a23503959bf0bd14aa2c2da2b0f6",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-035",
+      "file": "assets/avatars/men-035.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 35,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/35.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4564,
+      "sha256": "e623ae8a78229fc79dadb1b6f6ccab6f2fbec38b446b1bd7d123936a17fbb497",
+      "sourceSha256": "e623ae8a78229fc79dadb1b6f6ccab6f2fbec38b446b1bd7d123936a17fbb497",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-036",
+      "file": "assets/avatars/men-036.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 36,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/36.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4743,
+      "sha256": "a9401e55315197e2e17043ce3219e23178f718cee2fab13579b4f3fc5906eb5b",
+      "sourceSha256": "a9401e55315197e2e17043ce3219e23178f718cee2fab13579b4f3fc5906eb5b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-037",
+      "file": "assets/avatars/men-037.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 37,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/37.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5084,
+      "sha256": "ded71c03ba6c94e5e134404fa54560f5ee9c1b01d7135cbb2866763aaa756a6b",
+      "sourceSha256": "ded71c03ba6c94e5e134404fa54560f5ee9c1b01d7135cbb2866763aaa756a6b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-038",
+      "file": "assets/avatars/men-038.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 38,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/38.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4770,
+      "sha256": "de6b3a986b674221f52f37cf8941d2aad5e0c4100f18378bc132bc4d00356140",
+      "sourceSha256": "de6b3a986b674221f52f37cf8941d2aad5e0c4100f18378bc132bc4d00356140",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-039",
+      "file": "assets/avatars/men-039.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 39,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/39.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4045,
+      "sha256": "ce48ff4d8eb00046f934bd17429c59abe78fcf81d0b1b3d800e4b91affcc42cf",
+      "sourceSha256": "ce48ff4d8eb00046f934bd17429c59abe78fcf81d0b1b3d800e4b91affcc42cf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-040",
+      "file": "assets/avatars/men-040.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 40,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/40.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3208,
+      "sha256": "81fb15fe60e4999ed6b36c4f793227c5bc070cb42a1e24010434f68765fa9c69",
+      "sourceSha256": "81fb15fe60e4999ed6b36c4f793227c5bc070cb42a1e24010434f68765fa9c69",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-041",
+      "file": "assets/avatars/men-041.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 41,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/41.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4254,
+      "sha256": "8c7df7267d485c5d3e33644f059c1a25940056d6c4eef9e89d7091eaf250fa2e",
+      "sourceSha256": "8c7df7267d485c5d3e33644f059c1a25940056d6c4eef9e89d7091eaf250fa2e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-042",
+      "file": "assets/avatars/men-042.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 42,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/42.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5004,
+      "sha256": "01c208e6282402b7f90751660368cef4632e2ec6bc6e906015702244b097d571",
+      "sourceSha256": "01c208e6282402b7f90751660368cef4632e2ec6bc6e906015702244b097d571",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-043",
+      "file": "assets/avatars/men-043.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 43,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/43.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4965,
+      "sha256": "b1c8d490f1374de612d5c2da6ef30f6a7a8f12a0c7f3ebd0db7d0e9872d32a88",
+      "sourceSha256": "b1c8d490f1374de612d5c2da6ef30f6a7a8f12a0c7f3ebd0db7d0e9872d32a88",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-044",
+      "file": "assets/avatars/men-044.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 44,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/44.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5485,
+      "sha256": "b3e9adff0dceeaa8db222e9d82334c6f368eddd83c1ee89517f1ffc496fe8923",
+      "sourceSha256": "b3e9adff0dceeaa8db222e9d82334c6f368eddd83c1ee89517f1ffc496fe8923",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-045",
+      "file": "assets/avatars/men-045.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 45,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/45.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4597,
+      "sha256": "8ba1641b9bdbbfbcd96e81d144f40b004cbcdde40250f6a248eed4987ac4a98f",
+      "sourceSha256": "8ba1641b9bdbbfbcd96e81d144f40b004cbcdde40250f6a248eed4987ac4a98f",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-046",
+      "file": "assets/avatars/men-046.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 46,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/46.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4824,
+      "sha256": "07b2fa37a61afa65b8e621b24da7408d287751fd5e7dcc887855ce077faaa425",
+      "sourceSha256": "07b2fa37a61afa65b8e621b24da7408d287751fd5e7dcc887855ce077faaa425",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-047",
+      "file": "assets/avatars/men-047.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 47,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/47.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4454,
+      "sha256": "469531c65f86109dc8f5906630810eea35571f92d924dd30abeb05956be144eb",
+      "sourceSha256": "469531c65f86109dc8f5906630810eea35571f92d924dd30abeb05956be144eb",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-048",
+      "file": "assets/avatars/men-048.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 48,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/48.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2843,
+      "sha256": "3e43539bebcca5237503c5ee4472c71e6b5afd4960f0942896d49d4f4e75501e",
+      "sourceSha256": "3e43539bebcca5237503c5ee4472c71e6b5afd4960f0942896d49d4f4e75501e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-049",
+      "file": "assets/avatars/men-049.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 49,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/49.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3034,
+      "sha256": "64088b0ca67deeae50e613639a48e7b82be5d47c69be8d25d11b659842e8c44e",
+      "sourceSha256": "64088b0ca67deeae50e613639a48e7b82be5d47c69be8d25d11b659842e8c44e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-050",
+      "file": "assets/avatars/men-050.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 50,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/50.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4881,
+      "sha256": "be4658359fb23eeb54e8ebb844e803cf21a96c039734e554f90e1f725078e2b5",
+      "sourceSha256": "be4658359fb23eeb54e8ebb844e803cf21a96c039734e554f90e1f725078e2b5",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-051",
+      "file": "assets/avatars/men-051.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 51,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/51.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5375,
+      "sha256": "7c0d2aa99715b15c218385f5679347782843c02f939d8eee6f9cb1cad6ba6ed0",
+      "sourceSha256": "7c0d2aa99715b15c218385f5679347782843c02f939d8eee6f9cb1cad6ba6ed0",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-053",
+      "file": "assets/avatars/men-053.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 53,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/53.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3309,
+      "sha256": "a67a3f5889c3fa9cfba04889b74aea4f9b1320812ec4673a2d3b66e955045cfb",
+      "sourceSha256": "bd669884c743d5726c5c273d6e18cc793670c0727e85c49a503bc08abbf2d227",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Resized to a maximum of 128px and optimized as JPEG",
+      "demoOnly": true
+    },
+    {
+      "id": "men-054",
+      "file": "assets/avatars/men-054.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 54,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/54.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5276,
+      "sha256": "d1a3e08d4e37d6ee2b7de1db8df87c1dc7acd8ffb004caaf980917de518a60c9",
+      "sourceSha256": "d1a3e08d4e37d6ee2b7de1db8df87c1dc7acd8ffb004caaf980917de518a60c9",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-055",
+      "file": "assets/avatars/men-055.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 55,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/55.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5378,
+      "sha256": "21d47eaf628770020d63a6c3b7259cadb171a38c661a7471713b6a2c83199799",
+      "sourceSha256": "21d47eaf628770020d63a6c3b7259cadb171a38c661a7471713b6a2c83199799",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-056",
+      "file": "assets/avatars/men-056.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 56,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/56.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3733,
+      "sha256": "7641e5550cab8285a253f41bd03ff144ccd06bf847577af55bcb8b45e2908649",
+      "sourceSha256": "7641e5550cab8285a253f41bd03ff144ccd06bf847577af55bcb8b45e2908649",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-057",
+      "file": "assets/avatars/men-057.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 57,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/57.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3198,
+      "sha256": "7693e991e5ded6860464de1b21c5bf626a7bc0c79d1cdc8ff14bc1c485430527",
+      "sourceSha256": "7693e991e5ded6860464de1b21c5bf626a7bc0c79d1cdc8ff14bc1c485430527",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-058",
+      "file": "assets/avatars/men-058.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 58,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/58.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3747,
+      "sha256": "452ed3ff6f289cec03b9bed0456a946289cc34182edfe123a03982ee9506c55a",
+      "sourceSha256": "452ed3ff6f289cec03b9bed0456a946289cc34182edfe123a03982ee9506c55a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-059",
+      "file": "assets/avatars/men-059.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 59,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/59.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2799,
+      "sha256": "57c0787e260e4785a6d858d26ff60a82fd5ae48cbae32fe6e866cb3daf7fe1a4",
+      "sourceSha256": "57c0787e260e4785a6d858d26ff60a82fd5ae48cbae32fe6e866cb3daf7fe1a4",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-060",
+      "file": "assets/avatars/men-060.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 60,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/60.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4563,
+      "sha256": "82a53ec7286641124351dde4b145df2cc2a4799707467d290d73dbbab56d122a",
+      "sourceSha256": "82a53ec7286641124351dde4b145df2cc2a4799707467d290d73dbbab56d122a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-061",
+      "file": "assets/avatars/men-061.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 61,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/61.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6236,
+      "sha256": "b58616f0d669595c9a42d60a0b9803364c9859f1c3db93a5e3dc408b603e03e8",
+      "sourceSha256": "b58616f0d669595c9a42d60a0b9803364c9859f1c3db93a5e3dc408b603e03e8",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-062",
+      "file": "assets/avatars/men-062.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 62,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/62.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5992,
+      "sha256": "1826ce29b169f340874dab804f578b98adfabd7d974d9970e8f8e08d050e1397",
+      "sourceSha256": "1826ce29b169f340874dab804f578b98adfabd7d974d9970e8f8e08d050e1397",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-063",
+      "file": "assets/avatars/men-063.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 63,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/63.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5397,
+      "sha256": "a93be61e428874e7fc483ae7b55b0b5e4b305c856c91162729843af05793b6cf",
+      "sourceSha256": "758f16c13fb08def95f73a9dec54ebde8e1d32b196c864e383b1ad22bcc85420",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Resized to a maximum of 128px and optimized as JPEG",
+      "demoOnly": true
+    },
+    {
+      "id": "men-064",
+      "file": "assets/avatars/men-064.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 64,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/64.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 9378,
+      "sha256": "8d9a61a581c43fe2088f221b7692c95db4b3ad5c0da0c856400c0e5acdcdcea8",
+      "sourceSha256": "8d9a61a581c43fe2088f221b7692c95db4b3ad5c0da0c856400c0e5acdcdcea8",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-065",
+      "file": "assets/avatars/men-065.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 65,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/65.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3295,
+      "sha256": "ba37ba21b03d91a2693745e751834250b404a7c2c6e06e33ae7cb38c0f687a4d",
+      "sourceSha256": "ba37ba21b03d91a2693745e751834250b404a7c2c6e06e33ae7cb38c0f687a4d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-068",
+      "file": "assets/avatars/men-068.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 68,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/68.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3940,
+      "sha256": "466d3be2b6f08dc1bc8b91a561edeeb30ced9e390629d8eba1ec407aa3453dc7",
+      "sourceSha256": "466d3be2b6f08dc1bc8b91a561edeeb30ced9e390629d8eba1ec407aa3453dc7",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-069",
+      "file": "assets/avatars/men-069.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 69,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/69.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4611,
+      "sha256": "df467abf79496dfb2634e8e245fe3d6b254449c2094d521aa1ac519fbab0346e",
+      "sourceSha256": "df467abf79496dfb2634e8e245fe3d6b254449c2094d521aa1ac519fbab0346e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-070",
+      "file": "assets/avatars/men-070.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 70,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/70.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4600,
+      "sha256": "5706589215eeeb07d4b8d304fdb7a10f3fb258d78fc7e7c06edfd0ff0466da47",
+      "sourceSha256": "5706589215eeeb07d4b8d304fdb7a10f3fb258d78fc7e7c06edfd0ff0466da47",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-071",
+      "file": "assets/avatars/men-071.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 71,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/71.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 10528,
+      "sha256": "cfe6aab685541703ccb60c1ad169224d555ea320a46f042829b115395eebb775",
+      "sourceSha256": "cfe6aab685541703ccb60c1ad169224d555ea320a46f042829b115395eebb775",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-072",
+      "file": "assets/avatars/men-072.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 72,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/72.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5216,
+      "sha256": "eb0d14c51d571b63ba1aa4050367d192f71c8e9d5c1aa15cd6de9aacae05b2a1",
+      "sourceSha256": "eb0d14c51d571b63ba1aa4050367d192f71c8e9d5c1aa15cd6de9aacae05b2a1",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-073",
+      "file": "assets/avatars/men-073.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 73,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/73.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4356,
+      "sha256": "60157c5b873bb2ad8434109809a068c4dbd9ffe4697c231107456ea7f2cff752",
+      "sourceSha256": "60157c5b873bb2ad8434109809a068c4dbd9ffe4697c231107456ea7f2cff752",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-074",
+      "file": "assets/avatars/men-074.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 74,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/74.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4256,
+      "sha256": "d18466c01013e15ffa462559766dc50b6e3a6f959e7bc3386ab2bbe64614a31c",
+      "sourceSha256": "d18466c01013e15ffa462559766dc50b6e3a6f959e7bc3386ab2bbe64614a31c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-075",
+      "file": "assets/avatars/men-075.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 75,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/75.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3615,
+      "sha256": "60c2053e9aa4900708d262ddb15313d1f5b9e5daad2c0f6ace8c41f4fd78a015",
+      "sourceSha256": "60c2053e9aa4900708d262ddb15313d1f5b9e5daad2c0f6ace8c41f4fd78a015",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-076",
+      "file": "assets/avatars/men-076.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 76,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/76.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6292,
+      "sha256": "2a0f9df9f842b1b4aea854a1cd77be199011a6a71d228df03335b527b2c91f66",
+      "sourceSha256": "2a0f9df9f842b1b4aea854a1cd77be199011a6a71d228df03335b527b2c91f66",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-077",
+      "file": "assets/avatars/men-077.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 77,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/77.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3705,
+      "sha256": "53019a4c9b16b1a008b15d6addfe1f03987c358f3b416a28810bd2098555633e",
+      "sourceSha256": "53019a4c9b16b1a008b15d6addfe1f03987c358f3b416a28810bd2098555633e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-078",
+      "file": "assets/avatars/men-078.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 78,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/78.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4643,
+      "sha256": "dc47fd5c6525a85ad39123b776bc6d19267d1be0a6962a8d89a3eed16ec8d7d3",
+      "sourceSha256": "dc47fd5c6525a85ad39123b776bc6d19267d1be0a6962a8d89a3eed16ec8d7d3",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-079",
+      "file": "assets/avatars/men-079.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 79,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/79.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4896,
+      "sha256": "ea2775325f2a7db490675e7b4d56d13fff509cab5c5bccf0af89fced8124d2fe",
+      "sourceSha256": "ea2775325f2a7db490675e7b4d56d13fff509cab5c5bccf0af89fced8124d2fe",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-080",
+      "file": "assets/avatars/men-080.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 80,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/80.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4817,
+      "sha256": "43afb23ac31ecd105f2cb1d72f18aea9def12050c10d70fa02f07814dde008cc",
+      "sourceSha256": "43afb23ac31ecd105f2cb1d72f18aea9def12050c10d70fa02f07814dde008cc",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-081",
+      "file": "assets/avatars/men-081.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 81,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/81.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4537,
+      "sha256": "9f084b12b61f3080b0e5d980e36ebe7c73c244aaab1f88b154738e736c66356e",
+      "sourceSha256": "9f084b12b61f3080b0e5d980e36ebe7c73c244aaab1f88b154738e736c66356e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-082",
+      "file": "assets/avatars/men-082.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 82,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/82.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5081,
+      "sha256": "63ab17c28e544884dc51223717076eb3787f5d0ac3b80a157df552d37f38f3bd",
+      "sourceSha256": "63ab17c28e544884dc51223717076eb3787f5d0ac3b80a157df552d37f38f3bd",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-083",
+      "file": "assets/avatars/men-083.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 83,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/83.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3835,
+      "sha256": "97ad15ea81028e58b3271f16d5f48daed7af31d3612f2846af3e89ac11176ee2",
+      "sourceSha256": "97ad15ea81028e58b3271f16d5f48daed7af31d3612f2846af3e89ac11176ee2",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-085",
+      "file": "assets/avatars/men-085.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 85,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/85.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5488,
+      "sha256": "e55f3cdab57eb4084f7006cfe9f7f047e638e1b257a53498aaed14b83087152a",
+      "sourceSha256": "e55f3cdab57eb4084f7006cfe9f7f047e638e1b257a53498aaed14b83087152a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-086",
+      "file": "assets/avatars/men-086.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 86,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/86.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5433,
+      "sha256": "f2f9f7b26611e3cd3a9bc8c909a8fb8dd74494334d847e013fcbf2dc737a0b81",
+      "sourceSha256": "f2f9f7b26611e3cd3a9bc8c909a8fb8dd74494334d847e013fcbf2dc737a0b81",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-088",
+      "file": "assets/avatars/men-088.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 88,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/88.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4922,
+      "sha256": "65567d8bc026a15c773d575fb6c568e5c8ef1a7a75a525843c9bcda45bcdf092",
+      "sourceSha256": "65567d8bc026a15c773d575fb6c568e5c8ef1a7a75a525843c9bcda45bcdf092",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-089",
+      "file": "assets/avatars/men-089.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 89,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/89.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5584,
+      "sha256": "284f93747b1a3b17164e024424d3f77d532099d9dfa8d294d12d5b3ea69abae4",
+      "sourceSha256": "284f93747b1a3b17164e024424d3f77d532099d9dfa8d294d12d5b3ea69abae4",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-090",
+      "file": "assets/avatars/men-090.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 90,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/90.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4610,
+      "sha256": "6f32dcc6df8672534a6ab53b6a7422924a25885aa0a6cedd76ba331660c5d780",
+      "sourceSha256": "6f32dcc6df8672534a6ab53b6a7422924a25885aa0a6cedd76ba331660c5d780",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-091",
+      "file": "assets/avatars/men-091.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 91,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/91.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2817,
+      "sha256": "3fff7c77ac4d967f819d6c3754aaace800f8d519b581eafcbdca01ec8b3a6ebb",
+      "sourceSha256": "3fff7c77ac4d967f819d6c3754aaace800f8d519b581eafcbdca01ec8b3a6ebb",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-092",
+      "file": "assets/avatars/men-092.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 92,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/92.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4534,
+      "sha256": "c8d3d7cc2d4f9768bc0d7c0c1d9e7aa727e522ba02875ce8875e0469abddefa9",
+      "sourceSha256": "c8d3d7cc2d4f9768bc0d7c0c1d9e7aa727e522ba02875ce8875e0469abddefa9",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-094",
+      "file": "assets/avatars/men-094.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 94,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/94.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5897,
+      "sha256": "ccb8bb5abc7700fec0145db49ddf0cca3724ffbab0ea349dd70a4c7b0ef71e3f",
+      "sourceSha256": "ccb8bb5abc7700fec0145db49ddf0cca3724ffbab0ea349dd70a4c7b0ef71e3f",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-095",
+      "file": "assets/avatars/men-095.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 95,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/95.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6593,
+      "sha256": "3b36155264a0ad503a3a49a02db008ebb7509b09858fa50aac85ed329e2936ad",
+      "sourceSha256": "3b36155264a0ad503a3a49a02db008ebb7509b09858fa50aac85ed329e2936ad",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-096",
+      "file": "assets/avatars/men-096.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 96,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/96.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4612,
+      "sha256": "d3b4a0b17e3a91371225b43c45f9ebd1a306a74dda0575df8762fef521162832",
+      "sourceSha256": "d3b4a0b17e3a91371225b43c45f9ebd1a306a74dda0575df8762fef521162832",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "men-097",
+      "file": "assets/avatars/men-097.jpg",
+      "sourceGroup": "men",
+      "sourceIndex": 97,
+      "sourceUrl": "https://randomuser.me/api/portraits/men/97.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4410,
+      "sha256": "9842ec877a3163e640065ef999afc49dd8a6082deab2dec0676fad34c15864a6",
+      "sourceSha256": "9842ec877a3163e640065ef999afc49dd8a6082deab2dec0676fad34c15864a6",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-000",
+      "file": "assets/avatars/women-000.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 0,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/0.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4857,
+      "sha256": "e373256bfba2fe65c8ec3fb3d8b486d02224fc60f4c79ec2f0cc3245d7809b59",
+      "sourceSha256": "e373256bfba2fe65c8ec3fb3d8b486d02224fc60f4c79ec2f0cc3245d7809b59",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-001",
+      "file": "assets/avatars/women-001.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 1,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/1.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3460,
+      "sha256": "7c408d5bb79392ba04b0b8a6294b4eee47a16ec377d3dae0c3108e918864bfad",
+      "sourceSha256": "7c408d5bb79392ba04b0b8a6294b4eee47a16ec377d3dae0c3108e918864bfad",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-002",
+      "file": "assets/avatars/women-002.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 2,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/2.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5157,
+      "sha256": "e7a0b30cb92ca533b2f8dbf57649e4b60129a9e84f3fc36d45b09e2dfcaec61d",
+      "sourceSha256": "e7a0b30cb92ca533b2f8dbf57649e4b60129a9e84f3fc36d45b09e2dfcaec61d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-003",
+      "file": "assets/avatars/women-003.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 3,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/3.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6322,
+      "sha256": "7ae9db9990bb424cc1cf68b6af248e7b88e7add27109a6d951eb5b4f881eda98",
+      "sourceSha256": "7ae9db9990bb424cc1cf68b6af248e7b88e7add27109a6d951eb5b4f881eda98",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-004",
+      "file": "assets/avatars/women-004.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 4,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/4.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3218,
+      "sha256": "55d0cf713811843ffbd3412ee403668a82597bb83aabbc684a87f66c1fc962e4",
+      "sourceSha256": "55d0cf713811843ffbd3412ee403668a82597bb83aabbc684a87f66c1fc962e4",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-005",
+      "file": "assets/avatars/women-005.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 5,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/5.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2967,
+      "sha256": "9ef716cb49c8a7e58c27a65358d91e806a1d4c8579a128772a5d9d09d62cb113",
+      "sourceSha256": "9ef716cb49c8a7e58c27a65358d91e806a1d4c8579a128772a5d9d09d62cb113",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-006",
+      "file": "assets/avatars/women-006.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 6,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/6.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6492,
+      "sha256": "7f2f1b6a4c09f5092437fe960232360d1e2dcf7a198c8580f3c5478c7b2d9386",
+      "sourceSha256": "7f2f1b6a4c09f5092437fe960232360d1e2dcf7a198c8580f3c5478c7b2d9386",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-007",
+      "file": "assets/avatars/women-007.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 7,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/7.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5469,
+      "sha256": "4fe5438bd9b8b88451a84ff4a1d43d20217239fe5b5510ce751e735ffcd65117",
+      "sourceSha256": "4fe5438bd9b8b88451a84ff4a1d43d20217239fe5b5510ce751e735ffcd65117",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-008",
+      "file": "assets/avatars/women-008.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 8,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/8.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5810,
+      "sha256": "417105f5784df0a25c3486becfe5c967d448e3c98b3c0231ef4ea0c59d27cb4b",
+      "sourceSha256": "417105f5784df0a25c3486becfe5c967d448e3c98b3c0231ef4ea0c59d27cb4b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-009",
+      "file": "assets/avatars/women-009.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 9,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/9.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5522,
+      "sha256": "f22764f3355bb916a04e578d85b3078c4efcd804fe83018ec6ac97ab56e82b5f",
+      "sourceSha256": "f22764f3355bb916a04e578d85b3078c4efcd804fe83018ec6ac97ab56e82b5f",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-010",
+      "file": "assets/avatars/women-010.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 10,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/10.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3935,
+      "sha256": "54ebea0e1cad66565de28318ff2f512398bf5732f6f3f3fecea8ad4338b78778",
+      "sourceSha256": "54ebea0e1cad66565de28318ff2f512398bf5732f6f3f3fecea8ad4338b78778",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-011",
+      "file": "assets/avatars/women-011.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 11,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/11.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6096,
+      "sha256": "e6ee2e0593ec044ab8b7a4697e34cfb92551c62b9495bf8a524ba905845ddb5d",
+      "sourceSha256": "e6ee2e0593ec044ab8b7a4697e34cfb92551c62b9495bf8a524ba905845ddb5d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-012",
+      "file": "assets/avatars/women-012.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 12,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/12.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4067,
+      "sha256": "20bb8458e0bb0345aae5ab6a975650d1210fdfc5721729b456f7342fc59b3113",
+      "sourceSha256": "20bb8458e0bb0345aae5ab6a975650d1210fdfc5721729b456f7342fc59b3113",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-013",
+      "file": "assets/avatars/women-013.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 13,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/13.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5071,
+      "sha256": "2a2fdbbaf5bf75b85642b3af8adca3da5f6ccfa51b2a28e963d74653e547b5d5",
+      "sourceSha256": "2a2fdbbaf5bf75b85642b3af8adca3da5f6ccfa51b2a28e963d74653e547b5d5",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-014",
+      "file": "assets/avatars/women-014.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 14,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/14.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3617,
+      "sha256": "4c5eaf184e978fcf67bed792f0fa88543b664347c98727aa25da4c16e32eb367",
+      "sourceSha256": "4c5eaf184e978fcf67bed792f0fa88543b664347c98727aa25da4c16e32eb367",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-015",
+      "file": "assets/avatars/women-015.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 15,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/15.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4753,
+      "sha256": "bf345644b3d7954d034924b7f9d6ab8d4ae9760ffeb691c6cec033bd26a66d67",
+      "sourceSha256": "bf345644b3d7954d034924b7f9d6ab8d4ae9760ffeb691c6cec033bd26a66d67",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-016",
+      "file": "assets/avatars/women-016.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 16,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/16.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6888,
+      "sha256": "cc6b757fbf1174ae601b39aa711d6dfcda1b236001a2f3a67c4293d73c9fd714",
+      "sourceSha256": "cc6b757fbf1174ae601b39aa711d6dfcda1b236001a2f3a67c4293d73c9fd714",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-017",
+      "file": "assets/avatars/women-017.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 17,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/17.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3740,
+      "sha256": "b8e9007bb4a531d1918165879a8a86b3d084c2774c2962f429074dec66bb3b75",
+      "sourceSha256": "b8e9007bb4a531d1918165879a8a86b3d084c2774c2962f429074dec66bb3b75",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-018",
+      "file": "assets/avatars/women-018.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 18,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/18.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 2881,
+      "sha256": "1c09f1ab9440e4f0922ad6c7494fb9efa1ae446ac5d39c4fb5843ed3fbc5c952",
+      "sourceSha256": "1c09f1ab9440e4f0922ad6c7494fb9efa1ae446ac5d39c4fb5843ed3fbc5c952",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-019",
+      "file": "assets/avatars/women-019.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 19,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/19.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4105,
+      "sha256": "6a33452d01c25668294cfbb28080b5bb627abcd9fb26ccf0760b974dff9b4b2a",
+      "sourceSha256": "6a33452d01c25668294cfbb28080b5bb627abcd9fb26ccf0760b974dff9b4b2a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-020",
+      "file": "assets/avatars/women-020.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 20,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/20.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5900,
+      "sha256": "56cfb2a08032e82843ccac91504bbf42ababde4aea91bbacd9b683912cd8b21a",
+      "sourceSha256": "56cfb2a08032e82843ccac91504bbf42ababde4aea91bbacd9b683912cd8b21a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-021",
+      "file": "assets/avatars/women-021.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 21,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/21.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3473,
+      "sha256": "11d956f8b1bf14c55157948c614aab760383cc7685163ed43e25609c7c050266",
+      "sourceSha256": "11d956f8b1bf14c55157948c614aab760383cc7685163ed43e25609c7c050266",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-022",
+      "file": "assets/avatars/women-022.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 22,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/22.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6042,
+      "sha256": "aa4787be04406deac036c92ff766754aa511214f00a4ee181ada4fc2c6622b6f",
+      "sourceSha256": "aa4787be04406deac036c92ff766754aa511214f00a4ee181ada4fc2c6622b6f",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-023",
+      "file": "assets/avatars/women-023.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 23,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/23.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3614,
+      "sha256": "6ecccd31cdd8162ac4411c5a0061bcb68659d52644328be25cac6aac926dacbb",
+      "sourceSha256": "6ecccd31cdd8162ac4411c5a0061bcb68659d52644328be25cac6aac926dacbb",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-024",
+      "file": "assets/avatars/women-024.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 24,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/24.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 11329,
+      "sha256": "aaab4a0fbd8e2ad7a7ec4ccaa827918df0d6af1732227caa84d309cb49b45c21",
+      "sourceSha256": "aaab4a0fbd8e2ad7a7ec4ccaa827918df0d6af1732227caa84d309cb49b45c21",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-025",
+      "file": "assets/avatars/women-025.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 25,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/25.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6790,
+      "sha256": "8dd4e1298cba0e9a96d69480dad8c9eed54d66eeb6c1b8b2f0bd15ea54779b11",
+      "sourceSha256": "8dd4e1298cba0e9a96d69480dad8c9eed54d66eeb6c1b8b2f0bd15ea54779b11",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-026",
+      "file": "assets/avatars/women-026.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 26,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/26.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4680,
+      "sha256": "f90a38d15ecefa1704387dfba523d1c3e78b6344bcee586e0378e6af5e5f7cd0",
+      "sourceSha256": "f90a38d15ecefa1704387dfba523d1c3e78b6344bcee586e0378e6af5e5f7cd0",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-027",
+      "file": "assets/avatars/women-027.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 27,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/27.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4398,
+      "sha256": "8ce305a4bef7e96eaa07d1157eb035f4d2d867fa29d3bfad154dbff602061012",
+      "sourceSha256": "8ce305a4bef7e96eaa07d1157eb035f4d2d867fa29d3bfad154dbff602061012",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-028",
+      "file": "assets/avatars/women-028.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 28,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/28.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5854,
+      "sha256": "5bd4960f310603d603fb4643b0b5042bc8ed664dc75c2403c1fda586f1eca17c",
+      "sourceSha256": "5bd4960f310603d603fb4643b0b5042bc8ed664dc75c2403c1fda586f1eca17c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-029",
+      "file": "assets/avatars/women-029.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 29,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/29.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5445,
+      "sha256": "ed98acae451e236c2a972a57d73c642aa7002790dc4ea06a16b10e17359b4826",
+      "sourceSha256": "ed98acae451e236c2a972a57d73c642aa7002790dc4ea06a16b10e17359b4826",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-030",
+      "file": "assets/avatars/women-030.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 30,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/30.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4440,
+      "sha256": "8d0417f0910586650f889adf5f72fb8ad336f07247cbfd9da9dd6db02546dd00",
+      "sourceSha256": "8d0417f0910586650f889adf5f72fb8ad336f07247cbfd9da9dd6db02546dd00",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-031",
+      "file": "assets/avatars/women-031.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 31,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/31.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6380,
+      "sha256": "ab391f0ae1611fc32c31fbe5663bde5bba7a80efa851ceeec4b58eeab6931f4a",
+      "sourceSha256": "ab391f0ae1611fc32c31fbe5663bde5bba7a80efa851ceeec4b58eeab6931f4a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-032",
+      "file": "assets/avatars/women-032.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 32,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/32.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4513,
+      "sha256": "55cf6231499bcdc496f15ff1d28d4170ac9b99e9279495caa44fca70886d8b2e",
+      "sourceSha256": "55cf6231499bcdc496f15ff1d28d4170ac9b99e9279495caa44fca70886d8b2e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-033",
+      "file": "assets/avatars/women-033.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 33,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/33.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5160,
+      "sha256": "1468690451b81be74fdf90ee11d190bb1d226560f532cf4a883b50fc5dfaebcc",
+      "sourceSha256": "1468690451b81be74fdf90ee11d190bb1d226560f532cf4a883b50fc5dfaebcc",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-034",
+      "file": "assets/avatars/women-034.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 34,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/34.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3374,
+      "sha256": "4d6375cdc6176b26e92057f3790823f91ebbd42c35255169fa905624a2164221",
+      "sourceSha256": "4d6375cdc6176b26e92057f3790823f91ebbd42c35255169fa905624a2164221",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-035",
+      "file": "assets/avatars/women-035.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 35,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/35.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6926,
+      "sha256": "7ad64965288d89e3cdbd297c4db3a22dd0089536a4e87e10cca31dc552df1ab5",
+      "sourceSha256": "7ad64965288d89e3cdbd297c4db3a22dd0089536a4e87e10cca31dc552df1ab5",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-036",
+      "file": "assets/avatars/women-036.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 36,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/36.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5093,
+      "sha256": "2b22c8a097b9bf121a145496831a882564df246501036451187081103f60cc0c",
+      "sourceSha256": "2b22c8a097b9bf121a145496831a882564df246501036451187081103f60cc0c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-037",
+      "file": "assets/avatars/women-037.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 37,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/37.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5554,
+      "sha256": "008ae2bd0a5c7c9a19770d823a2935fafc0174483cd9216d94a0df73681503b6",
+      "sourceSha256": "008ae2bd0a5c7c9a19770d823a2935fafc0174483cd9216d94a0df73681503b6",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-038",
+      "file": "assets/avatars/women-038.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 38,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/38.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3428,
+      "sha256": "845f95332a3002556e80fdad2cd923834bb8e46d916cdeef0c1dc6a848440ea0",
+      "sourceSha256": "845f95332a3002556e80fdad2cd923834bb8e46d916cdeef0c1dc6a848440ea0",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-039",
+      "file": "assets/avatars/women-039.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 39,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/39.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5512,
+      "sha256": "fae48366421440e2089e452123586cfccd0022377e07cdd28ec5447212fa1da5",
+      "sourceSha256": "fae48366421440e2089e452123586cfccd0022377e07cdd28ec5447212fa1da5",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-040",
+      "file": "assets/avatars/women-040.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 40,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/40.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4442,
+      "sha256": "6abca15a3368f2699dbd8459137aa31115e2a35933d83d3e24ae98a0252c4134",
+      "sourceSha256": "6abca15a3368f2699dbd8459137aa31115e2a35933d83d3e24ae98a0252c4134",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-041",
+      "file": "assets/avatars/women-041.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 41,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/41.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6049,
+      "sha256": "e3b745cc25dd974d99a140652308440968ebdb36eba5535f277c7d72b0cebe27",
+      "sourceSha256": "e3b745cc25dd974d99a140652308440968ebdb36eba5535f277c7d72b0cebe27",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-042",
+      "file": "assets/avatars/women-042.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 42,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/42.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4646,
+      "sha256": "3c15f2d5e8b14c8b5bc801cf99a02f1c88a450303a550a875e395b9ae099fa54",
+      "sourceSha256": "3c15f2d5e8b14c8b5bc801cf99a02f1c88a450303a550a875e395b9ae099fa54",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-043",
+      "file": "assets/avatars/women-043.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 43,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/43.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3901,
+      "sha256": "a7f77cb824608c275a40682a22c57191a7e7ff3d44e48bd9babcfc546a17245c",
+      "sourceSha256": "a7f77cb824608c275a40682a22c57191a7e7ff3d44e48bd9babcfc546a17245c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-044",
+      "file": "assets/avatars/women-044.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 44,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/44.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3539,
+      "sha256": "d8dab29a5736d5c2b0084d720d3db02c785560071609be501541922928fdf831",
+      "sourceSha256": "d8dab29a5736d5c2b0084d720d3db02c785560071609be501541922928fdf831",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-045",
+      "file": "assets/avatars/women-045.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 45,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/45.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4515,
+      "sha256": "03410c155320ba33ecb8d798807c6c9610f33b2b2acdd4ed961a68185806df79",
+      "sourceSha256": "03410c155320ba33ecb8d798807c6c9610f33b2b2acdd4ed961a68185806df79",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-046",
+      "file": "assets/avatars/women-046.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 46,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/46.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5782,
+      "sha256": "efdb6ee589c3b1c29cbed18fe546fe8d9e2764f92cfa9a27bcb2d95b4f402e13",
+      "sourceSha256": "efdb6ee589c3b1c29cbed18fe546fe8d9e2764f92cfa9a27bcb2d95b4f402e13",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-048",
+      "file": "assets/avatars/women-048.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 48,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/48.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3767,
+      "sha256": "ac4b943b43fea60f3a33c1069444b3e287daac2a9d435b2b58206a805b6ceb4a",
+      "sourceSha256": "ac4b943b43fea60f3a33c1069444b3e287daac2a9d435b2b58206a805b6ceb4a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-049",
+      "file": "assets/avatars/women-049.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 49,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/49.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4291,
+      "sha256": "ec911d836da2e0c03a0b5bacc06b1cc628ee4db4567dd684e51e3e47d2a2028e",
+      "sourceSha256": "ec911d836da2e0c03a0b5bacc06b1cc628ee4db4567dd684e51e3e47d2a2028e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-050",
+      "file": "assets/avatars/women-050.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 50,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/50.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4492,
+      "sha256": "791318b57c88a811fc57cf44f1f71200af6c41ad17a41c330c49ed6052c50801",
+      "sourceSha256": "791318b57c88a811fc57cf44f1f71200af6c41ad17a41c330c49ed6052c50801",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-052",
+      "file": "assets/avatars/women-052.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 52,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/52.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3629,
+      "sha256": "0e6f5e25c28b242b6ba4e113b889daadb5b1948a00d93b89ca12a2c6704cdb06",
+      "sourceSha256": "0e6f5e25c28b242b6ba4e113b889daadb5b1948a00d93b89ca12a2c6704cdb06",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-053",
+      "file": "assets/avatars/women-053.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 53,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/53.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6361,
+      "sha256": "f8f2ddc445b6b2318430260bdebb665c9415865827230565aa42f57c9c794baf",
+      "sourceSha256": "f8f2ddc445b6b2318430260bdebb665c9415865827230565aa42f57c9c794baf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-054",
+      "file": "assets/avatars/women-054.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 54,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/54.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5907,
+      "sha256": "d4885b6c62fec6a9ddc0450843dbf6e81ee9d8b412c1b8f74b8edae87c3304cf",
+      "sourceSha256": "d4885b6c62fec6a9ddc0450843dbf6e81ee9d8b412c1b8f74b8edae87c3304cf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-055",
+      "file": "assets/avatars/women-055.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 55,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/55.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5383,
+      "sha256": "fe40ce8aab1329fd9018b8422ddb84b2f0715e530e541d483ef66420f669b7bf",
+      "sourceSha256": "fe40ce8aab1329fd9018b8422ddb84b2f0715e530e541d483ef66420f669b7bf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-057",
+      "file": "assets/avatars/women-057.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 57,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/57.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5874,
+      "sha256": "9f797e4acee1a4de4f9b4c3aa1cc4e89d7c9efd5dbff1c463d88374ed601d719",
+      "sourceSha256": "9f797e4acee1a4de4f9b4c3aa1cc4e89d7c9efd5dbff1c463d88374ed601d719",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-059",
+      "file": "assets/avatars/women-059.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 59,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/59.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4416,
+      "sha256": "235c37729dee1ebd60afbf5df8fa1dcb88e63e9c9f491198f89f50202e1708ae",
+      "sourceSha256": "235c37729dee1ebd60afbf5df8fa1dcb88e63e9c9f491198f89f50202e1708ae",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-060",
+      "file": "assets/avatars/women-060.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 60,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/60.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4911,
+      "sha256": "1f59e6625169fc3052e6eed810ce4c1d1fc2cb98985d086462d144efdc15c159",
+      "sourceSha256": "1f59e6625169fc3052e6eed810ce4c1d1fc2cb98985d086462d144efdc15c159",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-061",
+      "file": "assets/avatars/women-061.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 61,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/61.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 7113,
+      "sha256": "4aecd2756ae2ed682f204b0f81ca0f478d5a870f3dfa771e8cb30b567715fcfd",
+      "sourceSha256": "4aecd2756ae2ed682f204b0f81ca0f478d5a870f3dfa771e8cb30b567715fcfd",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-063",
+      "file": "assets/avatars/women-063.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 63,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/63.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6460,
+      "sha256": "0114b3ba6dcbd18c41fdd6b66b0e03fdd23e186d93bc30d0d55478508d1fd430",
+      "sourceSha256": "0114b3ba6dcbd18c41fdd6b66b0e03fdd23e186d93bc30d0d55478508d1fd430",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-064",
+      "file": "assets/avatars/women-064.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 64,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/64.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 7522,
+      "sha256": "6930aba1069b5a5c6491a4ea3017bcace154cde3028cd62b1a6f75677f454456",
+      "sourceSha256": "6930aba1069b5a5c6491a4ea3017bcace154cde3028cd62b1a6f75677f454456",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-065",
+      "file": "assets/avatars/women-065.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 65,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/65.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5972,
+      "sha256": "ee794ad2b1016f820a8dffbfe5602d0ef612da197096715c1b200aac385c0017",
+      "sourceSha256": "ee794ad2b1016f820a8dffbfe5602d0ef612da197096715c1b200aac385c0017",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-066",
+      "file": "assets/avatars/women-066.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 66,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/66.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4751,
+      "sha256": "104fcd10548569e0e2add948f7c1308665e17327f5b020125f2c5a4d0c09170b",
+      "sourceSha256": "104fcd10548569e0e2add948f7c1308665e17327f5b020125f2c5a4d0c09170b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-067",
+      "file": "assets/avatars/women-067.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 67,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/67.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4071,
+      "sha256": "32a264ee05d1e480fa26d4ec5db1f22b10f0c1a46e17d2b9ad58e487c954d62c",
+      "sourceSha256": "32a264ee05d1e480fa26d4ec5db1f22b10f0c1a46e17d2b9ad58e487c954d62c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-068",
+      "file": "assets/avatars/women-068.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 68,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/68.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6948,
+      "sha256": "f07b84f12ef125cbb837a7bd64da401992f5f62bd55fee10d01cd3dcc8abae80",
+      "sourceSha256": "f07b84f12ef125cbb837a7bd64da401992f5f62bd55fee10d01cd3dcc8abae80",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-069",
+      "file": "assets/avatars/women-069.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 69,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/69.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5080,
+      "sha256": "ecda74904047c8da6fda1df1167b908c46041459436f6b80eaf5cd70a0658337",
+      "sourceSha256": "ecda74904047c8da6fda1df1167b908c46041459436f6b80eaf5cd70a0658337",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-070",
+      "file": "assets/avatars/women-070.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 70,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/70.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6590,
+      "sha256": "6b1d438a6d9f0b75e735828a61b58f82019ef710d2d021e67a29684a35f957d6",
+      "sourceSha256": "6b1d438a6d9f0b75e735828a61b58f82019ef710d2d021e67a29684a35f957d6",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-071",
+      "file": "assets/avatars/women-071.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 71,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/71.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6769,
+      "sha256": "cb0f38632c39e7edda9b0b9c47fcc5f045f890564eaac08bdcb82f05e9bfac2a",
+      "sourceSha256": "cb0f38632c39e7edda9b0b9c47fcc5f045f890564eaac08bdcb82f05e9bfac2a",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-072",
+      "file": "assets/avatars/women-072.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 72,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/72.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5314,
+      "sha256": "47599f70ecba6111f70e4d24ec2015874dec8a67677ae3e77ef45ce0f8609aec",
+      "sourceSha256": "47599f70ecba6111f70e4d24ec2015874dec8a67677ae3e77ef45ce0f8609aec",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-073",
+      "file": "assets/avatars/women-073.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 73,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/73.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5709,
+      "sha256": "88445d944fdf0bc52a4f79ddf5cffde16e42eec01bdd3e32ab6234cef44411b3",
+      "sourceSha256": "88445d944fdf0bc52a4f79ddf5cffde16e42eec01bdd3e32ab6234cef44411b3",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-074",
+      "file": "assets/avatars/women-074.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 74,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/74.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 11745,
+      "sha256": "a099b9dde9a3456aa61df1a92159cce65c0a69d8c2f7f9c1923ba093640899a1",
+      "sourceSha256": "a099b9dde9a3456aa61df1a92159cce65c0a69d8c2f7f9c1923ba093640899a1",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-075",
+      "file": "assets/avatars/women-075.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 75,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/75.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5836,
+      "sha256": "c7e8aa07f59ba44ea6a7fc86d84f35eb97e54d4154f2dc63143952ea26a72104",
+      "sourceSha256": "c7e8aa07f59ba44ea6a7fc86d84f35eb97e54d4154f2dc63143952ea26a72104",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-076",
+      "file": "assets/avatars/women-076.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 76,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/76.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4688,
+      "sha256": "ff82cabc9eaa7687ddf1590dac7f77f7d15222c4bdcd907e0efbb1831bc7d19b",
+      "sourceSha256": "ff82cabc9eaa7687ddf1590dac7f77f7d15222c4bdcd907e0efbb1831bc7d19b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-077",
+      "file": "assets/avatars/women-077.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 77,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/77.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4082,
+      "sha256": "2b60a52f98219bd878af04c6c7a7cbbd291bae76598bbdf3c1148ce294256869",
+      "sourceSha256": "2b60a52f98219bd878af04c6c7a7cbbd291bae76598bbdf3c1148ce294256869",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-078",
+      "file": "assets/avatars/women-078.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 78,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/78.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4675,
+      "sha256": "9fc376b1021a34806e4da612e31e20f6af8971b3bdb0feb643d25c25bde956ff",
+      "sourceSha256": "9fc376b1021a34806e4da612e31e20f6af8971b3bdb0feb643d25c25bde956ff",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-079",
+      "file": "assets/avatars/women-079.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 79,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/79.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 127,
+      "height": 128,
+      "bytes": 5270,
+      "sha256": "5185e3c98c24c489079c5723909992de8b99f816555667593f7f8c4370d79839",
+      "sourceSha256": "5185e3c98c24c489079c5723909992de8b99f816555667593f7f8c4370d79839",
+      "originalDimensions": [
+        127,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-080",
+      "file": "assets/avatars/women-080.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 80,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/80.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3702,
+      "sha256": "29eebfa854e576bf7a03854062fca29586a3feb8795a9239fb40232c7988df9b",
+      "sourceSha256": "29eebfa854e576bf7a03854062fca29586a3feb8795a9239fb40232c7988df9b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-081",
+      "file": "assets/avatars/women-081.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 81,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/81.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5912,
+      "sha256": "275d91a0b977ccafe809ebf3c9c69f4675384c533438b2786cbe5c2c33b7a75a",
+      "sourceSha256": "249924bcb9d7bbde2cbe4d213ff5d238d4ce1f00e8eb0ca2483735ed201fcddf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Resized to a maximum of 128px and optimized as JPEG",
+      "demoOnly": true
+    },
+    {
+      "id": "women-082",
+      "file": "assets/avatars/women-082.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 82,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/82.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 6293,
+      "sha256": "918c1f2c19ff53b64ca01d3cd3df9796cce8acd42891c2e2f7fd988b1bba32d3",
+      "sourceSha256": "918c1f2c19ff53b64ca01d3cd3df9796cce8acd42891c2e2f7fd988b1bba32d3",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-083",
+      "file": "assets/avatars/women-083.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 83,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/83.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4771,
+      "sha256": "8825a6cab227d3c2508afc274dbe6afe3f9bb80e7335e54749dffaf666e0854b",
+      "sourceSha256": "8825a6cab227d3c2508afc274dbe6afe3f9bb80e7335e54749dffaf666e0854b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-084",
+      "file": "assets/avatars/women-084.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 84,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/84.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4586,
+      "sha256": "d145305915b330a7d252aaf9e617c3b31e76b1a8ee8c3f8251015e2f10912b3d",
+      "sourceSha256": "d145305915b330a7d252aaf9e617c3b31e76b1a8ee8c3f8251015e2f10912b3d",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-085",
+      "file": "assets/avatars/women-085.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 85,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/85.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3912,
+      "sha256": "aac75b47a57888f89ccce45eacdb050afb2863ceae6ed5da14217f23c7e5347b",
+      "sourceSha256": "aac75b47a57888f89ccce45eacdb050afb2863ceae6ed5da14217f23c7e5347b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-086",
+      "file": "assets/avatars/women-086.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 86,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/86.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3321,
+      "sha256": "94372df32700bbe4e6bedda1885a654298b25f8b4d44fed081304a59bc798971",
+      "sourceSha256": "94372df32700bbe4e6bedda1885a654298b25f8b4d44fed081304a59bc798971",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-087",
+      "file": "assets/avatars/women-087.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 87,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/87.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4031,
+      "sha256": "5f4f19c54559ae3660e76a4ffa8f11ea8d0ceb8930d75986c6595ffcd048e1fb",
+      "sourceSha256": "5f4f19c54559ae3660e76a4ffa8f11ea8d0ceb8930d75986c6595ffcd048e1fb",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-088",
+      "file": "assets/avatars/women-088.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 88,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/88.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3844,
+      "sha256": "1b3bb15506d4e4378f8c31f163859bba7155263c02d06221e3b376285498764e",
+      "sourceSha256": "1b3bb15506d4e4378f8c31f163859bba7155263c02d06221e3b376285498764e",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-090",
+      "file": "assets/avatars/women-090.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 90,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/90.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4035,
+      "sha256": "290be3d3c351224b8fdfd669b6c38243ab47f74e0055f20b97893644e0406ad5",
+      "sourceSha256": "290be3d3c351224b8fdfd669b6c38243ab47f74e0055f20b97893644e0406ad5",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-091",
+      "file": "assets/avatars/women-091.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 91,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/91.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4859,
+      "sha256": "dee3a9b2b0a3f734e8906e1c0e37f9815a7754d2ecd301ce440a6e9790385378",
+      "sourceSha256": "dee3a9b2b0a3f734e8906e1c0e37f9815a7754d2ecd301ce440a6e9790385378",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-092",
+      "file": "assets/avatars/women-092.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 92,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/92.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4874,
+      "sha256": "8178de29996fce077cf1eb890438d08fcc75ce24738c9610d6dcb136c82d91b7",
+      "sourceSha256": "8178de29996fce077cf1eb890438d08fcc75ce24738c9610d6dcb136c82d91b7",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-093",
+      "file": "assets/avatars/women-093.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 93,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/93.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4871,
+      "sha256": "c2c1041aea38d595a843e73860d16a97467aafed47ee9aaaf9bc7c6ac9e97915",
+      "sourceSha256": "c2c1041aea38d595a843e73860d16a97467aafed47ee9aaaf9bc7c6ac9e97915",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-094",
+      "file": "assets/avatars/women-094.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 94,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/94.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4542,
+      "sha256": "052945636819fbb3ca22798ce87c8dfb8d98d3b3ff67a6a77a265788d516f1bf",
+      "sourceSha256": "052945636819fbb3ca22798ce87c8dfb8d98d3b3ff67a6a77a265788d516f1bf",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-095",
+      "file": "assets/avatars/women-095.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 95,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/95.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 4578,
+      "sha256": "8cc63f14aa745851e1046840ebef556e410bc88d0c27cdddcc4b1f92bcec5f4c",
+      "sourceSha256": "8cc63f14aa745851e1046840ebef556e410bc88d0c27cdddcc4b1f92bcec5f4c",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-096",
+      "file": "assets/avatars/women-096.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 96,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/96.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 5795,
+      "sha256": "3b6c0a4fb8a829c5ffb6a6249547873908b6635f0bbc84f7c699f050807fc128",
+      "sourceSha256": "3b6c0a4fb8a829c5ffb6a6249547873908b6635f0bbc84f7c699f050807fc128",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    },
+    {
+      "id": "women-097",
+      "file": "assets/avatars/women-097.jpg",
+      "sourceGroup": "women",
+      "sourceIndex": 97,
+      "sourceUrl": "https://randomuser.me/api/portraits/women/97.jpg",
+      "sourcePage": "https://randomuser.me/photos",
+      "width": 128,
+      "height": 128,
+      "bytes": 3250,
+      "sha256": "37abc577e20e7148c2e3d3eeb0cc9daf08b4039ecebf44b33c282bbe4136708b",
+      "sourceSha256": "37abc577e20e7148c2e3d3eeb0cc9daf08b4039ecebf44b33c282bbe4136708b",
+      "originalDimensions": [
+        128,
+        128
+      ],
+      "transformation": "Original small JPEG retained without re-encoding",
+      "demoOnly": true
+    }
+  ]
+}

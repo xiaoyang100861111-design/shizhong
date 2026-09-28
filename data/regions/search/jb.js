@@ -1,0 +1,1 @@
+window.SHIZHONG_REGION_SEARCH=window.SHIZHONG_REGION_SEARCH||{};window.SHIZHONG_REGION_SEARCH["jb"]=[["LB",65942,"Caza de Bent Jbaïl","卡扎德本特·朱拜尔",2288,"纳巴泰","caza de bent jbail 卡扎德本特 朱拜尔 قضاء بنت جبيل 纳巴泰 nabatieh"],["LB",65947,"Jbaïl","朱拜勒",2282,"黎巴嫩山","jbail 朱拜勒 جبيل 黎巴嫩山 mount lebanon"]];
