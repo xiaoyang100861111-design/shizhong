@@ -256,7 +256,7 @@
     return `<div class="chip-row gf-chips" role="group" aria-label="${esc(ariaLabel)}">${items.map(([id, text]) => `<button type="button" class="chip" data-action="${action}" data-id="${esc(id)}" aria-pressed="${id === current}">${esc(text)}</button>`).join('')}</div>`;
   }
   function qtyPicker(current) {
-    return `<div class="gf-qty" role="radiogroup" aria-label="${esc(t('gifts.qty.label'))}">${CONFIG.quantities.map(n => `<button type="button" role="radio" class="gf-qty-option num" data-action="gift-qty" data-id="${n}" aria-checked="${n === current}">×${n}</button>`).join('')}</div>`;
+    return `<div class="gf-qty" role="group" aria-label="${esc(t('gifts.qty.label'))}">${CONFIG.quantities.map(n => `<button type="button" class="gf-qty-option num" data-action="gift-qty" data-id="${n}" aria-pressed="${n === current}">×${n}</button>`).join('')}</div>`;
   }
   const findLayer = kind =>
     SZ.overlay
@@ -297,7 +297,7 @@
       : `<button type="button" class="gf-hero-avatar-btn" data-action="edit-profile" aria-label="${esc(t('gifts.hero.editProfile'))}">${avatarImg}</button>`;
     const actions = guest
       ? `<button type="button" class="btn btn-primary btn-sm" data-action="gift-login">${esc(t('gifts.hero.signIn'))}</button>`
-      : `<button type="button" class="btn btn-outline btn-sm" data-action="edit-profile">${esc(t('gifts.hero.edit'))}</button><button type="button" class="icon-button" data-action="gift-qr" aria-label="${esc(t('gifts.hero.qr'))}">${icon('qr')}</button><button type="button" class="icon-button" data-action="gift-share-profile" aria-label="${esc(t('gifts.hero.share'))}">${icon('share')}</button>`;
+      : `<button type="button" class="btn btn-outline btn-sm gf-hero-edit" data-action="edit-profile" aria-label="${esc(t('gifts.hero.editProfile'))}">${icon('edit')}<span>${esc(t('gifts.hero.edit'))}</span></button><button type="button" class="icon-button" data-action="gift-qr" aria-label="${esc(t('gifts.hero.qr'))}">${icon('qr')}</button><button type="button" class="icon-button" data-action="gift-share-profile" aria-label="${esc(t('gifts.hero.share'))}">${icon('share')}</button>`;
     const social = state.social || {};
     const stats = [
       ['follows', (state.follows || []).length, t('gifts.hero.follows')],
@@ -373,7 +373,7 @@
         : view.filter === featuredSeries && view.branch !== 'all'
           ? label('subseries', view.branch)
           : label('category', view.filter);
-    return `${filterControls(view)}<div class="gf-section-head"><h2 class="gf-section-title">${esc(heading)}</h2><span class="gf-section-count">${esc(tn('gifts.shop.count', list.length))}</span></div>${list.length ? `<div class="gf-grid">${list.map(g => card(g)).join('')}</div>` : empty('gift', t('gifts.shop.emptyTitle'), t('gifts.shop.emptyBody'))}`;
+    return `${filterControls(view)}<div class="gf-section-head"><h3 class="gf-section-title">${esc(heading)}</h3><span class="gf-section-count">${esc(tn('gifts.shop.count', list.length))}</span></div>${list.length ? `<div class="gf-grid">${list.map(g => card(g)).join('')}</div>` : empty('gift', t('gifts.shop.emptyTitle'), t('gifts.shop.emptyBody'))}`;
   }
   function shopHtml(view) {
     const featureArt = ['oriental-golden-dragon', 'oriental-lantern']
@@ -725,10 +725,8 @@
     const list = filtered(view, { ownedOnly: view.mode === 'owned' });
     let grid;
     if (list.length)
-      grid = `<div class="gf-grid gf-grid--compact" role="radiogroup" aria-label="${esc(t('gifts.picker.gridAria'))}">${list
-        .map(g =>
-          card(g, { action: 'gift-pick', extra: `role="radio" aria-checked="${g.id === view.selected}"` })
-        )
+      grid = `<div class="gf-grid gf-grid--compact" role="group" aria-label="${esc(t('gifts.picker.gridAria'))}">${list
+        .map(g => card(g, { action: 'gift-pick', extra: `aria-pressed="${g.id === view.selected}"` }))
         .join('')}</div>`;
     else if (view.mode === 'owned')
       grid = empty(
@@ -818,7 +816,7 @@
     view.selected = view.selected === giftId ? '' : giftId;
     layer.el
       .querySelectorAll('.gf-picker-results [data-action="gift-pick"]')
-      .forEach(b => b.setAttribute('aria-checked', String(b.dataset.id === view.selected)));
+      .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === view.selected)));
     renderPickerBar(layer);
   }
 
@@ -1097,17 +1095,20 @@
       return SZ.toast(t('gifts.studio.full', { max: CONFIG.sticker.max }));
     if (s.draft.stickers.filter(x => x.giftId === giftId).length >= ownedCount(giftId))
       return SZ.toast(t('gifts.studio.allPlaced', { name: gName(g) }));
+    // New stickers land on the free spot farthest from the others (the cover is 2.2:1, hence the y weight).
     const spots = [
       [16, 30],
-      [84, 28],
-      [34, 66],
+      [50, 36],
+      [84, 40],
+      [36, 68],
       [66, 70],
-      [50, 24],
-      [90, 70],
-      [10, 70],
-      [50, 72],
+      [90, 76],
+      [30, 22],
+      [70, 22],
     ];
-    const [x, y] = spots[s.draft.stickers.length % spots.length];
+    const gap = ([x, y]) =>
+      Math.min(Infinity, ...s.draft.stickers.map(o => Math.hypot(o.x - x, (o.y - y) / 2.2)));
+    const [x, y] = spots.reduce((best, spot) => (gap(spot) > gap(best) ? spot : best), spots[0]);
     const item = clampSticker({
       giftId,
       x,
@@ -1306,7 +1307,12 @@
       acceptedAt: Date.now(),
     };
     if (!SZ.store.commit(() => addReceived(G(), record))) return;
-    el.outerHTML = `<p class="gf-bubble-status">${icon('check')}${esc(t('gifts.bubble.accepted'))}</p>`;
+    const status = document.createElement('p');
+    status.className = 'gf-bubble-status';
+    status.tabIndex = -1;
+    status.innerHTML = icon('check') + esc(t('gifts.bubble.accepted'));
+    el.replaceWith(status);
+    status.focus({ preventScroll: true });
     refreshAll();
     SZ.toast(t('gifts.toast.accepted', { name: gName(g) }), {
       type: 'success',
@@ -1701,6 +1707,15 @@
               acceptedAt: m.time,
             });
         }
+        // An untouched demo cover shows two of those gifts, clear of the avatar and the decorate button.
+        const fresh =
+          !gs.decoration.stickers.length && gs.decoration.backgroundId === CONFIG.defaultBackground;
+        const shown = gs.received.slice(0, 2).map(r => r.giftId);
+        if (fresh && shown.length === 2)
+          gs.decoration.stickers = [
+            clampSticker({ giftId: shown[0], x: 52, y: 44, size: 62, rotation: -8 }),
+            clampSticker({ giftId: shown[1], x: 80, y: 70, size: 70, rotation: 9 }),
+          ];
         gs.seeded.received = true;
       },
       { quiet: true }

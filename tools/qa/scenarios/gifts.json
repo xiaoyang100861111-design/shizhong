@@ -3,281 +3,654 @@
     "name": "gifts-me-hero",
     "hash": "me",
     "steps": [
-      { "expect": "!!document.querySelector('#app .gf-hero .gf-cover') && !!document.querySelector('#app .gf-hero-stats')", "msg": "hero with cover and stats" },
-      { "expect": "document.querySelector('#app .gf-hero').textContent.includes('8800 2688')", "msg": "ID comes from the demo account" }
+      {
+        "expect": "!!document.querySelector('#app .gf-hero .gf-cover') && !!document.querySelector('#app .gf-hero-stats')",
+        "msg": "hero with cover and stats"
+      },
+      {
+        "expect": "document.querySelector('#app .gf-hero').textContent.includes('8800 2688')",
+        "msg": "ID comes from the demo account"
+      }
     ]
   },
   {
     "name": "gifts-me-menu",
     "hash": "me",
-    "steps": [{ "eval": "document.querySelector('#app .gf-menu')?.scrollIntoView({block:'center'}),true" }]
+    "steps": [
+      {
+        "eval": "document.querySelector('#app .gf-menu')?.scrollIntoView({block:'center'}),true"
+      }
+    ]
   },
   {
     "name": "gifts-me-guest",
     "hash": "me",
     "session": "guest",
     "steps": [
-      { "expect": "!!document.querySelector('#app .gf-hero [data-action=gift-login]')", "msg": "guest sees sign-in in the hero" },
-      { "expect": "!document.querySelector('#app .gf-hero .gf-cover-edit')", "msg": "no decorate button for guests" }
+      {
+        "expect": "!!document.querySelector('#app .gf-hero [data-action=gift-login]')",
+        "msg": "guest sees sign-in in the hero"
+      },
+      {
+        "expect": "!document.querySelector('#app .gf-hero .gf-cover-edit')",
+        "msg": "no decorate button for guests"
+      }
     ]
   },
   {
     "name": "gifts-shop",
     "hash": "me",
     "steps": [
-      { "click": "#app [data-action=gift-shop]" },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'shop'", "msg": "shop screen open" },
-      { "expect": "document.querySelectorAll('.gf-shop .gf-grid .gf-card').length === 54", "msg": "all 54 gifts listed" }
+      {
+        "click": "#app [data-action=gift-shop]"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'shop'",
+        "msg": "shop screen open"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-shop .gf-grid .gf-card').length === 54",
+        "msg": "all 54 gifts listed"
+      }
     ]
   },
   {
     "name": "gifts-shop-oriental",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openShop(),true" },
-      { "click": ".gf-feature" },
-      { "expect": "document.querySelectorAll('.gf-results .gf-card').length === 24", "msg": "oriental filter shows 24" },
-      { "click": ".gf-results [data-action=gift-branch]", "text": "上古四灵" },
-      { "expect": "document.querySelectorAll('.gf-results .gf-card').length === 4", "msg": "four guardians branch" }
+      {
+        "eval": "ShizhongGifts.openShop(),true"
+      },
+      {
+        "click": ".gf-feature"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-results .gf-card').length === 24",
+        "msg": "oriental filter shows 24"
+      },
+      {
+        "click": ".gf-results [data-action=gift-branch][data-id=\"上古四灵\"]"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-results .gf-card').length === 4",
+        "msg": "four guardians branch"
+      }
     ]
   },
   {
     "name": "gifts-shop-back",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openShop(),true" },
-      { "click": ".gf-shop .gf-card" },
-      { "expect": "SZ.overlay.depth() === 2 && SZ.overlay.top().meta.gift === 'detail'", "msg": "detail pushed over shop" },
-      { "back": true },
-      { "expect": "SZ.overlay.depth() === 1 && SZ.overlay.top().meta.gift === 'shop'", "msg": "back returns to the shop" },
-      { "back": true },
-      { "expect": "SZ.overlay.depth() === 0", "msg": "back closes the shop" }
+      {
+        "eval": "ShizhongGifts.openShop(),true"
+      },
+      {
+        "click": ".gf-shop .gf-card"
+      },
+      {
+        "expect": "SZ.overlay.depth() === 2 && SZ.overlay.top().meta.gift === 'detail'",
+        "msg": "detail pushed over shop"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1 && SZ.overlay.top().meta.gift === 'shop'",
+        "msg": "back returns to the shop"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.depth() === 0",
+        "msg": "back closes the shop"
+      }
     ]
   },
   {
     "name": "gifts-detail",
     "hash": "me",
-    "steps": [{ "eval": "ShizhongGifts.openShop(),ShizhongGifts.openDetail('oriental-golden-dragon'),true" }]
+    "steps": [
+      {
+        "eval": "ShizhongGifts.openShop(),ShizhongGifts.openDetail('oriental-golden-dragon'),true"
+      }
+    ]
   },
   {
     "name": "gifts-detail-tryon",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openDetail('oriental-phoenix-crown'),true" },
-      { "click": "[data-action=gift-tryon]" },
-      { "expect": "!!SZ.overlay.$('.gf-tryon .gf-charmed')", "msg": "try-on shows my avatar with the charm" },
-      { "expect": "document.activeElement?.dataset.action === 'gift-tryon'", "msg": "focus stays on the toggle" }
+      {
+        "eval": "ShizhongGifts.openDetail('oriental-phoenix-crown'),true"
+      },
+      {
+        "click": "[data-action=gift-tryon]"
+      },
+      {
+        "expect": "!!SZ.overlay.$('.gf-tryon .gf-charmed')",
+        "msg": "try-on shows my avatar with the charm"
+      },
+      {
+        "expect": "document.activeElement?.dataset.action === 'gift-tryon'",
+        "msg": "focus stays on the toggle"
+      }
     ]
   },
   {
     "name": "gifts-buy",
     "hash": "me",
     "steps": [
-      { "eval": "window.__before = { owned: state.gifts.owned.rose || 0, wallet: state.wallet, bought: state.gifts.purchases.length }, ShizhongGifts.openDetail('rose'), true" },
-      { "click": "[data-action=gift-buy]" },
-      { "expect": "!!document.querySelector('.sz-confirm .gf-summary')", "msg": "purchase asks for confirmation" },
-      { "shot": "confirm" },
-      { "click": "[data-sz-confirm='1']", "settle": 1200 },
-      { "expect": "state.gifts.owned.rose === __before.owned + 1 && state.wallet === __before.wallet - 500 && state.gifts.purchases.length === __before.bought + 1", "msg": "owned +1, wallet -500, purchase recorded" },
-      { "expect": "!!SZ.overlay.$('[data-action=gift-wear]')", "msg": "detail refreshed with the decorate button" }
+      {
+        "eval": "window.__before = { owned: state.gifts.owned.rose || 0, wallet: state.wallet, bought: state.gifts.purchases.length }, ShizhongGifts.openDetail('rose'), true"
+      },
+      {
+        "click": "[data-action=gift-buy]"
+      },
+      {
+        "expect": "!!document.querySelector('.sz-confirm .gf-summary')",
+        "msg": "purchase asks for confirmation"
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-sz-confirm='1']",
+        "settle": 1200
+      },
+      {
+        "expect": "state.gifts.owned.rose === __before.owned + 1 && state.wallet === __before.wallet - 500 && state.gifts.purchases.length === __before.bought + 1",
+        "msg": "owned +1, wallet -500, purchase recorded"
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-action=gift-wear]')",
+        "msg": "detail refreshed with the decorate button"
+      }
     ]
   },
   {
     "name": "gifts-topup",
     "hash": "me",
     "steps": [
-      { "eval": "state.wallet = 50, ShizhongGifts.openDetail('castle'), true" },
-      { "click": "[data-action=gift-buy]" },
-      { "expect": "SZ.overlay.top().meta.gift === 'topup' && SZ.overlay.depth() === 2", "msg": "insufficient balance opens top-up over the detail" },
-      { "shot": "sheet" },
-      { "click": ".gf-topup-option.is-suggested", "settle": 900 },
-      { "expect": "SZ.overlay.top().meta.gift === 'detail' && state.wallet >= 199999", "msg": "top-up closes back to the detail" }
+      {
+        "eval": "state.wallet = 50, ShizhongGifts.openDetail('castle'), true"
+      },
+      {
+        "click": "[data-action=gift-buy]"
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'topup' && SZ.overlay.depth() === 2",
+        "msg": "insufficient balance opens top-up over the detail"
+      },
+      {
+        "shot": "sheet"
+      },
+      {
+        "click": ".gf-topup-option.is-suggested",
+        "settle": 900
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'detail' && state.wallet >= 199999",
+        "msg": "top-up closes back to the detail"
+      }
     ]
   },
   {
     "name": "gifts-collection",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openCollection(),true" },
-      { "expect": "document.querySelectorAll('.gf-collection [role=tab]').length === 4", "msg": "four tabs" },
-      { "shot": "owned" },
-      { "click": ".gf-collection [role=tab][data-id=received]" },
-      { "expect": "document.querySelectorAll('.gf-collection .gf-history-row').length >= 1", "msg": "demo account has received gifts" },
-      { "expect": "document.activeElement?.id === 'gf-tab-received'", "msg": "focus stays on the tab" }
+      {
+        "eval": "ShizhongGifts.openCollection(),true"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-collection [role=tab]').length === 4",
+        "msg": "four tabs"
+      },
+      {
+        "shot": "owned"
+      },
+      {
+        "click": ".gf-collection [role=tab][data-id=received]"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-collection .gf-history-row').length >= 1",
+        "msg": "demo account has received gifts"
+      },
+      {
+        "expect": "document.activeElement?.id === 'gf-tab-received'",
+        "msg": "focus stays on the tab"
+      }
     ]
   },
   {
     "name": "gifts-collection-purchases",
     "hash": "me",
-    "steps": [{ "eval": "ShizhongGifts.openCollection('purchases'),true" }]
+    "steps": [
+      {
+        "eval": "ShizhongGifts.openCollection('purchases'),true"
+      }
+    ]
   },
   {
     "name": "gifts-studio",
     "hash": "me",
     "steps": [
-      { "click": "#app [data-action=gift-studio]" },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'studio'", "msg": "studio open" },
-      { "expect": "SZ.overlay.$('[data-action=gift-studio-save]').disabled", "msg": "save disabled until something changes" }
+      {
+        "click": "#app [data-action=gift-studio]"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'studio'",
+        "msg": "studio open"
+      },
+      {
+        "expect": "SZ.overlay.$('[data-action=gift-studio-save]').disabled",
+        "msg": "save disabled until something changes"
+      }
     ]
   },
   {
     "name": "gifts-studio-edit",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openStudio(),true" },
-      { "click": ".gf-owned-item:not([aria-disabled])" },
-      { "expect": "!!SZ.overlay.$('.gf-sticker.is-selected') && !SZ.overlay.$('[data-action=gift-studio-save]').disabled", "msg": "sticker added and selected, save enabled" },
-      { "eval": "SZ.overlay.$('[data-action=gift-studio-nudge][data-id=right]').focus(),true" },
-      { "click": "[data-action=gift-studio-nudge][data-id=right]" },
-      { "click": "[data-action=gift-studio-nudge][data-id=right]" },
-      { "expect": "document.activeElement?.matches('[data-action=gift-studio-nudge][data-id=right]')", "msg": "nudge keeps focus" },
-      { "eval": "SZ.overlay.top().el.scrollTo(0,0),true" }
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "click": ".gf-owned-item:not([aria-disabled])"
+      },
+      {
+        "expect": "!!SZ.overlay.$('.gf-sticker.is-selected') && !SZ.overlay.$('[data-action=gift-studio-save]').disabled",
+        "msg": "sticker added and selected, save enabled"
+      },
+      {
+        "eval": "SZ.overlay.$('[data-action=gift-studio-nudge][data-id=right]').focus(),true"
+      },
+      {
+        "click": "[data-action=gift-studio-nudge][data-id=right]"
+      },
+      {
+        "click": "[data-action=gift-studio-nudge][data-id=right]"
+      },
+      {
+        "expect": "document.activeElement?.matches('[data-action=gift-studio-nudge][data-id=right]')",
+        "msg": "nudge keeps focus"
+      },
+      {
+        "eval": "SZ.overlay.top().el.scrollTo(0,0),true"
+      }
     ]
   },
   {
     "name": "gifts-studio-save",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openStudio(),true" },
-      { "click": ".gf-swatch[data-id=midnight-stars]" },
-      { "click": "[data-action=gift-studio-save]", "settle": 1000 },
-      { "expect": "SZ.overlay.depth() === 0 && state.gifts.decoration.backgroundId === 'midnight-stars'", "msg": "saved and closed" },
-      { "expect": "document.querySelector('#app .gf-hero .gf-cover').dataset.tone === 'dark'", "msg": "hero updated in place" }
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "click": ".gf-swatch[data-id=midnight-stars]"
+      },
+      {
+        "click": "[data-action=gift-studio-save]",
+        "settle": 1000
+      },
+      {
+        "expect": "SZ.overlay.depth() === 0 && state.gifts.decoration.backgroundId === 'midnight-stars'",
+        "msg": "saved and closed"
+      },
+      {
+        "expect": "document.querySelector('#app .gf-hero .gf-cover').dataset.tone === 'dark'",
+        "msg": "hero updated in place"
+      }
     ]
   },
   {
     "name": "gifts-studio-discard",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openStudio(),true" },
-      { "click": ".gf-swatch[aria-pressed=false]" },
-      { "back": true },
-      { "expect": "!!document.querySelector('.sz-confirm')", "msg": "leaving a dirty studio asks first" },
-      { "shot": "confirm" },
-      { "click": "[data-sz-confirm='0']" },
-      { "expect": "SZ.overlay.top().meta.gift === 'studio'", "msg": "keep editing returns to the studio" },
-      { "back": true },
-      { "click": "[data-sz-confirm='1']" },
-      { "expect": "SZ.overlay.depth() === 0", "msg": "discard closes the studio" }
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "click": ".gf-swatch[aria-pressed=false]"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "!!document.querySelector('.sz-confirm')",
+        "msg": "leaving a dirty studio asks first"
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-sz-confirm='0']"
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'studio'",
+        "msg": "keep editing returns to the studio"
+      },
+      {
+        "back": true
+      },
+      {
+        "click": "[data-sz-confirm='1']"
+      },
+      {
+        "expect": "SZ.overlay.depth() === 0",
+        "msg": "discard closes the studio"
+      }
+    ]
+  },
+  {
+    "name": "gifts-studio-upload",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "eval": "(async()=>{const c=document.createElement('canvas');c.width=640;c.height=320;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,640,320);g.addColorStop(0,'#2b5876');g.addColorStop(1,'#4e4376');x.fillStyle=g;x.fillRect(0,0,640,320);const b=await new Promise(r=>c.toBlob(r,'image/png'));const dt=new DataTransfer();dt.items.add(new File([b],'cover.png',{type:'image/png'}));const i=SZ.overlay.$('[data-gf-upload]');i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "expect": "SZ.overlay.top().gfStudio.draft.customImage.startsWith('media:') && SZ.overlay.top().gfStudio.draft.backgroundId === 'custom'",
+        "msg": "photo stored in SZ.media, not in state"
+      },
+      {
+        "shot": "preview"
+      },
+      {
+        "click": "[data-action=gift-studio-save]",
+        "settle": 1000
+      },
+      {
+        "expect": "state.gifts.decoration.customImage.startsWith('media:') && getComputedStyle(document.querySelector('#app .gf-hero .gf-cover')).backgroundImage.includes('blob:')",
+        "msg": "hero shows the uploaded cover"
+      }
+    ]
+  },
+  {
+    "name": "gifts-migrate-cover",
+    "hash": "me",
+    "setup": [
+      "SZ.store.saveSoon.flush=function(){}",
+      "(()=>{const k='sz:v2:state:demo';const s=JSON.parse(localStorage.getItem(k)||'{}');s.gifts=Object.assign(s.gifts||{},{version:1,decoration:{backgroundId:'custom',customImage:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',stickers:[],avatarFrameId:''}});localStorage.setItem(k,JSON.stringify(s))})()"
+    ],
+    "steps": [
+      {
+        "wait": 800
+      },
+      {
+        "expect": "state.gifts.decoration.customImage.startsWith('media:') && !localStorage.getItem('sz:v2:state:demo').includes('data:image/png;base64')",
+        "msg": "legacy data URL moved to IndexedDB"
+      }
     ]
   },
   {
     "name": "gifts-studio-roundtrip",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openStudio(),true" },
-      { "click": ".gf-owned-item:not([aria-disabled])" },
-      { "eval": "window.__stickers = SZ.overlay.top().gfStudio.draft.stickers.length, true" },
-      { "click": ".gf-studio-section [data-action=gift-shop]" },
-      { "expect": "SZ.overlay.top().meta.gift === 'shop'", "msg": "shop pushed over the studio" },
-      { "back": true },
-      { "expect": "SZ.overlay.top().meta.gift === 'studio' && SZ.overlay.top().gfStudio.draft.stickers.length === __stickers", "msg": "draft survives the shop round-trip" }
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "click": ".gf-owned-item:not([aria-disabled])"
+      },
+      {
+        "eval": "window.__stickers = SZ.overlay.top().gfStudio.draft.stickers.length, true"
+      },
+      {
+        "click": ".gf-studio-section [data-action=gift-shop]"
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'shop'",
+        "msg": "shop pushed over the studio"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'studio' && SZ.overlay.top().gfStudio.draft.stickers.length === __stickers",
+        "msg": "draft survives the shop round-trip"
+      }
     ]
   },
   {
     "name": "gifts-studio-charm-tryon",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongGifts.openStudio({ focus: 'frames' }),true" },
-      { "click": ".gf-frame.is-locked" },
-      { "expect": "!!SZ.overlay.$('.gf-tryon-note')", "msg": "unowned charm can be tried on" }
+      {
+        "eval": "ShizhongGifts.openStudio({ focus: 'frames' }),true"
+      },
+      {
+        "click": ".gf-frame.is-locked"
+      },
+      {
+        "expect": "!!SZ.overlay.$('.gf-tryon-note')",
+        "msg": "unowned charm can be tried on"
+      }
     ]
   },
   {
     "name": "gifts-picker",
     "hash": "comms",
     "steps": [
-      { "eval": "ShizhongGifts.picker('p1'),true" },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'picker'", "msg": "picker open" },
-      { "click": ".gf-picker [data-action=gift-pick][data-id=coffee]" },
-      { "eval": "SZ.overlay.$('.gf-picker-footer [data-action=gift-qty][data-id=\"10\"]').focus(),true" },
-      { "click": ".gf-picker-footer [data-action=gift-qty][data-id='10']" },
-      { "expect": "document.activeElement?.matches('[data-action=gift-qty][data-id=\"10\"]')", "msg": "quantity keeps focus" },
-      { "shot": "selected" },
-      { "eval": "window.__n = (state.messages.p1 || []).length, window.__w = state.wallet, window.__o = state.gifts.owned.coffee || 0, true" },
-      { "click": "[data-action=gift-picker-send]" },
-      { "expect": "!!document.querySelector('.sz-confirm .gf-summary')", "msg": "RM 3,000 asks for confirmation" },
-      { "click": "[data-sz-confirm='1']", "settle": 1200 },
-      { "expect": "!SZ.overlay.layers().some(l => l.meta.gift === 'picker')", "msg": "picker closes after sending" },
-      { "expect": "state.messages.p1.length === __n + 1 && state.messages.p1[__n].type === 'gift' && state.messages.p1[__n].quantity === 10", "msg": "gift message with quantity" },
-      { "expect": "state.wallet === __w - 300 * (10 - Math.min(10, __o))", "msg": "owned copies used first, the rest paid" },
-      { "expect": "state.gifts.sent[0].quantity === 10", "msg": "sent record" }
+      {
+        "eval": "ShizhongGifts.picker('p1'),true"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'picker'",
+        "msg": "picker open"
+      },
+      {
+        "click": ".gf-picker [data-action=gift-pick][data-id=coffee]"
+      },
+      {
+        "eval": "SZ.overlay.$('.gf-picker-footer [data-action=gift-qty][data-id=\"10\"]').focus(),true"
+      },
+      {
+        "click": ".gf-picker-footer [data-action=gift-qty][data-id='10']"
+      },
+      {
+        "expect": "document.activeElement?.matches('[data-action=gift-qty][data-id=\"10\"]')",
+        "msg": "quantity keeps focus"
+      },
+      {
+        "shot": "selected"
+      },
+      {
+        "eval": "window.__n = (state.messages.p1 || []).length, window.__w = state.wallet, window.__o = state.gifts.owned.coffee || 0, true"
+      },
+      {
+        "click": "[data-action=gift-picker-send]"
+      },
+      {
+        "expect": "!!document.querySelector('.sz-confirm .gf-summary')",
+        "msg": "RM 3,000 asks for confirmation"
+      },
+      {
+        "click": "[data-sz-confirm='1']",
+        "settle": 1200
+      },
+      {
+        "expect": "!SZ.overlay.layers().some(l => l.meta.gift === 'picker')",
+        "msg": "picker closes after sending"
+      },
+      {
+        "expect": "state.messages.p1.length === __n + 1 && state.messages.p1[__n].type === 'gift' && state.messages.p1[__n].quantity === 10",
+        "msg": "gift message with quantity"
+      },
+      {
+        "expect": "state.wallet === __w - 300 * (10 - Math.min(10, __o))",
+        "msg": "owned copies used first, the rest paid"
+      },
+      {
+        "expect": "state.gifts.sent[0].quantity === 10",
+        "msg": "sent record"
+      }
     ]
   },
   {
     "name": "gifts-picker-back",
     "hash": "comms",
     "steps": [
-      { "eval": "ShizhongGifts.picker('p2'),true" },
-      { "click": ".gf-picker [data-action=gift-pick]" },
-      { "click": "[data-action=gift-picker-info]" },
-      { "expect": "SZ.overlay.depth() === 2 && SZ.overlay.top().meta.gift === 'detail'", "msg": "details pushed over the picker" },
-      { "shot": "detail" },
-      { "back": true },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'picker' && !!SZ.overlay.$('.gf-card[aria-checked=true]')", "msg": "back keeps the picker selection" }
+      {
+        "eval": "ShizhongGifts.picker('p2'),true"
+      },
+      {
+        "click": ".gf-picker [data-action=gift-pick]"
+      },
+      {
+        "click": "[data-action=gift-picker-info]"
+      },
+      {
+        "expect": "SZ.overlay.depth() === 2 && SZ.overlay.top().meta.gift === 'detail'",
+        "msg": "details pushed over the picker"
+      },
+      {
+        "shot": "detail"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'picker' && !!SZ.overlay.$('.gf-card[aria-pressed=true]')",
+        "msg": "back keeps the picker selection"
+      }
     ]
   },
   {
     "name": "gifts-bubbles",
     "hash": "comms",
     "steps": [
-      { "eval": "SZ.overlay.open({ kind: 'screen', title: 'QA', html: '<div class=\"chat-log\" style=\"padding:16px\">' + ShizhongFriends.demoMessages('u0003').map(m => ShizhongGifts.messageBubble(m, chatInfo('u0003'))).join('') + ShizhongGifts.messageBubble({ id: 'qa-gift', self: true, type: 'gift', giftId: 'oriental-lantern', quantity: 66, price: 280, note: 'OK', time: Date.now() }, chatInfo('u0003')) + '</div>' }),true" },
-      { "shot": "before" },
-      { "click": "[data-action=gift-accept]", "settle": 900 },
-      { "expect": "state.gifts.received.some(r => r.id === 'friend-demo-u0003-received')", "msg": "accepting records a received gift" }
+      {
+        "eval": "SZ.overlay.open({ kind: 'screen', title: 'QA', html: '<div class=\"chat-log\" style=\"padding:16px\">' + ShizhongFriends.demoMessages('u0003').map(m => ShizhongGifts.messageBubble(m, chatInfo('u0003'))).join('') + ShizhongGifts.messageBubble({ id: 'qa-gift', self: true, type: 'gift', giftId: 'oriental-lantern', quantity: 66, price: 280, note: 'OK', time: Date.now() }, chatInfo('u0003')) + '</div>' }),true"
+      },
+      {
+        "shot": "before"
+      },
+      {
+        "click": "[data-action=gift-accept]",
+        "settle": 900
+      },
+      {
+        "expect": "state.gifts.received.some(r => r.id === 'friend-demo-u0003-received')",
+        "msg": "accepting records a received gift"
+      }
     ]
   },
   {
     "name": "gifts-wallpaper",
     "hash": "comms",
     "steps": [
-      { "eval": "ShizhongGifts.openWallpaperPicker('p1'),true" },
-      { "click": ".gf-swatch[data-id=midnight-stars]", "settle": 900 },
-      { "expect": "ShizhongGifts.wallpaper('p1').id === 'midnight-stars' && ShizhongGifts.wallpaper('p1').tone === 'dark'", "msg": "wallpaper saved per chat" },
-      { "expect": "ShizhongGifts.wallpaper('p2').id !== 'midnight-stars'", "msg": "other chats unchanged" },
-      { "eval": "ShizhongGifts.openWallpaperPicker('p1'),true" }
+      {
+        "eval": "ShizhongGifts.openWallpaperPicker('p1'),true"
+      },
+      {
+        "click": ".gf-swatch[data-id=midnight-stars]",
+        "settle": 900
+      },
+      {
+        "expect": "ShizhongGifts.wallpaper('p1').id === 'midnight-stars' && ShizhongGifts.wallpaper('p1').tone === 'dark'",
+        "msg": "wallpaper saved per chat"
+      },
+      {
+        "expect": "ShizhongGifts.wallpaper('p2').id !== 'midnight-stars'",
+        "msg": "other chats unchanged"
+      },
+      {
+        "eval": "ShizhongGifts.openWallpaperPicker('p1'),true"
+      }
     ]
   },
   {
     "name": "gifts-qr-card",
     "hash": "me",
     "steps": [
-      { "click": "#app [data-action=gift-qr]" },
-      { "wait": 900 },
-      { "expect": "!!SZ.overlay.$('[data-pq-code] svg')", "msg": "QR rendered" },
-      { "expect": "/#u\\/88002688$/.test(ShizhongPersonalQR.shareURL())", "msg": "QR encodes only the short profile link" }
+      {
+        "click": "#app [data-action=gift-qr]"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-pq-code] svg')",
+        "msg": "QR rendered"
+      },
+      {
+        "expect": "/#u\\/88002688$/.test(ShizhongPersonalQR.shareURL())",
+        "msg": "QR encodes only the short profile link"
+      }
     ]
   },
   {
     "name": "gifts-qr-image",
     "hash": "me",
     "steps": [
-      { "eval": "ShizhongPersonalQR.open(),true" },
-      { "wait": 600 },
-      { "click": "[data-action=pq-save]", "settle": 1500 },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'qr-image' && !!SZ.overlay.$('.pq-image img')", "msg": "rendered PNG shown for long-press saving" },
-      { "back": true },
-      { "expect": "SZ.overlay.top()?.meta.gift === 'qr'", "msg": "back returns to the QR card" }
+      {
+        "eval": "ShizhongPersonalQR.open(),true"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "click": "[data-action=pq-save]",
+        "settle": 1500
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'qr-image' && !!SZ.overlay.$('.pq-image img')",
+        "msg": "rendered PNG shown for long-press saving"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'qr'",
+        "msg": "back returns to the QR card"
+      }
     ]
   },
   {
     "name": "gifts-qr-public",
     "hash": "u/12345678",
     "steps": [
-      { "expect": "SZ.overlay.top()?.meta.gift === 'qr-public' && !!SZ.overlay.$('.pq-warning')", "msg": "public card labelled as unverified" }
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'qr-public' && !!SZ.overlay.$('.pq-warning')",
+        "msg": "public card labelled as unverified"
+      }
     ]
   },
   {
     "name": "gifts-friend-profile",
     "hash": "social",
     "steps": [
-      { "eval": "personDetail('p1'),true" },
-      { "expect": "!!SZ.overlay.$('.fs-hero .gf-cover .gf-sticker') && !!SZ.overlay.$('.fs-collection .gf-card')", "msg": "friend showcase renders" },
-      { "shot": "hero" },
-      { "click": ".fs-hero .gf-sticker" },
-      { "expect": "SZ.overlay.top().meta.gift === 'detail'", "msg": "sticker opens gift detail" },
-      { "back": true },
-      { "expect": "SZ.overlay.depth() === 1", "msg": "back returns to the profile" }
+      {
+        "eval": "personDetail('p1'),true"
+      },
+      {
+        "expect": "!!SZ.overlay.$('.fs-hero .gf-cover .gf-sticker') && !!SZ.overlay.$('.fs-collection .gf-card')",
+        "msg": "friend showcase renders"
+      },
+      {
+        "shot": "hero"
+      },
+      {
+        "click": ".fs-hero .gf-sticker"
+      },
+      {
+        "expect": "SZ.overlay.top().meta.gift === 'detail'",
+        "msg": "sticker opens gift detail"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1",
+        "msg": "back returns to the profile"
+      }
     ]
   }
 ]
