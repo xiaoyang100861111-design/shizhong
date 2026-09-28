@@ -13,55 +13,21 @@
  */
 
 // ------------------------------------------------------------------ compat globals
-// compat: catalog.js and live-room.js still assign the current room id here; remove after integration.
-let activeRoom = 'p1';
-// City values are stored in the source language (shared with catalog.js); show them with td('city', value).
-const cities = ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保'];
-// Labels for order form fields (catalog.js order detail reads and extends this map).
-const fieldNames = {};
-for (const key of [
-  'candidate',
-  'experience',
-  'project',
-  'address',
-  'date',
-  'time',
-  'phone',
-  'city',
-  'people',
-  'language',
-  'intent',
-  'salary',
-  'from',
-  'to',
-  'flight',
-  'number',
-  'provider',
-  'amount',
-  'note',
-  'duration',
-  'mode',
-  'topic',
-  'host',
-])
-  fieldNames[key] = t(`flows.fieldName.${key}`);
-// The old 1:1 booking and room gift panel live in private-room.js / live-room.js now.
+// live-room.js and private-room.js on main still assign these names (strict mode would throw if they
+// were gone). Remove once the wave-2 live and private modules no longer reference them.
+let activeRoom = 'p1'; // eslint-disable-line no-unused-vars
 function callBooking(id) {
   return window.ShizhongPrivate?.enter(id);
-} // compat: remove after integration
+}
 function connectCall(id) {
   return window.ShizhongPrivate?.enter(id);
-} // compat: remove after integration
-function giftPanel() {} // compat: remove after integration
+}
+function giftPanel() {}
+// City values are stored in the source language (shared with catalog.js); show them with td('city', value).
+const cities = ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保'];
 
 // ------------------------------------------------------------------ small utilities
 const FLOWS_DAY = 86400000;
-// Shell tab/filter defaults, captured before anything changes them (used by the legacy fallback).
-const FLOWS_UI_DEFAULTS = {
-  homeFilter: ui.homeFilter,
-  socialFilter: ui.socialFilter,
-  liveFilter: ui.liveFilter,
-};
 const flowsUI = { noticeFilter: 'all', couponTab: 'available', billsShown: 40 };
 function flowsCall(name, ...args) {
   const fn = window[name];
@@ -108,6 +74,8 @@ const flowsIconPaths = {
   message: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9 11h6"/>',
   swap: '<path d="M7 4 3 8l4 4M3 8h14m0 12 4-4-4-4m4 4H7"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.7-4.4L3 9m0-5v5h5m-4 4a8 8 0 0 0 14.7 4.4L21 15m0 5v-5h-5"/>',
+  envelope:
+    '<rect x="4" y="2.5" width="16" height="19" rx="3"/><path d="M4 7.5c5 4 11 4 16 0"/><circle cx="12" cy="10.5" r="2"/>',
 };
 function flowsIcon(name, cls = '') {
   return flowsIconPaths[name]
@@ -700,6 +668,11 @@ function flowsNoticeParams(n) {
   const p = { ...(n.params || {}) };
   if (p.personId) p.name = personName(flowsPerson(p.personId)) || p.name || '';
   if (p.amount != null) p.money = SZ.fmt.money(p.amount);
+  if (p.orderId) {
+    const order = (state.orders || []).find(o => o.id === p.orderId);
+    const title = order && window.ShizhongCatalog?.orderTitle?.(order);
+    if (title) p.title = title;
+  }
   return p;
 }
 function flowsNoticeView(n) {
@@ -884,8 +857,12 @@ function flowsRow(iconName, label, action, opts = {}) {
 function flowsStaticRow(iconName, label, value) {
   return `<div class="list-row flows-row">${flowsIcon(iconName)}<span class="list-row-main"><span class="flows-row-label">${label}</span></span><span class="row-value">${value}</span></div>`;
 }
+// Alerts and nearby default to on; marketing messages are opt-in (set at sign-up).
+function flowsSettingOn(key) {
+  return key === 'marketing' ? state.settings[key] === true : state.settings[key] !== false;
+}
 function flowsSwitchRow(iconName, label, key, sub = '') {
-  const on = state.settings[key] !== false;
+  const on = flowsSettingOn(key);
   const id = 'flows-switch-' + key;
   return `<div class="list-row flows-row">${flowsIcon(iconName)}<span class="list-row-main"><span class="flows-row-label" id="${id}">${label}</span>${sub ? `<small class="flows-row-sub">${sub}</small>` : ''}</span>${act('flows-toggle', key, '', 'switch', `role="switch" aria-checked="${on}" aria-labelledby="${id}"`)}</div>`;
 }
@@ -912,16 +889,15 @@ function flowsDisplayId(account = SZ.session.account) {
 function flowsThemeLabel(value = window.SZ_THEME?.get() || 'light') {
   return t(`flows.theme.${value}`);
 }
+/** Display name; the untouched demo profile and guests are translated by the shell's profileName(). */
+function flowsProfileName() {
+  return typeof profileName === 'function' ? profileName() : state.profile.name;
+}
+function flowsProfileBio() {
+  return typeof profileBio === 'function' ? profileBio() : state.profile.bio || '';
+}
 function flowsLocaleName() {
   return SZ_I18N.meta()?.name || SZ_I18N.locale;
-}
-/**
- * Stop this page from writing the in-memory state back after the account's data was removed or
- * the session changed (core flushes on pagehide, which would otherwise restore it).
- */
-function flowsDetachState() {
-  state = null;
-  SZ.store.attach(null);
 }
 
 // ------------------------------------------------------------------ settings
@@ -935,9 +911,9 @@ function flowsSettingsBody() {
     ? act(
         'edit-profile',
         '',
-        `${flowsAvatar(state.profile.photo, 56)}<span class="flows-account-main"><strong>${esc(state.profile.name)}</strong><small>${esc(t('flows.settings.accountId', { id: flowsDisplayId(account) }))}</small></span>${icon('chevron', 'chevron')}`,
+        `${flowsAvatar(state.profile.photo, 56)}<span class="flows-account-main"><strong>${esc(flowsProfileName())}</strong><small>${esc(t('flows.settings.accountId', { id: flowsDisplayId(account) }))}</small></span>${icon('chevron', 'chevron')}`,
         'flows-account-card',
-        `aria-label="${esc(t('flows.settings.editProfileAria', { name: state.profile.name }))}"`
+        `aria-label="${esc(t('flows.settings.editProfileAria', { name: flowsProfileName() }))}"`
       )
     : `<div class="flows-account-card is-guest">${flowsAvatar('ui/avatar-default.svg', 56)}<span class="flows-account-main"><strong>${t('flows.settings.guestTitle')}</strong><small>${t('flows.settings.guestBody')}</small></span>${act('flows-signin', '', t('flows.settings.signIn'), 'btn btn-primary btn-sm')}</div>`;
   const accountRows = loggedIn
@@ -948,7 +924,7 @@ function flowsSettingsBody() {
     : '';
   const prefs = flowsSection(
     t('flows.settings.preferences'),
-    `<div class="list">${flowsRow('globe', t('flows.settings.language'), 'language', { value: esc(flowsLocaleName()) })}${flowsRow('moon', t('flows.settings.theme'), 'flows-theme', { value: flowsThemeLabel() })}${flowsSwitchRow('bell', t('flows.settings.notifications'), 'notifications', t('flows.settings.notificationsSub'))}${flowsSwitchRow('compass', t('flows.settings.nearby'), 'nearby', t('flows.settings.nearbySub'))}</div>`
+    `<div class="list">${flowsRow('globe', t('flows.settings.language'), 'language', { value: esc(flowsLocaleName()) })}${flowsRow('moon', t('flows.settings.theme'), 'flows-theme', { value: flowsThemeLabel() })}${flowsSwitchRow('bell', t('flows.settings.notifications'), 'notifications', t('flows.settings.notificationsSub'))}${flowsSwitchRow('compass', t('flows.settings.nearby'), 'nearby', t('flows.settings.nearbySub'))}${SZ.session.isLoggedIn ? flowsSwitchRow('ticket', t('flows.settings.marketing'), 'marketing', t('flows.settings.marketingSub')) : ''}</div>`
   );
   const privacy = flowsSection(
     t('flows.settings.privacy'),
@@ -968,8 +944,8 @@ function flowsSettingsBody() {
   return `${head}${accountRows}${prefs}${privacy}${about}${session ? `<section class="flows-section">${session}</section>` : ''}${danger}<p class="caption flows-footnote">${t('flows.settings.localNote')}</p>`;
 }
 function flowsToggleSetting(key, el) {
-  if (!['notifications', 'nearby'].includes(key)) return;
-  const next = state.settings[key] === false;
+  if (!['notifications', 'nearby', 'marketing'].includes(key)) return;
+  const next = !flowsSettingOn(key);
   if (!SZ.store.commit(s => (s.settings[key] = next))) return;
   el?.setAttribute('aria-checked', String(next));
   if (key === 'nearby') flowsRender();
@@ -1041,10 +1017,8 @@ async function flowsLogout() {
     message: t('flows.settings.signOutBody'),
     confirmText: t('flows.settings.signOut'),
   });
-  if (!ok) return;
-  SZ.store.flush();
-  flowsDetachState();
-  SZ.session.logout();
+  // Core flushes this account's state and detaches the store before the reload.
+  if (ok) SZ.session.logout();
 }
 async function flowsDeleteAccount() {
   const account = SZ.session.account;
@@ -1064,7 +1038,6 @@ async function flowsDeleteAccount() {
   });
   if (!second) return;
   toast(t('flows.settings.deleting'));
-  flowsDetachState();
   await SZ.accounts.remove(account.id);
   SZ.session.logout();
 }
@@ -1078,7 +1051,6 @@ async function flowsResetAccount() {
   });
   if (!ok) return;
   toast(t('flows.settings.resetting'));
-  flowsDetachState();
   await SZ.store.reset();
   location.reload();
 }
@@ -1166,26 +1138,6 @@ function flowsBlockedBody() {
     })
     .join('')}</ul>`;
 }
-async function flowsBlock(id, el) {
-  if (!id) return;
-  const p = flowsPerson(id);
-  const name = p ? personName(p) : id;
-  if (state.blocked.includes(id)) return toast(t('flows.block.already', { name }));
-  const ok = await SZ.confirm({
-    title: t('flows.block.title', { name }),
-    message: t('flows.block.body'),
-    confirmText: t('flows.block.confirm'),
-    danger: true,
-  });
-  if (!ok || !SZ.store.commit(s => s.blocked.push(id))) return;
-  const layer = el?.isConnected ? SZ.overlay.of(el) : null;
-  if (layer && !layer.meta.flowsKey) SZ.overlay.close({ layer, force: true });
-  flowsRender();
-  flowsRefresh('blocked', 'settings');
-  toast(t('flows.block.done', { name }), {
-    action: { label: t('common.undo'), run: () => flowsUnblock(id, true) },
-  });
-}
 function flowsUnblock(id, quiet = false) {
   const at = state.blocked.indexOf(id);
   if (at < 0) return;
@@ -1269,8 +1221,10 @@ const FLOWS_METHODS = {
 };
 const FLOWS_AMOUNTS = [20, 50, 100, 200, 500, 1000];
 function flowsMethodLabel(method) {
-  if (FLOWS_METHODS[method]) return t(`flows.pay.${method}`);
-  return method ? td('flows.billMethod', method) : '';
+  if (!method) return '';
+  if (FLOWS_METHODS[method] || method === 'wallet') return t(`flows.pay.${method}`);
+  // Older records (and other modules) stored the already-translated label.
+  return td('flows.billMethod', method);
 }
 function flowsMoney(n) {
   return SZ.fmt.money(n, { cents: true });
@@ -1289,8 +1243,41 @@ function flowsBillTs(b) {
   if (typeof b.time === 'number') return b.time;
   return flowsLegacyTime(b.time);
 }
+/** Bill kind normalised across writers: flows ('recharge'), catalog (type 'order-payment' …), chat ('chat-envelope' …), gifts. */
+function flowsBillKind(b) {
+  const kind = b.kind || b.type || '';
+  return (
+    {
+      'order-payment': 'order',
+      'order-refund': 'refund',
+      'chat-envelope': 'envelope',
+      'chat-transfer': 'transfer',
+      'chat-refund': 'refund',
+    }[kind] || kind
+  );
+}
+function flowsBillOrder(b) {
+  return b.orderId ? (state.orders || []).find(o => o.id === b.orderId) || null : null;
+}
+function flowsBillChat(b) {
+  return b.chatId || b.i18n?.params?.chatId || '';
+}
 function flowsBillTitle(b) {
-  if (b.kind && t.has(`flows.wallet.kind.${b.kind}`) && !b.title) return t(`flows.wallet.kind.${b.kind}`);
+  const order = flowsBillOrder(b);
+  // Current-language order title (the one stored with the bill is in the language of the day it was paid).
+  const orderTitle = order ? window.ShizhongCatalog?.orderTitle?.(order) : '';
+  if (b.i18n?.key && t.has(b.i18n.key)) {
+    const params = { ...(b.i18n.params || {}) };
+    if (orderTitle) params.title = orderTitle;
+    const chatId = flowsBillChat(b);
+    const who = chatId && typeof chatInfo === 'function' ? chatInfo(chatId) : null;
+    if (who?.name) params.name = who.name;
+    return t(b.i18n.key, params);
+  }
+  const kind = flowsBillKind(b);
+  if (orderTitle && (kind === 'order' || kind === 'refund'))
+    return t(kind === 'order' ? 'flows.wallet.orderBill' : 'flows.wallet.refundBill', { title: orderTitle });
+  if (!b.title && t.has(`flows.wallet.kind.${kind}`)) return t(`flows.wallet.kind.${kind}`);
   // Older records keep source-language text like "<prefix> · <name>": translate the known prefix, keep the name.
   return String(b.title || t('flows.wallet.kind.misc'))
     .split(' · ')
@@ -1298,12 +1285,13 @@ function flowsBillTitle(b) {
     .join(' · ');
 }
 function flowsBillIcon(b) {
-  const kind = b.kind || '';
+  const kind = flowsBillKind(b);
   if (kind === 'recharge') return 'in';
   if (kind === 'refund') return 'refresh';
   if (kind === 'order') return 'order';
   if (kind === 'gift') return 'gift';
-  if (kind === 'transfer' || kind === 'envelope') return 'swap';
+  if (kind === 'envelope') return 'envelope';
+  if (kind === 'transfer') return 'swap';
   return Number(b.amount) >= 0 ? 'in' : 'out';
 }
 function flowsDayLabel(ts) {
@@ -1325,7 +1313,12 @@ function flowsWalletBody() {
       )
     : '';
   const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t('flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('checkin', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
-  const bills = state.bills.slice(0, flowsUI.billsShown);
+  // Newest first by time: several modules write bills, not always in time order.
+  const bills = state.bills
+    .map((b, i) => [b, flowsBillTs(b) || 0, i])
+    .sort((a, b) => b[1] - a[1] || a[2] - b[2])
+    .map(x => x[0])
+    .slice(0, flowsUI.billsShown);
   let list = '';
   if (!bills.length) list = flowsEmpty('order', t('flows.wallet.emptyTitle'), t('flows.wallet.emptyText'));
   else {
@@ -1352,10 +1345,19 @@ function flowsWalletBody() {
 function flowsBillRow(b, ts) {
   const amount = Number(b.amount) || 0;
   const income = amount > 0;
-  const time = ts ? SZ.fmt.time(ts) : esc(b.time || '');
+  const time = ts ? esc(SZ.fmt.time(ts)) : esc(b.time || '');
   const method = flowsMethodLabel(b.method);
   const meta = [time, method ? esc(method) : ''].filter(Boolean).join(' · ');
-  return `<li class="list-row flows-bill"><span class="flows-bill-icon ${income ? 'is-in' : 'is-out'}">${flowsIcon(flowsBillIcon(b))}</span><span class="list-row-main"><span class="flows-row-label">${esc(flowsBillTitle(b))}</span><small class="flows-row-sub">${meta}</small></span><span class="flows-bill-amount num ${income ? 'is-in' : ''}">${income ? '+' : '−'}${esc(flowsMoney(Math.abs(amount)))}</span></li>`;
+  const title = flowsBillTitle(b);
+  const inner = `<span class="flows-bill-icon ${income ? 'is-in' : 'is-out'}">${flowsIcon(flowsBillIcon(b))}</span><span class="list-row-main"><span class="flows-row-label">${esc(title)}</span><small class="flows-row-sub">${meta}</small></span><span class="flows-bill-amount num ${income ? 'is-in' : ''}">${income ? '+' : '−'}${esc(flowsMoney(Math.abs(amount)))}</span>`;
+  // Order and chat payments open what they paid for.
+  const order = flowsBillOrder(b);
+  const chatId = !order && flowsBillChat(b);
+  const link = order ? ['order-detail', order.id] : chatId ? ['chat', chatId] : null;
+  // The spacer keeps amounts aligned with the rows that end in a chevron.
+  if (!link)
+    return `<li class="list-row flows-bill">${inner}<span class="flows-bill-spacer" aria-hidden="true"></span></li>`;
+  return `<li>${act(link[0], link[1], inner + icon('chevron', 'chevron'), 'list-row flows-bill flows-bill-link', `data-kind="${esc(flowsBillKind(b))}" aria-label="${esc(t('flows.wallet.billAria', { title, amount: (income ? '+' : '−') + flowsMoney(Math.abs(amount)) }))}"`)}</li>`;
 }
 function flowsRestoreBalance() {
   if (!SZ.session.isDemo) return;
@@ -1634,7 +1636,7 @@ function flowsAddressForm(id) {
     kind: 'sheet',
     title: isNew ? t('flows.address.addTitle') : t('flows.address.editTitle'),
     body: () =>
-      `<form><div class="form-row">${field(t('flows.address.name'), 'name', 'text', t('flows.address.namePlaceholder'), true, a.name || (isNew ? state.profile.name : ''), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.address.phone'), 'phone', 'tel', t('flows.address.phonePlaceholder'), true, a.phone || (isNew ? state.profile.phone || SZ.session.account?.phone || '' : ''), { maxlength: 20 })}</div>${selectField(t('flows.address.city'), 'city', cities, a.location || a.city || state.location || state.city)}${field(t('flows.address.detail'), 'address', 'textarea', t('flows.address.detailPlaceholder'), true, a.address || '', { maxlength: 200, rows: 3, autocomplete: 'street-address' })}${field(t('flows.address.postcode'), 'postcode', 'text', '', false, a.postcode || '', { maxlength: 10, inputmode: 'numeric', autocomplete: 'postal-code', hint: t('flows.address.postcodeHint') })}${isNew && state.address.length ? `<label class="flows-check-row"><input type="checkbox" name="makeDefault" value="1"><span>${t('flows.address.makeDefault')}</span></label>` : ''}${submitButton(t('flows.address.save'))}</form>`,
+      `<form><div class="form-row">${field(t('flows.address.name'), 'name', 'text', t('flows.address.namePlaceholder'), true, a.name || (isNew ? flowsProfileName() : ''), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.address.phone'), 'phone', 'tel', t('flows.address.phonePlaceholder'), true, a.phone || (isNew ? state.profile.phone || SZ.session.account?.phone || '' : ''), { maxlength: 20 })}</div>${selectField(t('flows.address.city'), 'city', cities, a.location || a.city || state.location || state.city)}${field(t('flows.address.detail'), 'address', 'textarea', t('flows.address.detailPlaceholder'), true, a.address || '', { maxlength: 200, rows: 3, autocomplete: 'street-address' })}${field(t('flows.address.postcode'), 'postcode', 'text', '', false, a.postcode || '', { maxlength: 10, inputmode: 'numeric', autocomplete: 'postal-code', hint: t('flows.address.postcodeHint') })}${isNew && state.address.length ? `<label class="flows-check-row"><input type="checkbox" name="makeDefault" value="1"><span>${t('flows.address.makeDefault')}</span></label>` : ''}${submitButton(t('flows.address.save'))}</form>`,
     form(data, form, layer) {
       const location = flowsFormLocation(form);
       const postcode = form.querySelector('[name="postcode"]');
@@ -1752,6 +1754,23 @@ function flowsOpenNotice(id) {
 }
 
 // ------------------------------------------------------------------ edit profile
+// Interest ids chosen at sign-up (auth); labels are t('auth.interest.<id>').
+const FLOWS_INTERESTS = [
+  'food',
+  'travel',
+  'fitness',
+  'music',
+  'movies',
+  'gaming',
+  'pets',
+  'photography',
+  'shopping',
+  'parenting',
+  'study',
+  'career',
+  'beauty',
+  'homeLife',
+];
 function editProfile() {
   if (!SZ.requireLogin(t('flows.reason.profile'))) return;
   const p = state.profile;
@@ -1759,18 +1778,42 @@ function editProfile() {
     value: code,
     label: t(`flows.serviceLang.${code}`),
   }));
+  const chosen = new Set(Array.isArray(p.interests) ? p.interests : []);
+  const interests = FLOWS_INTERESTS.map(
+    id =>
+      `<label class="flows-chip flows-check-chip"><input type="checkbox" name="interest" value="${id}"${chosen.has(id) ? ' checked' : chosen.size >= 5 ? ' disabled' : ''}><span>${esc(t(`auth.interest.${id}`))}</span></label>`
+  ).join('');
+  // The untouched demo name and bio are sample content: show them in the current language.
+  const shownName = flowsProfileName();
+  const shownBio = flowsProfileBio();
+  const email = p.email ?? SZ.session.account?.email ?? '';
   return flowsOpen('profile', {
     title: t('flows.profile.title'),
     body: () =>
-      `<form class="flows-form">${uploadField(t('flows.profile.avatar'), { avatar: true, preview: p.photo })}${field(t('flows.profile.name'), 'name', 'text', t('flows.profile.namePlaceholder'), true, p.name, { maxlength: 24, autocomplete: 'nickname', counter: true })}${field(t('flows.profile.bio'), 'bio', 'textarea', t('flows.profile.bioPlaceholder'), false, p.bio, { maxlength: 120, rows: 3, counter: true })}${selectField(t('flows.profile.city'), 'city', cities, state.location || state.city)}${selectField(t('flows.profile.language'), 'language', serviceLangs, p.language)}${field(t('flows.profile.phone'), 'phone', 'tel', t('flows.profile.phonePlaceholder'), false, p.phone, { maxlength: 20, hint: t('flows.profile.phoneHint') })}${submitButton(t('flows.profile.save'))}</form>`,
-    form: flowsProfileSubmit,
+      `<form class="flows-form">${uploadField(t('flows.profile.avatar'), { avatar: true, preview: p.photo })}${field(t('flows.profile.name'), 'name', 'text', t('flows.profile.namePlaceholder'), true, shownName, { maxlength: 24, autocomplete: 'nickname', counter: true })}${field(t('flows.profile.bio'), 'bio', 'textarea', t('flows.profile.bioPlaceholder'), false, shownBio, { maxlength: 120, rows: 3, counter: true })}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.profile.interests')}</legend><p class="form-hint flows-fieldset-hint">${t('flows.profile.interestsHint', { n: 5 })}</p><div class="flows-chips" data-flows-interests>${interests}</div></fieldset>${selectField(t('flows.profile.city'), 'city', cities, state.location || state.city)}${selectField(t('flows.profile.language'), 'language', serviceLangs, p.language)}${field(t('flows.profile.phone'), 'phone', 'tel', t('flows.profile.phonePlaceholder'), false, p.phone, { maxlength: 20, hint: t('flows.profile.phoneHint') })}${field(t('flows.profile.email'), 'email', 'email', t('flows.profile.emailPlaceholder'), false, email, { maxlength: 120, hint: t('flows.profile.emailHint') })}${submitButton(t('flows.profile.save'))}</form>`,
+    form: (data, form, layer) => flowsProfileSubmit(data, form, layer, { shownName, shownBio }),
   });
 }
-function flowsProfileSubmit(data, form, layer) {
+// At most five interests, like at sign-up: further boxes are disabled until one is cleared.
+document.addEventListener('change', event => {
+  const box = event.target.closest?.('[data-flows-interests]');
+  if (!box) return;
+  const inputs = [...box.querySelectorAll('input[type="checkbox"]')];
+  const full = inputs.filter(i => i.checked).length >= 5;
+  for (const i of inputs) i.disabled = full && !i.checked;
+});
+function flowsProfileSubmit(data, form, layer, shown = {}) {
   const before = state.profile;
   const photo = flowsUploadValue(form) || before.photo;
   const location = flowsFormLocation(form);
-  const changed = data.name !== before.name || data.bio !== (before.bio || '') || photo !== before.photo;
+  // Unchanged translated demo text keeps the stored original.
+  const name = data.name === shown.shownName ? before.name : data.name;
+  const bio = data.bio === shown.shownBio ? before.bio || '' : data.bio;
+  const interests = [...form.querySelectorAll('[data-flows-interests] input:checked')]
+    .map(i => i.value)
+    .filter(v => FLOWS_INTERESTS.includes(v))
+    .slice(0, 5);
+  const changed = name !== before.name || bio !== (before.bio || '') || photo !== before.photo;
   const reward = changed && !state.profileReward;
   const oldPhoto = before.photo;
   if (
@@ -1778,9 +1821,11 @@ function flowsProfileSubmit(data, form, layer) {
       flowsApplyLocation(location);
       s.profile = {
         ...s.profile,
-        name: data.name,
-        bio: data.bio,
+        name,
+        bio,
         phone: data.phone,
+        email: data.email,
+        interests,
         language: flowsServiceLangCode(data.language),
         photo,
       };
@@ -1793,7 +1838,7 @@ function flowsProfileSubmit(data, form, layer) {
     return;
   flowsUploadCommit(form);
   if (oldPhoto !== photo && SZ.media.isRef(oldPhoto)) SZ.media.remove(oldPhoto).catch(() => {});
-  if (SZ.session.isLoggedIn) SZ.accounts.update(SZ.session.accountId, { name: data.name });
+  if (SZ.session.isLoggedIn) SZ.accounts.update(SZ.session.accountId, { name });
   flowsDone(layer);
   flowsRender();
   flowsRefresh('settings', 'tasks');
@@ -1856,7 +1901,7 @@ function composer() {
       flowsUploadCommit(form);
       flowsDone(layer);
       ui.socialTab = 'feed';
-      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
+      ui.socialFilter = 'recommended';
       navigate('social');
       toast(reward ? t('flows.compose.postedReward', { n: 10 }) : t('flows.compose.posted'), {
         type: 'success',
@@ -2152,7 +2197,7 @@ function flowsMerchant() {
   return flowsOpen('merchant', {
     title: t('flows.merchant.title'),
     body: () =>
-      `<form class="flows-form"><div class="flows-intro">${flowsIcon('bag')}<div><h3>${t('flows.merchant.headline')}</h3><p>${t('flows.merchant.sub')}</p></div></div>${field(t('flows.merchant.name'), 'name', 'text', t('flows.merchant.namePlaceholder'), true, '', { maxlength: 60, autocomplete: 'organization' })}${selectField(t('flows.merchant.category'), 'category', cats)}${selectField(t('flows.merchant.city'), 'city', cities, state.location || state.city)}${field(t('flows.merchant.contact'), 'contact', 'text', t('flows.merchant.contactPlaceholder'), true, state.profile.name, { maxlength: 40, autocomplete: 'name' })}${field(t('flows.merchant.phone'), 'phone', 'tel', t('flows.merchant.phonePlaceholder'), true, SZ.session.account?.phone || state.profile.phone || '', { maxlength: 20 })}${field(t('flows.merchant.about'), 'text', 'textarea', t('flows.merchant.aboutPlaceholder'), true, '', { maxlength: 500, counter: true })}${formNote(t('flows.merchant.note'))}${submitButton(t('flows.merchant.submit'))}</form>`,
+      `<form class="flows-form"><div class="flows-intro">${flowsIcon('bag')}<div><h3>${t('flows.merchant.headline')}</h3><p>${t('flows.merchant.sub')}</p></div></div>${field(t('flows.merchant.name'), 'name', 'text', t('flows.merchant.namePlaceholder'), true, '', { maxlength: 60, autocomplete: 'organization' })}${selectField(t('flows.merchant.category'), 'category', cats)}${selectField(t('flows.merchant.city'), 'city', cities, state.location || state.city)}${field(t('flows.merchant.contact'), 'contact', 'text', t('flows.merchant.contactPlaceholder'), true, flowsProfileName(), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.merchant.phone'), 'phone', 'tel', t('flows.merchant.phonePlaceholder'), true, SZ.session.account?.phone || state.profile.phone || '', { maxlength: 20 })}${field(t('flows.merchant.about'), 'text', 'textarea', t('flows.merchant.aboutPlaceholder'), true, '', { maxlength: 500, counter: true })}${formNote(t('flows.merchant.note'))}${submitButton(t('flows.merchant.submit'))}</form>`,
     form(data, form, layer) {
       const location = flowsFormLocation(form);
       if (!flowsRecordFeedback({ kind: 'merchant', ...data, location })) return;
@@ -2187,7 +2232,8 @@ function flowsFeedback() {
   });
 }
 function flowsOrderTitle(o) {
-  return lc('orders', o, 'title') || o.title || o.id;
+  // The catalog knows the current-language service name; the stored title is from the day of the order.
+  return window.ShizhongCatalog?.orderTitle?.(o) || lc('orders', o, 'title') || o.title || o.id;
 }
 function flowsAfterSales(orderId) {
   if (!SZ.requireLogin(t('flows.reason.afterSales'))) return;
@@ -2289,22 +2335,6 @@ function flowsReport(targetId) {
     },
   });
 }
-async function flowsLeaveGroup(id, el) {
-  const group = [...(state.groups || []), ...defaultGroups].find(g => g.id === id);
-  const name = group ? lc('groups', group, 'name') || group.name : '';
-  const ok = await SZ.confirm({
-    title: t('flows.group.leaveTitle'),
-    message: t('flows.group.leaveBody', { name }),
-    confirmText: t('flows.group.leave'),
-    danger: true,
-  });
-  if (!ok || !SZ.store.commit(s => (s.joined = s.joined.filter(g => g !== id)))) return;
-  const layer = el?.isConnected ? SZ.overlay.of(el) : null;
-  if (layer && !layer.meta.flowsKey) SZ.overlay.close({ layer, force: true });
-  flowsRender();
-  toast(t('flows.group.left', { name }));
-}
-
 // ------------------------------------------------------------------ help, privacy, about, licences
 function flowsHelp() {
   return flowsOpen('help', {
@@ -2396,15 +2426,10 @@ function flowsLicences() {
 }
 
 // ------------------------------------------------------------------ profile sharing, membership (legacy entry points)
-function flowsCopyId() {
-  const id = SZ.session.account?.displayId;
-  if (!id) return SZ.requireLogin(t('flows.reason.profile'));
-  copyText(String(id), t('flows.profile.idCopied'));
-}
 function flowsCopyProfile() {
   const id = SZ.session.account?.displayId || '';
   copyText(
-    t('flows.profile.cardText', { name: state.profile.name, bio: state.profile.bio || '', id }),
+    t('flows.profile.cardText', { name: flowsProfileName(), bio: flowsProfileBio(), id }),
     t('flows.profile.cardCopied')
   );
 }
@@ -2435,7 +2460,7 @@ function flowsClaimMember() {
   toast(t('flows.member.done'), { type: 'success' });
 }
 
-// ------------------------------------------------------------------ order success & legacy request form (catalog.js calls these)
+// ------------------------------------------------------------------ order success (contract; catalog shows its own result sheet)
 function flowsOrderStatusLabel(order) {
   const code = typeof orderStatus === 'function' ? orderStatus(order) : '';
   return code && t.has(`flows.orderStatus.${code}`) ? t(`flows.orderStatus.${code}`) : order.status || '';
@@ -2455,95 +2480,45 @@ function orderSuccess(order) {
     primary: act('order-detail', order.id, t('flows.order.view'), 'btn btn-primary btn-lg btn-block'),
   });
 }
-function flowsServiceAddress(service) {
-  const city = service ? service.location || service.city : state.location || state.city;
-  return window.ShizhongAddresses.defaultFor(city)?.address || '';
+// ------------------------------------------------------------------ live gift history ('gift-wall', linked from the gift collection)
+/** Escaped demo text; untranslated source-language text is marked lang="zh-CN". */
+function flowsText(value) {
+  return window.ShizhongCatalog?.html ? window.ShizhongCatalog.html(value) : esc(value);
 }
-/** Old generic request form, still used by catalog.js requestForm() for categories without their own flow. */
-function legacyRequestForm(id, serviceId = '') {
-  const c = [...categories, ...moreCategories].find(x => x.id === id) || categories[0];
-  const s = services.find(x => x.id === serviceId);
-  const L = key => t(`flows.request.${key}`);
-  const options = key => L('options.' + key).split('|');
-  const address = flowsServiceAddress(s);
-  let content = '';
-  let contactRequired = true;
-  if (['clean', 'repair', 'beauty'].includes(id)) {
-    content =
-      selectField(L('project'), 'project', options(id)) +
-      field(L('address'), 'address', 'text', L('addressPlaceholder'), true, address) +
-      field(L('date'), 'date', 'date', '', true);
-  } else if (id === 'guide') {
-    content =
-      selectField(L('guideCity'), 'city', cities, state.city) +
-      `<div class="form-row">${field(L('tripDate'), 'date', 'date', '', true)}${selectField(L('people'), 'people', options('people'))}</div>` +
-      selectField(L('language'), 'language', options('language'));
-  } else if (['market', 'food', 'flower'].includes(id)) {
-    content = s
-      ? ''
-      : field(L('want'), 'project', 'text', id === 'flower' ? L('wantFlower') : L('wantGoods'), true);
-    content +=
-      field(L('deliverTo'), 'address', 'text', L('deliverPlaceholder'), true, address) +
-      selectField(L('deliverTime'), 'time', options('deliverTime'));
-    if (s)
-      content += `<div class="count-control">${act('quantity', '-1', '−', '', `aria-label="${esc(L('less'))}"`)}<output id="quantity" aria-live="polite">${ui.quantity}</output>${act('quantity', '1', '+', '', `aria-label="${esc(L('more'))}"`)}</div><div class="summary-row"><span>${L('subtotal')}</span><strong id="goods-total">${esc(SZ.fmt.money(s.price * ui.quantity, { cents: true }))}</strong></div>`;
-  } else if (id === 'jobs') {
-    content =
-      selectField(L('intent'), 'intent', options('intent')) +
-      field(L('position'), 'project', 'text', L('positionPlaceholder'), true) +
-      selectField(L('workCity'), 'city', cities, state.city) +
-      field(L('salary'), 'salary', 'text', L('salaryPlaceholder'));
-  } else if (id === 'car') {
-    content =
-      field(L('pickup'), 'from', 'text', L('pickupPlaceholder'), true) +
-      field(L('destination'), 'to', 'text', L('destinationPlaceholder'), true) +
-      `<div class="form-row">${field(L('rideDate'), 'date', 'date', '', true)}${field(L('rideTime'), 'time', 'time', '', true)}</div>` +
-      field(L('flight'), 'flight', 'text', L('flightPlaceholder'));
-  } else if (id === 'delivery') {
-    content =
-      field(L('pickFrom'), 'from', 'text', L('pickFromPlaceholder'), true) +
-      field(L('deliverTo'), 'to', 'text', L('deliverPlaceholder'), true) +
-      field(L('item'), 'project', 'text', L('itemPlaceholder'), true);
-  } else if (id === 'phone') {
-    content =
-      field(L('number'), 'number', 'tel', L('numberPlaceholder'), true) +
-      selectField(L('provider'), 'provider', options('provider')) +
-      selectField(L('amount'), 'amount', ['RM 10', 'RM 20', 'RM 50', 'RM 100']);
-    contactRequired = false;
-  } else {
-    content =
-      field(
-        id === 'visa' ? L('visaTopic') : L('where'),
-        'project',
-        'text',
-        id === 'visa' ? L('visaPlaceholder') : L('wherePlaceholder'),
-        true
-      ) +
-      field(L('when'), 'date', 'date', '', true) +
-      selectField(L('people'), 'people', options('people'));
-  }
-  if (!s && !['guide', 'jobs'].includes(id))
-    content = selectField(L('serviceCity'), 'city', cities, state.location || state.city) + content;
-  const name = s ? lc('services', s, 'name') : '';
-  const title = s ? name : t('flows.request.title', { category: c.name });
-  const head = s
-    ? `<div class="form-summary"><img src="${asset(s.image)}" alt=""><div><h3>${esc(lc('services', s, 'store'))}</h3><p>${esc(SZ.fmt.money(s.price))} / ${esc(lc('services', s, 'unit'))}</p></div></div>`
-    : '';
-  const contact = contactRequired
-    ? field(
-        L('phone'),
-        'phone',
-        'tel',
-        s ? L('phonePlaceholderService') : L('phonePlaceholder'),
-        true,
-        state.profile.phone
-      )
-    : '';
-  return SZ.overlay.open({
-    kind: 'sheet',
-    title,
-    className: 'flows-layer flows-request',
-    html: `<div class="flows-body"><form data-form="request" data-category="${esc(id)}" data-service="${esc(serviceId)}">${head}${content}${contact}${field(L('note'), 'note', 'textarea', L('notePlaceholder'))}${formNote()}${submitButton(s?.type === 'goods' ? L('submitGoods') : L('submit'))}</form></div>`,
+function flowsGiftWallRow(h) {
+  const host = h.hostId ? flowsPerson(h.hostId) : null;
+  const gift = (window.ShizhongLive?.gifts?.() || window.SHIZHONG_LIVE_GIFTS || []).find(
+    g => g.id === h.giftId
+  );
+  const name = tc('liveGifts', h.giftId, 'name', gift?.name || h.name || '');
+  const art = window.SHIZHONG_GIFT_ART?.[h.giftId]?.thumb || gift?.image;
+  const thumb = art
+    ? `<span class="flows-bill-icon flows-gift-thumb"><img src="${esc(asset(art))}" alt="" loading="lazy" decoding="async"></span>`
+    : `<span class="flows-bill-icon">${icon('gift')}</span>`;
+  const who = host ? personName(host) : h.hostName || '';
+  const when = typeof h.time === 'number' ? SZ.fmt.dateTime(h.time) : SZ.fmt.date(h.time, 'medium');
+  const meta = [who ? t('flows.giftWall.to', { name: flowsText(who) }) : '', esc(when)].filter(Boolean);
+  return `<li class="list-row flows-bill">${thumb}<span class="list-row-main"><span class="flows-row-label">${t('flows.giftWall.item', { name: flowsText(name), n: SZ.fmt.number(h.quantity || 1) })}</span><small class="flows-row-sub">${meta.join(' · ')}</small></span>${h.total ? `<span class="flows-bill-amount num">${esc(tn('flows.giftWall.beans', Number(h.total)))}</span>` : ''}</li>`;
+}
+function flowsGiftWall() {
+  const history = Array.isArray(state.live?.giftHistory) ? state.live.giftHistory : [];
+  // Very old saves only have state.sentGifts ({ name, host, time }).
+  const legacy = history.length ? [] : Array.isArray(state.sentGifts) ? state.sentGifts : [];
+  const rows = history.length
+    ? history.slice(0, 60).map(flowsGiftWallRow)
+    : legacy.slice(0, 60).map(g => flowsGiftWallRow({ name: g.name, hostName: g.host, time: g.time }));
+  flowsOpen('gift-wall', {
+    title: t('flows.giftWall.title'),
+    body: () =>
+      rows.length
+        ? `<p class="flows-lead">${t('flows.giftWall.intro')}</p><ul class="list flows-bills">${rows.join('')}</ul>`
+        : flowsEmpty(
+            'gift',
+            t('flows.giftWall.emptyTitle'),
+            t('flows.giftWall.emptyText'),
+            'flows-go-live',
+            t('flows.giftWall.browse')
+          ),
   });
 }
 
@@ -2579,22 +2554,25 @@ const FLOWS_ACTIONS = {
   feedback: () => flowsFeedback(),
   'after-sales': id => flowsAfterSales(id),
   report: id => flowsReport(id),
-  block: (id, el) => flowsBlock(id, el),
   unblock: id => flowsUnblock(id),
-  'leave-group': (id, el) => flowsLeaveGroup(id, el),
   help: () => flowsHelp(),
   privacy: () => flowsPrivacy(),
   about: () => flowsAbout(),
   'export-data': () => flowsExportSheet(),
   'reset-data': () => flowsResetAccount(),
-  'copy-id': () => flowsCopyId(),
   'copy-profile': () => flowsCopyProfile(),
+  // The Me page QR button; the personal-QR module draws the card.
   'share-profile': () =>
     window.ShizhongPersonalQR?.open
       ? window.ShizhongPersonalQR.open()
       : toast(t('flows.profile.qrUnavailable')),
   membership: () => flowsMembership(),
   'claim-member': () => flowsClaimMember(),
+  'go-home': () => navigate('home'),
+  'chat-options': id => flowsChatOptions(id),
+  'gift-wall': () => flowsGiftWall(),
+  // Fallback only: the live module registers its own start-live screen, which runs first.
+  'start-live': () => flowsStartLivePreview(),
 };
 const FLOWS_INTERNAL = {
   'flows-toggle': (id, el) => flowsToggleSetting(id, el),
@@ -2641,8 +2619,12 @@ const FLOWS_INTERNAL = {
   'flows-licences': () => flowsLicences(),
   'flows-invite-share': () => flowsInviteShare(),
   'flows-invite-copy-code': () => copyText(flowsInviteCode(), t('flows.invite.codeCopied')),
+  'flows-go-live': () => {
+    ui.liveTab = 'public';
+    navigate('live');
+  },
 };
-SZ.actions.register(new RegExp('^(?:' + Object.keys(FLOWS_ACTIONS).join('|') + ')$'), (action, id, el) => {
+SZ.actions.register(Object.keys(FLOWS_ACTIONS), (action, id, el) => {
   FLOWS_ACTIONS[action](id, el);
 });
 SZ.actions.register('flows-', (action, id, el) => {
@@ -2651,128 +2633,14 @@ SZ.actions.register('flows-', (action, id, el) => {
   run(id, el);
 });
 
-// ------------------------------------------------------------------ legacy fallback (other owners' actions)
+// ------------------------------------------------------------------ fallback for unregistered actions
 /*
- * Actions that other modules render but have not registered with SZ.actions yet. Kept as thin
- * delegates so nothing breaks while modules migrate; SZ.actions handlers always win.
+ * Core calls menuAction only when no module registered the action (every screen registers its own
+ * through SZ.actions). It stays a global because CONTRACTS lists it; it only reports the miss.
  */
-function menuAction(action, id, button) {
-  if (typeof expandedAction === 'function' && expandedAction(action, id, button)) return;
-  switch (action) {
-    case 'nav':
-      return navigate(id);
-    case 'go-home':
-      return navigate('home');
-    case 'home-tab':
-      ui.homeTab = id;
-      ui.homeFilter = FLOWS_UI_DEFAULTS.homeFilter;
-      return flowsRender();
-    case 'home-filter':
-      ui.homeFilter = id;
-      return flowsRender();
-    case 'social-tab':
-      ui.socialTab = id;
-      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
-      return flowsRender();
-    case 'social-filter':
-      ui.socialFilter = id;
-      return flowsRender();
-    case 'live-tab':
-      ui.liveTab = id;
-      ui.liveFilter = FLOWS_UI_DEFAULTS.liveFilter;
-      return flowsRender();
-    case 'live-filter':
-      ui.liveFilter = id;
-      return flowsRender();
-    case 'comms-tab':
-      ui.commsTab = id;
-      return flowsRender();
-    case 'category':
-      return flowsCall('categoryPage', id);
-    case 'service':
-      return flowsCall('serviceDetail', id);
-    case 'request':
-      ui.quantity = 1;
-      return flowsCall('requestForm', id);
-    case 'book-service': {
-      const s = services.find(x => x.id === id);
-      if (!s) return;
-      ui.quantity = 1;
-      return flowsCall('requestForm', s.cat, id);
-    }
-    case 'quantity':
-      return flowsLegacyQuantity(id, button);
-    case 'save-service':
-      return flowsLegacySave(id);
-    case 'orders':
-      return flowsCall('orders', id);
-    case 'order-detail':
-      return flowsCall('orderDetail', id);
-    case 'person':
-      return flowsCall('personDetail', id);
-    case 'chat':
-      return flowsOpenChat(id);
-    case 'comments':
-      return flowsCall('comments', id);
-    case 'social-filters':
-      return flowsCall('filterPeople');
-    case 'social-recommend':
-      SZ.overlay.closeAll();
-      ui.socialTab = 'friends';
-      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
-      return flowsRender();
-    case 'photo':
-      return SZ.overlay.open({
-        kind: 'sheet',
-        title: t('flows.legacy.photo'),
-        className: 'flows-layer',
-        html: `<img class="flows-photo" src="${esc(id)}" alt="${esc(t('flows.legacy.photoAlt'))}">`,
-      });
-    case 'room':
-      return flowsCall('room', id);
-    case 'next-room':
-      return flowsCall('nextRoom');
-    case 'group-detail':
-      return flowsCall('groupDetail', id);
-    case 'join-group':
-      return flowsLegacyJoinGroup(id);
-    case 'create-group':
-      return flowsLegacyCreateGroup();
-    case 'start-live':
-      return flowsLegacyStartLive();
-    case 'book-call':
-      return callBooking(id);
-    case 'connect-order': {
-      const o = state.orders.find(x => x.id === id);
-      return o?.hostId ? callBooking(o.hostId) : undefined;
-    }
-    case 'chat-options':
-      return flowsChatOptions(id);
-    case 'social-event':
-      return flowsNeed(['people'], () =>
-        SZ.overlay.open({
-          kind: 'sheet',
-          title: t('flows.legacy.eventTitle'),
-          className: 'flows-layer',
-          html: `<p class="flows-lead">${t('flows.legacy.eventText')}</p><div class="people-list">${people
-            .filter(p => !state.blocked.includes(p.id))
-            .slice(0, 3)
-            .map(p => flowsCall('personRow', p) || '')
-            .join('')}</div>`,
-        })
-      );
-    case 'chat-emoji': {
-      const input = SZ.overlay.$('.chat-composer input[name="text"]');
-      if (input) {
-        input.value += ' ❤️';
-        input.focus();
-      }
-      return;
-    }
-    default:
-      console.warn('[flows] unhandled action', action);
-      toast(t('flows.legacy.unavailable'));
-  }
+function menuAction(action) {
+  console.warn('[flows] unhandled action', action);
+  toast(t('flows.legacy.unavailable'));
 }
 /** Conversation menu: profile, report and block for people; group info and leaving for groups. */
 function flowsChatOptions(id) {
@@ -2787,65 +2655,13 @@ function flowsChatOptions(id) {
   SZ.overlay.open({
     kind: 'sheet',
     title: t('flows.chatOptions.title'),
+    meta: { flowsKey: 'chat-options', cxChat: id }, // closed with the chat when the person is blocked
     className: 'flows-layer',
     html: `<div class="list">${rows}</div><p class="caption flows-footnote">${t('flows.chatOptions.note')}</p>`,
   });
 }
-function flowsLegacyQuantity(step, button) {
-  const form = button?.closest('form');
-  const s = services.find(x => x.id === form?.dataset.service);
-  ui.quantity = Math.max(1, Math.min(20, ui.quantity + Number(step)));
-  const out = form?.querySelector('#quantity');
-  if (out) out.value = ui.quantity;
-  const total = form?.querySelector('#goods-total');
-  if (total && s) total.textContent = SZ.fmt.money(s.price * ui.quantity, { cents: true });
-}
-function flowsLegacySave(id) {
-  const at = state.saved.indexOf(id);
-  if (!SZ.store.commit(s => (at < 0 ? s.saved.push(id) : s.saved.splice(at, 1)))) return;
-  flowsRender();
-  toast(at < 0 ? t('flows.legacy.saved') : t('flows.legacy.unsaved'));
-}
-function flowsLegacyJoinGroup(id) {
-  if (!SZ.requireLogin(t('flows.reason.message'))) return;
-  if (!state.joined.includes(id) && !SZ.store.commit(s => s.joined.push(id))) return;
-  flowsRender();
-  flowsOpenChat(id);
-  toast(t('flows.legacy.joined'));
-}
-function flowsLegacyCreateGroup() {
-  if (!SZ.requireLogin(t('flows.reason.message'))) return;
-  flowsOpen('create-group', {
-    kind: 'sheet',
-    title: t('flows.legacy.groupTitle'),
-    body: () =>
-      `<form class="flows-form">${field(t('flows.legacy.groupName'), 'name', 'text', t('flows.legacy.groupNamePlaceholder'), true, '', { maxlength: 30 })}${selectField(t('flows.address.city'), 'city', cities, state.location || state.city)}${field(t('flows.legacy.groupDesc'), 'desc', 'textarea', t('flows.legacy.groupDescPlaceholder'), true, '', { maxlength: 200, rows: 3 })}${submitButton(t('flows.legacy.groupCreate'))}</form>`,
-    form(data, form, layer) {
-      const location = flowsFormLocation(form);
-      const id = 'g' + Date.now();
-      if (
-        !SZ.store.commit(s => {
-          s.groups.unshift({
-            id,
-            name: data.name,
-            desc: data.desc,
-            city: location?.cityName || data.city,
-            location,
-            count: 1,
-            icon: 'group',
-          });
-          s.joined.push(id);
-        })
-      )
-        return;
-      flowsDone(layer);
-      flowsRender();
-      flowsOpenChat(id);
-      toast(t('flows.legacy.groupCreated'), { type: 'success' });
-    },
-  });
-}
-function flowsLegacyStartLive() {
+/** Host preview used only until the live module registers its own start-live screen. */
+function flowsStartLivePreview() {
   if (!SZ.requireLogin(t('flows.reason.live'))) return;
   const topics = ['chat', 'travel', 'language', 'music'].map(v => ({
     value: v,
@@ -2870,67 +2686,18 @@ function flowsLegacyStartLive() {
   });
 }
 /*
- * Forms rendered by modules that do not handle their own submit yet. This listener sits on
- * window, so a module's own document-level handler runs first; anything it already handled
- * (defaultPrevented) is left alone. Flows' own forms are bound directly in flowsBindForm.
+ * Plain forms without their own submit handler (the shell's searchForm()). The listener sits on
+ * window, so a module's own handler runs first; anything it handled (defaultPrevented) is left
+ * alone. Flows' own forms are bound in flowsBindForm.
  */
 window.addEventListener('submit', event => {
   const form = event.target.closest?.('form[data-form]');
   if (!form || event.defaultPrevented) return;
   event.preventDefault();
-  if (!form.reportValidity()) return;
-  const data = flowsFormData(form);
   const kind = form.dataset.form;
-  if (kind === 'search') return flowsCall('search', data.q || '');
-  if (kind === 'chat-search') return flowsCall('search', data.q || '', true);
-  if (kind === 'request') {
-    if (!validateRequiredText(form, data)) return;
-    for (const input of form.querySelectorAll('input[type="tel"]'))
-      if (data[input.name] && !flowsValidPhone(data[input.name])) {
-        flowsFieldError(input, t('flows.form.phoneInvalid'));
-        return input.focus();
-      }
-    if (!form.dataset.service) {
-      const location = flowsFormLocation(form);
-      if (location) {
-        data.location = location;
-        data.city = location.cityName || data.city;
-      }
-    }
-    delete data.locationData;
-    if (!SZ.requireLogin(t('flows.reason.order'))) return;
-    return flowsCall('createOrder', data, form.dataset.category, form.dataset.service);
-  }
-  if (kind === 'chat') {
-    if (!data.text) return;
-    const id = form.dataset.chat;
-    if (!SZ.requireLogin(t('flows.reason.message'))) return;
-    flowsAppendMessage(id, { text: data.text });
-    if (id === 'support') flowsAppendMessage(id, { self: false, text: t('flows.legacy.supportReply') });
-    form.reset();
-    if (window.ShizhongChat?.refresh) window.ShizhongChat.refresh(id);
-    else flowsCall('openChat', id);
-    return;
-  }
-  if (kind === 'comment') {
-    if (!data.text || !SZ.requireLogin(t('flows.reason.post'))) return;
-    const id = form.dataset.post;
-    if (
-      !SZ.store.commit(s => {
-        if (!s.comments[id]) s.comments[id] = [];
-        s.comments[id].push({ name: s.profile.name, text: data.text, time: Date.now() });
-      })
-    )
-      return;
-    flowsRender();
-    return flowsCall('comments', id);
-  }
-  if (kind === 'social-filter') {
-    ui.cityFilter = data.city;
-    ui.interestFilter = data.interest;
-    SZ.overlay.close();
-    return flowsRender();
-  }
+  if (kind !== 'search' && kind !== 'chat-search') return;
+  const q = String(new FormData(form).get('q') || '').trim();
+  flowsCall('search', q, kind === 'chat-search');
 });
 
 // ------------------------------------------------------------------ boot: media migration, demo seeds

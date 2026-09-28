@@ -1593,5 +1593,232 @@
     "msg": "backing out of bank approval keeps the order unplaced"
    }
   ]
+ },
+ {
+  "name": "e2e-order-lifecycle",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('service', 's3'), true"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service][data-id=s3]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "eval": "(()=>{const a=SZ.overlay.$('[data-checkout-input=address]');if(a&&!a.closest('[hidden]')){a.value='Jalan Ampang 12, Unit 3A';a.dispatchEvent(new Event('input',{bubbles:true}))}return true})()"
+   },
+   {
+    "eval": "window.__w=state.wallet, window.__n=state.notices.length, true"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "!!(state.orders[0].serviceId==='s3' && state.orders[0].status==='pending' && state.bills[0].orderId===state.orders[0].id && state.bills[0].kind==='order' && state.bills[0].i18n && state.wallet<window.__w)",
+    "msg": "order, payment bill (kind + i18n) and wallet change together"
+   },
+   {
+    "expect": "!!(state.notices[0].type==='order' && state.notices[0].action.name==='order-detail' && state.notices[0].action.id===state.orders[0].id)",
+    "msg": "placing the order posts an order notice"
+   },
+   {
+    "shot": "success"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.top().meta.view==='order' && !!SZ.overlay.$('.checkout-status-tag[data-status=pending]')",
+    "msg": "order detail shows the pending status"
+   },
+   {
+    "eval": "window.__mu=ShizhongChat.unread('merchant:s3'), true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=confirm-order]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!(state.orders[0].status==='confirmed' && state.notices[0].type==='order' && state.notices[0].action.id===state.orders[0].id && state.notices.length>=window.__n+2)",
+    "msg": "merchant confirmation: status + notice"
+   },
+   {
+    "expect": "ShizhongChat.unread('merchant:s3')===window.__mu+1 && !!SZ.overlay.$('.checkout-status-tag[data-status=confirmed]')",
+    "msg": "merchant message waits unread in Messages; detail refreshed in place"
+   },
+   {
+    "shot": "confirmed"
+   },
+   {
+    "click": "[data-sz-layer]:last-child .checkout-bottom-bar [data-action=complete-order]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-star='5']"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=review]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!(state.orders[0].status==='done' && state.orders[0].review && state.orders[0].review.stars===5)",
+    "msg": "completed and reviewed"
+   },
+   {
+    "eval": "SZ.actions.dispatch('wallet'), true"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!SZ.overlay.$('.flows-bill-link[data-action=order-detail][data-id=\"'+state.orders[0].id+'\"]')",
+    "msg": "the payment in the wallet links to the order"
+   },
+   {
+    "shot": "wallet"
+   },
+   {
+    "eval": "SZ.overlay.$('.flows-bill-link[data-action=order-detail]').click(), true"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.top().meta.view==='order' && SZ.overlay.top().meta.orderId===state.orders[0].id",
+    "msg": "bill opens the order"
+   },
+   {
+    "eval": "SZ.actions.dispatch('notifications'), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=flows-notice-open]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.top().meta.view==='order' && SZ.overlay.top().meta.orderId===state.orders[0].id",
+    "msg": "the newest notice opens the order"
+   }
+  ]
+ },
+ {
+  "name": "e2e-guest-clean",
+  "hash": "me",
+  "session": "guest",
+  "steps": [
+   {
+    "expect": "state.follows.length===0 && state.orders.length===0 && state.joined.length===0 && state.bills.length===0",
+    "msg": "guests start without demo follows, orders or groups"
+   },
+   {
+    "expect": "(document.querySelector('#app [data-action=stat][data-id=follows] strong')?.textContent||'0').trim()==='0'",
+    "msg": "Me shows 0 following"
+   },
+   {
+    "eval": "SZ.actions.dispatch('orders', 'pending'), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.top().meta.view==='orders' && SZ.overlay.top().meta.filter==='pending' && orderCounts().all===0",
+    "msg": "status-code order filter"
+   }
+  ]
+ },
+ {
+  "name": "e2e-orders-filters",
+  "hash": "me",
+  "steps": [
+   {
+    "expect": "(()=>{const c=orderCounts();return c.all===state.orders.length && c.all>0 && ['pending','confirmed','serving','done','cancelled'].every(k=>typeof c[k]==='number')})()",
+    "msg": "orderCounts() adds up"
+   },
+   {
+    "click": "#app [data-action=orders][data-id=done]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.top().meta.filter==='done' && [...SZ.overlay.top().el.querySelectorAll('.checkout-order .checkout-status-tag')].every(el=>el.dataset.status==='done')",
+    "msg": "Me › Done opens only completed orders"
+   },
+   {
+    "eval": "SZ.actions.dispatch('orders', ''), true"
+   },
+   {
+    "wait": 200
+   },
+   {
+    "expect": "SZ.overlay.top().meta.filter==='all'",
+    "msg": "empty filter = all orders"
+   },
+   {
+    "eval": "SZ.actions.dispatch('orders', '已完成'), true"
+   },
+   {
+    "wait": 200
+   },
+   {
+    "expect": "SZ.overlay.top().meta.filter==='done'",
+    "msg": "legacy Chinese status still maps"
+   }
+  ]
+ },
+ {
+  "name": "e2e-comms-refresh",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "eval": "ShizhongChat.append('p3', { self: false, type: 'text', text: 'Ping from QA' }, { reply: false }), true"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "(()=>{const rows=[...document.querySelectorAll('#app .checkout-row[data-action=chat]')];return rows[0]?.dataset.id==='support' && rows[1]?.dataset.id==='p3' && !!rows[1].querySelector('.badge')})()",
+    "msg": "a new message moves the chat to the top with a badge, without leaving the tab"
+   },
+   {
+    "expect": "(document.querySelector('#bottom-nav [data-id=comms] .nav-badge')?.textContent||'').trim()===String(Math.min(99,ShizhongChat.unreadCount()))",
+    "msg": "nav badge follows"
+   }
+  ]
  }
 ]

@@ -184,7 +184,7 @@
   }
   const statusLabel = status => t(`catalog.order.status.${status}`);
   const statusTag = status =>
-    `<span class="tag checkout-status-tag checkout-status-${status}">${esc(statusLabel(status))}</span>`;
+    `<span class="tag checkout-status-tag checkout-status-${status}" data-status="${status}">${esc(statusLabel(status))}</span>`;
   function pickKey(...keys) {
     return keys.find(k => t.has(k)) || keys[keys.length - 1];
   }
@@ -296,7 +296,8 @@
       return [
         field('candidate', t('catalog.field.candidate'), {
           required: true,
-          value: v('candidate') || state.profile.name || '',
+          value:
+            v('candidate') || (typeof profileName === 'function' ? profileName() : state.profile.name) || '',
           placeholder: t('catalog.form.namePlaceholder'),
         }),
         phone,
@@ -625,7 +626,7 @@
     const options = list
       .map(
         a =>
-          `<button type="button" class="checkout-address" role="radio" aria-checked="${m.addressId === String(a.id)}" data-checkout="address" data-value="${esc(a.id)}"><span class="checkout-radio" aria-hidden="true"></span><span><span class="checkout-address-name">${html(a.name || state.profile.name)}${a.phone ? ` · ${esc(a.phone)}` : ''}</span><span class="checkout-address-line">${html(addressLine(a))}</span></span></button>`
+          `<button type="button" class="checkout-address" role="radio" aria-checked="${m.addressId === String(a.id)}" data-checkout="address" data-value="${esc(a.id)}"><span class="checkout-radio" aria-hidden="true"></span><span><span class="checkout-address-name">${html(a.name || (typeof profileName === 'function' ? profileName() : state.profile.name))}${a.phone ? ` · ${esc(a.phone)}` : ''}</span><span class="checkout-address-line">${html(addressLine(a))}</span></span></button>`
       )
       .join('');
     return `<section class="checkout-block"><div class="section-header"><h3 class="checkout-block-title" id="checkout-address-title">${esc(GOODS.includes(m.cat) ? t('catalog.confirm.deliverTo') : t('catalog.confirm.serviceAddress'))}</h3>${act('addresses', '', esc(t('catalog.confirm.manageAddresses')), 'btn btn-ghost btn-sm checkout-view-all')}</div>${
@@ -974,11 +975,13 @@
         sum.payable > 0
           ? {
               id: SZ.uid('bill'),
+              kind: 'order',
               type: 'order-payment',
               orderId: order.id,
               title: t('catalog.bill.payment', { title: orderTitle(order) }),
+              i18n: { key: 'catalog.bill.payment', params: { title: orderTitle(order) } },
               amount: -sum.payable,
-              method: methodLabel(m.method),
+              method: m.method, // code; the wallet translates it when drawing
               time: now,
             }
           : null;
@@ -1016,12 +1019,19 @@
     C.markTabStale?.();
     successSheet(order);
     const flow = orderFlow(order);
+    // Keys + params (not only text) so the notice centre shows them in the language of the day.
+    const titleKey = `catalog.notice.placed.${isPaidFlow(flow) ? 'paid' : flow}`;
+    const params = { title: orderTitle(order), id: order.id, orderId: order.id };
     window.ShizhongNotices?.push?.({
       type: 'order',
-      title: t(`catalog.notice.placed.${isPaidFlow(flow) ? 'paid' : flow}`),
-      body: t('catalog.notice.placedBody', { title: orderTitle(order), id: order.id }),
+      title: t(titleKey),
+      body: t('catalog.notice.placedBody', params),
+      titleKey,
+      bodyKey: 'catalog.notice.placedBody',
+      params,
       action: { name: 'order-detail', id: order.id },
       ts: order.createdAt,
+      silent: true, // the success sheet already says it
     });
   }
   function successSheet(order) {
@@ -1122,12 +1132,17 @@
         when: when || t('catalog.merchant.soon'),
       })
     );
+    const titleKey = pickKey(`catalog.notice.confirmed.${flow}`, 'catalog.notice.confirmed.service');
     window.ShizhongNotices?.push?.({
       type: 'order',
-      title: t(pickKey(`catalog.notice.confirmed.${flow}`, 'catalog.notice.confirmed.service')),
+      title: t(titleKey),
       body: t('catalog.notice.confirmedBody', { title, id }),
+      titleKey,
+      bodyKey: 'catalog.notice.confirmedBody',
+      params: { title, id, orderId: id },
       action: { name: 'order-detail', id },
       ts: Date.now(),
+      silent: true, // the toast below carries the same news with a View action
     });
     toast(t(pickKey(`catalog.notice.confirmed.${flow}`, 'catalog.notice.confirmed.service')), {
       type: 'success',
@@ -1194,11 +1209,13 @@
           order.refunded = refund;
           s.bills.unshift({
             id: SZ.uid('bill'),
+            kind: 'refund',
             type: 'order-refund',
             orderId: id,
             title: t('catalog.bill.refund', { title: orderTitle(order) }),
+            i18n: { key: 'catalog.bill.refund', params: { title: orderTitle(order) } },
             amount: refund,
-            method: methodLabel('wallet'),
+            method: 'wallet',
             time: now,
           });
         }

@@ -108,7 +108,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "周末有空一起去喝咖啡吗？"
+        "value": "Free for coffee this weekend?"
       },
       {
         "submit": ".cx-composer"
@@ -150,7 +150,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "这条消息用来测试长按菜单"
+        "value": "Long-press me to open the menu"
       },
       {
         "submit": ".cx-composer"
@@ -192,7 +192,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "回复你这句"
+        "value": "Replying to this one"
       },
       {
         "submit": ".cx-composer"
@@ -215,7 +215,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "发错了，马上撤回"
+        "value": "Oops, wrong chat"
       },
       {
         "submit": ".cx-composer"
@@ -340,6 +340,16 @@
         "wait": 500
       },
       {
+        "type": ".cx-input",
+        "value": "Durian cendol tonight?"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "wait": 300
+      },
+      {
         "click": "[data-action=cx-menu]"
       },
       {
@@ -356,7 +366,7 @@
       },
       {
         "type": ".cx-search-input",
-        "value": "的"
+        "value": "durian"
       },
       {
         "wait": 300
@@ -364,6 +374,10 @@
       {
         "expect": "document.querySelectorAll('.cx-row.is-hit').length > 0",
         "msg": "search highlights matches"
+      },
+      {
+        "expect": "/1/.test(document.querySelector('.cx-search-count')?.textContent || '')",
+        "msg": "match count shown"
       }
     ]
   },
@@ -561,7 +575,7 @@
       },
       {
         "type": ".cx-sheet input[name=note]",
-        "value": "晚餐"
+        "value": "Dinner"
       },
       {
         "submit": ".cx-sheet form"
@@ -917,7 +931,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "我的订单什么时候确认？"
+        "value": "When will my order be confirmed?"
       },
       {
         "submit": ".cx-composer"
@@ -959,7 +973,7 @@
       },
       {
         "type": ".cx-input",
-        "value": "你好呀"
+        "value": "Hi there!"
       },
       {
         "submit": ".cx-composer"
@@ -1158,6 +1172,138 @@
       {
         "expect": "SZ.overlay.depth()===1",
         "msg": "back closes the menu only"
+      }
+    ]
+  },
+  {
+    "name": "e2e-chat-reply-badge",
+    "hash": "comms",
+    "steps": [
+      {
+        "wait": 1200
+      },
+      {
+        "click": "#app [data-action=chat][data-id=p2]"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "type": ".cx-input",
+        "value": "See you at the pasar malam at 8?"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 300
+      },
+      {
+        "eval": "window.__n=ShizhongChat.unreadCount(), true"
+      },
+      {
+        "expect": "(async()=>{for(let i=0;i<100;i++){if(ShizhongChat.unread('p2')===1)return true;await new Promise(r=>setTimeout(r,100))}return false})()",
+        "msg": "the reply arrives after leaving the chat"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "ShizhongChat.unreadCount()===window.__n+1 && (document.querySelector('#bottom-nav [data-id=comms] .nav-badge')?.textContent||'').trim()===String(Math.min(99,window.__n+1))",
+        "msg": "nav badge counts the reply"
+      },
+      {
+        "expect": "(()=>{const row=document.querySelector('#app .checkout-row[data-action=chat][data-id=p2]');return !!row && row.querySelector('.badge')?.textContent.trim()==='1' && [...document.querySelectorAll('#app .checkout-row[data-action=chat]')][1]===row})()",
+        "msg": "Messages list: p2 on top of the conversations with 1 unread"
+      },
+      {
+        "shot": "list"
+      },
+      {
+        "click": "#app [data-action=chat][data-id=p2]"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "ShizhongChat.unread('p2')===0 && ShizhongChat.unreadCount()===window.__n && !document.querySelector('#app .checkout-row[data-id=p2] .badge')",
+        "msg": "reading clears the row and the nav badge"
+      }
+    ]
+  },
+  {
+    "name": "e2e-redpacket-wallet",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__w = state.wallet, window.__b = state.bills.length, true"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "8.88"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "state.bills.length===window.__b+1 && state.bills[0].kind==='chat-envelope' && state.bills[0].chatId==='p1' && state.bills[0].i18n?.key==='chat.money.packetBill' && typeof state.bills[0].time==='number' && Math.round((window.__w-state.wallet)*100)===888",
+        "msg": "red packet writes one bill (kind, chat, i18n, epoch time) with the wallet change"
+      },
+      {
+        "eval": "SZ.actions.dispatch('wallet'), true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "(()=>{const row=SZ.overlay.$('.flows-bills .flows-bill-link[data-kind=envelope][data-id=p1]');return !!row && /8\\.88/.test(row.textContent)})()",
+        "msg": "wallet shows the red packet, with the amount"
+      },
+      {
+        "shot": "wallet"
+      },
+      {
+        "eval": "SZ.overlay.$('.flows-bill-link[data-kind=envelope]').click(), true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!SZ.overlay.top().el.querySelector('.cx-log') && ShizhongChat.isOpen('p1')",
+        "msg": "the bill leads back to the chat"
       }
     ]
   }
