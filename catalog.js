@@ -384,7 +384,7 @@
     return act(
       'service',
       s.id,
-      `<span class="checkout-card-media">${img(s.image, serviceName(s))}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</span><span class="checkout-card-body"><span class="checkout-card-title">${html(serviceName(s))}</span><span class="checkout-card-meta">${meta
+      `<span class="checkout-card-media">${img(s.image, '')}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</span><span class="checkout-card-body"><span class="checkout-card-title">${html(serviceName(s))}</span><span class="checkout-card-meta">${meta
         .filter(Boolean)
         .map(m => `<span>${html(m)}</span>`)
         .join(
@@ -1683,9 +1683,10 @@
     const g = findGroup(id);
     if (!g) return toast(t('catalog.group.missing'), { type: 'error' });
     const joined = state.joined.includes(id);
-    const members = (g.memberIds?.length ? g.memberIds : people.slice(0, 3).map(p => p.id))
-      .map(findPerson)
-      .filter(Boolean);
+    const members = (g.memberIds || []).map(findPerson).filter(Boolean);
+    const self = joined
+      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${html(state.profile.name)}</span></span>`
+      : '';
     const rules = contentList('groups', g, 'rules');
     const recent = conversationMessages(id).slice(-4);
     const meta = [
@@ -1700,7 +1701,7 @@
       title: t('catalog.group.title'),
       className: 'checkout-ui checkout-screen',
       meta: { groupId: id, view: 'group' },
-      html: `<div class="checkout-screen-body"><div class="checkout-group-head">${groupAvatar(g, 64)}<div><h2 class="checkout-detail-title">${html(groupName(g))}</h2><p class="checkout-muted">${html(meta)}</p></div></div><p class="checkout-description">${html(txt('groups', g, 'desc'))}</p><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.meetup'))}</h3><p class="checkout-muted">${html(txt('groups', g, 'meetup') || t('catalog.group.meetupDefault'))}</p><h3 class="checkout-block-title">${esc(t('catalog.group.rules'))}</h3>${bulletList(rules.length ? rules : [t('catalog.group.ruleDefault')], 'check')}</section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.people'))}</h3><div class="checkout-member-strip">${members
+      html: `<div class="checkout-screen-body"><div class="checkout-group-head">${groupAvatar(g, 64)}<div><h2 class="checkout-detail-title">${html(groupName(g))}</h2><p class="checkout-muted">${html(meta)}</p></div></div><p class="checkout-description">${html(txt('groups', g, 'desc'))}</p><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.meetup'))}</h3><p class="checkout-muted">${html(txt('groups', g, 'meetup') || t('catalog.group.meetupDefault'))}</p><h3 class="checkout-block-title">${esc(t('catalog.group.rules'))}</h3>${bulletList(rules.length ? rules : [t('catalog.group.ruleDefault')], 'check')}</section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.people'))}</h3><div class="checkout-member-strip">${self}${members
         .slice(0, 12)
         .map(p =>
           act('person', p.id, `${avatarHTML(p, 48)}<span>${html(personName(p))}</span>`, 'checkout-member')

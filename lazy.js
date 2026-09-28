@@ -4,11 +4,16 @@
  * file://. Screens ask for what they need with demand(keys, draw): missing chunks load behind the
  * top progress bar, then draw() runs — unless the visitor has moved on in the meantime. A failed
  * load keeps the current screen and offers a retry toast (it never replaces the open layer).
- * Tab pages load their data themselves (see pageData in catalog.js); nothing here wraps render,
+ * Tab pages load their data themselves (see loadBody in catalog.js); nothing here wraps render,
  * navigate or any other global.
  */
 (function () {
   const C = (window.ShizhongCatalog = window.ShizhongCatalog || {});
+  // Start the translated service names while the page is still parsing. Requesting it from here
+  // (a root-level script) also sidesteps core/i18n.js resolving the URL against core/boot.js when
+  // boot asks for it inside a microtask; the cached promise is reused by boot. Reading `locale`
+  // first makes i18n pick the visitor's language (loadContent alone does not).
+  if (window.SZ_I18N.locale) window.SZ_I18N.loadContent('catalog-index');
   const loaded = new Set();
   const pending = new Map();
   const failed = new Set();
