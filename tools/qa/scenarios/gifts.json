@@ -605,6 +605,9 @@
         "msg": "rendered PNG shown for long-press saving"
       },
       {
+        "shot": "image"
+      },
+      {
         "back": true
       },
       {
@@ -650,6 +653,30 @@
       {
         "expect": "SZ.overlay.depth() === 1",
         "msg": "back returns to the profile"
+      }
+    ]
+  },
+  {
+    "name": "gifts-effect",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "ShizhongGifts.playEffect('birthday-cake',{caption:'QA',count:3}),true",
+        "settle": 900
+      },
+      {
+        "expect": "!!document.querySelector('.gf-effect')",
+        "msg": "effect stage shown"
+      },
+      {
+        "shot": "mid"
+      },
+      {
+        "key": "Escape"
+      },
+      {
+        "expect": "!document.querySelector('.gf-effect')",
+        "msg": "Escape stops the effect"
       }
     ]
   }
