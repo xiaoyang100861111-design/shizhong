@@ -40,6 +40,7 @@ Globals kept: `field, selectField, summary, submitButton, formNote, uploadField,
 - `window.ShizhongNotices = { push({ type:'order'|'social'|'system'|'promo', title, body, action:{ name, id }, ts }), list(), unread(), markAllRead(), open() }`
 - `window.ShizhongCoupons = { all(), available(amountRM, category) → [{ id, title, amount, min, expiresAt }], use(id, orderId), release(id) }` (call use/release inside `SZ.store.commit`)
 - `window.ShizhongAddresses = { list(), get(id), defaultFor(city) }`
+- `window.ShizhongCheckin = { status() → { done, streak } , open() }`
 
 ### catalog
 Globals kept: `homePage, socialPage, livePage, commsPage, categoryPage, serviceDetail, requestForm, createOrder, orders, orderDetail, personDetail, personRow, groupDetail, groupRow, search, productCard, amount, chatInfo, conversationMessages, contactPeople, livePeople, pagedList, catalogUI, demoData, prepareServices, preparePeople, preparePosts, comments, demand, loadChunk, profileChunks, chatChunks, serviceChunks`.
@@ -50,6 +51,10 @@ Delegates (thin wrappers, kept for old callers):
 `chatInfo(id)` returns already-translated display strings: `{ name, photo, initial, support?, serviceId?, group?, online?, count?, memberIds? … }`.
 Messages: `state.messages[chatId] = [{ id, self, type = 'text' | …, text, time: epochMs, … }]`; `conversationMessages(id)` merges demo + local, sorted.
 Registers routes `service/<id>`, `person/<id>`, `group/<id>`.
+Orders: `orderStatus(order) → 'pending'|'confirmed'|'serving'|'done'|'cancelled'` (maps legacy Chinese
+statuses), `orderCounts() → { pending, confirmed, serving, done, cancelled, all }`.
+Order record: `{ id, title, category, serviceId, items?, data, status, total, payable, discount, couponId?,
+payMethod, quantity, createdAt, history: [{ status, at, note? }], review? }`.
 
 ### chat
 `window.ShizhongChat = { open(chatId), refresh(chatId), renderMessage(m, who), append(chatId, message) → message, unreadCount(), unread(chatId), markRead(chatId), parseCents(text) }`
