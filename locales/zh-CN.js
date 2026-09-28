@@ -165,7 +165,7 @@ SZ_I18N.register(
         },
         checkin: {
           title: '每日签到',
-          reward: '今天签到，可领 10 金豆',
+          reward: { other: '今天签到，可领 {n} 金豆' },
           doneToday: '今天已签到，明天再来',
           streak: { other: '已连续签到 {n} 天' },
           action: '签到',
@@ -182,6 +182,9 @@ SZ_I18N.register(
           invite: '邀请有礼',
           merchant: '商家入驻',
         },
+        notices: '消息通知',
+        noticesUnread: { other: '{n} 条未读' },
+        switchAccount: '切换账号',
         support: '在线客服',
         supportHint: '生活问题随时问',
         help: '帮助与反馈',

@@ -807,3 +807,30 @@ window.SHIZHONG_GIFT_DATA = {
     ['谢谢你认真听我说话，这一点心意送给你。', '这份礼物替我说一句：认识你很开心。'],
   ],
 };
+
+/*
+ * 大马风情 / Malaysia series. Its catalogue ships with the artwork (window.SHIZHONG_GIFT_ART_SERIES,
+ * assets/gift-art/manifest.js, loaded before this file) so prices and art stay in one place.
+ * English names and descriptions: data/i18n/en/gifts.js; the category label: data:gifts in locales.
+ */
+(function () {
+  const data = window.SHIZHONG_GIFT_DATA;
+  const series = window.SHIZHONG_GIFT_ART_SERIES?.malaysia;
+  if (!data || !Array.isArray(series)) return;
+  const known = new Set(data.gifts.map(g => g.id));
+  for (const g of series) {
+    if (!g?.id || known.has(g.id) || !(Number(g.priceRM) > 0)) continue;
+    data.gifts.push({
+      id: g.id,
+      name: g.name_zh,
+      price: Number(g.priceRM),
+      category: g.category_zh || '大马风情',
+      rarity: g.rarity_zh,
+      accent: g.accent,
+      effect: g.effect,
+      ...(Number(g.goldBeans) > 0 ? { goldBeanPrice: Number(g.goldBeans) } : {}),
+      image: g.image,
+      description: g.description_zh,
+    });
+  }
+})();

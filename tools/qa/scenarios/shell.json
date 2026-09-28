@@ -1,309 +1,372 @@
 [
- {
-  "name": "shell-home",
-  "hash": "home",
-  "steps": [
-   {
-    "expect": "document.querySelectorAll('#bottom-nav .nav-item').length===5",
-    "msg": "five nav tabs"
-   },
-   {
-    "expect": "document.querySelector('#bottom-nav').getAttribute('aria-label')===t('nav.main')",
-    "msg": "nav has aria-label"
-   },
-   {
-    "expect": "document.querySelector('#bottom-nav .nav-item.active')?.dataset.id==='home'",
-    "msg": "home tab active"
-   },
-   {
-    "expect": "!document.querySelector('#bottom-nav .live-nav')",
-    "msg": "no raised live button"
-   }
-  ]
- },
- {
-  "name": "shell-home-scrolled",
-  "hash": "home",
-  "steps": [
-   {
-    "eval": "document.querySelector('#app').scrollTo(0,900),true"
-   }
-  ]
- },
- {
-  "name": "shell-social",
-  "hash": "social",
-  "steps": [
-   {
-    "expect": "document.querySelector('#bottom-nav .nav-item.active')?.dataset.id==='social'",
-    "msg": "discover tab active"
-   }
-  ]
- },
- {
-  "name": "shell-live",
-  "hash": "live",
-  "steps": []
- },
- {
-  "name": "shell-comms",
-  "hash": "comms",
-  "steps": []
- },
- {
-  "name": "shell-nav-switch",
-  "hash": "home",
-  "steps": [
-   {
-    "click": "#bottom-nav [data-id='me']"
-   },
-   {
-    "expect": "ui.page==='me' && location.hash==='#me'",
-    "msg": "nav switches page and hash"
-   },
-   {
-    "expect": "document.querySelector('#bottom-nav [data-id=me]').getAttribute('aria-current')==='page'",
-    "msg": "aria-current on active tab"
-   },
-   {
-    "click": "#bottom-nav [data-id='comms']"
-   },
-   {
-    "expect": "ui.page==='comms'",
-    "msg": "messages tab"
-   }
-  ]
- },
- {
-  "name": "shell-tabs-keyboard",
-  "hash": "home",
-  "steps": [
-   {
-    "expect": "!!document.querySelector('[role=tablist] [role=tab][aria-selected=true]') || !document.querySelector('[role=tablist]')",
-    "msg": "tabs expose tab semantics"
-   },
-   {
-    "eval": "(()=>{const t=document.querySelector('[role=tablist] [role=tab][aria-selected=true]');if(!t)return true;t.focus();t.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));return true})()"
-   },
-   {
-    "wait": 300
-   },
-   {
-    "expect": "!document.querySelector('[role=tablist]') || document.activeElement?.getAttribute('role')==='tab'",
-    "msg": "arrow key keeps focus on a tab"
-   }
-  ]
- },
- {
-  "name": "shell-me",
-  "hash": "me",
-  "steps": [
-   {
-    "expect": "!!document.querySelector('.me-page .app-bar-title')",
-    "msg": "me app bar"
-   },
-   {
-    "expect": "!!document.querySelector('.me-wallet') && !!document.querySelector('.me-checkin')",
-    "msg": "wallet and check-in"
-   },
-   {
-    "expect": "!document.querySelector('.me-guest')",
-    "msg": "no guest card when signed in"
-   }
-  ]
- },
- {
-  "name": "shell-me-scrolled",
-  "hash": "me",
-  "steps": [
-   {
-    "eval": "document.querySelector('#app').scrollTo(0,99999),true"
-   }
-  ]
- },
- {
-  "name": "shell-me-fallback-hero",
-  "hash": "me",
-  "steps": [
-   {
-    "eval": "window.ShizhongGifts && (ShizhongGifts.profileHero=()=>''), render(), true"
-   },
-   {
-    "expect": "!!document.querySelector('.me-hero .me-name') && /\\d{4} \\d{4}/.test(document.querySelector('.me-id').textContent)",
-    "msg": "fallback hero shows name and grouped account id"
-   },
-   {
-    "expect": "document.querySelector('.me-stat[data-id=fans] strong').textContent.trim()==='150'",
-    "msg": "demo fans from state.social"
-   }
-  ]
- },
- {
-  "name": "shell-me-orders",
-  "hash": "me",
-  "steps": [
-   {
-    "click": ".me-section .see-all[data-action=orders]"
-   },
-   {
-    "expect": "SZ.overlay.depth()===1",
-    "msg": "orders screen opened"
-   },
-   {
-    "back": true
-   },
-   {
-    "wait": 500
-   },
-   {
-    "expect": "SZ.overlay.depth()===0 && ui.page==='me'",
-    "msg": "back button returns to Me"
-   }
-  ]
- },
- {
-  "name": "shell-me-settings-back",
-  "hash": "me",
-  "steps": [
-   {
-    "click": ".me-page .app-bar [data-action=settings]"
-   },
-   {
-    "expect": "SZ.overlay.depth()===1",
-    "msg": "settings opened"
-   },
-   {
-    "key": "Escape"
-   },
-   {
-    "expect": "SZ.overlay.depth()===0",
-    "msg": "escape closes"
-   }
-  ]
- },
- {
-  "name": "shell-me-language-row",
-  "hash": "me",
-  "steps": [
-   {
-    "eval": "document.querySelector('#app').scrollTo(0,99999),true"
-   },
-   {
-    "expect": "document.querySelector('.me-list [data-action=language] .row-value').textContent.includes(SZ_I18N.meta().name)",
-    "msg": "language row shows current language"
-   }
-  ]
- },
- {
-  "name": "shell-guest-me",
-  "hash": "me",
-  "session": "guest",
-  "steps": [
-   {
-    "eval": "window.ShizhongGifts && (ShizhongGifts.profileHero=()=>''), render(), true"
-   },
-   {
-    "expect": "!!document.querySelector('.me-guest [data-action=me-sign-in]')",
-    "msg": "guest sign-in card"
-   },
-   {
-    "expect": "!/\\d{4} \\d{4}/.test(document.querySelector('.me-page').textContent)",
-    "msg": "guest shows no account id"
-   }
-  ]
- },
- {
-  "name": "shell-guest-sign-in",
-  "hash": "me",
-  "session": "guest",
-  "steps": [
-   {
-    "click": ".me-guest [data-action=me-sign-in]"
-   },
-   {
-    "expect": "SZ.overlay.depth()>=1 || !!document.querySelector('.toast.visible')",
-    "msg": "sign-in opens (auth) or explains (toast)"
-   }
-  ]
- },
- {
-  "name": "shell-sheet-footer",
-  "hash": "home",
-  "steps": [
-   {
-    "eval": "SZ.overlay.open({kind:'sheet',title:'QA',html:'<p>'+'x '.repeat(900)+'</p><div class=\"sheet-footer\"><button class=\"btn btn-primary\">OK</button></div>'}),true"
-   },
-   {
-    "wait": 400
-   },
-   {
-    "expect": "(()=>{const f=SZ.overlay.$('.sheet-footer').getBoundingClientRect(),s=SZ.overlay.$('.sheet').getBoundingClientRect();return Math.abs(f.bottom-s.bottom)<2})()",
-    "msg": "sheet footer sticks to the sheet bottom"
-   },
-   {
-    "back": true
-   },
-   {
-    "wait": 400
-   },
-   {
-    "expect": "SZ.overlay.depth()===0",
-    "msg": "back closes the sheet"
-   }
-  ]
- },
- {
-  "name": "shell-screen-stack",
-  "hash": "home",
-  "steps": [
-   {
-    "eval": "showScreen('One','<div class=\"detail-content\"><p>one</p></div>'),showScreen('Two','<div class=\"detail-content\">'+'<p>two</p>'.repeat(80)+'</div><div class=\"screen-footer\"><button class=\"btn btn-primary\">Go</button></div>'),true"
-   },
-   {
-    "wait": 450
-   },
-   {
-    "shot": "two"
-   },
-   {
-    "expect": "SZ.overlay.depth()===2",
-    "msg": "two screens stacked"
-   },
-   {
-    "expect": "(()=>{const f=SZ.overlay.$('.screen-footer').getBoundingClientRect(),s=SZ.overlay.top().el.getBoundingClientRect();return Math.abs(f.bottom-s.bottom)<2})()",
-    "msg": "screen footer sticks to the bottom"
-   },
-   {
-    "back": true
-   },
-   {
-    "wait": 450
-   },
-   {
-    "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().title==='One'",
-    "msg": "back returns to the first screen"
-   }
-  ]
- },
- {
-  "name": "shell-desktop",
-  "hash": "home",
-  "steps": [
-   {
-    "expect": "innerWidth<1000 ? getComputedStyle(document.querySelector('.desktop-index')).display==='none' : document.querySelectorAll('#preview-nav .preview-item').length===5",
-    "msg": "desktop side panels only at ≥1000px, with five entries"
-   },
-   {
-    "expect": "innerWidth<1000 || !/[一-鿿]/.test(document.querySelector('.desktop-index').textContent) || SZ_I18N.locale==='zh-CN'",
-    "msg": "side panel text is translated"
-   },
-   {
-    "click": "#preview-nav [data-id='live']"
-   },
-   {
-    "expect": "innerWidth<1000 || ui.page==='live'",
-    "msg": "side panel navigates"
-   }
-  ]
- }
+  {
+    "name": "shell-home",
+    "hash": "home",
+    "steps": [
+      {
+        "expect": "document.querySelectorAll('#bottom-nav .nav-item').length===5",
+        "msg": "five nav tabs"
+      },
+      {
+        "expect": "document.querySelector('#bottom-nav').getAttribute('aria-label')===t('nav.main')",
+        "msg": "nav has aria-label"
+      },
+      {
+        "expect": "document.querySelector('#bottom-nav .nav-item.active')?.dataset.id==='home'",
+        "msg": "home tab active"
+      },
+      {
+        "expect": "!document.querySelector('#bottom-nav .live-nav')",
+        "msg": "no raised live button"
+      }
+    ]
+  },
+  {
+    "name": "shell-home-scrolled",
+    "hash": "home",
+    "steps": [
+      {
+        "eval": "document.querySelector('#app').scrollTo(0,900),true"
+      }
+    ]
+  },
+  {
+    "name": "shell-social",
+    "hash": "social",
+    "steps": [
+      {
+        "expect": "document.querySelector('#bottom-nav .nav-item.active')?.dataset.id==='social'",
+        "msg": "discover tab active"
+      }
+    ]
+  },
+  {
+    "name": "shell-live",
+    "hash": "live",
+    "steps": []
+  },
+  {
+    "name": "shell-comms",
+    "hash": "comms",
+    "steps": []
+  },
+  {
+    "name": "shell-nav-switch",
+    "hash": "home",
+    "steps": [
+      {
+        "click": "#bottom-nav [data-id='me']"
+      },
+      {
+        "expect": "ui.page==='me' && location.hash==='#me'",
+        "msg": "nav switches page and hash"
+      },
+      {
+        "expect": "document.querySelector('#bottom-nav [data-id=me]').getAttribute('aria-current')==='page'",
+        "msg": "aria-current on active tab"
+      },
+      {
+        "click": "#bottom-nav [data-id='comms']"
+      },
+      {
+        "expect": "ui.page==='comms'",
+        "msg": "messages tab"
+      }
+    ]
+  },
+  {
+    "name": "shell-tabs-keyboard",
+    "hash": "home",
+    "steps": [
+      {
+        "expect": "!!document.querySelector('[role=tablist] [role=tab][aria-selected=true]') || !document.querySelector('[role=tablist]')",
+        "msg": "tabs expose tab semantics"
+      },
+      {
+        "eval": "(()=>{const t=document.querySelector('[role=tablist] [role=tab][aria-selected=true]');if(!t)return true;t.focus();t.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!document.querySelector('[role=tablist]') || document.activeElement?.getAttribute('role')==='tab'",
+        "msg": "arrow key keeps focus on a tab"
+      }
+    ]
+  },
+  {
+    "name": "shell-me",
+    "hash": "me",
+    "steps": [
+      {
+        "expect": "!!document.querySelector('.me-page .app-bar-title')",
+        "msg": "me app bar"
+      },
+      {
+        "expect": "!!document.querySelector('.me-wallet') && !!document.querySelector('.me-checkin')",
+        "msg": "wallet and check-in"
+      },
+      {
+        "expect": "!document.querySelector('.me-guest')",
+        "msg": "no guest card when signed in"
+      },
+      {
+        "expect": "document.querySelectorAll('#app .me-hero, #app .gf-hero').length === 1",
+        "msg": "one profile hero"
+      },
+      {
+        "expect": "document.querySelector('#app .me-wallet [data-action=coupons] strong').textContent === SZ.fmt.number(ShizhongCoupons.available().length)",
+        "msg": "coupon count = available coupons"
+      },
+      {
+        "expect": "!!document.querySelector('#app .me-list [data-action=notifications]') && !!document.querySelector('#app .me-list [data-action=auth-switch]')",
+        "msg": "notifications and switch-account rows"
+      },
+      {
+        "expect": "document.querySelector('#app .see-all[data-action=orders]').dataset.id === 'all'",
+        "msg": "all orders uses the stable filter id"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-scrolled",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "document.querySelector('#app').scrollTo(0,99999),true"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-fallback-hero",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "window.ShizhongGifts && (ShizhongGifts.profileHero=()=>''), render(), true"
+      },
+      {
+        "expect": "!!document.querySelector('.me-hero .me-name') && /\\d{4} \\d{4}/.test(document.querySelector('.me-id').textContent)",
+        "msg": "fallback hero shows name and grouped account id"
+      },
+      {
+        "expect": "document.querySelector('.me-stat[data-id=fans] strong').textContent.trim()==='150'",
+        "msg": "demo fans from state.social"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-orders",
+    "hash": "me",
+    "steps": [
+      {
+        "click": ".me-section .see-all[data-action=orders]"
+      },
+      {
+        "expect": "SZ.overlay.depth()===1",
+        "msg": "orders screen opened"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "SZ.overlay.depth()===0 && ui.page==='me'",
+        "msg": "back button returns to Me"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-settings-back",
+    "hash": "me",
+    "steps": [
+      {
+        "click": ".me-page .app-bar [data-action=settings]"
+      },
+      {
+        "expect": "SZ.overlay.depth()===1",
+        "msg": "settings opened"
+      },
+      {
+        "key": "Escape"
+      },
+      {
+        "expect": "SZ.overlay.depth()===0",
+        "msg": "escape closes"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-language-row",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "document.querySelector('#app').scrollTo(0,99999),true"
+      },
+      {
+        "expect": "document.querySelector('.me-list [data-action=language] .row-value').textContent.includes(SZ_I18N.meta().name)",
+        "msg": "language row shows current language"
+      }
+    ]
+  },
+  {
+    "name": "shell-guest-me",
+    "hash": "me",
+    "session": "guest",
+    "steps": [
+      {
+        "eval": "window.ShizhongGifts && (ShizhongGifts.profileHero=()=>''), render(), true"
+      },
+      {
+        "expect": "!!document.querySelector('.me-guest [data-action=me-sign-in]')",
+        "msg": "guest sign-in card"
+      },
+      {
+        "expect": "!/\\d{4} \\d{4}/.test(document.querySelector('.me-page').textContent)",
+        "msg": "guest shows no account id"
+      },
+      {
+        "expect": "!document.querySelector('#app .me-list [data-action=auth-switch]') && !document.querySelector('#app .me-stats')",
+        "msg": "guests: no switch-account row, no empty profile numbers"
+      }
+    ]
+  },
+  {
+    "name": "shell-guest-sign-in",
+    "hash": "me",
+    "session": "guest",
+    "steps": [
+      {
+        "click": ".me-guest [data-action=me-sign-in]"
+      },
+      {
+        "expect": "SZ.overlay.depth()>=1 || !!document.querySelector('.toast.visible')",
+        "msg": "sign-in opens (auth) or explains (toast)"
+      }
+    ]
+  },
+  {
+    "name": "shell-sheet-footer",
+    "hash": "home",
+    "steps": [
+      {
+        "eval": "SZ.overlay.open({kind:'sheet',title:'QA',html:'<p>'+'x '.repeat(900)+'</p><div class=\"sheet-footer\"><button class=\"btn btn-primary\">OK</button></div>'}),true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "(()=>{const f=SZ.overlay.$('.sheet-footer').getBoundingClientRect(),s=SZ.overlay.$('.sheet').getBoundingClientRect();return Math.abs(f.bottom-s.bottom)<2})()",
+        "msg": "sheet footer sticks to the sheet bottom"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "SZ.overlay.depth()===0",
+        "msg": "back closes the sheet"
+      }
+    ]
+  },
+  {
+    "name": "shell-screen-stack",
+    "hash": "home",
+    "steps": [
+      {
+        "eval": "showScreen('One','<div class=\"detail-content\"><p>one</p></div>'),showScreen('Two','<div class=\"detail-content\">'+'<p>two</p>'.repeat(80)+'</div><div class=\"screen-footer\"><button class=\"btn btn-primary\">Go</button></div>'),true"
+      },
+      {
+        "wait": 450
+      },
+      {
+        "shot": "two"
+      },
+      {
+        "expect": "SZ.overlay.depth()===2",
+        "msg": "two screens stacked"
+      },
+      {
+        "expect": "(()=>{const f=SZ.overlay.$('.screen-footer').getBoundingClientRect(),s=SZ.overlay.top().el.getBoundingClientRect();return Math.abs(f.bottom-s.bottom)<2})()",
+        "msg": "screen footer sticks to the bottom"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 450
+      },
+      {
+        "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().title==='One'",
+        "msg": "back returns to the first screen"
+      }
+    ]
+  },
+  {
+    "name": "shell-desktop",
+    "hash": "home",
+    "steps": [
+      {
+        "expect": "innerWidth<1000 ? getComputedStyle(document.querySelector('.desktop-index')).display==='none' : document.querySelectorAll('#preview-nav .preview-item').length===5",
+        "msg": "desktop side panels only at ≥1000px, with five entries"
+      },
+      {
+        "expect": "innerWidth<1000 || !/[一-鿿]/.test(document.querySelector('.desktop-index').textContent) || SZ_I18N.locale==='zh-CN'",
+        "msg": "side panel text is translated"
+      },
+      {
+        "click": "#preview-nav [data-id='live']"
+      },
+      {
+        "expect": "innerWidth<1000 || ui.page==='live'",
+        "msg": "side panel navigates"
+      }
+    ]
+  },
+  {
+    "name": "shell-me-checkin-refresh",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "document.querySelector('#app .me-checkin').scrollIntoView({block:'center'}),true"
+      },
+      {
+        "click": "#app .me-checkin [data-action=checkin]",
+        "settle": 900
+      },
+      {
+        "eval": "(async()=>{const b=SZ.overlay.$('[data-action=do-checkin]');if(b&&!b.disabled)b.click();await new Promise(r=>setTimeout(r,900));SZ.overlay.closeAll();return true})()",
+        "settle": 900
+      },
+      {
+        "expect": "ShizhongCheckin.status().done === (document.querySelector('#app .me-checkin [data-action=checkin]').classList.contains('btn-secondary'))",
+        "msg": "check-in card reflects ShizhongCheckin.status() after the layer closes"
+      }
+    ]
+  },
+  {
+    "name": "shell-module-defaults",
+    "hash": "me",
+    "setup": [
+      "window.SZ&&SZ.store.detach()",
+      "(()=>{const k='sz:v2:state:demo';const s=JSON.parse(localStorage.getItem(k)||'{}');delete s.friendRequests;delete s.notices;s.checkin={streak:3,lastDate:'2026-09-01',history:['2026-09-01']};localStorage.setItem(k,JSON.stringify(s))})()"
+    ],
+    "steps": [
+      {
+        "expect": "Array.isArray(state.notices) && Array.isArray(state.friendRequests.incoming) && state.checkin.streak === 3 && Array.isArray(state.checkin.history)",
+        "msg": "missing module keys filled, saved check-in object kept"
+      },
+      {
+        "expect": "state.gifts && typeof state.gifts.owned === 'object' && state.live !== undefined && state.vip !== undefined",
+        "msg": "late module defaults (gifts, live, vip) applied at boot"
+      },
+      {
+        "expect": "ui.homeFilter === 'recommended' && ui.orderFilter === 'all' && ui.commsTab === 'chats'",
+        "msg": "ui filters use stable ids"
+      }
+    ]
+  }
 ]

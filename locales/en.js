@@ -186,7 +186,7 @@ SZ_I18N.register(
         },
         checkin: {
           title: 'Daily check-in',
-          reward: 'Check in today for 10 gold beans',
+          reward: { one: 'Check in today for {n} gold bean', other: 'Check in today for {n} gold beans' },
           doneToday: 'Checked in today. See you tomorrow',
           streak: { one: '{n}-day streak', other: '{n}-day streak' },
           action: 'Check in',
@@ -203,6 +203,9 @@ SZ_I18N.register(
           invite: 'Invite friends',
           merchant: 'For business',
         },
+        notices: 'Notifications',
+        noticesUnread: { one: '{n} unread', other: '{n} unread' },
+        switchAccount: 'Switch account',
         support: 'Customer support',
         supportHint: 'Ask us anything',
         help: 'Help & feedback',
@@ -2681,7 +2684,7 @@ SZ_I18N.register(
       provider: {
         continueWith: 'Continue with {provider} (demo)',
         title: 'Sign in with {provider}',
-        demoBanner: "Demo only: no real {provider} page opens and none of your account details are read.",
+        demoBanner: 'Demo only: no real {provider} page opens and none of your account details are read.',
         consent: '{provider} will share your name, email address and profile photo with Shizhong.',
         demoUser: '{provider} user',
         allow: 'Continue',
@@ -2818,7 +2821,7 @@ SZ_I18N.register(
         city: 'Your city',
         cityOther: 'Somewhere else…',
         language: 'App language',
-        interests: "What are you into?",
+        interests: 'What are you into?',
         interestsHint: 'Pick a few for better recommendations (optional).',
         finish: 'Start exploring',
         creating: 'Creating your account…',
@@ -2872,14 +2875,18 @@ SZ_I18N.register(
       legal: {
         termsTitle: 'Terms of Service (summary)',
         privacyTitle: 'Privacy Policy (summary)',
-        terms1: 'Shizhong is a demo prototype. Services, merchants, hosts and orders are samples; nothing is really bought or sold.',
+        terms1:
+          'Shizhong is a demo prototype. Services, merchants, hosts and orders are samples; nothing is really bought or sold.',
         terms2: 'Live rooms, gifting and 1:1 chat are for people aged 18 and over.',
-        terms3: "Be kind. Don't post anything illegal, abusive, fraudulent or that infringes on others' rights.",
+        terms3:
+          "Be kind. Don't post anything illegal, abusive, fraudulent or that infringes on others' rights.",
         terms4: 'Wallet balance, beans and gifts are for trying things out and have no cash value.',
         terms5: 'You can export or delete your data anytime in Settings.',
-        privacy1: 'Your profile, chats, photos and orders stay in this browser. Nothing is uploaded to a server.',
+        privacy1:
+          'Your profile, chats, photos and orders stay in this browser. Nothing is uploaded to a server.',
         privacy2: 'Passwords are stored on this device only as a salted hash.',
-        privacy3: 'Verification texts and social sign-in are simulated. We never contact your carrier, Google, Apple or Facebook.',
+        privacy3:
+          'Verification texts and social sign-in are simulated. We never contact your carrier, Google, Apple or Facebook.',
         privacy4: "Data handling follows the principles of Malaysia's Personal Data Protection Act (PDPA).",
         privacy5: 'Clear your browser data or reset in Settings to remove everything from this device.',
         full: 'Read the full privacy policy',
@@ -3009,6 +3016,7 @@ SZ_I18N.register(
           闪耀典藏: 'Sparkling classics',
           臻享臻藏: 'Grand collection',
           盛世华章: 'Oriental Splendour',
+          大马风情: 'Malaysia',
         },
         rarity: {
           心意款: 'Sweet',

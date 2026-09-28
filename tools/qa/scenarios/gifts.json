@@ -4,21 +4,58 @@
     "hash": "me",
     "steps": [
       {
-        "expect": "!!document.querySelector('#app .gf-hero .gf-cover') && !!document.querySelector('#app .gf-hero-stats')",
+        "expect": "!!document.querySelector('#app .gf-hero .gf-cover') && !!document.querySelector('#app .gf-hero .me-stats')",
         "msg": "hero with cover and stats"
       },
       {
-        "expect": "document.querySelector('#app .gf-hero').textContent.includes('8800 2688')",
+        "expect": "document.querySelector('#app .gf-hero .gf-hero-id').textContent.includes('8800 2688')",
         "msg": "ID comes from the demo account"
+      },
+      {
+        "expect": "document.querySelector('#app .gf-hero-name').textContent === profileName()",
+        "msg": "name comes from the shell (translated demo profile)"
+      },
+      {
+        "expect": "!document.querySelector('#app .gf-hero [data-action=gift-qr],#app .gf-hero [data-action=gift-share-profile]') && document.querySelectorAll('#app .me-page [data-action=settings]').length === 2",
+        "msg": "no duplicate QR/share toolbar in the hero (the app bar has them)"
+      },
+      {
+        "expect": "document.querySelector('#app .gf-hero [data-action=stat][data-id=fans] strong').textContent === SZ.fmt.compact(state.social.fans)",
+        "msg": "followers from state.social"
+      },
+      {
+        "expect": "document.querySelectorAll('#app .me-hero, #app .gf-hero').length === 1",
+        "msg": "exactly one hero"
       }
     ]
   },
   {
-    "name": "gifts-me-menu",
+    "name": "gifts-shop-malaysia",
     "hash": "me",
     "steps": [
       {
-        "eval": "document.querySelector('#app .gf-menu')?.scrollIntoView({block:'center'}),true"
+        "eval": "ShizhongGifts.openShop(),true"
+      },
+      {
+        "click": ".gf-results [data-action=gift-filter][data-id=\"大马风情\"]"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-results .gf-card').length === 12",
+        "msg": "Malaysia category shows 12 gifts"
+      },
+      {
+        "expect": "[...document.querySelectorAll('.gf-results .gf-card img')].every(img => /gift-art\\/malaysia\\/.+\\.svg/.test(img.src))",
+        "msg": "Malaysia cards use the series artwork"
+      },
+      {
+        "shot": "list"
+      },
+      {
+        "click": ".gf-results .gf-card[data-id=my-petronas]"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.giftId === 'my-petronas' && SZ.overlay.$('.gf-detail-name').textContent === ShizhongGifts.giftName('my-petronas')",
+        "msg": "detail opens with the (translated) name"
       }
     ]
   },
@@ -28,12 +65,16 @@
     "session": "guest",
     "steps": [
       {
-        "expect": "!!document.querySelector('#app .gf-hero [data-action=gift-login]')",
-        "msg": "guest sees sign-in in the hero"
+        "expect": "!document.querySelector('#app .gf-hero')",
+        "msg": "guests get the shell hero, not the decorated one"
       },
       {
-        "expect": "!document.querySelector('#app .gf-hero .gf-cover-edit')",
-        "msg": "no decorate button for guests"
+        "expect": "!!document.querySelector('#app .me-hero .me-guest [data-action=me-sign-in]')",
+        "msg": "sign-in prompt inside the guest hero"
+      },
+      {
+        "expect": "!document.querySelector('#app .gf-cover-edit') && !document.querySelector('#app .me-stats')",
+        "msg": "no decorate button or empty numbers for guests"
       }
     ]
   },
@@ -49,8 +90,8 @@
         "msg": "shop screen open"
       },
       {
-        "expect": "document.querySelectorAll('.gf-shop .gf-grid .gf-card').length === 54",
-        "msg": "all 54 gifts listed"
+        "expect": "document.querySelectorAll('.gf-shop .gf-grid .gf-card').length === 66",
+        "msg": "all 66 gifts listed (54 + 12 Malaysia)"
       }
     ]
   },
@@ -571,7 +612,7 @@
     "hash": "me",
     "steps": [
       {
-        "click": "#app [data-action=gift-qr]"
+        "click": "#app .app-bar [data-action=share-profile]"
       },
       {
         "wait": 900
@@ -583,6 +624,10 @@
       {
         "expect": "/#u\\/88002688$/.test(ShizhongPersonalQR.shareURL())",
         "msg": "QR encodes only the short profile link"
+      },
+      {
+        "expect": "SZ.overlay.$('.pq-name').textContent === profileName()",
+        "msg": "card shows the shell display name"
       }
     ]
   },
@@ -677,6 +722,49 @@
       {
         "expect": "!document.querySelector('.gf-effect')",
         "msg": "Escape stops the effect"
+      }
+    ]
+  },
+  {
+    "name": "gifts-chat-picker",
+    "hash": "comms",
+    "steps": [
+      {
+        "eval": "openChat('p1'),true",
+        "settle": 1200
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=gift]",
+        "settle": 900
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'picker' && SZ.overlay.top().meta.chatId === 'p1'",
+        "msg": "gift picker opens from the chat tools"
+      },
+      {
+        "click": ".gf-picker [data-action=gift-pick][data-id=rose]"
+      },
+      {
+        "eval": "window.__n = (state.messages.p1 || []).length, window.__rows = document.querySelectorAll('[data-sz-layer] [data-type=gift]').length, true"
+      },
+      {
+        "click": "[data-action=gift-picker-send]",
+        "settle": 1400
+      },
+      {
+        "expect": "!SZ.overlay.layers().some(l => l.meta.gift === 'picker') && SZ.overlay.depth() === 1",
+        "msg": "picker closes back to the chat"
+      },
+      {
+        "expect": "state.messages.p1.length === __n + 1 && state.messages.p1[__n].type === 'gift' && state.messages.p1[__n].giftId === 'rose'",
+        "msg": "exactly one gift message stored (through ShizhongChat.append)"
+      },
+      {
+        "expect": "document.querySelectorAll('[data-sz-layer] [data-type=gift]').length === __rows + 1",
+        "msg": "the open chat shows exactly one new gift bubble"
       }
     ]
   }
