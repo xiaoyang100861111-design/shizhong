@@ -88,7 +88,7 @@
   const uid = prefix => 'auth-' + prefix + '-' + ++serial;
   const digits = value => String(value || '').replace(/\D/g, '');
   const countryOf = id => COUNTRIES.find(c => c.id === id) || COUNTRIES[0];
-  const countryName = c => t('auth.country.' + c.id);
+  const countryName = c => t(`auth.country.${c.id}`);
   const localeMeta = () => window.SZ_I18N.meta() || {};
 
   /** '+60123456789' -> { country, national: '123456789' } (longest dial code wins). */
@@ -291,7 +291,7 @@
   }
   function legalLinks() {
     const link = id =>
-      `<button type="button" class="auth-link" data-action="auth-legal" data-id="${id}">${esc(t('auth.welcome.' + id))}</button>`;
+      `<button type="button" class="auth-link" data-action="auth-legal" data-id="${id}">${esc(t(`auth.welcome.${id}`))}</button>`;
     return { terms: link('terms'), privacy: link('privacy') };
   }
   function passwordField({ id, autocomplete, rules = false }) {
@@ -755,7 +755,7 @@
         : '';
     const interests = INTERESTS.map(
       k =>
-        `<button type="button" class="chip" data-act="interest" data-value="${k}" aria-pressed="false">${esc(t('auth.interest.' + k))}</button>`
+        `<button type="button" class="chip" data-act="interest" data-value="${k}" aria-pressed="false">${esc(t(`auth.interest.${k}`))}</button>`
     ).join('');
     const suggested = d.provider ? d.name : '';
     const layer = openScreen({
@@ -1337,7 +1337,7 @@
   // ------------------------------------------------------------------ wiring
   const ACTIONS = {
     'auth-welcome': () => openWelcome(),
-    'auth-login': id => openLoginSheet(id && t.has('auth.reason.' + id) ? t('auth.reason.' + id) : ''),
+    'auth-login': id => openLoginSheet(id && t.has(`auth.reason.${id}`) ? t(`auth.reason.${id}`) : ''),
     'auth-switch': () => openSwitcher(),
     'auth-phone': id => openPhone({ mode: id === 'replace' ? 'replace' : 'push' }),
     'auth-email': id => openEmail({ mode: id === 'replace' ? 'replace' : 'push' }),
