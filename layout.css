@@ -28,7 +28,10 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: 460px;
-  height: max(0px, calc(var(--visual-viewport-height, 100dvh) - var(--layout-frame-gap) - var(--layout-frame-gap)));
+  height: max(
+    0px,
+    calc(var(--visual-viewport-height, 100dvh) - var(--layout-frame-gap) - var(--layout-frame-gap))
+  );
   min-height: 0;
   min-width: 0;
   margin: 0 auto;
@@ -97,9 +100,20 @@ body {
   scrollbar-width: none;
 }
 /* A persistent page transform would anchor fixed publish controls to the long list. */
-#app-shell #app .page { animation:layout-page-in .2s ease both; }
-@keyframes layout-page-in { from { opacity:.35; } to { opacity:1; } }
-#app-shell > #overlay-root > .full-screen::-webkit-scrollbar { display:none; }
+#app-shell #app .page {
+  animation: layout-page-in 0.2s ease both;
+}
+@keyframes layout-page-in {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+#app-shell > #overlay-root > .full-screen::-webkit-scrollbar {
+  display: none;
+}
 
 #app-shell > #overlay-root > .gift-underlay {
   pointer-events: none;
@@ -183,7 +197,7 @@ body {
 }
 
 /* Background scrolling must remain locked while a modal is open. */
-#app-shell:has(> #overlay-root > [role="dialog"]) > #app,
+#app-shell:has(> #overlay-root > [role='dialog']) > #app,
 #app-shell:has(> #overlay-root > .overlay-backdrop) > #app {
   overflow-y: hidden;
 }
@@ -201,12 +215,43 @@ body {
 }
 
 @media (max-width: 359px) {
-  #app-shell .floating-button { right: 14px; }
+  #app-shell .floating-button {
+    right: 14px;
+  }
 }
 
 /* Every friend's portrait is a round, keyboard accessible profile entry. */
-.chat-avatar-button{position:relative;display:block;flex:0 0 35px;width:35px;height:35px;min-width:0;padding:0;border-radius:50%;line-height:0;align-self:flex-start}
-.chat-avatar-button::after{content:"";position:absolute;inset:-5px;border-radius:50%}
-.chat-avatar-button .avatar{width:100%;height:100%;border-radius:50%;aspect-ratio:1;object-fit:cover}
-.gift-chat-header .chat-avatar-button{flex-basis:38px;width:38px;height:38px;align-self:center}
-.friend-profile-screen .detail-content{padding-top:19px}
+.chat-avatar-button {
+  position: relative;
+  display: block;
+  flex: 0 0 35px;
+  width: 35px;
+  height: 35px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 0;
+  align-self: flex-start;
+}
+.chat-avatar-button::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+}
+.chat-avatar-button .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.gift-chat-header .chat-avatar-button {
+  flex-basis: 38px;
+  width: 38px;
+  height: 38px;
+  align-self: center;
+}
+.friend-profile-screen .detail-content {
+  padding-top: 19px;
+}

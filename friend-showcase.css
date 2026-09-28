@@ -1,8 +1,13 @@
 /* Friend showcases are isolated from the visitor's editable profile. */
 .friend-profile-hero,
-.friend-collection { box-sizing: border-box; min-width: 0; }
+.friend-collection {
+  box-sizing: border-box;
+  min-width: 0;
+}
 .friend-profile-hero *,
-.friend-collection * { box-sizing: border-box; }
+.friend-collection * {
+  box-sizing: border-box;
+}
 .friend-profile-hero {
   position: relative;
   isolation: isolate;
@@ -17,11 +22,24 @@
   background-position: var(--friend-bg-position, center);
 }
 .friend-profile-hero::before,
-.friend-profile-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-.friend-profile-hero::before { background: var(--friend-shade, none); }
 .friend-profile-hero::after {
-  opacity: .38;
-  background: repeating-linear-gradient(var(--friend-pattern-angle, 138deg), transparent 0 69px, #dcc08924 70px 71px, transparent 72px 140px);
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.friend-profile-hero::before {
+  background: var(--friend-shade, none);
+}
+.friend-profile-hero::after {
+  opacity: 0.38;
+  background: repeating-linear-gradient(
+    var(--friend-pattern-angle, 138deg),
+    transparent 0 69px,
+    #dcc08924 70px 71px,
+    transparent 72px 140px
+  );
   background-position: var(--friend-pattern-offset, 0) 0;
   mask-image: linear-gradient(#000, transparent 80%);
   -webkit-mask-image: linear-gradient(#000, transparent 80%);
@@ -36,8 +54,18 @@
   padding: 20px 18px 0;
   pointer-events: none;
 }
-.friend-profile-theme { font-size: 11px; font-weight: 600; letter-spacing: 1px; opacity: .8; }
-.friend-profile-edition { font-size: 8px; font-weight: 600; letter-spacing: 1.4px; opacity: .6; }
+.friend-profile-theme {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+.friend-profile-edition {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  opacity: 0.6;
+}
 .friend-profile-identity {
   position: relative;
   z-index: 2;
@@ -76,19 +104,93 @@
   object-fit: cover;
   object-position: center;
 }
-.friend-avatar-ring .friend-avatar-ornament { width:86px; height:86px; flex:0 0 86px; margin:0; }
-.friend-avatar-ring .friend-avatar-ornament::before { inset:-4px; border-width:1px; }
-.friend-avatar-ring .friend-avatar-ornament::after { top:-13px; left:-10px; }
-.friend-avatar-ring .friend-avatar-ornament .profile-avatar-charm { width:38px; height:38px; right:-14px; bottom:-10px; animation:friend-charm-float 3.7s ease-in-out infinite; }
-.friend-avatar-ring .friend-online-dot { left:0; right:auto; bottom:0; z-index:5; }
-@keyframes friend-charm-float { 50% { transform:translateY(-4px) rotate(4deg); } }
-@media (prefers-reduced-motion:reduce) { .friend-avatar-ring .friend-avatar-ornament .profile-avatar-charm { animation:none; } }
-.friend-online-dot { position: absolute; right: 4px; bottom: 6px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fcf8f1; background: #50b884; }
-.friend-profile-identity h2 { max-width: 100%; margin: 13px 0 6px; font-size: 23px; font-weight: 750; line-height: 1.35; letter-spacing: .3px; overflow-wrap: anywhere; }
-.friend-profile-region { max-width: 100%; margin: 0; font-size: 11px; line-height: 1.6; opacity: .84; overflow-wrap: anywhere; }
-.friend-profile-about { max-width: 100%; margin: 6px 0 0; font-size: 10px; line-height: 1.65; opacity: .72; overflow-wrap: anywhere; }
-.friend-profile-id { max-width: 100%; margin-top: 8px; font-size: 9px; line-height: 1.5; letter-spacing: .8px; opacity: .55; overflow-wrap: anywhere; }
-.friend-profile-stickers { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.friend-avatar-ring .friend-avatar-ornament {
+  width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
+  margin: 0;
+}
+.friend-avatar-ring .friend-avatar-ornament::before {
+  inset: -4px;
+  border-width: 1px;
+}
+.friend-avatar-ring .friend-avatar-ornament::after {
+  top: -13px;
+  left: -10px;
+}
+.friend-avatar-ring .friend-avatar-ornament .profile-avatar-charm {
+  width: 38px;
+  height: 38px;
+  right: -14px;
+  bottom: -10px;
+  animation: friend-charm-float 3.7s ease-in-out infinite;
+}
+.friend-avatar-ring .friend-online-dot {
+  left: 0;
+  right: auto;
+  bottom: 0;
+  z-index: 5;
+}
+@keyframes friend-charm-float {
+  50% {
+    transform: translateY(-4px) rotate(4deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .friend-avatar-ring .friend-avatar-ornament .profile-avatar-charm {
+    animation: none;
+  }
+}
+.friend-online-dot {
+  position: absolute;
+  right: 4px;
+  bottom: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #fcf8f1;
+  background: #50b884;
+}
+.friend-profile-identity h2 {
+  max-width: 100%;
+  margin: 13px 0 6px;
+  font-size: 23px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  overflow-wrap: anywhere;
+}
+.friend-profile-region {
+  max-width: 100%;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0.84;
+  overflow-wrap: anywhere;
+}
+.friend-profile-about {
+  max-width: 100%;
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.65;
+  opacity: 0.72;
+  overflow-wrap: anywhere;
+}
+.friend-profile-id {
+  max-width: 100%;
+  margin-top: 8px;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0.8px;
+  opacity: 0.55;
+  overflow-wrap: anywhere;
+}
+.friend-profile-stickers {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
 .friend-profile-sticker {
   position: absolute;
   display: flex;
@@ -111,11 +213,46 @@
   transform: translate(-50%, -50%);
   -webkit-tap-highlight-color: transparent;
 }
-.friend-sticker-art { display: block; width: 100%; aspect-ratio: 1; transform: rotate(var(--friend-sticker-rotation, 0deg)); transition: transform .18s ease; }
-.friend-sticker-art img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 7px 7px #27182b30); user-select: none; -webkit-user-drag: none; }
-.friend-profile-sticker:active .friend-sticker-art { transform: rotate(var(--friend-sticker-rotation, 0deg)) scale(.93); }
-.friend-sticker-price { display: block; max-width: 115%; padding: 3px 6px; border: 1px solid #ffffff28; border-radius: 20px; color: #fff8e9; background: #29172475; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 9px; line-height: 1.35; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.friend-theme-light .friend-sticker-price { color: #644331; border-color: #caa76e42; background: #fffdf4c9; }
+.friend-sticker-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  transform: rotate(var(--friend-sticker-rotation, 0deg));
+  transition: transform 0.18s ease;
+}
+.friend-sticker-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 7px #27182b30);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.friend-profile-sticker:active .friend-sticker-art {
+  transform: rotate(var(--friend-sticker-rotation, 0deg)) scale(0.93);
+}
+.friend-sticker-price {
+  display: block;
+  max-width: 115%;
+  padding: 3px 6px;
+  border: 1px solid #ffffff28;
+  border-radius: 20px;
+  color: #fff8e9;
+  background: #29172475;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 9px;
+  line-height: 1.35;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.friend-theme-light .friend-sticker-price {
+  color: #644331;
+  border-color: #caa76e42;
+  background: #fffdf4c9;
+}
 .friend-profile-footer {
   position: absolute;
   z-index: 3;
@@ -128,21 +265,81 @@
   border-top: 1px solid #ffffff25;
   font-size: 10px;
   line-height: 1.6;
-  opacity: .76;
+  opacity: 0.76;
   pointer-events: none;
 }
-.friend-profile-footer i { font-size: 13px; font-style: normal; color: #e5bc70; margin-right: 4px; }
-.friend-theme-light .friend-profile-footer { border-color: #77573e1a; }
-.friend-layout-1 .friend-avatar-ring { border-color: #f3d5a3b8; }
-.friend-layout-2 .friend-avatar-ring { box-shadow: 0 0 0 5px #e9bf6810, 0 8px 24px #25141e24; }
-.friend-profile-hero.friend-layout-3::after { opacity: .25; }
-.friend-collection { margin: 23px 0 21px; color: #322733; }
-.friend-collection-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.friend-collection-eyebrow { display: block; margin-bottom: 6px; font-size: 8px; font-weight: 650; letter-spacing: 1.5px; color: #aa8566; }
-.friend-collection-heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 700; line-height: 1.4; }
-.friend-collection-heading h3 span { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 50%; background: #f8eee4; color: #a78155; font-size: 11px; }
-.friend-collection-demo { flex-shrink: 0; font-size: 10px; color: #aa9397; }
-.friend-collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 9px; min-width: 0; }
+.friend-profile-footer i {
+  font-size: 13px;
+  font-style: normal;
+  color: #e5bc70;
+  margin-right: 4px;
+}
+.friend-theme-light .friend-profile-footer {
+  border-color: #77573e1a;
+}
+.friend-layout-1 .friend-avatar-ring {
+  border-color: #f3d5a3b8;
+}
+.friend-layout-2 .friend-avatar-ring {
+  box-shadow:
+    0 0 0 5px #e9bf6810,
+    0 8px 24px #25141e24;
+}
+.friend-profile-hero.friend-layout-3::after {
+  opacity: 0.25;
+}
+.friend-collection {
+  margin: 23px 0 21px;
+  color: #322733;
+}
+.friend-collection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.friend-collection-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 1.5px;
+  color: #aa8566;
+}
+.friend-collection-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.friend-collection-heading h3 span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #f8eee4;
+  color: #a78155;
+  font-size: 11px;
+}
+.friend-collection-demo {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #aa9397;
+}
+.friend-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 9px;
+  min-width: 0;
+}
 .friend-gift-card {
   display: flex;
   align-items: center;
@@ -158,43 +355,145 @@
   text-align: center;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform .16s ease, border-color .16s ease;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.friend-gift-card:nth-child(3n + 2) { background: radial-gradient(ellipse at 50% 15%, #fff9f5, #faf2ef 70%); }
-.friend-gift-card:nth-child(3n) { background: radial-gradient(ellipse at 50% 15%, #fffaf9, #f8f2f5 70%); }
-.friend-gift-card:active { transform: scale(.97); border-color: #c8937270; }
-.friend-collection-art { display: block; width: 100%; max-width: 115px; aspect-ratio: 1; margin-bottom: 6px; }
-.friend-collection-art img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 7px #68463814); user-select: none; -webkit-user-drag: none; }
-.friend-gift-name { display: block; width: 100%; min-height: 33px; font-size: 11px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
-.friend-gift-price { display: inline-flex; align-items: center; justify-content: center; max-width: 100%; margin: 7px 0 6px; padding: 4px 7px; border-radius: 8px; background: #eee0c342; color: #9a6e41; font-size: 11px; font-weight: 750; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.friend-gift-owned { font-size: 8px; line-height: 1.55; color: #a09088; white-space: nowrap; }
-.friend-collection-note { margin: 12px 0 0; font-size: 11px; line-height: 1.8; color: #ac9a9f; }
+.friend-gift-card:nth-child(3n + 2) {
+  background: radial-gradient(ellipse at 50% 15%, #fff9f5, #faf2ef 70%);
+}
+.friend-gift-card:nth-child(3n) {
+  background: radial-gradient(ellipse at 50% 15%, #fffaf9, #f8f2f5 70%);
+}
+.friend-gift-card:active {
+  transform: scale(0.97);
+  border-color: #c8937270;
+}
+.friend-collection-art {
+  display: block;
+  width: 100%;
+  max-width: 115px;
+  aspect-ratio: 1;
+  margin-bottom: 6px;
+}
+.friend-collection-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 7px #68463814);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.friend-gift-name {
+  display: block;
+  width: 100%;
+  min-height: 33px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.friend-gift-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  margin: 7px 0 6px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: #eee0c342;
+  color: #9a6e41;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.friend-gift-owned {
+  font-size: 8px;
+  line-height: 1.55;
+  color: #a09088;
+  white-space: nowrap;
+}
+.friend-collection-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #ac9a9f;
+}
 .friend-profile-sticker:focus-visible,
-.friend-gift-card:focus-visible { outline: 3px solid #dca757; outline-offset: 3px; }
+.friend-gift-card:focus-visible {
+  outline: 3px solid #dca757;
+  outline-offset: 3px;
+}
 @media (min-width: 400px) {
-  .friend-profile-hero { min-height: 390px; }
-  .friend-profile-identity { margin-top: 38px; }
-  .friend-profile-sticker { width: calc(var(--friend-sticker-size, 78px) + 6px); }
-  .friend-collection-grid { gap: 11px; }
-  .friend-gift-card { padding: 13px 7px 14px; }
-  .friend-gift-price { font-size: 12px; }
+  .friend-profile-hero {
+    min-height: 390px;
+  }
+  .friend-profile-identity {
+    margin-top: 38px;
+  }
+  .friend-profile-sticker {
+    width: calc(var(--friend-sticker-size, 78px) + 6px);
+  }
+  .friend-collection-grid {
+    gap: 11px;
+  }
+  .friend-gift-card {
+    padding: 13px 7px 14px;
+  }
+  .friend-gift-price {
+    font-size: 12px;
+  }
 }
 @media (max-width: 350px) {
-  .friend-profile-topline { padding-inline: 14px; }
-  .friend-profile-edition { font-size: 7px; letter-spacing: 1px; }
-  .friend-profile-identity { width: 57%; }
-  .friend-profile-identity h2 { font-size: 21px; }
-  .friend-profile-sticker { width: calc(var(--friend-sticker-size, 78px) - 4px); }
-  .friend-sticker-price { font-size: 8px; padding-inline: 5px; }
-  .friend-profile-footer { inset-inline: 14px; font-size: 9px; }
-  .friend-collection-grid { gap: 7px; }
-  .friend-gift-card { border-radius: 17px; padding-inline: 3px; }
-  .friend-gift-name { font-size: 10px; }
-  .friend-gift-price { padding: 4px 5px; font-size: 10px; }
-  .friend-gift-owned { font-size: 7px; }
+  .friend-profile-topline {
+    padding-inline: 14px;
+  }
+  .friend-profile-edition {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+  .friend-profile-identity {
+    width: 57%;
+  }
+  .friend-profile-identity h2 {
+    font-size: 21px;
+  }
+  .friend-profile-sticker {
+    width: calc(var(--friend-sticker-size, 78px) - 4px);
+  }
+  .friend-sticker-price {
+    font-size: 8px;
+    padding-inline: 5px;
+  }
+  .friend-profile-footer {
+    inset-inline: 14px;
+    font-size: 9px;
+  }
+  .friend-collection-grid {
+    gap: 7px;
+  }
+  .friend-gift-card {
+    border-radius: 17px;
+    padding-inline: 3px;
+  }
+  .friend-gift-name {
+    font-size: 10px;
+  }
+  .friend-gift-price {
+    padding: 4px 5px;
+    font-size: 10px;
+  }
+  .friend-gift-owned {
+    font-size: 7px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .friend-sticker-art,
-  .friend-gift-card { transition: none; }
+  .friend-gift-card {
+    transition: none;
+  }
 }

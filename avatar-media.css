@@ -18,5 +18,10 @@
   object-fit: cover;
   box-shadow: 0 7px 20px #6d344024;
 }
-.avatar-upload-box > span { font-weight: 700; }
-.avatar-upload-box:focus-within { outline: 3px solid #f3c460; outline-offset: 3px; }
+.avatar-upload-box > span {
+  font-weight: 700;
+}
+.avatar-upload-box:focus-within {
+  outline: 3px solid #f3c460;
+  outline-offset: 3px;
+}

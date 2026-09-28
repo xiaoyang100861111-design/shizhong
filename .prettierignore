@@ -1,0 +1,6 @@
+data/
+vendor/
+assets/
+*.json
+*.md
+*.html

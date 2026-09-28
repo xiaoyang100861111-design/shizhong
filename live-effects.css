@@ -14,96 +14,548 @@
   background: radial-gradient(ellipse at 50% 47%, #25112712 8%, #15102245 78%);
   animation: sle-presence var(--sle-duration) ease both;
 }
-.sle-stage *, .sle-stage *::before, .sle-stage *::after { box-sizing: border-box; pointer-events: none; }
-.sle-canvas, .sle-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sle-canvas { z-index: 2; }
-.sle-scene { z-index: 1; }
+.sle-stage *,
+.sle-stage *::before,
+.sle-stage *::after {
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.sle-canvas,
+.sle-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.sle-canvas {
+  z-index: 2;
+}
+.sle-scene {
+  z-index: 1;
+}
 .sle-halo {
   position: absolute;
-  top: 48%; left: 50%;
-  width: min(88%, 390px); aspect-ratio: 1;
+  top: 48%;
+  left: 50%;
+  width: min(88%, 390px);
+  aspect-ratio: 1;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, #fff1b044, #f3b56218 34%, transparent 68%);
   animation: sle-halo-breathe 1800ms ease-in-out infinite alternate;
 }
 .sle-orbit {
-  position: absolute; top: 48%; left: 50%;
-  width: 77%; aspect-ratio: 1;
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  width: 77%;
+  aspect-ratio: 1;
   border: 1px solid #ffdf983d;
   border-radius: 50%;
-  transform: translate(-50%, -50%) rotate(-22deg) scaleY(.38);
-  box-shadow: 0 0 12px #ffe9aa18, inset 0 0 14px #ffdfa20c;
+  transform: translate(-50%, -50%) rotate(-22deg) scaleY(0.38);
+  box-shadow:
+    0 0 12px #ffe9aa18,
+    inset 0 0 14px #ffdfa20c;
 }
 .sle-art {
-  position: absolute; top: 48%; left: 50%;
-  width: min(63%, 270px); aspect-ratio: 1;
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  width: min(63%, 270px);
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 16px 22px #17071880);
-  animation: sle-art-reveal var(--sle-duration) cubic-bezier(.18,.72,.27,1) both;
+  animation: sle-art-reveal var(--sle-duration) cubic-bezier(0.18, 0.72, 0.27, 1) both;
   will-change: transform, opacity;
 }
-.sle-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; user-select: none; }
-.sle-art-missing { opacity: 0!important; }
+.sle-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+}
+.sle-art-missing {
+  opacity: 0 !important;
+}
 .sle-copy {
-  position: absolute; z-index: 3; top: 69%; left: 14px; right: 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  position: absolute;
+  z-index: 3;
+  top: 69%;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
   text-align: center;
   text-shadow: 0 2px 14px #211025b0;
   animation: sle-copy-reveal var(--sle-duration) ease both;
 }
-.sle-sender { display: inline-flex; align-items: center; justify-content: center; gap: 7px; max-width: 100%; padding: 5px 12px 5px 6px; border-radius: 24px; background: #25152468; border: 1px solid #fff0d724; color: #ffeaca; font-size: 12px; line-height: 1.4; }
-.sle-sender > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.sle-avatar { width: 24px; height: 24px; flex: 0 0 24px; object-fit: cover; border-radius: 50%; border: 1px solid #ffe1b175; }
-.sle-gift-line { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 6px 10px; max-width: 100%; }
-.sle-name { font-size: clamp(23px, 6.5vw, 31px); font-weight: 800; line-height: 1.35; letter-spacing: .7px; overflow-wrap: anywhere; color: #fff2d6; }
-.sle-count { color: #ffda85; font-size: 23px; line-height: 1.3; font-weight: 850; font-style: italic; font-variant-numeric: tabular-nums; }
-.sle-stage .sle-skip {
-  position: absolute; z-index: 5; top: calc(76px + env(safe-area-inset-top, 0px)); right: 12px;
-  display: grid; place-items: center; min-width: 54px; min-height: 44px;
-  padding: 8px 13px; border: 1px solid #ffffff35; border-radius: 23px;
-  font: inherit; font-size: 11px; line-height: 1.2; color: #fffaef;
-  background: #1f15294f; cursor: pointer; pointer-events: auto;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+.sle-sender {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 5px 12px 5px 6px;
+  border-radius: 24px;
+  background: #25152468;
+  border: 1px solid #fff0d724;
+  color: #ffeaca;
+  font-size: 12px;
+  line-height: 1.4;
 }
-.sle-stage .sle-skip:focus-visible { outline: 3px solid #ffdd7e; outline-offset: 2px; }
-.sle-heart .sle-halo { background: radial-gradient(circle, #ff95b746, #ff568120 36%, transparent 68%); }
-.sle-heart .sle-orbit { border-color: #ffc1d566; transform: translate(-50%, -50%) rotate(-35deg) scaleY(.55); }
-.sle-heart .sle-art { animation-name: sle-heart-art; }
-.sle-flowers .sle-halo { background: radial-gradient(circle, #ffd1b746, #ffb8d21c 40%, transparent 70%); }
-.sle-flowers .sle-orbit { border-style: dashed; border-color: #ffdab03d; transform: translate(-50%, -50%) rotate(20deg) scaleY(.8); }
-.sle-flowers .sle-art { animation-name: sle-flower-art; }
-.sle-celebration .sle-halo { background: radial-gradient(circle, #fff0a844, #f684ad19 30%, transparent 66%); }
-.sle-celebration .sle-orbit { animation: sle-burst-ring var(--sle-duration) ease-out both; }
-.sle-celebration .sle-art { animation-name: sle-celebration-art; }
-.sle-car .sle-halo { top: 58%; width: 100%; height: 8px; aspect-ratio: auto; border-radius: 50%; background: #ffd6799c; box-shadow: 0 0 20px #ffc56450, 0 7px 24px #ffae7033; }
-.sle-car .sle-orbit { top: 62%; width: 120%; height: 1px; aspect-ratio: auto; border: 0; border-radius: 0; background: linear-gradient(90deg, transparent, #ffe9bdaa, transparent); transform: translate(-50%, -50%) rotate(-6deg); box-shadow: 0 10px 0 #ffe2b12a, 0 -26px 0 #ffe2b11a; }
-.sle-car .sle-art { width: min(80%, 350px); top: 51%; animation-name: sle-car-drive; }
-.sle-rocket .sle-art { width: min(65%, 285px); animation-name: sle-rocket-launch; }
-.sle-rocket .sle-halo { background: radial-gradient(ellipse, #ffd98544, #ff9d6420 33%, transparent 68%); }
-.sle-rocket .sle-orbit { width: 45%; top: 67%; border-color: #fca76c44; transform: translate(-50%, -50%) scaleY(.2); }
-.sle-crown .sle-halo { width: 100%; background: repeating-conic-gradient(from 0deg, #ffe4a419 0deg 8deg, transparent 8deg 25deg); -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 67%); mask-image: radial-gradient(circle, #000 20%, transparent 67%); animation: sle-royal-rays var(--sle-duration) linear both; }
-.sle-crown .sle-orbit { top: 61%; width: 69%; border: 2px solid #ffe6a18a; box-shadow: 0 0 17px #ffd77b40, inset 0 0 12px #ffe6a520, 0 0 0 20px #fff0bc09; transform: translate(-50%, -50%) scaleY(.26); }
-.sle-crown .sle-art { animation-name: sle-crown-rise; }
-.sle-galaxy .sle-halo { background: radial-gradient(circle, #b9a2ff48, #799fe021 33%, transparent 66%); }
-.sle-galaxy .sle-orbit { border-color: #dad1ff88; box-shadow: 0 0 18px #a6b8ff3a, 0 0 0 15px #adbdff0d; animation: sle-galaxy-ring var(--sle-duration) ease both; }
-.sle-galaxy .sle-art { animation-name: sle-galaxy-art; }
-@keyframes sle-presence { 0% {opacity:0} 8%,86% {opacity:1} 100% {opacity:0} }
-@keyframes sle-halo-breathe { from {opacity:.7;scale:.94} to {opacity:1;scale:1.08} }
-@keyframes sle-art-reveal { 0% {opacity:0;transform:translate(-50%,-45%) scale(.45) rotate(-9deg)} 20%,76% {opacity:1;transform:translate(-50%,-50%) scale(1)} 100% {opacity:0;transform:translate(-50%,-54%) scale(.9)} }
-@keyframes sle-copy-reveal { 0%,12% {opacity:0;transform:translateY(10px)} 26%,83% {opacity:1;transform:translateY(0)} 100% {opacity:0;transform:translateY(-5px)} }
-@keyframes sle-heart-art { 0% {opacity:0;transform:translate(-50%,-40%) scale(.3)} 21% {opacity:1;transform:translate(-50%,-50%) scale(1.06)} 34%,65% {transform:translate(-50%,-50%) scale(.98)} 49%,78% {opacity:1;transform:translate(-50%,-50%) scale(1.055)} 100% {opacity:0;transform:translate(-50%,-64%) scale(.86)} }
-@keyframes sle-flower-art { 0% {opacity:0;transform:translate(-50%,-30%) scale(.7) rotate(-12deg)} 25% {opacity:1;transform:translate(-50%,-50%) rotate(3deg)} 55% {transform:translate(-50%,-53%) rotate(-3deg)} 82% {opacity:1;transform:translate(-50%,-50%) rotate(2deg)} 100% {opacity:0;transform:translate(-50%,-60%) scale(.92)} }
-@keyframes sle-celebration-art { 0%,8% {opacity:0;transform:translate(-50%,-50%) scale(.2)} 23% {opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(-3deg)} 38%,78% {opacity:1;transform:translate(-50%,-50%) scale(1)} 100% {opacity:0;transform:translate(-50%,-54%) scale(.85)} }
-@keyframes sle-burst-ring { 0%,7% {opacity:0;transform:translate(-50%,-50%) scale(.2)} 15% {opacity:.9} 48%,100% {opacity:0;transform:translate(-50%,-50%) scale(1.6)} }
-@keyframes sle-car-drive { 0% {opacity:0;transform:translate(-190%,-45%) scale(.86)} 25% {opacity:1;transform:translate(-54%,-50%) scale(1)} 36%,65% {opacity:1;transform:translate(-50%,-50%) scale(1)} 77% {opacity:1;transform:translate(-45%,-50%) scale(1.02)} 100% {opacity:0;transform:translate(155%,-64%) scale(.9)} }
-@keyframes sle-rocket-launch { 0% {opacity:0;transform:translate(-50%,0%) scale(.6)} 22% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-4deg)} 35% {transform:translate(-50%,-48%) rotate(2deg)} 46% {opacity:1;transform:translate(-50%,-56%) rotate(-2deg)} 82%,100% {opacity:0;transform:translate(-50%,-210%) scale(.32) rotate(4deg)} }
-@keyframes sle-crown-rise { 0% {opacity:0;transform:translate(-50%,-22%) scale(.55)} 25% {opacity:1;transform:translate(-50%,-50%) scale(1)} 55% {transform:translate(-50%,-55%) scale(1.04)} 82% {opacity:1;transform:translate(-50%,-50%) scale(1)} 100% {opacity:0;transform:translate(-50%,-58%) scale(.95)} }
-@keyframes sle-royal-rays { from {transform:translate(-50%,-50%) rotate(-20deg)} to {transform:translate(-50%,-50%) rotate(30deg)} }
-@keyframes sle-galaxy-ring { 0% {opacity:0;transform:translate(-50%,-50%) rotate(-45deg) scaleY(.25) scale(.6)} 25%,80% {opacity:1} 100% {opacity:0;transform:translate(-50%,-50%) rotate(25deg) scaleY(.5) scale(1.1)} }
-@keyframes sle-galaxy-art { 0% {opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-15deg)} 25% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(3deg)} 75% {opacity:1;transform:translate(-50%,-55%) scale(1.03) rotate(-3deg)} 100% {opacity:0;transform:translate(-50%,-50%) scale(.7) rotate(8deg)} }
-.sle-stage.sle-reduced, .sle-reduced *, .sle-reduced *::before, .sle-reduced *::after { animation: none!important; transition: none!important; }
-.sle-reduced .sle-art { opacity:1;transform:translate(-50%,-50%); }
-.sle-reduced .sle-copy { opacity:1;transform:none; }
-@media (max-width:359px) { .sle-copy {top:68%} .sle-name {font-size:24px} .sle-count {font-size:20px} .sle-sender {font-size:11px} }
-@media (prefers-reduced-motion:reduce) { .sle-stage, .sle-stage *, .sle-stage *::before, .sle-stage *::after {animation:none!important;transition:none!important} .sle-art {opacity:1;transform:translate(-50%,-50%)} .sle-copy {opacity:1;transform:none} }
+.sle-sender > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sle-avatar {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid #ffe1b175;
+}
+.sle-gift-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  max-width: 100%;
+}
+.sle-name {
+  font-size: clamp(23px, 6.5vw, 31px);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.7px;
+  overflow-wrap: anywhere;
+  color: #fff2d6;
+}
+.sle-count {
+  color: #ffda85;
+  font-size: 23px;
+  line-height: 1.3;
+  font-weight: 850;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+}
+.sle-stage .sle-skip {
+  position: absolute;
+  z-index: 5;
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  display: grid;
+  place-items: center;
+  min-width: 54px;
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid #ffffff35;
+  border-radius: 23px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #fffaef;
+  background: #1f15294f;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sle-stage .sle-skip:focus-visible {
+  outline: 3px solid #ffdd7e;
+  outline-offset: 2px;
+}
+.sle-heart .sle-halo {
+  background: radial-gradient(circle, #ff95b746, #ff568120 36%, transparent 68%);
+}
+.sle-heart .sle-orbit {
+  border-color: #ffc1d566;
+  transform: translate(-50%, -50%) rotate(-35deg) scaleY(0.55);
+}
+.sle-heart .sle-art {
+  animation-name: sle-heart-art;
+}
+.sle-flowers .sle-halo {
+  background: radial-gradient(circle, #ffd1b746, #ffb8d21c 40%, transparent 70%);
+}
+.sle-flowers .sle-orbit {
+  border-style: dashed;
+  border-color: #ffdab03d;
+  transform: translate(-50%, -50%) rotate(20deg) scaleY(0.8);
+}
+.sle-flowers .sle-art {
+  animation-name: sle-flower-art;
+}
+.sle-celebration .sle-halo {
+  background: radial-gradient(circle, #fff0a844, #f684ad19 30%, transparent 66%);
+}
+.sle-celebration .sle-orbit {
+  animation: sle-burst-ring var(--sle-duration) ease-out both;
+}
+.sle-celebration .sle-art {
+  animation-name: sle-celebration-art;
+}
+.sle-car .sle-halo {
+  top: 58%;
+  width: 100%;
+  height: 8px;
+  aspect-ratio: auto;
+  border-radius: 50%;
+  background: #ffd6799c;
+  box-shadow:
+    0 0 20px #ffc56450,
+    0 7px 24px #ffae7033;
+}
+.sle-car .sle-orbit {
+  top: 62%;
+  width: 120%;
+  height: 1px;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, transparent, #ffe9bdaa, transparent);
+  transform: translate(-50%, -50%) rotate(-6deg);
+  box-shadow:
+    0 10px 0 #ffe2b12a,
+    0 -26px 0 #ffe2b11a;
+}
+.sle-car .sle-art {
+  width: min(80%, 350px);
+  top: 51%;
+  animation-name: sle-car-drive;
+}
+.sle-rocket .sle-art {
+  width: min(65%, 285px);
+  animation-name: sle-rocket-launch;
+}
+.sle-rocket .sle-halo {
+  background: radial-gradient(ellipse, #ffd98544, #ff9d6420 33%, transparent 68%);
+}
+.sle-rocket .sle-orbit {
+  width: 45%;
+  top: 67%;
+  border-color: #fca76c44;
+  transform: translate(-50%, -50%) scaleY(0.2);
+}
+.sle-crown .sle-halo {
+  width: 100%;
+  background: repeating-conic-gradient(from 0deg, #ffe4a419 0deg 8deg, transparent 8deg 25deg);
+  -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 67%);
+  mask-image: radial-gradient(circle, #000 20%, transparent 67%);
+  animation: sle-royal-rays var(--sle-duration) linear both;
+}
+.sle-crown .sle-orbit {
+  top: 61%;
+  width: 69%;
+  border: 2px solid #ffe6a18a;
+  box-shadow:
+    0 0 17px #ffd77b40,
+    inset 0 0 12px #ffe6a520,
+    0 0 0 20px #fff0bc09;
+  transform: translate(-50%, -50%) scaleY(0.26);
+}
+.sle-crown .sle-art {
+  animation-name: sle-crown-rise;
+}
+.sle-galaxy .sle-halo {
+  background: radial-gradient(circle, #b9a2ff48, #799fe021 33%, transparent 66%);
+}
+.sle-galaxy .sle-orbit {
+  border-color: #dad1ff88;
+  box-shadow:
+    0 0 18px #a6b8ff3a,
+    0 0 0 15px #adbdff0d;
+  animation: sle-galaxy-ring var(--sle-duration) ease both;
+}
+.sle-galaxy .sle-art {
+  animation-name: sle-galaxy-art;
+}
+@keyframes sle-presence {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes sle-halo-breathe {
+  from {
+    opacity: 0.7;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+@keyframes sle-art-reveal {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -45%) scale(0.45) rotate(-9deg);
+  }
+  20%,
+  76% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -54%) scale(0.9);
+  }
+}
+@keyframes sle-copy-reveal {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  26%,
+  83% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+@keyframes sle-heart-art {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.3);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  34%,
+  65% {
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  49%,
+  78% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.055);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -64%) scale(0.86);
+  }
+}
+@keyframes sle-flower-art {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7) rotate(-12deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(3deg);
+  }
+  55% {
+    transform: translate(-50%, -53%) rotate(-3deg);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.92);
+  }
+}
+@keyframes sle-celebration-art {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  23% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12) rotate(-3deg);
+  }
+  38%,
+  78% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -54%) scale(0.85);
+  }
+}
+@keyframes sle-burst-ring {
+  0%,
+  7% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  48%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
+}
+@keyframes sle-car-drive {
+  0% {
+    opacity: 0;
+    transform: translate(-190%, -45%) scale(0.86);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-54%, -50%) scale(1);
+  }
+  36%,
+  65% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  77% {
+    opacity: 1;
+    transform: translate(-45%, -50%) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(155%, -64%) scale(0.9);
+  }
+}
+@keyframes sle-rocket-launch {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0%) scale(0.6);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-4deg);
+  }
+  35% {
+    transform: translate(-50%, -48%) rotate(2deg);
+  }
+  46% {
+    opacity: 1;
+    transform: translate(-50%, -56%) rotate(-2deg);
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -210%) scale(0.32) rotate(4deg);
+  }
+}
+@keyframes sle-crown-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -22%) scale(0.55);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  55% {
+    transform: translate(-50%, -55%) scale(1.04);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -58%) scale(0.95);
+  }
+}
+@keyframes sle-royal-rays {
+  from {
+    transform: translate(-50%, -50%) rotate(-20deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(30deg);
+  }
+}
+@keyframes sle-galaxy-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-45deg) scaleY(0.25) scale(0.6);
+  }
+  25%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(25deg) scaleY(0.5) scale(1.1);
+  }
+}
+@keyframes sle-galaxy-art {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(-15deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(3deg);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -55%) scale(1.03) rotate(-3deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7) rotate(8deg);
+  }
+}
+.sle-stage.sle-reduced,
+.sle-reduced *,
+.sle-reduced *::before,
+.sle-reduced *::after {
+  animation: none !important;
+  transition: none !important;
+}
+.sle-reduced .sle-art {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+.sle-reduced .sle-copy {
+  opacity: 1;
+  transform: none;
+}
+@media (max-width: 359px) {
+  .sle-copy {
+    top: 68%;
+  }
+  .sle-name {
+    font-size: 24px;
+  }
+  .sle-count {
+    font-size: 20px;
+  }
+  .sle-sender {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sle-stage,
+  .sle-stage *,
+  .sle-stage *::before,
+  .sle-stage *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .sle-art {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  .sle-copy {
+    opacity: 1;
+    transform: none;
+  }
+}
