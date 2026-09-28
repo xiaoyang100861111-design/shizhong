@@ -700,6 +700,7 @@
         ${act('close', '', icon('back'), 'icon-button cx-back', `aria-label="${esc(t('common.back'))}"`)}
         ${headerAvatar(info)}
         <div class="cx-peer"><h2 class="cx-title" id="${titleId}">${esc(info.name)}</h2><p class="cx-status${info.person?.online ? ' is-online' : ''}">${esc(statusText(info))}</p></div>
+        ${window.ShizhongGifts?.openWallpaperPicker ? act('cx-wallpaper', info.id, ico('wallpaper'), 'icon-button', `aria-label="${esc(t('chat.menu.wallpaper'))}" aria-haspopup="dialog"`) : ''}
         ${act('cx-menu', info.id, ico('more'), 'icon-button cx-menu-btn', `aria-label="${esc(t('chat.header.menu'))}" aria-haspopup="dialog"`)}
       </header>
       <div class="cx-searchbar" hidden role="search">
@@ -747,7 +748,11 @@
     let prev = null;
     if (!view.items.length) {
       const text = initialText(view.info);
-      if (text) html += rowHTML({ m: { self: false, text, time: view.ctx.now }, key: '' }, view.ctx, null);
+      // A group starts with its description as an intro note; a person with their greeting.
+      if (text && view.info.kind === 'group')
+        html += `<div class="cx-sys cx-intro" role="note"><span>${esc(text)}</span></div>`;
+      else if (text)
+        html += rowHTML({ m: { self: false, text, time: view.ctx.now }, key: '' }, view.ctx, null);
     }
     view.items.forEach((item, i) => {
       html += rowHTML(item, view.ctx, prev, { newDivider: i === firstNew });
@@ -1377,9 +1382,6 @@
     const { info } = view;
     const rows = [
       row('search', t('chat.menu.search'), 'cx-search'),
-      window.ShizhongGifts?.openWallpaperPicker
-        ? row('wallpaper', t('chat.menu.wallpaper'), 'cx-wallpaper')
-        : '',
       info.person ? row('user', t('chat.menu.profile'), 'person', info.id) : '',
       info.kind === 'group' ? row('group', t('chat.menu.groupInfo'), 'group-detail', info.id) : '',
       info.service ? row('bag', t('chat.menu.service'), 'service', info.service.id) : '',
@@ -2729,7 +2731,7 @@
         view.suppressUntil = Date.now() + 800;
         rowEl.classList.add('is-pressed');
         setTimeout(() => rowEl.classList.remove('is-pressed'), 260);
-        navigator.vibrate?.(8);
+        if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8);
         openMessageMenu(view, rowEl.dataset.mid);
       }, 480);
       view.press = press;

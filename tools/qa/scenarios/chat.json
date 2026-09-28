@@ -122,25 +122,19 @@
         "msg": "new message has a single tick"
       },
       {
-        "wait": 1450
-      },
-      {
-        "expect": "!!document.querySelector('.cx-status.is-typing') && !document.querySelector('.cx-typing').hidden",
+        "expect": "(async()=>{for(let i=0;i<60;i++){if(document.querySelector('.cx-status.is-typing')&&!document.querySelector('.cx-typing').hidden)return true;await new Promise(r=>setTimeout(r,80))}return false})()",
         "msg": "typing indicator while the friend is replying"
       },
       {
         "shot": "typing"
       },
       {
-        "wait": 2400
-      },
-      {
-        "expect": "document.querySelectorAll('.cx-log .cx-row[data-mid]').length >= window.__rows + 2",
+        "expect": "(async()=>{for(let i=0;i<60;i++){if(document.querySelectorAll('.cx-log .cx-row[data-mid]').length>=window.__rows+2)return true;await new Promise(r=>setTimeout(r,80))}return false})()",
         "msg": "friend replied"
       },
       {
-        "expect": "!document.querySelector('.cx-tick[data-state=sent]')",
-        "msg": "ticks turn to read after the reply"
+        "expect": "!document.querySelector('.cx-tick[data-state=sent]') && !document.querySelector('.cx-status.is-typing')",
+        "msg": "ticks turn to read, typing ends"
       }
     ]
   },
@@ -1006,6 +1000,164 @@
       {
         "expect": "!(state.messages.support||[]).some(m => m.self && m.text === 'hello')",
         "msg": "guests cannot send"
+      }
+    ]
+  },
+  {
+    "name": "chat-expiry-refund",
+    "hash": "comms",
+    "steps": [
+      {
+        "eval": "(()=>{state.messages.p4=[...(state.messages.p4||[]),{id:'mOldPacket',self:true,type:'envelope',cents:500,count:1,status:'pending',claims:[],note:'',text:'[old]',time:Date.now()-25*3600000}];window.__w=state.wallet;SZ.store.save();return true})()"
+      },
+      {
+        "eval": "(ShizhongChat.open('p4'), true)"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "expect": "state.messages.p4.find(m=>m.id==='mOldPacket').status==='refunded' && Math.round((state.wallet-window.__w)*100)===500",
+        "msg": "expired packet refunded to the wallet when the chat opens"
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-mid=mOldPacket] .is-settled') && !!document.querySelector('.cx-sys')",
+        "msg": "refund notice shown"
+      }
+    ]
+  },
+  {
+    "name": "chat-clear",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p3]"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "click": "[data-action=cx-menu]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-clear]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-sz-confirm='1']"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "!document.querySelector('.cx-log .cx-row[data-mid]') && SZ.overlay.depth()===1",
+        "msg": "history cleared, back on the chat"
+      }
+    ]
+  },
+  {
+    "name": "chat-legacy-media",
+    "hash": "comms",
+    "steps": [
+      {
+        "eval": "(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('shizhong-chat-media',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});await new Promise((res,rej)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put(new Blob(['old attachment'],{type:'text/plain'}),'legacy1');tx.oncomplete=res;tx.onerror=rej});db.close();state.messages.p3=[...(state.messages.p3||[]),{id:'mLegacy',self:true,type:'file',name:'old-notes.txt',size:14,fileId:'legacy1',text:'[file]',time:Date.now()-600000}];SZ.store.save();setTimeout(()=>location.reload(),50);return true})()"
+      },
+      {
+        "wait": 3500
+      },
+      {
+        "expect": "(state.messages.p3||[]).some(m=>m.id==='mLegacy'&&SZ.media.isRef(m.media)&&!m.fileId)",
+        "msg": "old IndexedDB attachment copied into SZ.media"
+      },
+      {
+        "eval": "(ShizhongChat.open('p3'), true)"
+      },
+      {
+        "wait": 800
+      },
+      {
+        "click": ".cx-row[data-mid=mLegacy] .cx-bubble"
+      },
+      {
+        "wait": 800
+      },
+      {
+        "expect": "!!SZ.overlay.$('.cx-file-preview')",
+        "msg": "migrated file opens"
+      }
+    ]
+  },
+  {
+    "name": "chat-hold-to-talk",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-voice]"
+      },
+      {
+        "eval": "(()=>{const b=document.querySelector('.cx-hold');const o={bubbles:true,pointerId:7,button:0,pointerType:'touch',clientY:600};b.dispatchEvent(new PointerEvent('pointerdown',o));return true})()"
+      },
+      {
+        "wait": 700
+      },
+      {
+        "shot": "holding"
+      },
+      {
+        "eval": "(()=>{const b=document.querySelector('.cx-hold');b.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:7,button:0,pointerType:'touch',clientY:600}));return true})()"
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "expect": "document.querySelector('.cx-rec').hidden && !document.querySelector('.cx-hold').classList.contains('is-recording') && SZ.overlay.depth()===1",
+        "msg": "hold gesture ends cleanly (sends, or explains the microphone problem)"
+      }
+    ]
+  },
+  {
+    "name": "chat-longpress",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row:not(.is-self) .cx-b-text')].pop();const r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:9,button:0,pointerType:'touch',clientX:r.left+10,clientY:r.top+10}));return true})()"
+      },
+      {
+        "wait": 800
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-action=cx-m-quote]')",
+        "msg": "long-press opens the message menu"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "SZ.overlay.depth()===1",
+        "msg": "back closes the menu only"
       }
     ]
   }
