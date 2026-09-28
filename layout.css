@@ -1,12 +1,24 @@
 /*
- * App viewport ownership.
- * Load after styles.css, catalog.css, gifts.css and regions.css.
- * #app scrolls; the navigation occupies its own row; dialogs fill the same frame.
- * --visual-viewport-height/top are supplied by lazy.js, including keyboard resize.
+ * App frame, bottom navigation and overlay presentation. Loaded last (see index.html).
+ *
+ *  - #app-shell is the phone frame: a fixed column [#app (scrolls) · #bottom-nav].
+ *    ≤460px it fills the screen; 461–999px it becomes a centred phone card on a quiet
+ *    background; ≥1000px the desktop side panels (rendered by app.js) appear beside it.
+ *  - #overlay-root holds the SZ.overlay stack: every layer is a direct child with
+ *    [data-sz-layer]. Screens slide in from the right, sheets slide up over a fading
+ *    backdrop; lower layers stay in place underneath.
+ *  - --visual-viewport-height/top are kept up to date by lazy.js (phone keyboards).
  */
 :root {
-  --layout-frame-gap: 0px;
-  --layout-frame-radius: 0px;
+  --frame-w: 460px;
+  --frame-gap: 0px;
+  --frame-radius: 0px;
+  --app-vh: 100vh;
+}
+@supports (height: 100dvh) {
+  :root {
+    --app-vh: 100dvh;
+  }
 }
 
 html,
@@ -17,73 +29,122 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
 }
+body {
+  background: var(--c-bg);
+}
 
+/* ---------- frame ---------- */
 #app-shell.app-shell {
   position: fixed;
-  top: calc(var(--visual-viewport-top, 0px) + var(--layout-frame-gap));
+  top: calc(var(--visual-viewport-top, 0px) + var(--frame-gap));
   right: 0;
-  bottom: auto;
   left: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 460px;
-  height: max(
-    0px,
-    calc(var(--visual-viewport-height, 100dvh) - var(--layout-frame-gap) - var(--layout-frame-gap))
-  );
-  min-height: 0;
+  max-width: var(--frame-w);
+  height: calc(var(--visual-viewport-height, var(--app-vh)) - 2 * var(--frame-gap));
   min-width: 0;
+  min-height: 0;
   margin: 0 auto;
-  padding-top: var(--safe-top, 0px);
-  border-radius: var(--layout-frame-radius);
+  padding-top: var(--safe-top);
+  background: var(--c-bg);
+  border-radius: var(--frame-radius);
   overflow: hidden;
-  /* Bind fixed utility layers to this frame, without transforming a scrollport. */
+  /* Fixed utilities (floating buttons, effects) are positioned against this frame. */
   contain: layout paint;
   isolation: isolate;
 }
-
 #app-shell > #app {
   position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
-  height: auto;
-  margin: 0;
-  padding-bottom: 18px;
+  padding-bottom: var(--sp-6);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scroll-padding: 76px 16px 24px;
-  scrollbar-width: thin;
-  scrollbar-color: #ded8de transparent;
+  scroll-padding-top: calc(var(--appbar-h) + var(--sp-4));
+  outline: none;
+}
+/* Background scrolling stays locked while any overlay layer is open (class set by SZ.overlay). */
+#app-shell.sz-modal-open > #app {
+  overflow-y: hidden;
 }
 
+/* ---------- bottom navigation: five equal tabs ---------- */
 #app-shell > #bottom-nav.bottom-nav {
   position: relative;
-  inset: auto;
+  z-index: var(--z-nav);
   flex: 0 0 auto;
-  width: 100%;
-  max-width: none;
-  height: calc(74px + var(--safe, 0px));
-  min-height: calc(74px + var(--safe, 0px));
-  margin: 0;
-  border-radius: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding: 0 max(var(--sp-1), var(--safe-right)) var(--safe-bottom) max(var(--sp-1), var(--safe-left));
+  background: var(--c-surface);
+  box-shadow: 0 -1px 0 var(--c-border);
+}
+.nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 2px;
+  color: var(--c-text-3);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1.2;
+  transition: color var(--dur-1);
+}
+.nav-item .nav-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.nav-item .ico {
+  width: 24px;
+  height: 24px;
+}
+.nav-item .nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-item.active {
+  color: var(--c-brand-text);
+  font-weight: var(--fw-semibold);
+}
+.nav-item.active .ico {
+  stroke-width: 2.1;
+}
+.nav-item:focus-visible {
+  border-radius: var(--r-sm);
+}
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  left: calc(50% + 6px);
+  box-shadow: 0 0 0 2px var(--c-surface);
 }
 
+/* ---------- overlay stack ---------- */
 #app-shell > #overlay-root {
   position: absolute;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-overlay);
   min-width: 0;
   min-height: 0;
   border-radius: inherit;
   overflow: hidden;
   pointer-events: none;
 }
-
-#app-shell > #overlay-root > :is(.full-screen, .overlay-backdrop) {
+#overlay-root > [data-sz-layer] {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -91,66 +152,193 @@ body {
   height: 100%;
   min-height: 0;
   margin: 0;
-  border-radius: 0;
   pointer-events: auto;
+  /* each layer is its own stacking context, so sticky bars in a lower layer never cover a higher one */
+  isolation: isolate;
 }
 
-#app-shell > #overlay-root > .full-screen {
+/* sheets: backdrop fades, panel slides up */
+.overlay-backdrop {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--c-overlay);
+  animation: sz-fade-in var(--dur-2) var(--ease-out);
+}
+.sheet {
+  position: relative;
+  width: 100%;
+  max-height: calc(100% - var(--safe-top) - var(--sp-6));
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: calc(var(--appbar-h) + var(--sp-4)) 0 calc(var(--sp-10) + var(--safe-bottom));
+  background: var(--c-surface);
+  color: var(--c-text);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: var(--shadow-3);
+  outline: none;
+  animation: sz-sheet-up var(--dur-3) var(--ease-out);
+}
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin: var(--sp-2) auto 0;
+  border-radius: var(--r-full);
+  background: var(--c-border-strong);
+}
+.sheet-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--appbar-h);
+  padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-5);
+  background: var(--c-surface);
+}
+.sheet-header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+}
+.sheet-header .icon-button {
+  color: var(--c-text-2);
+}
+.sheet-header .icon-button .ico {
+  width: 20px;
+  height: 20px;
+}
+.sheet-body {
+  padding: var(--sp-1) var(--sp-5) calc(var(--sp-6) + var(--safe-bottom));
+}
+.sheet-body > p {
+  margin: 0 0 var(--sp-3);
+  color: var(--c-text-2);
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+}
+
+/* screens: full height, slide in from the right over the previous layer */
+.full-screen {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: calc(var(--appbar-h) + var(--safe-top) + var(--sp-4)) 0 calc(96px + var(--safe-bottom));
+  padding-bottom: calc(var(--sp-6) + var(--safe-bottom));
+  background: var(--c-bg);
+  color: var(--c-text);
+  outline: none;
   scrollbar-width: none;
 }
-/* A persistent page transform would anchor fixed publish controls to the long list. */
-#app-shell #app .page {
-  animation: layout-page-in 0.2s ease both;
-}
-@keyframes layout-page-in {
-  from {
-    opacity: 0.35;
-  }
-  to {
-    opacity: 1;
-  }
-}
-#app-shell > #overlay-root > .full-screen::-webkit-scrollbar {
+.full-screen::-webkit-scrollbar {
   display: none;
 }
-
-#app-shell > #overlay-root > .gift-underlay {
-  pointer-events: none;
+#overlay-root > .full-screen[data-sz-layer] {
+  animation: sz-screen-in var(--dur-3) var(--ease-out);
 }
-
-#app-shell > #overlay-root > .overlay-backdrop {
+.detail-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: calc(var(--appbar-h) + var(--safe-top));
+  padding: var(--safe-top) var(--sp-1) 0;
+  background: var(--c-surface);
+  box-shadow: 0 1px 0 var(--c-border);
+}
+.detail-header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   overflow: hidden;
+  font-size: 1.0625rem;
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-header > .icon-button,
+.detail-header-spacer {
+  flex: 0 0 var(--tap);
+  width: var(--tap);
 }
 
-/* The backdrop already ends at the frame bottom: no second desktop 22px gap. */
-#app-shell > #overlay-root > .overlay-backdrop > .sheet {
-  max-width: 100%;
-  max-height: calc(100% - 12px);
-  margin-bottom: 0;
-  border-radius: 24px 24px 0 0;
+/*
+ * Sticky task footers (primary CTA of a task, docs/DESIGN.md §3):
+ *   sheet  → <div class="sheet-footer">…buttons…</div> as the last element of the sheet html
+ *   screen → <div class="screen-footer">…</div> as the last element of the screen html
+ * The negative bottom margin lets the bar cover the layer's bottom padding, so it sits
+ * flush with the frame edge (safe area included) while content scrolls underneath.
+ */
+.sheet-footer,
+.screen-footer,
+.detail-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  box-shadow: 0 -1px 0 var(--c-border);
+}
+.sheet-footer {
+  margin: var(--sp-5) calc(-1 * var(--sp-5)) calc(-1 * (var(--sp-6) + var(--safe-bottom)));
+  padding: var(--sp-3) var(--sp-5) calc(var(--sp-3) + var(--safe-bottom));
+}
+.screen-footer,
+.detail-bottom {
+  /* the screen's bottom padding shrinks the sticky area, so offset by the same amount */
+  bottom: calc(-1 * (var(--sp-6) + var(--safe-bottom)));
+  margin: var(--sp-5) 0 calc(-1 * (var(--sp-6) + var(--safe-bottom)));
+  padding: var(--sp-3) max(var(--gutter), var(--safe-right)) calc(var(--sp-3) + var(--safe-bottom))
+    max(var(--gutter), var(--safe-left));
+}
+:is(.sheet-footer, .screen-footer, .detail-bottom) > :is(.btn, .primary-button, .secondary-button) {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-/* Preserve the region sheet's own fixed search and independently scrolling list. */
-#app-shell > #overlay-root > .overlay-backdrop > .sheet.region-sheet {
-  height: min(90dvh, 820px);
-  max-height: calc(100% - 12px);
+@keyframes sz-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sz-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sz-screen-in {
+  from {
+    transform: translateX(100%);
+  }
 }
 
-/* Chat owns exactly three rows: header, flexible message scrollport, composer. */
+/* ---------- chat screen rows: header, flexible message scrollport, composer ---------- */
 #app-shell > #overlay-root > .full-screen.chat-screen {
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
 }
-
 #app-shell .chat-screen > :is(.detail-header, .gift-chat-header, .chat-composer) {
   position: relative;
   flex: 0 0 auto;
   min-width: 0;
 }
-
 #app-shell .chat-screen > .chat-log {
   flex: 1 1 0;
   min-width: 0;
@@ -159,33 +347,31 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scroll-padding-block: 16px;
+  scroll-padding-block: var(--sp-4);
 }
-
 #app-shell .chat-screen > .chat-composer {
   margin: 0;
-  padding-bottom: calc(12px + var(--safe, 0px));
+  padding-bottom: calc(var(--sp-3) + var(--safe-bottom));
 }
 
-/* Fixed utilities now use the contained frame, so remove viewport offsets. */
+/* ---------- frame utilities ---------- */
 #app-shell .floating-button {
   position: fixed;
-  right: max(18px, var(--safe-right, 0px));
-  bottom: calc(96px + var(--safe, 0px));
+  right: max(var(--gutter), var(--safe-right));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-4));
   left: auto;
-  margin: 0;
+  z-index: var(--z-fab);
 }
-
 #app-shell > .resource-loading {
-  top: var(--safe-top, 0px);
-  max-width: none;
+  position: absolute;
+  top: var(--safe-top);
+  left: 0;
+  right: 0;
+  z-index: var(--z-system);
+  height: 2px;
+  background: var(--c-brand);
+  pointer-events: none;
 }
-
-#app-shell > #storage-notice {
-  top: 0;
-  max-width: none;
-}
-
 #app-shell > .gift-effect-stage {
   position: absolute;
   inset: 0;
@@ -196,61 +382,152 @@ body {
   border-radius: inherit;
 }
 
-/* Background scrolling stays locked while any overlay layer is open (class set by SZ.overlay). */
-#app-shell.sz-modal-open > #app {
-  overflow-y: hidden;
+/* ---------- 461–999px: a centred phone frame instead of a stretched page ---------- */
+@media (min-width: 461px) {
+  body {
+    background-color: var(--c-surface-2);
+    background-image: radial-gradient(ellipse at 18% 22%, var(--c-accent-soft) 0, transparent 42%),
+      radial-gradient(ellipse at 86% 84%, var(--c-brand-soft) 0, transparent 44%);
+  }
+  #app-shell.app-shell {
+    box-shadow:
+      0 0 0 1px var(--c-border),
+      var(--shadow-3);
+  }
+}
+@media (min-width: 600px) and (min-height: 640px) {
+  :root {
+    --frame-w: 430px;
+    --frame-gap: var(--sp-5);
+    --frame-radius: var(--r-xl);
+  }
 }
 
-/* #app's scrollport starts below the shell's safe top padding. */
-#app-shell #app .page-controls {
-  top: 0;
+/* ---------- ≥1000px: desktop frame with the two side panels ---------- */
+.desktop-brand,
+.desktop-index {
+  display: none;
 }
-
 @media (min-width: 1000px) {
   :root {
-    --layout-frame-gap: 22px;
-    --layout-frame-radius: 27px;
+    --frame-gap: var(--sp-6);
+  }
+  .desktop-brand,
+  .desktop-index {
+    position: fixed;
+    top: 50%;
+    display: block;
+    transform: translateY(-50%);
+    color: var(--c-text);
+  }
+  .desktop-brand {
+    left: max(var(--sp-6), calc(50% - var(--frame-w) / 2 - var(--sp-10) - 260px));
+    width: 260px;
+  }
+  .desktop-index {
+    right: max(var(--sp-6), calc(50% - var(--frame-w) / 2 - var(--sp-10) - 230px));
+    width: 230px;
+  }
+  .desktop-brand > img {
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--sp-6);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-2);
+  }
+  .desktop-brand .brand-en,
+  .desktop-index .eyebrow {
+    margin: 0;
+    color: var(--c-text-3);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-semibold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .desktop-brand .brand-title {
+    margin: var(--sp-4) 0;
+    font-size: var(--fs-34);
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-tight);
+  }
+  .desktop-brand .brand-title span {
+    color: var(--c-brand-text);
+  }
+  .desktop-brand p:not([class]),
+  .desktop-brand .brand-text {
+    margin: 0;
+    color: var(--c-text-2);
+    font-size: var(--fs-15);
+    line-height: var(--lh-body);
+  }
+  #preview-nav {
+    display: grid;
+    gap: var(--sp-1);
+    margin: var(--sp-4) 0 var(--sp-5);
+  }
+  .preview-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    width: 100%;
+    min-height: 56px;
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--c-text-2);
+    text-align: left;
+    transition: background-color var(--dur-1);
+  }
+  .preview-item:hover,
+  .preview-item.active {
+    background: var(--c-surface);
+  }
+  .preview-item.active {
+    color: var(--c-text);
+    box-shadow: var(--shadow-1);
+  }
+  .preview-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-sm);
+    background: var(--c-surface-2);
+    color: var(--c-text-2);
+  }
+  .preview-icon .ico {
+    width: 20px;
+    height: 20px;
+  }
+  .preview-item.active .preview-icon {
+    background: var(--c-brand-soft);
+    color: var(--c-brand-text);
+  }
+  .preview-text {
+    display: grid;
+    min-width: 0;
+  }
+  .preview-text b {
+    font-size: var(--fs-15);
+    font-weight: var(--fw-semibold);
+  }
+  .preview-text small {
+    overflow: hidden;
+    color: var(--c-text-3);
+    font-size: var(--fs-12);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .desktop-note {
+    margin: 0;
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--c-border-strong);
+    color: var(--c-text-3);
+    font-size: var(--fs-12);
   }
 }
-
-@media (max-width: 359px) {
-  #app-shell .floating-button {
-    right: 14px;
+@media (min-width: 1000px) and (max-height: 700px) {
+  .desktop-brand .brand-title {
+    font-size: var(--fs-28);
   }
-}
-
-/* Every friend's portrait is a round, keyboard accessible profile entry. */
-.chat-avatar-button {
-  position: relative;
-  display: block;
-  flex: 0 0 35px;
-  width: 35px;
-  height: 35px;
-  min-width: 0;
-  padding: 0;
-  border-radius: 50%;
-  line-height: 0;
-  align-self: flex-start;
-}
-.chat-avatar-button::after {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-}
-.chat-avatar-button .avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  aspect-ratio: 1;
-  object-fit: cover;
-}
-.gift-chat-header .chat-avatar-button {
-  flex-basis: 38px;
-  width: 38px;
-  height: 38px;
-  align-self: center;
-}
-.friend-profile-screen .detail-content {
-  padding-top: 19px;
 }

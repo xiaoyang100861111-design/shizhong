@@ -1,4 +1,8 @@
 'use strict';
+/*
+ * App shell: icons and template helpers shared by every module, state defaults, the bottom
+ * navigation, the desktop frame and the Me tab. Public names are listed in docs/CONTRACTS.md.
+ */
 const iconPaths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6z"/>',
@@ -27,7 +31,7 @@ const iconPaths = {
   heart: '<path d="M12 21S2 15 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 7-10 13-10 13Z"/>',
   star: '<path d="m12 2 3 6 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1z"/>',
   filter:
-    '<path d="M3 6h18M3 12h18M3 18h18"/><circle cx="8" cy="6" r="2" fill="white"/><circle cx="16" cy="12" r="2" fill="white"/><circle cx="9" cy="18" r="2" fill="white"/>',
+    '<path d="M3 6h3m4 0h11M3 12h11m4 0h3M3 18h4m4 0h10"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
   add: '<path d="M12 4v16M4 12h16"/>',
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
   edit: '<path d="M12 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-7m-4-9 4 4m-11 7 10-11 4 4-11 11-5 1z"/>',
@@ -83,88 +87,60 @@ function resourceURL(path) {
 function asset(name) {
   const value = String(name || 'logo.png');
   if (/^(data:|blob:)/i.test(value)) return value;
-  // Photos the user uploaded live in IndexedDB ('media:<id>'); core/boot.js warms their URLs.
+  // Photos the user uploaded live in IndexedDB ('media:<id>'); <img data-media> hydrates them.
   if (SZ.media.isRef(value)) return SZ.media.src(value);
   if (/^(https?:)?\/\//i.test(value)) return new URL(value, SHIZHONG_BASE).href;
   const mapped = window.SHIZHONG_ASSETS?.[value] || (value.startsWith('assets/') ? value : 'assets/' + value);
   // JPEG is served by the current host; its WebP handler returns 404.
   return resourceURL(mapped.replace(/\.webp(?=$|[?#])/i, '.jpg'));
 }
+/** src attribute for any image reference, plus data-media so IndexedDB photos hydrate. */
+function imageAttrs(ref) {
+  return `src="${esc(asset(ref))}"${SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : ''}`;
+}
+
+/*
+ * Service categories. Colours are data-driven accents (passed to CSS as --icon-color);
+ * name and hint are translated on every read so catalog code can keep using c.name.
+ */
+function defineCategory(id, iconName, color, bg, badge = '') {
+  return {
+    id,
+    icon: iconName,
+    color,
+    bg,
+    badge,
+    get name() {
+      return t(`shell.cat.${id}.name`);
+    },
+    get hint() {
+      return t(`shell.cat.${id}.hint`);
+    },
+  };
+}
 const categories = [
-  {
-    id: 'clean',
-    name: '上门服务',
-    icon: 'clean',
-    color: '#ed8063',
-    bg: '#fff0e9',
-    hint: '家政保洁、空调清洗',
-  },
-  {
-    id: 'guide',
-    name: '当地地陪',
-    icon: 'guide',
-    color: '#e8ad36',
-    bg: '#fff5d8',
-    hint: '有人带路，更懂大马',
-  },
-  {
-    id: 'market',
-    name: '24H 超市',
-    icon: 'cart',
-    color: '#e67e4c',
-    bg: '#fff0d7',
-    badge: '24H',
-    hint: '生鲜日用，送到家',
-  },
-  { id: 'food', name: '美食外送', icon: 'food', color: '#e8766b', bg: '#ffefec', hint: '发现身边的好味道' },
-  { id: 'jobs', name: '招聘求职', icon: 'bag', color: '#8c94c9', bg: '#f1f0fc', hint: '好机会，就在附近' },
-  { id: 'car', name: '接送用车', icon: 'car', color: '#75a0c7', bg: '#edf6ff', hint: '接机、包车、同城出行' },
-  {
-    id: 'flower',
-    name: '鲜花蛋糕',
-    icon: 'flower',
-    color: '#d989a1',
-    bg: '#fff0f6',
-    hint: '把惊喜送给在乎的人',
-  },
-  { id: 'repair', name: '维修安装', icon: 'tool', color: '#c39962', bg: '#fcf3e7', hint: '家电、手机、宽带' },
-  {
-    id: 'travel',
-    name: '旅行票务',
-    icon: 'plane',
-    color: '#77aa96',
-    bg: '#edf8ef',
-    hint: '去看看，更大的世界',
-  },
-  { id: 'all', name: '全部服务', icon: 'grid', color: '#89829c', bg: '#f2eff7', hint: '你的生活所需' },
+  defineCategory('clean', 'clean', '#ed8063', '#fff0e9'),
+  defineCategory('guide', 'guide', '#e8ad36', '#fff5d8'),
+  defineCategory('market', 'cart', '#e67e4c', '#fff0d7', '24H'),
+  defineCategory('food', 'food', '#e8766b', '#ffefec'),
+  defineCategory('jobs', 'bag', '#8c94c9', '#f1f0fc'),
+  defineCategory('car', 'car', '#75a0c7', '#edf6ff'),
+  defineCategory('flower', 'flower', '#d989a1', '#fff0f6'),
+  defineCategory('repair', 'tool', '#c39962', '#fcf3e7'),
+  defineCategory('travel', 'plane', '#77aa96', '#edf8ef'),
+  defineCategory('all', 'grid', '#89829c', '#f2eff7'),
 ];
 const moreCategories = [
-  {
-    id: 'delivery',
-    name: '同城跑腿',
-    icon: 'bag',
-    color: '#eaa24b',
-    bg: '#fff3df',
-    hint: '取件、送件、代买',
-  },
-  {
-    id: 'beauty',
-    name: '丽人护理',
-    icon: 'flower',
-    color: '#cf809d',
-    bg: '#ffedf5',
-    hint: '美甲、美发、日常护理',
-  },
-  {
-    id: 'phone',
-    name: '话费充值',
-    icon: 'phone',
-    color: '#7893c3',
-    bg: '#ecf3fc',
-    hint: '号码与套餐，一步提交',
-  },
-  { id: 'visa', name: '签证咨询', icon: 'globe', color: '#7baa9b', bg: '#eff8f2', hint: '行程与材料咨询' },
+  defineCategory('delivery', 'bag', '#eaa24b', '#fff3df'),
+  defineCategory('beauty', 'flower', '#cf809d', '#ffedf5'),
+  defineCategory('phone', 'phone', '#7893c3', '#ecf3fc'),
+  defineCategory('visa', 'globe', '#7baa9b', '#eff8f2'),
 ];
+
+/*
+ * Hand-written demo records from the first prototype. The text stays in the source language here;
+ * other languages come from data/i18n/<locale>/legacy.js (read through lc() / personName()).
+ */
 const legacyServices = [
   {
     id: 's1',
@@ -333,13 +309,79 @@ const legacyPeople = [
     price: 8,
   },
 ];
+const legacyPosts = [
+  {
+    id: 'f1',
+    person: 'p2',
+    text: '给忙碌的生活按个暂停键。☕<br>发现一家很喜欢的小店，连阳光都刚刚好。',
+    image: 'cafe-brunch.jpg',
+    topic: '周末不宅家',
+    place: 'Bukit Bintang',
+    likes: 128,
+    minutesAgo: 18,
+  },
+  {
+    id: 'f2',
+    person: 'p3',
+    text: '每次抬头看双子塔，还是会心动。<br>今晚的吉隆坡，把浪漫拉满了。',
+    image: 'city-kl.jpg',
+    topic: '我的城市有点美',
+    place: 'KLCC, Kuala Lumpur',
+    likes: 86,
+    minutesAgo: 36,
+  },
+  {
+    id: 'f3',
+    person: 'p1',
+    text: '快乐有时候很简单，比如一顿认真吃的早餐。今天也要好好生活呀。',
+    image: 'nasi-lemak.jpg',
+    topic: '大马日常',
+    place: '吉隆坡',
+    likes: 56,
+    minutesAgo: 60,
+  },
+];
+const legacyGroups = [
+  {
+    id: 'g1',
+    name: '吉隆坡 · 周末一起玩',
+    desc: '这周末去茨厂街逛逛，有人一起吗？',
+    count: 128,
+    icon: 'compass',
+    city: '吉隆坡',
+  },
+  {
+    id: 'g2',
+    name: '大马咖啡地图',
+    desc: '一起发现城市里的好咖啡。',
+    count: 86,
+    icon: 'food',
+    city: '吉隆坡',
+  },
+  {
+    id: 'g3',
+    name: '大马生活互助站',
+    desc: '租房、出行、办事，生活经验一起分享。',
+    count: 256,
+    icon: 'home',
+    city: '全马',
+  },
+];
 const services = [...window.SHIZHONG_DEMO.services, ...legacyServices.map(s => ({ ...s, legacy: true }))];
 const people = [...legacyPeople, ...window.SHIZHONG_DEMO.people];
-// Animated portraits are used only where an avatar is shown; the original photos
-// remain available for full-screen live and video preview backgrounds.
+const basePosts = [...window.SHIZHONG_DEMO.posts, ...legacyPosts];
+const defaultGroups = [...window.SHIZHONG_DEMO.groups, ...legacyGroups];
+SZ.bootTasks = SZ.bootTasks || [];
+SZ.bootTasks.push(() => SZ_I18N.loadContent('legacy'));
+
+// Animated portraits are used only where an avatar is shown (and not for reduced motion);
+// the original photos remain available for full-screen live and video preview backgrounds.
 const animatedFriendIds = ['p1', 'p2', 'p3', 'p4', 'u0070', 'u0003', 'u0069', 'u0032'];
-for (const person of people)
-  if (animatedFriendIds.includes(person.id)) person.animatedAvatar = 'animated-avatars/' + person.id + '.png';
+const reducedMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+if (!reducedMotion)
+  for (const person of people)
+    if (animatedFriendIds.includes(person.id))
+      person.animatedAvatar = 'animated-avatars/' + person.id + '.png';
 /*
  * Demo content in the active language: lc('people', person, 'bio') -> translated text or the original.
  * Kinds: services, orders, people, profiles, posts, groups, conversations (see tools/l10n/extract.js).
@@ -354,15 +396,20 @@ function personName(person) {
 function avatarSource(person) {
   return person?.animatedAvatar || person?.photo || 'avatars/women-000.jpg';
 }
+
+// The demo account's untouched profile is demo content too (translated in legacy.js, kind 'profile').
+const DEMO_PROFILE = { id: 'demo', name: '适中生活家', bio: '在大马，发现生活的每一种可能。' };
 const initialState = {
   city: '吉隆坡',
   profile: {
-    name: '适中生活家',
-    bio: '在大马，发现生活的每一种可能。',
+    name: DEMO_PROFILE.name,
+    bio: DEMO_PROFILE.bio,
     phone: '',
     language: '中文',
     photo: 'animated-avatars/self.png',
   },
+  // Fans / visitors come from the (future) server; the demo account shows sample numbers.
+  social: SZ.session.isDemo ? { fans: 150, visitors: 100 } : { fans: 0, visitors: 0 },
   follows: ['p3'],
   likes: [],
   saved: [],
@@ -402,6 +449,7 @@ function accountDefaults() {
     phone: account?.phone || '',
     photo: 'ui/avatar-default.svg',
   };
+  base.social = { fans: 0, visitors: 0 };
   base.follows = [];
   base.joined = [];
   base.points = 1000;
@@ -409,16 +457,40 @@ function accountDefaults() {
   return base;
 }
 let state = SZ.store.load(accountDefaults());
-function compactBalance(value) {
-  const n = Number(value) || 0;
-  return Math.abs(n) >= 100000000
-    ? (n / 100000000).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) + '亿'
-    : n.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
-}
-if (SZ.session.isDemo && (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg')) {
+if (
+  SZ.session.isDemo &&
+  (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg')
+) {
   state.profile.photo = 'animated-avatars/self.png';
   save();
 }
+/** Display name of the signed-in user (guests and the untouched demo profile are translated). */
+function profileName() {
+  if (SZ.session.isGuest) return t('shell.guestName');
+  const name = state.profile?.name || '';
+  if (SZ.session.isDemo && name === DEMO_PROFILE.name) return lc('profile', DEMO_PROFILE, 'name');
+  return name || t('shell.newUserName');
+}
+function profileBio() {
+  const bio = state.profile?.bio || '';
+  if (SZ.session.isDemo && bio === DEMO_PROFILE.bio) return lc('profile', DEMO_PROFILE, 'bio');
+  return bio;
+}
+/** Account id grouped for reading (8800 2688). Guests have none. */
+function displayId() {
+  const id = SZ.session.isGuest ? '' : String(SZ.session.account?.displayId || '');
+  return id.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+function compactBalance(value) {
+  return SZ.fmt.compact(value);
+}
+/** RM amount that stays short on small cards: RM 12.50, RM 8亿 / RM 800M. */
+function moneyShort(value) {
+  const n = Number(value) || 0;
+  return Math.abs(n) >= 100000 ? 'RM ' + SZ.fmt.compact(n) : SZ.fmt.money(n);
+}
+
+// Filter values are stable ids compared by the catalog module (it translates their labels).
 const ui = {
   page: 'home',
   homeTab: 'life',
@@ -434,12 +506,13 @@ const ui = {
   gift: 'flower',
   quantity: 1,
 };
+// [page id, icon]; labels come from t('nav.<id>'), desktop descriptions from t('shell.nav.desc.<id>').
 const NAV = [
-  ['home', 'home', '首页', '生活的每一种便利'],
-  ['social', 'compass', '社交', '遇见聊得来的人'],
-  ['live', 'live', '直播', '把距离留给心动'],
-  ['comms', 'chat', '通讯', '让每一次联系更近'],
-  ['me', 'user', '我的', '收藏自己的小确幸'],
+  ['home', 'home'],
+  ['social', 'compass'],
+  ['live', 'live'],
+  ['comms', 'chat'],
+  ['me', 'user'],
 ];
 function save() {
   return SZ.store.save();
@@ -447,26 +520,83 @@ function save() {
 function act(action, id = '', label = '', cls = '', extra = '') {
   return `<button type="button" class="${cls}" data-action="${action}" data-id="${esc(id)}" ${extra}>${label}</button>`;
 }
-function nav() {
-  document.querySelector('#bottom-nav').innerHTML = NAV.map(([id, ico, label]) =>
-    act(
-      'nav',
-      id,
-      `<span class="nav-glyph">${icon(ico)}</span><span>${label}</span>${id === 'comms' && unreadCount() ? '<span class="nav-badge">' + unreadCount() + '</span>' : ''}`,
-      `nav-item ${ui.page === id ? 'active' : ''} ${id === 'live' ? 'live-nav' : ''}`,
-      `aria-label="${label}" ${ui.page === id ? 'aria-current="page"' : ''}`
-    )
-  ).join('');
-  document.querySelector('#preview-nav').innerHTML = NAV.map(([id, _, label, desc], i) =>
-    act('nav', id, `<b>0${i + 1}</b><span>${label}</span>`, ui.page === id ? 'active' : '', `title="${desc}"`)
-  ).join('');
+
+// ------------------------------------------------------------------ navigation
+function countLabel(n) {
+  return n > 99 ? '99+' : String(n);
 }
+function nav() {
+  const bar = document.querySelector('#bottom-nav');
+  if (bar) {
+    bar.setAttribute('aria-label', t('nav.main'));
+    const unread = unreadCount();
+    bar.innerHTML = NAV.map(([id, ico]) => {
+      const label = t(`nav.${id}`);
+      const current = ui.page === id;
+      const count = id === 'comms' ? unread : 0;
+      const badge = count
+        ? `<span class="badge nav-badge" aria-hidden="true">${countLabel(count)}</span>`
+        : '';
+      const name = count ? tn('shell.nav.unread', count, { label }) : label;
+      return act(
+        'nav',
+        id,
+        `<span class="nav-glyph">${icon(ico)}${badge}</span><span class="nav-label">${esc(label)}</span>`,
+        `nav-item${current ? ' active' : ''}`,
+        `aria-label="${esc(name)}"${current ? ' aria-current="page"' : ''}`
+      );
+    }).join('');
+  }
+  const preview = document.querySelector('#preview-nav');
+  if (preview)
+    preview.innerHTML = NAV.map(([id, ico]) =>
+      act(
+        'nav',
+        id,
+        `<span class="preview-icon">${icon(ico)}</span><span class="preview-text"><b>${esc(t(`nav.${id}`))}</b><small>${esc(t(`shell.nav.desc.${id}`))}</small></span>`,
+        `preview-item${ui.page === id ? ' active' : ''}`,
+        ui.page === id ? 'aria-current="page"' : ''
+      )
+    ).join('');
+}
+function unreadCount() {
+  return Number(window.ShizhongChat?.unreadCount?.()) || 0;
+}
+SZ.actions.register('nav', (action, id) => navigate(id));
+// Reading a chat changes the badge; the nav is cheap to redraw whenever a layer closes.
+SZ.on('overlay:close', () => nav());
+SZ.on('chat:unread', () => nav());
+
+// Desktop frame (≥1000px): the side panels are rendered here so their text is translated.
+SZ.on('boot:ready', () => {
+  const brand = document.querySelector('.desktop-brand');
+  if (brand)
+    brand.innerHTML = `<img class="desktop-logo" src="${asset('logo.png')}" alt=""><p class="brand-en">${esc(t('shell.desktop.kicker'))}</p><p class="brand-title">${t('shell.desktop.title')}</p><p class="brand-text">${esc(t('shell.desktop.text'))}</p>`;
+  const index = document.querySelector('.desktop-index');
+  if (index) {
+    index.setAttribute('aria-label', t('shell.desktop.index'));
+    index.innerHTML = `<p class="eyebrow">${esc(t('shell.desktop.index'))}</p><nav id="preview-nav" aria-label="${esc(t('shell.desktop.index'))}"></nav><p class="desktop-note">${esc(t('shell.desktop.note'))}</p>`;
+  }
+  document.title = t('shell.docTitle');
+});
+
+// ------------------------------------------------------------------ template helpers
 /*
  * Tab-root header (docs/DESIGN.md §3). appBar({ title, logo, city, actions: [html…] })
  * logo: show the brand lockup instead of a title (Home). city: show the location pill.
  */
+/** Current location label from the regions module (translated), else the stored city. */
+function locationText(style = 'short') {
+  const label = window.ShizhongRegions?.locationLabel?.(style);
+  if (!label) return td('city', state.city);
+  // Older regions builds return source-language text; td() leaves translated text untouched.
+  return String(label)
+    .split(' · ')
+    .map(part => td('city', part))
+    .join(' · ');
+}
 function cityPill() {
-  const label = window.ShizhongRegions?.locationLabel?.('short') || td('city', state.city);
+  const label = locationText('short');
   return act(
     'city',
     '',
@@ -482,141 +612,291 @@ function appBar({ title = '', logo = false, city = false, actions = [] } = {}) {
   return `<header class="app-bar">${lead}<div class="app-bar-actions">${city ? cityPill() : ''}${actions.join('')}</div></header>`;
 }
 function categoryGrid(items) {
-  return `<div class="service-grid">${items.map(c => act('category', c.id, `<span class="category-icon" style="--icon-color:${c.color};--icon-bg:${c.bg}">${icon(c.icon)}${c.badge ? `<span class="cat-badge">${c.badge}</span>` : ''}</span><span>${c.name}</span>`, 'category')).join('')}</div>`;
+  return `<div class="service-grid">${items
+    .map(c =>
+      act(
+        'category',
+        c.id,
+        `<span class="category-icon" style="--icon-color:${esc(c.color)};--icon-bg:${esc(c.bg)}">${icon(c.icon)}${c.badge ? `<span class="cat-badge" aria-hidden="true">${esc(c.badge)}</span>` : ''}</span><span class="category-name">${esc(c.name)}</span>`,
+        'category'
+      )
+    )
+    .join('')}</div>`;
 }
+/** Section heading with an optional "View all" link. title and hint are translated text. */
 function heading(title, action = '', id = '', hint = '') {
-  return `<div class="section-heading"><h2><i class="heading-mark"></i>${title}${hint ? `<span class="section-sub">${hint}</span>` : ''}</h2>${action ? act(action, id, `查看全部 ${icon('chevron')}`) : ''}</div>`;
+  return `<div class="section-heading"><h2 class="section-title">${title}${hint ? `<span class="section-sub">${hint}</span>` : ''}</h2>${action ? act(action, id, `<span>${esc(t('common.viewAll'))}</span>${icon('chevron')}`, 'see-all') : ''}</div>`;
+}
+/** chips()/tabs() items: 'id' (label = id), { id, label } or legacy [id, label]. */
+function optionItem(item) {
+  if (Array.isArray(item)) return { id: String(item[0]), label: String(item[1] ?? item[0]) };
+  if (item && typeof item === 'object') return { id: String(item.id), label: String(item.label ?? item.id) };
+  return { id: String(item), label: String(item) };
 }
 function chips(items, current, action) {
   return items
-    .map(v => act(action, v, v, `chip ${current === v ? 'active' : ''}`, `aria-pressed="${current === v}"`))
+    .map(optionItem)
+    .map(({ id, label }) => {
+      const on = String(current) === id;
+      return act(action, id, esc(label), `chip${on ? ' active' : ''}`, `aria-pressed="${on}"`);
+    })
     .join('');
 }
 function tabs(items, current, action, actionButton = '') {
-  return `<div class="top-tabs">${items.map(([id, label]) => act(action, id, label, current === id ? 'active' : '', `aria-pressed="${current === id}"`)).join('')}${actionButton}</div>`;
+  const list = items
+    .map(optionItem)
+    .map(({ id, label }) => {
+      const on = String(current) === id;
+      return act(
+        action,
+        id,
+        esc(label),
+        `tab${on ? ' active' : ''}`,
+        `role="tab" aria-selected="${on}" tabindex="${on ? 0 : -1}"`
+      );
+    })
+    .join('');
+  return `<div class="tabs-bar"><div class="tabs top-tabs" role="tablist">${list}</div>${actionButton ? `<div class="tabs-action">${actionButton}</div>` : ''}</div>`;
 }
-function searchForm(placeholder = '搜索服务、好店和城市生活', id = 'search') {
-  return `<form class="search-box" data-form="${id}">${icon('search')}<input name="q" aria-label="${placeholder}" placeholder="${placeholder}" autocomplete="off"><button class="search-submit" type="submit">搜索</button></form>`;
+// Arrow keys move between tabs (WAI-ARIA tabs pattern). Pages re-render on activation, so focus is restored.
+document.addEventListener('keydown', event => {
+  const tab = event.target.closest?.('[role="tab"]');
+  const list = tab?.closest('[role="tablist"]');
+  if (!list || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const all = [...list.querySelectorAll('[role="tab"]')];
+  let i = all.indexOf(tab);
+  if (event.key === 'Home') i = 0;
+  else if (event.key === 'End') i = all.length - 1;
+  else i = (i + (event.key === 'ArrowRight' ? 1 : -1) + all.length) % all.length;
+  const next = all[i];
+  event.preventDefault();
+  if (!next || next === tab) return;
+  const { action, id } = next.dataset;
+  next.click();
+  requestAnimationFrame(() => {
+    const again = [...document.querySelectorAll('[role="tab"]')].find(
+      el => el.dataset.action === action && el.dataset.id === id && !el.closest('[inert]')
+    );
+    (again || next).focus();
+  });
+});
+function searchForm(placeholder = t('shell.search.placeholder'), id = 'search') {
+  return `<form class="search-box" data-form="${esc(id)}" role="search">${icon('search')}<input name="q" type="search" enterkeyhint="search" aria-label="${esc(placeholder)}" placeholder="${esc(placeholder)}" autocomplete="off"><button class="search-submit" type="submit">${esc(t('common.search'))}</button></form>`;
 }
-const legacyPosts = [
-  {
-    id: 'f1',
-    person: 'p2',
-    text: '给忙碌的生活按个暂停键。☕<br>发现一家很喜欢的小店，连阳光都刚刚好。',
-    image: 'cafe-brunch.jpg',
-    topic: '周末不宅家',
-    place: 'Bukit Bintang',
-    likes: 128,
-    time: '18 分钟前',
-  },
-  {
-    id: 'f2',
-    person: 'p3',
-    text: '每次抬头看双子塔，还是会心动。<br>今晚的吉隆坡，把浪漫拉满了。',
-    image: 'city-kl.jpg',
-    topic: '我的城市有点美',
-    place: 'KLCC, Kuala Lumpur',
-    likes: 86,
-    time: '36 分钟前',
-  },
-  {
-    id: 'f3',
-    person: 'p1',
-    text: '快乐有时候很简单，比如一顿认真吃的早餐。今天也要好好生活呀。',
-    image: 'nasi-lemak.jpg',
-    topic: '大马日常',
-    place: '吉隆坡',
-    likes: 56,
-    time: '1 小时前',
-  },
-];
-const basePosts = [...window.SHIZHONG_DEMO.posts, ...legacyPosts];
 function liveBars() {
-  return '<span class="live-bars"><i></i><i></i><i></i></span>';
+  return '<span class="live-bars" aria-hidden="true"><i></i><i></i><i></i></span>';
 }
-const legacyGroups = [
-  {
-    id: 'g1',
-    name: '吉隆坡 · 周末一起玩',
-    desc: '这周末去茨厂街逛逛，有人一起吗？',
-    count: 128,
-    icon: 'compass',
-    city: '吉隆坡',
-  },
-  {
-    id: 'g2',
-    name: '大马咖啡地图',
-    desc: '一起发现城市里的好咖啡。',
-    count: 86,
-    icon: 'food',
-    city: '吉隆坡',
-  },
-  {
-    id: 'g3',
-    name: '大马生活互助站',
-    desc: '租房、出行、办事，生活经验一起分享。',
-    count: 256,
-    icon: 'home',
-    city: '全马',
-  },
-];
-const defaultGroups = [...window.SHIZHONG_DEMO.groups, ...legacyGroups];
+/** Conversation list row. name/text are plain text; time is epoch ms or an already formatted string. */
 function chatRow(id, name, text, photo, time, unread = 0) {
-  const image = `<img class="avatar" loading="lazy" decoding="async" src="${photo.startsWith('data:') ? photo : asset(photo)}" alt="${esc(name)}">`;
+  const image = `<img class="avatar" loading="lazy" decoding="async" ${imageAttrs(photo)} alt="">`;
   const avatar =
     people.some(person => person.id === id) && window.ShizhongGifts?.avatarDecoration
       ? window.ShizhongGifts.avatarDecoration(image, id, 'list')
       : image;
+  const count =
+    typeof window.ShizhongChat?.unread === 'function'
+      ? Number(window.ShizhongChat.unread(id)) || 0
+      : unread && !state.messages[id] && !state.readChats.includes(id)
+        ? unread
+        : 0;
+  const stamp = typeof time === 'number' ? SZ.fmt.stamp(time) : esc(time || '');
+  const datetime = typeof time === 'number' ? ` datetime="${new Date(time).toISOString()}"` : '';
+  const badge = count
+    ? `<i class="badge unread" aria-hidden="true">${countLabel(count)}</i><span class="sr-text">${esc(tn('shell.unread', count))}</span>`
+    : '';
   return act(
     'chat',
     id,
-    `${avatar}<div class="chat-row-content"><div class="chat-row-head"><h3>${esc(name)}</h3><time>${time}</time></div>${unread && !state.messages[id] && !state.readChats.includes(id) ? `<i class="unread">${unread}</i>` : ''}<p>${esc(text)}</p></div>`,
+    `${avatar}<span class="chat-row-content"><span class="chat-row-head"><strong class="chat-row-name">${esc(name)}</strong><time${datetime}>${stamp}</time></span><span class="chat-row-foot"><span class="chat-row-text">${esc(text)}</span>${badge}</span></span>`,
     'chat-row'
   );
 }
-function shortcut(ico, label, action, id = '') {
-  return act(action, id, `${icon(ico)}<span>${label}</span>`, 'shortcut');
+/** Icon tile for shortcut grids; badge = optional count shown on the icon. */
+function shortcut(ico, label, action, id = '', badge = 0) {
+  const count = Number(badge) || 0;
+  const mark = count ? `<span class="badge" aria-hidden="true">${countLabel(count)}</span>` : '';
+  const sr = count ? `<span class="sr-text">${esc(tn('shell.count', count))}</span>` : '';
+  return act(
+    action,
+    id,
+    `<span class="shortcut-icon">${icon(ico)}${mark}</span><span class="shortcut-label">${label}</span>${sr}`,
+    'shortcut'
+  );
 }
 function listRow(ico, label, action, value = '', id = '') {
   return act(
     action,
     id,
-    `${icon(ico)}<span>${label}</span>${value ? `<span class="row-value">${value}</span>` : ''}${icon('chevron', 'chevron')}`,
+    `${icon(ico)}<span class="list-row-main">${label}</span>${value ? `<span class="row-value">${value}</span>` : ''}${icon('chevron', 'chevron')}`,
     'list-row'
   );
 }
-function mePage() {
-  const photo = state.profile.photo.startsWith('data:') ? state.profile.photo : asset(state.profile.photo);
-  return `<section class="page">${
-    window.ShizhongGifts
-      ? window.ShizhongGifts.profileHero()
-      : `<div class="profile-hero"><div class="profile-toolbar">${act('share-profile', '', icon('share'), 'icon-button', 'aria-label="分享个人名片"')}${act('settings', '', icon('settings'), 'icon-button', 'aria-label="设置"')}</div><div class="profile-main">${act('edit-profile', '', `<img class="avatar" src="${photo}" alt="我的头像">`)}<div><h2>${esc(state.profile.name)}</h2><p>适中 ID：8800 2688 ${act('copy-id', '', icon('copy'), '', 'aria-label="复制适中 ID" style="vertical-align:middle"')}</p><div class="tags" style="margin-top:9px"><span class="tag" style="color:#b19158;background:#f7eccf">${icon('pin')} ${esc(state.city)}</span><span class="tag">生活体验官</span></div></div>${act('edit-profile', '', icon('chevron'), 'icon-button', 'aria-label="编辑个人资料"')}</div><div class="profile-stats">${[
-          ['follows', state.follows.length, '关注'],
-          ['fans', 150, '粉丝'],
-          ['visitors', 100, '访客'],
-          ['saved', state.saved.length, '收藏'],
-        ]
-          .map(([id, num, name]) => act('stat', id, `<strong>${num}</strong><span>${name}</span>`))
-          .join('')}</div></div>`
-  }<div class="section-padding" style="padding-top:1px">${window.ShizhongGifts ? window.ShizhongGifts.profileMenu() : ''}${window.ShizhongVIP ? window.ShizhongVIP.homeCard() : `<div class="member-card"><div class="member-head">${icon('crown')}适中会员 <span style="font-size:9px;letter-spacing:1.7px;margin-left:3px">PLUS</span>${act('membership', '', state.member ? '查看权益' : '了解权益')}</div><p>好生活的每一步，都有专属礼遇</p></div>`}<div class="wallet-block">${act('wallet', '', `<strong title="RM ${state.wallet.toFixed(2)}"><small>RM </small>${compactBalance(state.wallet)}</strong><span>我的余额</span>`)}${act('points', '', `<strong title="${state.points.toLocaleString('zh-CN')} 金豆">${compactBalance(state.points)}</strong><span>我的金豆</span>`)}${act('coupons', '', `<strong>${state.coupons.length}</strong><span>优惠券</span>`)}</div><div class="panel"><div class="panel-heading">我的订单${act('orders', '全部', `全部订单 ${icon('chevron')}`)}</div><div class="shortcut-grid">${shortcut('clock', '待确认', 'orders', '待确认')}${shortcut('calendar', '待服务', 'orders', '待服务')}${shortcut('shield', '已完成', 'orders', '已完成')}${shortcut('headset', '售后服务', 'after-sales')}</div></div><div class="signin-card"><div><h3>每日签到，攒一点小确幸</h3><p>今日签到可领 10 金豆</p></div>${act('checkin', '', state.checkin === localDate() ? '已签到' : '去签到')}</div><div class="panel"><div class="panel-heading">我的生活</div><div class="shortcut-grid colorful">${shortcut('ticket', '我的优惠', 'coupons')}${shortcut('heart', '心动收藏', 'saved')}${shortcut('gift', '礼物商城', 'gift-shop')}${shortcut('edit', '主页装扮', 'gift-studio')}${shortcut('crown', '我的藏品', 'gift-collection')}${shortcut('medal', '任务中心', 'tasks')}${shortcut('calendar', '我的预约', 'orders', '全部')}${shortcut('pin', '常用地址', 'addresses')}${shortcut('group', '邀请有礼', 'invite')}${shortcut('bag', '商家入驻', 'merchant')}</div></div><div class="panel list-panel">${listRow('headset', '在线客服', 'chat', '为你解决生活小问题', 'support')}${listRow('help', '帮助与反馈', 'help')}${listRow('globe', '语言与地区', 'language', '中文 · ' + (window.ShizhongRegions?.locationLabel() || '马来西亚'))}${listRow('settings', '设置', 'settings')}</div><div class="endnote">适中 · 让生活，刚刚好</div></div></section>`;
-}
-function empty(title, text, action = '', label = '') {
-  return `<div class="empty-state">${icon('compass')}<h3>${title}</h3><p>${text}</p>${action ? act(action, '', label, 'small-primary') : ''}</div>`;
+/** Empty state: title + one line + optional single action (docs/DESIGN.md §2). */
+function empty(title, text, action = '', label = '', ico = 'compass') {
+  return `<div class="empty-state">${icon(ico)}<h3>${title}</h3>${text ? `<p>${text}</p>` : ''}${action ? act(action, '', label, 'btn btn-primary btn-sm') : ''}</div>`;
 }
 function localDate() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kuala_Lumpur',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  return SZ.fmt.date(Date.now(), 'iso');
 }
+
+// ------------------------------------------------------------------ Me tab
+/*
+ * Order: hero (gifts module, or the tidy fallback below) → guest sign-in → VIP → wallet →
+ * orders → daily check-in → "my life" shortcuts → settings rows. Every block reads live data;
+ * other modules are optional (optional chaining) so a missing module never breaks the page.
+ */
+function meHero() {
+  const hero = window.ShizhongGifts?.profileHero?.();
+  if (hero) return hero;
+  const guest = SZ.session.isGuest;
+  const id = displayId();
+  const city = locationText('short');
+  const stats = [
+    ['follows', state.follows.length],
+    ['fans', state.social?.fans || 0],
+    ['visitors', state.social?.visitors || 0],
+    ['saved', state.saved.length],
+  ];
+  const idLine = id
+    ? `<span class="me-id">${esc(t('shell.me.id', { id }))}</span>${act('copy-id', '', icon('copy'), 'icon-button me-copy', `aria-label="${esc(t('shell.me.copyId'))}"`)}`
+    : `<span class="me-id">${esc(t('shell.me.guestId'))}</span>`;
+  return `<section class="me-hero card" aria-label="${esc(t('shell.me.profile'))}"><div class="me-hero-main">${act(
+    guest ? 'me-sign-in' : 'edit-profile',
+    '',
+    `<img class="avatar avatar-72" ${imageAttrs(state.profile.photo)} alt="">`,
+    'me-avatar',
+    `aria-label="${esc(guest ? t('shell.me.guest.action') : t('shell.me.editProfile'))}"`
+  )}<div class="me-hero-text"><h2 class="me-name">${esc(profileName())}</h2><p class="me-meta">${idLine}</p><p class="me-city">${icon('pin')}<span>${esc(city)}</span></p></div>${
+    guest ? '' : act('edit-profile', '', esc(t('shell.me.edit')), 'btn btn-secondary btn-sm me-edit')
+  }</div>${profileBio() ? `<p class="me-bio">${esc(profileBio())}</p>` : ''}<div class="me-stats">${stats
+    .map(([key, n]) =>
+      act(
+        'stat',
+        key,
+        `<strong class="num">${esc(SZ.fmt.compact(n))}</strong><span>${esc(t(`shell.me.stats.${key}`))}</span>`,
+        'me-stat'
+      )
+    )
+    .join('')}</div></section>`;
+}
+function meGuestCard() {
+  if (!SZ.session.isGuest) return '';
+  return `<section class="me-guest card"><div class="me-guest-text"><h2>${esc(t('shell.me.guest.title'))}</h2><p>${esc(t('shell.me.guest.text'))}</p></div>${act('me-sign-in', '', esc(t('shell.me.guest.action')), 'btn btn-primary btn-block')}</section>`;
+}
+function meWallet() {
+  const coupons = window.ShizhongCoupons?.all?.()?.length ?? state.coupons.length;
+  const cells = [
+    [
+      'wallet',
+      moneyShort(state.wallet),
+      t('shell.me.wallet.balance'),
+      SZ.fmt.money(state.wallet, { digits: 2 }),
+    ],
+    ['points', SZ.fmt.compact(state.points), t('shell.me.wallet.beans'), SZ.fmt.number(state.points)],
+    ['coupons', SZ.fmt.number(coupons), t('shell.me.wallet.coupons'), ''],
+  ];
+  return `<section class="me-wallet card" aria-label="${esc(t('shell.me.wallet.title'))}">${cells
+    .map(([action, value, label, full]) =>
+      act(
+        action,
+        '',
+        `<strong class="num">${esc(value)}</strong><span>${esc(label)}</span>`,
+        'me-wallet-cell',
+        `aria-label="${esc(t('shell.me.wallet.label', { label, value: full || value }))}"`
+      )
+    )
+    .join('')}</section>`;
+}
+function meOrders() {
+  const counts = typeof orderCounts === 'function' ? orderCounts() || {} : {};
+  const items = [
+    ['clock', 'pending', counts.pending],
+    ['calendar', 'confirmed', (counts.confirmed || 0) + (counts.serving || 0)],
+    ['check', 'done', 0],
+  ];
+  return `<section class="me-section card"><div class="me-section-head"><h2>${esc(t('shell.me.orders.title'))}</h2>${act(
+    'orders',
+    '', // no filter = all orders
+    `<span>${esc(t('shell.me.orders.all'))}</span>${icon('chevron')}`,
+    'see-all'
+  )}</div><div class="shortcut-grid">${items
+    .map(([ico, code, n]) => shortcut(ico, esc(t(`shell.me.orders.${code}`)), 'orders', code, n))
+    .join('')}${shortcut('headset', esc(t('shell.me.orders.afterSales')), 'after-sales')}</div></section>`;
+}
+function meCheckin() {
+  const status = window.ShizhongCheckin?.status?.() || { done: state.checkin === localDate(), streak: 0 };
+  const text = status.done
+    ? status.streak
+      ? tn('shell.me.checkin.streak', status.streak)
+      : t('shell.me.checkin.doneToday')
+    : t('shell.me.checkin.reward');
+  return `<section class="me-checkin card"><span class="me-checkin-icon">${icon('calendar')}</span><div class="me-checkin-text"><h2>${esc(t('shell.me.checkin.title'))}</h2><p>${esc(text)}</p></div>${act(
+    'checkin',
+    '',
+    esc(status.done ? t('shell.me.checkin.view') : t('shell.me.checkin.action')),
+    status.done ? 'btn btn-secondary btn-sm' : 'btn btn-accent btn-sm'
+  )}</section>`;
+}
+function meLife() {
+  const items = [
+    ['heart', 'saved', 'saved'],
+    ['gift', 'giftShop', 'gift-shop'],
+    ['edit', 'studio', 'gift-studio'],
+    ['crown', 'collection', 'gift-collection'],
+    ['medal', 'tasks', 'tasks'],
+    ['pin', 'addresses', 'addresses'],
+    ['group', 'invite', 'invite'],
+    ['bag', 'merchant', 'merchant'],
+  ];
+  return `<section class="me-section card"><div class="me-section-head"><h2>${esc(t('shell.me.life.title'))}</h2></div><div class="shortcut-grid">${items
+    .map(([ico, key, action]) => shortcut(ico, esc(t(`shell.me.life.${key}`)), action))
+    .join('')}</div></section>`;
+}
+function meRows() {
+  const language = SZ_I18N.meta()?.name || '';
+  const region = window.ShizhongRegions?.locationLabel ? locationText('long') : t('shell.me.regionDefault');
+  return `<div class="list me-list">${listRow('headset', esc(t('shell.me.support')), 'chat', esc(t('shell.me.supportHint')), 'support')}${listRow('help', esc(t('shell.me.help')), 'help')}${listRow('globe', esc(t('shell.me.language')), 'language', esc([language, region].filter(Boolean).join(' · ')))}${listRow('settings', esc(t('shell.me.settings')), 'settings')}</div>`;
+}
+function mePage() {
+  const actions = [
+    SZ.session.isGuest
+      ? ''
+      : act('share-profile', '', icon('qr'), 'icon-button', `aria-label="${esc(t('shell.me.share'))}"`),
+    act('settings', '', icon('settings'), 'icon-button', `aria-label="${esc(t('shell.me.settings'))}"`),
+  ];
+  return `<section class="page me-page">${appBar({ title: t('nav.me'), actions })}<div class="me-body">${meHero()}${meGuestCard()}${
+    window.ShizhongVIP?.homeCard?.() || ''
+  }${meWallet()}${meOrders()}${meCheckin()}${meLife()}${meRows()}<p class="endnote">${esc(t('shell.me.endnote'))}</p></div></section>`;
+}
+SZ.actions.register('me-sign-in', () => {
+  if (window.ShizhongAuth?.open) window.ShizhongAuth.open('login', { reason: t('shell.me.guest.text') });
+  else SZ.requireLogin(t('shell.me.guest.text'));
+});
+SZ.actions.register('copy-id', () => {
+  const id = String(SZ.session.account?.displayId || '');
+  if (!id) return;
+  const done = () => toast(t('shell.me.idCopied'), { type: 'success' });
+  const fail = () => toast(t('shell.me.copyFailed', { id: displayId() }), { type: 'error' });
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(id).then(done, fail);
+  else fail();
+});
+
+// ------------------------------------------------------------------ render & overlays
 function render() {
   nav();
-  document.querySelector('#app').innerHTML = (
-    { home: homePage, social: socialPage, live: livePage, comms: commsPage, me: mePage }[ui.page] || homePage
-  )();
+  const page = { home: homePage, social: socialPage, live: livePage, comms: commsPage, me: mePage }[ui.page];
+  document.querySelector('#app').innerHTML = (typeof page === 'function' ? page : homePage)();
 }
+function navigate(page) {
+  if (!NAV.some(n => n[0] === page)) page = 'home';
+  SZ.overlay.closeAll();
+  ui.page = page;
+  render();
+  document.querySelector('#app')?.scrollTo({ top: 0, behavior: 'instant' });
+  history.replaceState(history.state, '', '#' + page);
+}
+if (NAV.some(n => n[0] === location.hash.slice(1))) ui.page = location.hash.slice(1);
+
 /* Feedback and overlays are implemented in core/sz.js; these names stay for existing callers. */
 function toast(message, options) {
   return SZ.toast(message, options);
@@ -643,15 +923,3 @@ Object.defineProperty(window, 'currentOverlay', {
 let previousFocus = null,
   bodyScroll = 0;
 function focusOverlay() {}
-function navigate(page) {
-  SZ.overlay.closeAll();
-  ui.page = page;
-  render();
-  document.querySelector('#app').scrollTo({ top: 0, behavior: 'instant' });
-  history.replaceState(null, '', '#' + page);
-}
-if (NAV.some(n => n[0] === location.hash.slice(1))) ui.page = location.hash.slice(1);
-
-function unreadCount() {
-  return (state.readChats.includes('support') ? 0 : 1) + (state.readChats.includes('p1') ? 0 : 2);
-}

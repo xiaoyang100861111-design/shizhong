@@ -1,27 +1,65 @@
+/*
+ * Avatar entry points: the round, keyboard-accessible portrait buttons in chats and the
+ * profile photo picker in forms. Tokens only (docs/DESIGN.md).
+ */
+.chat-avatar-button {
+  position: relative;
+  display: block;
+  flex: 0 0 36px;
+  align-self: flex-start;
+  width: 36px;
+  height: 36px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 0;
+}
+/* 44px hit area around the 36px portrait */
+.chat-avatar-button::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+.chat-avatar-button .avatar {
+  width: 100%;
+  height: 100%;
+}
+.gift-chat-header .chat-avatar-button {
+  flex-basis: 40px;
+  align-self: center;
+  width: 40px;
+  height: 40px;
+}
+.friend-profile-screen .detail-content {
+  padding-top: var(--sp-5);
+}
+
 .avatar-upload-box {
   display: flex;
-  align-items: center;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 9px;
-  min-height: 145px;
-  border: 1px dashed #d4ae72;
-  background: linear-gradient(135deg, #fffaf1, #f7f0e7);
-  color: #79563b;
+  gap: var(--sp-2);
+  min-height: 148px;
+  border: 1px dashed var(--c-border-strong);
+  background: var(--c-surface);
+  color: var(--c-text-2);
 }
 .avatar-upload-box .avatar-upload-preview {
   width: 80px;
   height: 80px;
   margin: 0;
-  border: 3px solid #fff;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 7px 20px #6d344024;
+  box-shadow:
+    0 0 0 3px var(--c-surface),
+    0 0 0 4px var(--c-border);
 }
 .avatar-upload-box > span {
-  font-weight: 700;
+  color: var(--c-text);
+  font-weight: var(--fw-semibold);
 }
 .avatar-upload-box:focus-within {
-  outline: 3px solid #f3c460;
-  outline-offset: 3px;
+  box-shadow: var(--focus-ring);
 }
