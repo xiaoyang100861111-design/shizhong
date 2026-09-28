@@ -1831,10 +1831,10 @@
   background: var(--c-surface-2);
 }
 .checkout-stepper .icon-button {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: var(--tap);
+  height: var(--tap);
+  min-width: var(--tap);
+  min-height: var(--tap);
   color: var(--c-text);
   font-size: var(--fs-20);
   line-height: 1;

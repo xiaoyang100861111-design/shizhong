@@ -1517,5 +1517,81 @@
     "wait": 800
    }
   ]
+ },
+ {
+  "name": "catalog-picker-back",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=food]"
+   },
+   {
+    "click": "[data-action=catalog-category-sort]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1 && SZ.overlay.top().meta.category==='food')",
+    "msg": "back closes only the picker"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===0 && ui.page==='home')",
+    "msg": "second back returns home"
+   }
+  ]
+ },
+ {
+  "name": "catalog-auth-back",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=guide]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=method][data-value=fpx]"
+   },
+   {
+    "eval": "window.__o=state.orders.length, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='confirm' && state.orders.length===window.__o)",
+    "msg": "backing out of bank approval keeps the order unplaced"
+   }
+  ]
  }
 ]
