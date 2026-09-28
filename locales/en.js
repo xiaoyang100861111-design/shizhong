@@ -11,7 +11,29 @@ SZ_I18N.register(
     dir: 'ltr',
     order: 2,
     fallback: 'zh-CN',
-    content: [],
+    // demo-content translations shipped in data/i18n/en/ (loaded with the matching data chunk)
+    content: [
+      'catalog-index',
+      'people',
+      'posts',
+      'groups',
+      'conversations',
+      'profiles-0',
+      'profiles-1',
+      'profiles-2',
+      'profiles-3',
+      'profiles-4',
+      'profiles-5',
+      'profiles-6',
+      'profiles-7',
+      'profiles-8',
+      'profiles-9',
+      'profiles-10',
+      'profiles-11',
+      'gifts',
+      'live-gifts',
+      'legacy',
+    ],
   },
   {
     // ==== ns:core (owner: core) ====
@@ -84,6 +106,8 @@ SZ_I18N.register(
     shell: {
       guestName: 'Guest',
       newUserName: 'New member',
+      brand: 'Shizhong',
+      changeCity: 'Change city, currently {city}',
     },
     // ==== end ns:shell ====
 

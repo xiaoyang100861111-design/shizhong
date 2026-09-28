@@ -85,6 +85,8 @@ SZ_I18N.register(
     shell: {
       guestName: '游客',
       newUserName: '新朋友',
+      brand: '适中',
+      changeCity: '切换城市，当前{city}',
     },
     // ==== end ns:shell ====
 

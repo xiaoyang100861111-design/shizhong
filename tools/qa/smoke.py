@@ -134,7 +134,8 @@ def errors_since(cdp, start):
             out.append("console.error " + " ".join(str(a.get("value", a.get("description", "")))[:200] for a in p.get("args", [])))
         elif m == "Log.entryAdded":
             en = p.get("entry", {})
-            if en.get("level") == "error" and "favicon" not in en.get("text", ""):
+            # optional translated demo content may not exist yet for every chunk
+            if en.get("level") == "error" and "favicon" not in en.get("text", "") and "/data/i18n/" not in (en.get("url") or ""):
                 out.append("LOG " + en.get("text", "")[:200] + " " + (en.get("url") or "")[-80:])
     return out
 

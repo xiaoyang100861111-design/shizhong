@@ -340,6 +340,17 @@ const people = [...legacyPeople, ...window.SHIZHONG_DEMO.people];
 const animatedFriendIds = ['p1', 'p2', 'p3', 'p4', 'u0070', 'u0003', 'u0069', 'u0032'];
 for (const person of people)
   if (animatedFriendIds.includes(person.id)) person.animatedAvatar = 'animated-avatars/' + person.id + '.png';
+/*
+ * Demo content in the active language: lc('people', person, 'bio') -> translated text or the original.
+ * Kinds: services, orders, people, profiles, posts, groups, conversations (see tools/l10n/extract.js).
+ * Array fields (tags, rules, messages…) return arrays; index-aligned with the original.
+ */
+function lc(kind, record, field) {
+  return tc(kind, record?.id, field, record?.[field]);
+}
+function personName(person) {
+  return person ? tc('people', person.id, 'name', person.name) : '';
+}
 function avatarSource(person) {
   return person?.animatedAvatar || person?.photo || 'avatars/women-000.jpg';
 }
@@ -449,6 +460,26 @@ function nav() {
   document.querySelector('#preview-nav').innerHTML = NAV.map(([id, _, label, desc], i) =>
     act('nav', id, `<b>0${i + 1}</b><span>${label}</span>`, ui.page === id ? 'active' : '', `title="${desc}"`)
   ).join('');
+}
+/*
+ * Tab-root header (docs/DESIGN.md §3). appBar({ title, logo, city, actions: [html…] })
+ * logo: show the brand lockup instead of a title (Home). city: show the location pill.
+ */
+function cityPill() {
+  const label = window.ShizhongRegions?.locationLabel?.('short') || td('city', state.city);
+  return act(
+    'city',
+    '',
+    `${icon('pin')}<span>${esc(label)}</span>${icon('down')}`,
+    'city-pill',
+    `aria-label="${esc(t('shell.changeCity', { city: label }))}"`
+  );
+}
+function appBar({ title = '', logo = false, city = false, actions = [] } = {}) {
+  const lead = logo
+    ? `<div class="brand-lockup"><img class="brand-logo" src="${asset('logo.png')}" alt=""><h1 class="app-bar-title">${esc(t('shell.brand'))}</h1></div>`
+    : `<h1 class="app-bar-title">${esc(title)}</h1>`;
+  return `<header class="app-bar">${lead}<div class="app-bar-actions">${city ? cityPill() : ''}${actions.join('')}</div></header>`;
 }
 function categoryGrid(items) {
   return `<div class="service-grid">${items.map(c => act('category', c.id, `<span class="category-icon" style="--icon-color:${c.color};--icon-bg:${c.bg}">${icon(c.icon)}${c.badge ? `<span class="cat-badge">${c.badge}</span>` : ''}</span><span>${c.name}</span>`, 'category')).join('')}</div>`;
