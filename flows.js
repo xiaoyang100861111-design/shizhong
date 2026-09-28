@@ -2539,10 +2539,12 @@ function legacyRequestForm(id, serviceId = '') {
         state.profile.phone
       )
     : '';
-  return showSheet(
+  return SZ.overlay.open({
+    kind: 'sheet',
     title,
-    `<form data-form="request" data-category="${esc(id)}" data-service="${esc(serviceId)}">${head}${content}${contact}${field(L('note'), 'note', 'textarea', L('notePlaceholder'))}${formNote()}${submitButton(s?.type === 'goods' ? L('submitGoods') : L('submit'))}</form>`
-  );
+    className: 'flows-layer flows-request',
+    html: `<div class="flows-body"><form data-form="request" data-category="${esc(id)}" data-service="${esc(serviceId)}">${head}${content}${contact}${field(L('note'), 'note', 'textarea', L('notePlaceholder'))}${formNote()}${submitButton(s?.type === 'goods' ? L('submitGoods') : L('submit'))}</form></div>`,
+  });
 }
 
 // ------------------------------------------------------------------ actions
