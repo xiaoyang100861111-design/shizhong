@@ -15,7 +15,7 @@ import argparse, hashlib, json, os, re, shutil, sys, zipfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-EXCLUDE_DIRS = {".git", ".qa", ".l10n-work", "tools", "docs", "dist", "node_modules", "vendor/package", "assets/gift-art/_review"}
+EXCLUDE_DIRS = {".git", ".qa", ".l10n-work", "tools", "docs", "dist", "node_modules", "vendor/package", "assets/gift-art/_review", "assets/gift-art/_tools"}
 EXCLUDE_FILES = re.compile(
     r"(\.zip|\.tgz|\.md|-validation\.json|load-report\.json|release-manifest\.json|\.prettierrc\.json|\.prettierignore|\.gitignore|预览\.(jpg|png))$",
     re.I,

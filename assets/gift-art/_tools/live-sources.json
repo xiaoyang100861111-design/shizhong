@@ -1,0 +1,125 @@
+{
+  "fluentCommit": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+  "live": {
+    "heart": {
+      "emoji": "Red heart",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Red%20heart/3D/red_heart_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "confetti": {
+      "emoji": "Party popper",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Party%20popper/3D/party_popper_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-magic-wand": {
+      "emoji": "Magic wand",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Magic%20wand/3D/magic_wand_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-yellow-magic-wand": {
+      "emoji": "Magic wand",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Magic%20wand/3D/magic_wand_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "shaft recoloured to hue 46 deg, resized/optimised"
+    },
+    "douyin-blue-magic-wand": {
+      "emoji": "Magic wand",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Magic%20wand/3D/magic_wand_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "shaft recoloured to hue 206 deg, resized/optimised"
+    },
+    "douyin-green-magic-wand": {
+      "emoji": "Magic wand",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Magic%20wand/3D/magic_wand_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "shaft recoloured to hue 140 deg, resized/optimised"
+    },
+    "douyin-purple-magic-wand": {
+      "emoji": "Magic wand",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Magic%20wand/3D/magic_wand_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "shaft recoloured to hue 272 deg, resized/optimised"
+    },
+    "douyin-power-pill": {
+      "emoji": "Pill",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Pill/3D/pill_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-magic-mirror": {
+      "emoji": "Mirror",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Mirror/3D/mirror_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-donut": {
+      "emoji": "Doughnut",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Doughnut/3D/doughnut_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-energy-battery": {
+      "emoji": "Battery",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Battery/3D/battery_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-love-burst": {
+      "emoji": "Growing heart",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Growing%20heart/3D/growing_heart_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-party-microphone": {
+      "emoji": "Microphone",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Microphone/3D/microphone_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-mystery-airdrop": {
+      "emoji": "Package",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Package/3D/package_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-strawberry-dessert": {
+      "emoji": "Shortcake",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Shortcake/3D/shortcake_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-super-airdrop": {
+      "emoji": "Parachute",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Parachute/3D/parachute_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-life-potion": {
+      "emoji": "Test tube",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Test%20tube/3D/test_tube_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-super-jet": {
+      "emoji": "Flying saucer",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Flying%20saucer/3D/flying_saucer_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-rare-treasure": {
+      "emoji": "Money bag",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Money%20bag/3D/money_bag_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    },
+    "douyin-lucky-cube": {
+      "emoji": "Game die",
+      "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Game%20die/3D/game_die_3d.png",
+      "licence": "MIT, Copyright (c) Microsoft Corporation",
+      "modified": "alpha clean-up and PNG optimisation only"
+    }
+  }
+}
