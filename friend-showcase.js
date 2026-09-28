@@ -1,40 +1,37 @@
-/* Stable fictional friend showcases. This module never modifies visitor state. */
 'use strict';
+/*
+ * Friends' showcases (owner: gifts): a stable, fictional decorated profile per demo person
+ * (cover background, gift stickers, avatar charm) plus two example gift messages per friend.
+ * Derived from the person id only, so it never touches the visitor's state. Bump VERSION to
+ * reshuffle every showcase; example message ids stay the same.
+ */
 (function () {
-  const VERSION = 'friend-showcase-v1';
+  const VERSION = 'friend-showcase-v2';
   const layouts = [
     [
-      [15, 29, 78, -10],
-      [85, 36, 74, 12],
-      [18, 72, 83, -7],
-      [81, 73, 76, 9],
+      [15, 32, 80, -9],
+      [85, 36, 74, 11],
+      [36, 70, 70, -6],
+      [70, 72, 78, 8],
     ],
     [
-      [17, 35, 83, -6],
-      [84, 24, 72, 9],
-      [16, 73, 73, -12],
-      [82, 72, 84, 7],
+      [16, 40, 84, -6],
+      [84, 26, 72, 9],
+      [38, 72, 66, -12],
+      [68, 70, 82, 7],
     ],
     [
-      [14, 24, 72, 9],
-      [85, 34, 82, -8],
-      [19, 72, 85, 7],
-      [82, 73, 73, -11],
+      [14, 26, 72, 9],
+      [86, 34, 84, -8],
+      [34, 70, 80, 7],
+      [72, 72, 70, -10],
     ],
     [
-      [16, 32, 82, 7],
-      [84, 30, 78, -11],
-      [17, 74, 77, -6],
-      [82, 72, 81, 11],
+      [18, 34, 82, 7],
+      [82, 30, 78, -11],
+      [40, 72, 72, -6],
+      [66, 70, 80, 10],
     ],
-  ];
-  const notes = [
-    ['把一点星光留给你，愿今天也有好心情。', '这份小小的心意，送给认真生活的你。'],
-    ['上次聊的故事我还记得，愿下一次也很开心。', '把这份闪耀送给你，谢谢你分享有趣的日常。'],
-    ['忙完记得歇一会儿，送你一点温柔的光。', '今天的好心情，也想分给你一份。'],
-    ['愿你的每个小计划，都慢慢变成喜欢的生活。', '为你的新尝试加油，把祝福放进这份礼物。'],
-    ['有空再一起聊聊城市里的新发现。', '把美好的瞬间留下，送你一份相遇的纪念。'],
-    ['谢谢你认真听我说话，这一点心意送给你。', '这份礼物替我说一句：认识你很开心。'],
   ];
   function hash(value) {
     let n = 2166136261;
@@ -48,87 +45,94 @@
     let n = seed >>> 0;
     return function () {
       n += 0x6d2b79f5;
-      let t = n;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      let r = n;
+      r = Math.imul(r ^ (r >>> 15), r | 1);
+      r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
     };
   }
-  function escapeHTML(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  const catalog = () => window.SHIZHONG_GIFT_DATA || { gifts: [], backgrounds: [], friendNotes: [] };
+  let giftIndex = null;
+  function gift(id) {
+    if (!giftIndex) giftIndex = new Map(catalog().gifts.map(g => [g.id, g]));
+    return giftIndex.get(id) || null;
   }
-  function imageURL(value) {
-    const path = String(value || 'avatars/women-000.jpg');
-    if (typeof asset === 'function') return asset(path);
-    return /^(?:data:image\/|https?:\/\/|\/)/i.test(path) ? path : 'assets/' + path;
-  }
-  function giftData() {
-    return window.SHIZHONG_GIFT_DATA || { gifts: [], backgrounds: [] };
-  }
+  const giftName = g => tc('gifts', g.id, 'name', g.name);
+  const money = v => SZ.fmt.money(v);
   function personById(id) {
-    const list = typeof people !== 'undefined' ? people : window.SHIZHONG_DEMO?.people || [];
-    return list.find(person => String(person.id) === String(id));
+    if (typeof people === 'undefined') return null;
+    if (!personById.map || personById.size !== people.length) {
+      personById.map = new Map(people.map(p => [String(p.id), p]));
+      personById.size = people.length;
+    }
+    return personById.map.get(String(id)) || null;
   }
-  function personValue(value) {
-    return value && typeof value === 'object' ? value : personById(value);
+  const personOf = value => (value && typeof value === 'object' ? value : personById(value));
+
+  /*
+   * Tiered pools so showcases feel varied but plausible: one grand piece, one classic, one from the
+   * oriental series and sometimes a smaller keepsake. Wearable gifts are kept for the avatar charm.
+   */
+  let pools = null;
+  function tiers() {
+    if (pools) return pools;
+    const list = catalog()
+      .gifts.filter(g => Number.isFinite(Number(g.price)) && g.wearable !== 'avatar')
+      .sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
+    pools = {
+      grand: list.filter(g => !g.series && g.price >= 100000),
+      classic: list.filter(g => !g.series && g.price >= 15000 && g.price < 100000),
+      keepsake: list.filter(g => !g.series && g.price >= 1000 && g.price < 15000),
+      oriental: list.filter(g => g.series && g.price >= 1000),
+      wear: catalog()
+        .gifts.filter(g => g.wearable === 'avatar')
+        .sort((a, b) => a.price - b.price || a.id.localeCompare(b.id)),
+    };
+    return pools;
   }
-  function price(value) {
-    return 'RM ' + Number(value).toLocaleString('en-MY', { maximumFractionDigits: 0 });
-  }
-  function giftButton(gift, body, cls, extra = '') {
-    return `<button type="button" class="${cls}" data-action="friend-gift-detail" data-id="${escapeHTML(gift.id)}" aria-label="查看${escapeHTML(gift.name)}，${price(gift.price)}" ${extra}>${body}</button>`;
-  }
+  const cache = new Map();
+  /** Stable showcase for a person id (memoised: it is read for every chat row and message). */
   function profileFor(id) {
     const personId = String(id == null ? '' : id);
     if (!personId) return null;
-    const catalog = giftData();
-    // Existing demo profiles and example messages keep their original gift IDs when new series arrive.
-    const highValue = catalog.gifts
-      .slice()
-      .filter(g => !g.series && Number.isFinite(Number(g.price)))
-      .sort((a, b) => Number(b.price) - Number(a.price) || a.id.localeCompare(b.id))
-      .slice(0, 6);
-    if (!highValue.length || !catalog.backgrounds.length) return null;
-    const seed = hash(VERSION + ':' + personId),
-      next = random(seed);
-    const ranked = highValue.slice();
-    for (let i = ranked.length - 1; i > 0; i--) {
-      const j = Math.floor(next() * (i + 1));
-      [ranked[i], ranked[j]] = [ranked[j], ranked[i]];
-    }
-    const count = Math.min(ranked.length, 3 + (hash(personId + ':count') % 2));
+    if (cache.has(personId)) return cache.get(personId);
+    const data = catalog();
+    const pool = tiers();
+    if (!data.backgrounds.length || !pool.grand.length) return null;
+    const seed = hash(VERSION + ':' + personId);
+    const next = random(seed);
+    const take = (list, used) => {
+      const free = list.filter(g => !used.has(g.id));
+      if (!free.length) return null;
+      const g = free[Math.floor(next() * free.length)];
+      used.add(g.id);
+      return g;
+    };
+    const used = new Set();
+    const picks = [take(pool.grand, used), take(pool.oriental, used), take(pool.classic, used)];
+    if (next() < 0.5) picks.push(take(pool.keepsake, used));
+    const chosen = picks.filter(Boolean);
     const layoutId = hash(personId + ':layout') % layouts.length;
-    const backgroundId = catalog.backgrounds[hash(personId + ':background') % catalog.backgrounds.length].id;
-    const owned = ranked
-      .slice(0, count)
-      .map(gift => ({ giftId: gift.id, quantity: 1, price: Number(gift.price) }));
     const slots = layouts[layoutId];
-    const stickers = owned.map((item, i) => {
-      const slot = slots[i];
+    // Covers stay calm: the photo backdrop is rarer than the soft gradients.
+    const backgrounds = data.backgrounds.filter(b => b.id !== 'crimson-gold');
+    const backgroundId = backgrounds[hash(personId + ':background') % backgrounds.length].id;
+    const stickers = chosen.map((g, i) => {
+      const [x, y, size, rotation] = slots[i];
       return {
         id: 'friend-sticker-' + personId + '-' + i,
-        giftId: item.giftId,
-        x: Number((slot[0] + (next() - 0.5) * 2.4).toFixed(2)),
-        y: Number((slot[1] + (next() - 0.5) * 3).toFixed(2)),
-        size: slot[2] + Math.floor(next() * 7) - 3,
-        rotation: slot[3] + Math.floor(next() * 7) - 3,
+        giftId: g.id,
+        x: Number((x + (next() - 0.5) * 3).toFixed(1)),
+        y: Number((y + (next() - 0.5) * 4).toFixed(1)),
+        size: size + Math.floor(next() * 7) - 3,
+        rotation: rotation + Math.floor(next() * 7) - 3,
       };
     });
-    // One additional Oriental collectible is worn on the avatar, while the original
-    // showcased gifts and their stable example chat messages remain unchanged.
-    const wearable = catalog.gifts
-      .filter(g => g.wearable === 'avatar')
-      .sort((a, b) => Number(b.price) - Number(a.price));
-    const avatarGift = wearable.length
-      ? wearable[hash(personId + ':avatar') % Math.min(5, wearable.length)]
-      : null;
-    if (avatarGift) owned.push({ giftId: avatarGift.id, quantity: 1, price: Number(avatarGift.price) });
-    return {
+    const owned = chosen.map(g => ({ giftId: g.id, quantity: 1, price: Number(g.price) }));
+    const wears = hash(personId + ':wears') % 10 < 7 && pool.wear.length;
+    const charm = wears ? pool.wear[hash(personId + ':avatar') % pool.wear.length] : null;
+    if (charm) owned.push({ giftId: charm.id, quantity: 1, price: Number(charm.price) });
+    const profile = Object.freeze({
       personId,
       seed,
       signature: personId + ':' + seed.toString(36),
@@ -136,101 +140,92 @@
       layoutId,
       owned,
       stickers,
-      avatarFrameId: avatarGift?.id || '',
-      backgroundPosition: 35 + (seed % 31) + '% ' + (34 + (hash(personId + ':focus') % 27)) + '%',
-      patternAngle: 118 + (seed % 48),
-      patternOffset: seed % 97,
-    };
+      avatarFrameId: charm ? charm.id : '',
+    });
+    cache.set(personId, profile);
+    return profile;
   }
-  function themeFor(profile) {
-    const theme =
-      giftData().backgrounds.find(item => item.id === profile.backgroundId) || giftData().backgrounds[0];
-    const dark = theme.ink === '#FFFFFF';
-    return {
-      ...theme,
-      dark,
-      background: theme.kind === 'photo' ? `url("${imageURL(theme.image)}")` : theme.background,
-      shade: theme.kind === 'photo' ? 'linear-gradient(180deg,#17132142,#17132180)' : 'none',
-    };
+
+  function region(person) {
+    const city = person.city ? td('city', person.city) : '';
+    const area = lc('people', person, 'area');
+    return [city, area].filter(Boolean).join(' · ');
+  }
+  function status(person) {
+    if (person.online)
+      return `<span class="fs-status fs-status--online"><i class="fs-dot" aria-hidden="true"></i>${esc(t('gifts.friend.online'))}</span>`;
+    const text = lc('people', person, 'activeText') || t('gifts.friend.recently');
+    return `<span class="fs-status">${esc(text)}</span>`;
   }
   function profileHero(value) {
-    const person = personValue(value),
-      profile = person && profileFor(person.id);
+    const person = personOf(value);
+    const profile = person && profileFor(person.id);
     if (!person || !profile) return '';
-    const theme = themeFor(profile),
-      catalog = giftData();
-    const personId = escapeHTML(person.id),
-      country =
-        person.countryName ||
-        person.location?.countryName ||
-        (String(person.countryCode || 'MY').toUpperCase() === 'MY' ? '马来西亚' : person.countryCode);
-    const region = [country, person.city || person.location?.cityName].filter(Boolean).join(' · ');
-    const age =
-      Number.isFinite(Number(person.age)) && Number(person.age) > 0 ? Number(person.age) + ' 岁' : '';
-    const avatarGift = catalog.gifts.find(g => g.id === profile.avatarFrameId);
-    const avatarImage = `<img class="avatar friend-profile-avatar" src="${escapeHTML(imageURL(person.animatedAvatar || person.photo))}" alt="${escapeHTML(person.name)}的头像" width="88" height="88" decoding="async">`;
-    const avatarMarkup = avatarGift
-      ? `<span class="profile-avatar-ornament friend-avatar-ornament" style="--ornament-accent:${escapeHTML(avatarGift.accent || '#c99c60')}">${avatarImage}<img class="profile-avatar-charm" src="${escapeHTML(imageURL(avatarGift.image))}" alt="" width="38" height="38" loading="lazy" decoding="async"><span class="sr-only">佩戴${escapeHTML(avatarGift.name)}头像挂饰</span></span>`
-      : avatarImage;
-    const style = `--friend-background:${theme.background};--friend-shade:${theme.shade};--friend-ink:${theme.ink};--friend-bg-position:${profile.backgroundPosition};--friend-pattern-angle:${profile.patternAngle}deg;--friend-pattern-offset:${profile.patternOffset}px`;
-    const stickers = profile.stickers
-      .map(item => {
-        const gift = catalog.gifts.find(g => g.id === item.giftId);
-        const transform = `left:${item.x}%;top:${item.y}%;--friend-sticker-size:${item.size}px;--friend-sticker-rotation:${item.rotation}deg`;
-        return giftButton(
-          gift,
-          `<span class="friend-sticker-art"><img src="${escapeHTML(imageURL(gift.image))}" alt="" width="160" height="160" loading="lazy" decoding="async" draggable="false"></span><span class="friend-sticker-price">${price(gift.price)}</span>`,
-          'friend-profile-sticker',
-          `style="${transform}" data-friend-sticker="${escapeHTML(item.id)}"`
-        );
-      })
-      .join('');
-    return `<section class="friend-profile-hero ${theme.dark ? 'friend-theme-dark' : 'friend-theme-light'} friend-layout-${profile.layoutId}" style="${escapeHTML(style)}" data-friend-id="${personId}" data-friend-signature="${escapeHTML(profile.signature)}" aria-label="${escapeHTML(person.name)}的个人主页">
-      <div class="friend-profile-topline"><span class="friend-profile-theme">${escapeHTML(theme.name)}</span><span class="friend-profile-edition">PERSONAL COLLECTION</span></div>
-      <div class="friend-profile-stickers" aria-label="主页陈列礼物">${stickers}</div>
-      <div class="friend-profile-identity"><div class="friend-avatar-ring">${avatarMarkup}${person.online ? '<span class="friend-online-dot" aria-label="在线"></span>' : ''}</div><h2>${escapeHTML(person.name)}</h2><p class="friend-profile-region">${escapeHTML(region)}</p><p class="friend-profile-about">${escapeHTML([age, person.online ? '在线' : person.activeText || '最近来过'].filter(Boolean).join(' · '))}</p><span class="friend-profile-id">ID · ${personId}</span></div>
-      <div class="friend-profile-footer"><span><i aria-hidden="true">✦</i> 专属装扮</span><span>${profile.owned.length} 件珍藏 · 点击摆件查看</span></div>
+    const api = window.ShizhongGifts;
+    const name = personName(person);
+    const src = person.animatedAvatar || person.photo || 'avatars/women-000.jpg';
+    const img = `<img class="avatar fs-avatar-img" src="${esc(asset(src))}" alt="${esc(t('gifts.friend.avatarAlt', { name }))}" width="88" height="88" decoding="async">`;
+    const avatar = api?.charmed ? api.charmed(img, profile.avatarFrameId, 'hero') : img;
+    const coverHtml = api?.cover
+      ? api.cover({
+          backgroundId: profile.backgroundId,
+          customImage: '',
+          stickers: profile.stickers,
+          action: 'friend-gift-detail',
+        })
+      : '';
+    const age = Number(person.age) > 0 ? tn('gifts.friend.age', Number(person.age)) : '';
+    return `<section class="fs-hero" data-friend-id="${esc(person.id)}" data-friend-signature="${esc(profile.signature)}" aria-label="${esc(t('gifts.friend.heroAria', { name }))}">
+      ${coverHtml}
+      <div class="fs-identity">
+        <div class="fs-avatar">${avatar}</div>
+        <h2 class="fs-name">${esc(name)}</h2>
+        <p class="fs-meta">${[age, region(person)].filter(Boolean).map(esc).join(' · ')}</p>
+        <p class="fs-meta">${status(person)}</p>
+      </div>
     </section>`;
   }
   function collection(value) {
-    const person = personValue(value),
-      profile = person && profileFor(person.id);
+    const person = personOf(value);
+    const profile = person && profileFor(person.id);
     if (!person || !profile) return '';
     const cards = profile.owned
       .map(item => {
-        const gift = giftData().gifts.find(g => g.id === item.giftId);
-        return giftButton(
-          gift,
-          `<span class="friend-collection-art"><img src="${escapeHTML(imageURL(gift.image))}" alt="${escapeHTML(gift.name)}" width="200" height="200" loading="lazy" decoding="async" draggable="false"></span><span class="friend-gift-name">${escapeHTML(gift.name)}</span><span class="friend-gift-price">${price(gift.price)}</span><span class="friend-gift-owned">已拥有 · 主页佩戴中</span>`,
-          'friend-gift-card',
-          `style="--friend-gift-accent:${escapeHTML(gift.accent || '#c99c60')}"`
-        );
+        const g = gift(item.giftId);
+        if (!g) return '';
+        const worn = g.id === profile.avatarFrameId;
+        return `<button type="button" class="gf-card fs-card" data-action="friend-gift-detail" data-id="${esc(g.id)}" style="--gf-accent:${esc(g.accent)}" aria-label="${esc(giftName(g) + ' · ' + money(g.price))}"><span class="gf-card-art"><img src="${esc(window.ShizhongGifts?.giftArt?.(g.id, 'thumb') || asset(g.image))}" alt="" width="256" height="256" loading="lazy" decoding="async" draggable="false"></span><span class="gf-card-name">${esc(giftName(g))}</span><span class="gf-card-foot"><span class="price">${esc(money(g.price))}</span><span class="gf-card-tag">${esc(t(worn ? 'gifts.friend.wearing' : 'gifts.friend.onShow'))}</span></span></button>`;
       })
       .join('');
-    return `<section class="friend-collection" data-friend-id="${escapeHTML(person.id)}" aria-label="${escapeHTML(person.name)}的礼物收藏"><div class="friend-collection-heading"><div><span class="friend-collection-eyebrow">A LITTLE PERSONAL TREASURE</span><h3>TA 的珍藏 <span>${profile.owned.length}</span></h3></div><span class="friend-collection-demo">示例陈列</span></div><div class="friend-collection-grid">${cards}</div><p class="friend-collection-note">每份珍藏都是一种心情。点击礼物，看看它的故事与价格。</p></section>`;
+    return `<section class="fs-collection" aria-labelledby="fs-collection-${esc(person.id)}">
+      <div class="fs-collection-head"><h3 class="fs-collection-title" id="fs-collection-${esc(person.id)}">${esc(t('gifts.friend.collection'))} <span class="fs-count num">${profile.owned.length}</span></h3><span class="tag">${esc(t('gifts.friend.sample'))}</span></div>
+      <div class="gf-grid fs-grid">${cards}</div>
+    </section>`;
   }
+  /** Two example gift messages (one received, one sent) for a friend's conversation. */
   function demoMessages(personId) {
     const person = personById(personId);
-    if (!person) return [];
-    const profile = profileFor(person.id);
+    const profile = person && profileFor(person.id);
     if (!profile || profile.owned.length < 2) return [];
-    const gifts = giftData().gifts,
-      pair = notes[profile.seed % notes.length];
+    const notes = catalog().friendNotes || [];
+    const noteIndex = notes.length ? profile.seed % notes.length : 0;
     const baseTime = Date.UTC(2026, 8, 20, 8, 0) + (profile.seed % (6 * 24 * 60)) * 60000;
     return [false, true].map((self, i) => {
-      const gift = gifts.find(item => item.id === profile.owned[i].giftId);
+      const g = gift(profile.owned[i].giftId);
+      const note = notes[noteIndex]?.[i] || '';
       return {
-        self,
-        giftId: gift.id,
-        price: Number(gift.price),
-        text: '[礼物示例] ' + (self ? '送出' : '收到') + gift.name + ' · ' + pair[i],
-        time: baseTime + i * 7 * 60000,
-        timeOffsetMinutes: i ? 24 : 30,
         id: 'friend-demo-' + encodeURIComponent(profile.personId) + '-' + (self ? 'sent' : 'received'),
-        kind: 'gift',
+        self,
         type: 'gift',
+        kind: 'gift',
         demo: true,
-        note: pair[i],
+        giftId: g.id,
+        quantity: 1,
+        price: Number(g.price),
+        note,
+        noteIndex,
+        text: t(self ? 'gifts.friend.demoSent' : 'gifts.friend.demoReceived', { name: giftName(g) }),
+        time: baseTime + i * 7 * 60000,
       };
     });
   }
