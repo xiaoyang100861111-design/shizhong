@@ -1,10 +1,130 @@
 [
  {
+  "name": "catalog-home",
+  "hash": "home",
+  "steps": [
+   {
+    "expect": "!!(!!document.querySelector('.checkout-home .app-bar') && document.querySelectorAll('.checkout-card').length >= 6)",
+    "msg": "home shows app bar and product cards"
+   }
+  ]
+ },
+ {
+  "name": "catalog-home-scrolled",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "document.querySelector('#app').scrollTo(0, 700), true"
+   },
+   {
+    "click": "[data-action=home-filter][data-id=rating]"
+   },
+   {
+    "expect": "!!(document.querySelector('[data-action=home-filter][data-id=rating]').getAttribute('aria-pressed')==='true')",
+    "msg": "filter chip pressed"
+   }
+  ]
+ },
+ {
+  "name": "catalog-home-load-more",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "window.__n=document.querySelectorAll('#app .checkout-card').length, true"
+   },
+   {
+    "click": "#app [data-action=load-more]"
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-card').length === window.__n + 20)",
+    "msg": "load more appends 20 cards in place"
+   }
+  ]
+ },
+ {
+  "name": "catalog-all-categories",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=all]"
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1 && document.querySelectorAll('.checkout-cat-row').length===13)",
+    "msg": "13 categories listed"
+   }
+  ]
+ },
+ {
   "name": "catalog-category",
   "hash": "home",
   "steps": [
    {
     "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.category==='clean' && SZ.overlay.$('.checkout-card'))",
+    "msg": "category screen with cards"
+   }
+  ]
+ },
+ {
+  "name": "catalog-category-sort",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=food]"
+   },
+   {
+    "click": "[data-action=catalog-category-sort]"
+   },
+   {
+    "click": "[data-option=priceAsc]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!((()=>{const p=[...SZ.overlay.top().el.querySelectorAll('.checkout-card .price')].map(e=>parseFloat(e.textContent.replace(/[^0-9.]/g,'')));return p.length>3 && p.every((v,i)=>!i||v>=p[i-1])})())",
+    "msg": "sorted by price ascending"
+   },
+   {
+    "click": "[data-action=catalog-category-city]"
+   },
+   {
+    "shot": "city-sheet"
+   },
+   {
+    "click": "[data-option=all]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1)",
+    "msg": "picker closed back to category"
+   }
+  ]
+ },
+ {
+  "name": "catalog-category-search",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=q]",
+    "value": "空调"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=category-search]"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().el.querySelectorAll('.checkout-card').length > 0)",
+    "msg": "category search finds aircon cleaning"
    }
   ]
  },
@@ -16,7 +136,32 @@
     "click": "[data-action=category][data-id=clean]"
    },
    {
-    "click": "[data-action=service]"
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='service' && SZ.overlay.$('.checkout-bottom-bar [data-action=book-service]'))",
+    "msg": "detail with sticky booking bar"
+   }
+  ]
+ },
+ {
+  "name": "catalog-detail-scrolled",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=guide]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "eval": "SZ.overlay.top().el.scrollTo(0, 1500), true"
    }
   ]
  },
@@ -28,17 +173,48 @@
     "click": "[data-action=category][data-id=clean]"
    },
    {
-    "click": "[data-action=service]"
+    "eval": "SZ.overlay.top().el.scrollTo(0, 600), true"
+   },
+   {
+    "eval": "[...SZ.overlay.top().el.querySelectorAll('[data-action=service]')].find(b=>{const r=b.getBoundingClientRect();return r.top>150&&r.bottom<innerHeight-80}).click(), true"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "eval": "window.__y=SZ.overlay.layers()[0].el.scrollTop, true"
    },
    {
     "back": true
    },
    {
-    "wait": 500
+    "wait": 600
    },
    {
-    "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===1",
-    "msg": "back from detail returns to category list"
+    "expect": "!!(SZ.overlay.depth()===1 && SZ.overlay.top().meta.category==='clean' && window.__y>300 && Math.abs(SZ.overlay.top().el.scrollTop-window.__y)<2)",
+    "msg": "back returns to category list with scroll intact"
+   }
+  ]
+ },
+ {
+  "name": "catalog-save-toggle",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "#app [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "eval": "window.__saved=state.saved.length, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=save-service]"
+   },
+   {
+    "expect": "!!(state.saved.length===window.__saved+1 && SZ.overlay.$('[data-action=save-service]').getAttribute('aria-pressed')==='true')",
+    "msg": "saved in place"
    }
   ]
  },
@@ -50,10 +226,530 @@
     "click": "[data-action=category][data-id=clean]"
    },
    {
-    "click": "[data-action=service]"
+    "click": "[data-sz-layer]:last-child [data-action=service]"
    },
    {
-    "click": "[data-action=book-service]"
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='request')",
+    "msg": "request form sheet"
+   }
+  ]
+ },
+ {
+  "name": "catalog-request-validation",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=car]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "12"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='request' && SZ.overlay.$('[aria-invalid=true]'))",
+    "msg": "invalid phone is flagged inline"
+   }
+  ]
+ },
+ {
+  "name": "catalog-confirm",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='confirm' && SZ.overlay.depth()===4)",
+    "msg": "confirm screen pushed over the form"
+   }
+  ]
+ },
+ {
+  "name": "catalog-confirm-back",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=note]",
+    "value": "keep this draft"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='request' && SZ.overlay.$('textarea[name=note]').value==='keep this draft')",
+    "msg": "back from confirm keeps the form draft"
+   }
+  ]
+ },
+ {
+  "name": "catalog-pay-wallet",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12, Unit 3A"
+   },
+   {
+    "eval": "window.__w=state.wallet, window.__o=state.orders.length, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(state.orders.length===window.__o+1 && state.wallet < window.__w && state.orders[0].status==='pending' && state.orders[0].history.length===1 && state.bills[0].orderId===state.orders[0].id)",
+    "msg": "order, wallet and bill written together"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().el.matches('.overlay-backdrop') && SZ.overlay.depth()===3)",
+    "msg": "success sheet over the service detail"
+   }
+  ]
+ },
+ {
+  "name": "catalog-pay-tng",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=guide]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=method][data-value=tng]"
+   },
+   {
+    "eval": "window.__w=state.wallet, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "shot": "authorise"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-auth='1']"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(state.wallet===window.__w && state.orders[0].payMethod==='tng' && state.orders[0].paid)",
+    "msg": "external method does not touch the wallet"
+   }
+  ]
+ },
+ {
+  "name": "catalog-order-confirmed",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "eval": "state.orders[0].autoConfirmAt=Date.now(), true"
+   },
+   {
+    "wait": 3800
+   },
+   {
+    "expect": "!!(state.orders[0].status==='confirmed' && (state.messages['merchant:'+state.orders[0].serviceId]||[]).length>0 && SZ.overlay.$('.checkout-status-confirmed'))",
+    "msg": "merchant auto-confirms, chat message and live timeline"
+   }
+  ]
+ },
+ {
+  "name": "catalog-order-cancel",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "eval": "window.__w=state.wallet, window.__pay=state.orders[0].payable, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child .checkout-bottom-bar [data-action=cancel-order]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-reason=plans]"
+   },
+   {
+    "shot": "cancel-sheet"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-cancel-confirm]"
+   },
+   {
+    "expect": "!!(state.orders[0].status==='cancelled' && Math.abs(state.wallet-(window.__w+window.__pay))<0.001 && state.bills[0].type==='order-refund')",
+    "msg": "cancel refunds to wallet with a bill"
+   }
+  ]
+ },
+ {
+  "name": "catalog-order-review",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "eval": "window.__sid=SZ.overlay.top().meta.serviceId, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=confirm-order]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child .checkout-bottom-bar [data-action=complete-order]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-star='4']"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-tag=onTime]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=text]",
+    "value": "Great job"
+   },
+   {
+    "shot": "review-sheet"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=review]"
+   },
+   {
+    "expect": "!!(state.orders[0].status==='done' && state.reviews[window.__sid][0].stars===4 && state.orders[0].review)",
+    "msg": "review stored"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='service' && SZ.overlay.$('.checkout-review .tag-brand'))",
+    "msg": "own review shows on the service detail"
+   }
+  ]
+ },
+ {
+  "name": "catalog-goods-cart",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=market]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=catalog-add-cart]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=catalog-add-cart]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=catalog-cart]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='cart' && SZ.overlay.$('.checkout-stepper output').textContent==='2')",
+    "msg": "cart groups the item with quantity 2"
+   },
+   {
+    "shot": "cart"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-cart=checkout]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='confirm')",
+    "msg": "checkout from cart opens confirm"
+   }
+  ]
+ },
+ {
+  "name": "catalog-goods-buy",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=food]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=qty][data-delta='1']"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='confirm' && SZ.overlay.$('.checkout-stepper output').textContent==='2')",
+    "msg": "goods skip the form and allow quantity"
+   }
+  ]
+ },
+ {
+  "name": "catalog-job-apply",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=jobs]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=note]",
+    "value": "Available from next month"
+   },
+   {
+    "eval": "window.__w=state.wallet, true"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(state.orders[0].flow==='job' && state.orders[0].payable===0 && state.wallet===window.__w)",
+    "msg": "job application is free"
+   }
+  ]
+ },
+ {
+  "name": "catalog-post-request",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=repair]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=request]"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(state.orders[0].kind==='request' && state.orders[0].category==='repair')",
+    "msg": "open request posted"
    }
   ]
  },
@@ -62,37 +758,121 @@
   "hash": "home",
   "steps": [
    {
-    "eval": "(()=>{const f=document.querySelector('form[data-form=search]');f.querySelector('input').value='清洁';f.requestSubmit();return true})()"
+    "click": "[data-action=catalog-search]"
+   },
+   {
+    "shot": "empty"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=q]",
+    "value": "清洁 吉隆坡"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=search]"
+   },
+   {
+    "wait": 2500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='search' && SZ.overlay.$('.checkout-card') && state.searchHistory[0]==='清洁 吉隆坡')",
+    "msg": "multi-keyword search returns services and is remembered"
+   }
+  ]
+ },
+ {
+  "name": "catalog-search-back",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=catalog-search]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=q]",
+    "value": "咖啡"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=search]"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='search' && SZ.overlay.$('input[name=q]').value==='咖啡' && SZ.overlay.$('.checkout-card'))",
+    "msg": "back from a result returns to the results"
    }
   ]
  },
  {
   "name": "catalog-orders",
-  "hash": "me",
+  "hash": "home",
   "steps": [
    {
-    "click": "[data-action=orders]"
+    "eval": "orders('待确认'), true"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='orders' && SZ.overlay.top().meta.filter==='pending')",
+    "msg": "legacy Chinese filter maps to pending"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=catalog-orders-filter][data-id=all]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().el.querySelectorAll('.checkout-order').length >= 10)",
+    "msg": "all orders listed"
    }
   ]
  },
  {
   "name": "catalog-order-detail",
-  "hash": "me",
+  "hash": "home",
   "steps": [
    {
-    "click": "[data-action=orders]"
+    "eval": "orders('all'), true"
    },
    {
-    "click": "[data-action=order-detail]"
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='order' && SZ.overlay.$('.checkout-timeline'))",
+    "msg": "order detail with timeline"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='orders')",
+    "msg": "back returns to the order list"
    }
   ]
  },
  {
-  "name": "catalog-social-profile",
+  "name": "catalog-social",
   "hash": "social",
   "steps": [
    {
-    "click": "[data-action=person]"
+    "wait": 1500
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-person').length > 5)",
+    "msg": "people rows"
    }
   ]
  },
@@ -101,58 +881,640 @@
   "hash": "social",
   "steps": [
    {
-    "click": ".top-tabs button, [role=tab]",
-    "text": "动态"
-   }
-  ]
- },
- {
-  "name": "catalog-chat-p1",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": "[data-action=chat][data-id=p1]"
-   }
-  ]
- },
- {
-  "name": "catalog-chat-support",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": "[data-action=chat][data-id=support]"
-   }
-  ]
- },
- {
-  "name": "catalog-groups",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": ".top-tabs button, [role=tab]",
-    "text": "群组"
-   }
-  ]
- },
- {
-  "name": "catalog-group-chat",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": ".top-tabs button, [role=tab]",
-    "text": "群组"
+    "click": "[data-action=social-tab][data-id=feed]"
    },
    {
-    "click": "[data-action=chat]"
+    "wait": 2500
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-post').length > 3)",
+    "msg": "feed cards"
+   },
+   {
+    "eval": "window.__like=document.querySelector('#app .checkout-like').dataset.id, true"
+   },
+   {
+    "click": "#app .checkout-like"
+   },
+   {
+    "expect": "!!(state.likes.includes(window.__like) && document.querySelector('#app .checkout-like').getAttribute('aria-pressed')==='true')",
+    "msg": "like updates in place"
    }
   ]
  },
  {
-  "name": "catalog-new-friends",
+  "name": "catalog-social-filter",
+  "hash": "social",
+  "steps": [
+   {
+    "wait": 1200
+   },
+   {
+    "click": "[data-action=social-filters]"
+   },
+   {
+    "click": "[data-filter=city][data-value='槟城']"
+   },
+   {
+    "shot": "sheet"
+   },
+   {
+    "click": "[data-filter-apply]"
+   },
+   {
+    "expect": "!!(ui.cityFilter==='槟城' && document.querySelector('.checkout-active-filters'))",
+    "msg": "filter applied and summarised"
+   }
+  ]
+ },
+ {
+  "name": "catalog-person",
+  "hash": "social",
+  "steps": [
+   {
+    "wait": 1200
+   },
+   {
+    "click": "#app .checkout-person-link"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='person')",
+    "msg": "person detail"
+   }
+  ]
+ },
+ {
+  "name": "catalog-person-back",
+  "hash": "social",
+  "steps": [
+   {
+    "wait": 1200
+   },
+   {
+    "eval": "document.querySelector('#app').scrollTo(0, 800), true"
+   },
+   {
+    "eval": "[...document.querySelectorAll('#app .checkout-person-link')].find(b=>{const r=b.getBoundingClientRect();return r.top>150&&r.bottom<innerHeight-120}).click(), true"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "eval": "window.__y=document.querySelector('#app').scrollTop, true"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===0 && window.__y>300 && Math.abs(document.querySelector('#app').scrollTop-window.__y)<2)",
+    "msg": "back returns to the list at the same place"
+   }
+  ]
+ },
+ {
+  "name": "catalog-comments",
+  "hash": "social",
+  "steps": [
+   {
+    "click": "[data-action=social-tab][data-id=feed]"
+   },
+   {
+    "wait": 2500
+   },
+   {
+    "click": "#app [data-action=comments]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=text]",
+    "value": "Looks lovely"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=comment]"
+   },
+   {
+    "expect": "!!([...SZ.overlay.top().el.querySelectorAll('.checkout-comment p')].some(p=>p.textContent==='Looks lovely'))",
+    "msg": "comment added"
+   }
+  ]
+ },
+ {
+  "name": "catalog-live",
+  "hash": "live",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-live-card').length > 3)",
+    "msg": "live cards"
+   }
+  ]
+ },
+ {
+  "name": "catalog-live-topic",
+  "hash": "live",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=live-filter][data-id=travel]"
+   },
+   {
+    "expect": "!!(livePeople().every(p=>p.topic==='旅行分享'))",
+    "msg": "topic filter"
+   }
+  ]
+ },
+ {
+  "name": "catalog-comms",
   "hash": "comms",
   "steps": [
    {
-    "click": "[data-action=new-friends]"
+    "wait": 2000
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-row').length > 3)",
+    "msg": "chat rows"
+   }
+  ]
+ },
+ {
+  "name": "catalog-comms-groups",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=comms-tab][data-id=groups]"
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-row').length > 3)",
+    "msg": "my groups"
+   }
+  ]
+ },
+ {
+  "name": "catalog-comms-contacts",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=comms-tab][data-id=contacts]"
+   },
+   {
+    "expect": "!!(document.querySelectorAll('#app .checkout-person').length > 3)",
+    "msg": "contacts"
+   }
+  ]
+ },
+ {
+  "name": "catalog-group-detail",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=comms-tab][data-id=groups]"
+   },
+   {
+    "click": "[data-action=group-scope][data-id=discover]"
+   },
+   {
+    "click": "#app [data-action=group-detail]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='group')",
+    "msg": "group detail"
+   }
+  ]
+ },
+ {
+  "name": "catalog-chat-search",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "#app [data-action=catalog-search]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=q]",
+    "value": "周末"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=search]"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.scope==='chats')",
+    "msg": "chat search screen"
+   }
+  ]
+ },
+ {
+  "name": "catalog-guest-book",
+  "hash": "home",
+  "session": "guest",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view!=='request' && state.orders.length===0)",
+    "msg": "guest is asked to sign in instead of booking"
+   }
+  ]
+ },
+ {
+  "name": "catalog-deeplink",
+  "hash": "service/demo-clean-054",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.serviceId==='demo-clean-054')",
+    "msg": "#service/<id> opens the detail"
+   }
+  ]
+ },
+ {
+  "name": "catalog-campaign",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=campaign]"
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1 && SZ.overlay.$('.checkout-card'))",
+    "msg": "campaign screen lists picks"
+   }
+  ]
+ },
+ {
+  "name": "catalog-all-services",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=all-services]"
+   },
+   {
+    "expect": "!!(SZ.overlay.$('.checkout-pager') && SZ.overlay.top().el.querySelectorAll('.checkout-card').length===20)",
+    "msg": "all services paged"
+   }
+  ]
+ },
+ {
+  "name": "catalog-saved",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('stat','saved'), true"
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1)",
+    "msg": "saved list opens from the Me page stat"
+   }
+  ]
+ },
+ {
+  "name": "catalog-stat-follows",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('stat','follows'), true"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().el.querySelectorAll('.checkout-person').length>3)",
+    "msg": "following list"
+   }
+  ]
+ },
+ {
+  "name": "catalog-coupon",
+  "hash": "home",
+  "setup": [],
+  "steps": [
+   {
+    "eval": "window.ShizhongCoupons={available:(a,c)=>a>=50?[{id:'welcome',title:'',amount:10,min:50,expiresAt:Date.now()+30*864e5},{id:'city',title:'',amount:5,min:0}]:[{id:'city',title:'',amount:5,min:0}],use(id,o){window.__used=[id,o]},release(id){window.__released=id}}, true"
+   },
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "expect": "!!(SZ.overlay.$('.checkout-breakdown .checkout-discount'))",
+    "msg": "best coupon auto-applied"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=coupon]"
+   },
+   {
+    "shot": "picker"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-option=city]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(state.orders[0].couponId==='city' && state.orders[0].discount===5 && window.__used && window.__used[0]==='city')",
+    "msg": "chosen coupon used inside the order commit"
+   }
+  ]
+ },
+ {
+  "name": "catalog-topup",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "(()=>{const s=services.find(x=>x.cat==='phone'&&x.phoneKind==='topup');serviceDetail(s.id);return true})()"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=number]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='confirm' && SZ.overlay.$('.checkout-breakdown'))",
+    "msg": "top-up goes to payment with face value and fee"
+   }
+  ]
+ },
+ {
+  "name": "catalog-visa-enquiry",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "(()=>{const s=services.find(x=>x.cat==='visa');serviceDetail(s.id);return true})()"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=project]",
+    "value": "Need help with documents"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "eval": "window.__w=state.wallet, true"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(state.orders[0].flow==='enquiry' && state.wallet===window.__w)",
+    "msg": "visa enquiry is free"
+   }
+  ]
+ },
+ {
+  "name": "catalog-reorder",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "orders('done'), true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=reorder-order]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "expect": "!!(['request','confirm','cart'].includes(SZ.overlay.top().meta.view))",
+    "msg": "order again reopens the booking"
+   }
+  ]
+ },
+ {
+  "name": "catalog-group-join-leave",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=comms-tab][data-id=groups]"
+   },
+   {
+    "click": "[data-action=group-scope][data-id=discover]"
+   },
+   {
+    "eval": "(()=>{const g=defaultGroups.find(g=>!state.joined.includes(g.id));window.__g=g.id;groupDetail(g.id);return true})()"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=join-group]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "expect": "!!(state.joined.includes(window.__g))",
+    "msg": "joined"
+   },
+   {
+    "eval": "SZ.overlay.closeAll(), groupDetail(window.__g), true"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=leave-group]"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-sz-confirm='1']"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(!state.joined.includes(window.__g) && SZ.overlay.depth()===0)",
+    "msg": "left after confirming"
+   }
+  ]
+ },
+ {
+  "name": "catalog-create-group",
+  "hash": "comms",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=comms-tab][data-id=groups]"
+   },
+   {
+    "click": "[data-action=create-group]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=name]",
+    "value": "Test crew"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=desc]",
+    "value": "Weekend walks"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=group]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "expect": "!!(state.groups[0].name==='Test crew' && state.joined.includes(state.groups[0].id))",
+    "msg": "group created and joined"
+   }
+  ]
+ },
+ {
+  "name": "catalog-block-person",
+  "hash": "social",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "eval": "(()=>{const id=document.querySelector('#app .checkout-person-link').dataset.id;window.__p=id;personDetail(id);return true})()"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=block]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-sz-confirm='1']"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(state.blocked.includes(window.__p) && SZ.overlay.depth()===0 && !document.querySelector('#app [data-id=\"'+window.__p+'\"]'))",
+    "msg": "blocked person disappears from the list"
+   },
+   {
+    "click": "#toast .toast-action"
+   },
+   {
+    "expect": "!!(!state.blocked.includes(window.__p))",
+    "msg": "undo unblocks (and keeps later scenarios clean)"
+   }
+  ]
+ },
+ {
+  "name": "catalog-guest-follow",
+  "hash": "social",
+  "session": "guest",
+  "steps": [
+   {
+    "click": "[data-action=social-tab][data-id=feed]"
+   },
+   {
+    "wait": 2500
+   },
+   {
+    "click": "#app .checkout-like"
+   },
+   {
+    "expect": "!!(state.likes.length===0)",
+    "msg": "guest cannot like"
+   }
+  ]
+ },
+ {
+  "name": "catalog-live-private",
+  "hash": "live",
+  "steps": [
+   {
+    "wait": 1500
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 800
    }
   ]
  }
