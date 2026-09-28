@@ -72,7 +72,8 @@ function esc(value) {
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
   );
 }
-const SHIZHONG_BUILD = '20260928-avatar1';
+const SHIZHONG_BUILD = '20260929-v2';
+window.SHIZHONG_BUILD = SHIZHONG_BUILD;
 const SHIZHONG_BASE = new URL('.', document.currentScript?.src || document.baseURI);
 function resourceURL(path) {
   const url = new URL(path, SHIZHONG_BASE);
@@ -82,6 +83,8 @@ function resourceURL(path) {
 function asset(name) {
   const value = String(name || 'logo.png');
   if (/^(data:|blob:)/i.test(value)) return value;
+  // Photos the user uploaded live in IndexedDB ('media:<id>'); core/boot.js warms their URLs.
+  if (SZ.media.isRef(value)) return SZ.media.src(value);
   if (/^(https?:)?\/\//i.test(value)) return new URL(value, SHIZHONG_BASE).href;
   const mapped = window.SHIZHONG_ASSETS?.[value] || (value.startsWith('assets/') ? value : 'assets/' + value);
   // JPEG is served by the current host; its WebP handler returns 404.
@@ -372,30 +375,36 @@ const initialState = {
   bills: [],
   demoBalanceVersion: '20260927-funds1',
 };
-let state,
-  storedState = {};
-try {
-  storedState = JSON.parse(localStorage.getItem('shizhong-prototype-v1') || '{}') || {};
-  state = { ...JSON.parse(JSON.stringify(initialState)), ...storedState };
-  state.profile = { ...initialState.profile, ...state.profile };
-  state.settings = { ...initialState.settings, ...state.settings };
-} catch (_) {
-  state = JSON.parse(JSON.stringify(initialState));
+/*
+ * State belongs to the signed-in account (SZ.store keeps one localStorage entry per account).
+ * The built-in demo account keeps the large demo balances and seeded history; new accounts
+ * start with a small welcome balance and nothing else.
+ */
+function accountDefaults() {
+  const base = JSON.parse(JSON.stringify(initialState));
+  if (SZ.session.isDemo) return base;
+  const account = SZ.session.account;
+  base.profile = {
+    ...base.profile,
+    name: account?.name || (SZ.session.isGuest ? t('shell.guestName') : t('shell.newUserName')),
+    bio: '',
+    phone: account?.phone || '',
+    photo: 'ui/avatar-default.svg',
+  };
+  base.follows = [];
+  base.joined = [];
+  base.points = 1000;
+  base.wallet = 100;
+  return base;
 }
-// Grant the requested demo allowance once, preserving purchases and messages.
-if (storedState.demoBalanceVersion !== initialState.demoBalanceVersion) {
-  state.points = initialState.points;
-  state.wallet = initialState.wallet;
-  state.demoBalanceVersion = initialState.demoBalanceVersion;
-  save();
-}
+let state = SZ.store.load(accountDefaults());
 function compactBalance(value) {
   const n = Number(value) || 0;
   return Math.abs(n) >= 100000000
     ? (n / 100000000).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) + '亿'
     : n.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
 }
-if (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg') {
+if (SZ.session.isDemo && (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg')) {
   state.profile.photo = 'animated-avatars/self.png';
   save();
 }
@@ -422,21 +431,7 @@ const NAV = [
   ['me', 'user', '我的', '收藏自己的小确幸'],
 ];
 function save() {
-  try {
-    localStorage.setItem('shizhong-prototype-v1', JSON.stringify(state));
-    document.querySelector('#storage-notice')?.remove();
-    return true;
-  } catch (_) {
-    let note = document.querySelector('#storage-notice');
-    if (!note) {
-      note = document.createElement('div');
-      note.id = 'storage-notice';
-      note.setAttribute('role', 'alert');
-      document.querySelector('#app-shell').append(note);
-    }
-    note.textContent = '临时模式：浏览器存储空间不足，请在设置导出数据。刷新会丢失本次更改。';
-    return false;
-  }
+  return SZ.store.save();
 }
 function act(action, id = '', label = '', cls = '', extra = '') {
   return `<button type="button" class="${cls}" data-action="${action}" data-id="${esc(id)}" ${extra}>${label}</button>`;
@@ -591,54 +586,34 @@ function render() {
     { home: homePage, social: socialPage, live: livePage, comms: commsPage, me: mePage }[ui.page] || homePage
   )();
 }
-let toastTimer;
-function toast(message) {
-  const el = document.querySelector('#toast');
-  el.textContent = message;
-  el.classList.add('visible');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('visible'), 2400);
+/* Feedback and overlays are implemented in core/sz.js; these names stay for existing callers. */
+function toast(message, options) {
+  return SZ.toast(message, options);
 }
-let currentOverlay = null,
-  previousFocus = null,
+function showSheet(title, body, options = {}) {
+  return SZ.overlay.open({ kind: 'sheet', title, html: body, ...options });
+}
+function showScreen(title, body, extraClass = '', right = '', options = {}) {
+  return SZ.overlay.open({ kind: 'screen', title, html: body, className: extraClass, right, ...options });
+}
+function closeOverlay(options) {
+  return SZ.overlay.close(options);
+}
+// Legacy read access to the top layer's metadata ({ kind, title, chatId, personId, ... }).
+Object.defineProperty(window, 'currentOverlay', {
+  configurable: true,
+  get: () => SZ.overlay.top()?.meta || null,
+  set: value => {
+    const top = SZ.overlay.top();
+    if (top && value && typeof value === 'object') Object.assign(top.meta, value);
+  },
+});
+// Transitional no-ops for modules not yet migrated to SZ.overlay (remove once unused).
+let previousFocus = null,
   bodyScroll = 0;
-function showSheet(title, body) {
-  if (!currentOverlay) {
-    previousFocus = document.activeElement;
-    bodyScroll = document.querySelector('#app').scrollTop;
-  }
-  currentOverlay = { kind: 'sheet', title, body };
-  document.querySelector('#overlay-root').innerHTML =
-    `<div class="overlay-backdrop" data-dismiss="true"><section class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-handle"></div><header class="sheet-header"><h2>${esc(title)}</h2>${act('close', '', icon('close'), 'icon-button', 'aria-label="关闭"')}</header><div class="sheet-body">${body}</div></section></div>`;
-  document.body.style.overflow = 'hidden';
-  focusOverlay();
-}
-function showScreen(title, body, extraClass = '', right = '') {
-  if (!currentOverlay) {
-    previousFocus = document.activeElement;
-    bodyScroll = document.querySelector('#app').scrollTop;
-  }
-  currentOverlay = { kind: 'screen', title, body };
-  document.querySelector('#overlay-root').innerHTML =
-    `<section class="full-screen ${extraClass}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header class="detail-header">${act('close', '', icon('back'), 'icon-button', 'aria-label="返回"')}<h2>${esc(title)}</h2>${right || '<span style="width:32px"></span>'}</header>${body}</section>`;
-  document.body.style.overflow = 'hidden';
-  focusOverlay();
-}
-function focusOverlay() {
-  requestAnimationFrame(() => {
-    const el = document.querySelector('#overlay-root [role=dialog] button:not(:disabled)');
-    if (el) el.focus({ preventScroll: true });
-  });
-}
-function closeOverlay() {
-  document.querySelector('#overlay-root').innerHTML = '';
-  document.body.style.overflow = '';
-  currentOverlay = null;
-  if (typeof callTimer !== 'undefined') clearInterval(callTimer);
-  if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
-}
+function focusOverlay() {}
 function navigate(page) {
-  closeOverlay();
+  SZ.overlay.closeAll();
   ui.page = page;
   render();
   document.querySelector('#app').scrollTo({ top: 0, behavior: 'instant' });

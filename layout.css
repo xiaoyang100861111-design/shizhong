@@ -196,9 +196,8 @@ body {
   border-radius: inherit;
 }
 
-/* Background scrolling must remain locked while a modal is open. */
-#app-shell:has(> #overlay-root > [role='dialog']) > #app,
-#app-shell:has(> #overlay-root > .overlay-backdrop) > #app {
+/* Background scrolling stays locked while any overlay layer is open (class set by SZ.overlay). */
+#app-shell.sz-modal-open > #app {
   overflow-y: hidden;
 }
 

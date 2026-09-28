@@ -1,0 +1,11 @@
+[
+ {
+  "name": "vip-center",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action^=vip-]"
+   }
+  ]
+ }
+]

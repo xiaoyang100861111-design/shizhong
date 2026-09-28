@@ -1,0 +1,11 @@
+[
+ {
+  "name": "regions-picker",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=select-city],[data-action=city],[data-action=region-field]"
+   }
+  ]
+ }
+]

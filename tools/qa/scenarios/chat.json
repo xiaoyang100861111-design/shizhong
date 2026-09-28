@@ -1,0 +1,49 @@
+[
+ {
+  "name": "chat-plus-panel",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=p1]"
+   },
+   {
+    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
+   }
+  ]
+ },
+ {
+  "name": "chat-voice-call",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=p1]"
+   },
+   {
+    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
+   },
+   {
+    "click": "#overlay-root button",
+    "text": "语音通话"
+   },
+   {
+    "wait": 2500
+   }
+  ]
+ },
+ {
+  "name": "chat-redpacket",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=p1]"
+   },
+   {
+    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
+   },
+   {
+    "click": "#overlay-root button",
+    "text": "红包"
+   }
+  ]
+ }
+]

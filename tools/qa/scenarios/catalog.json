@@ -1,0 +1,159 @@
+[
+ {
+  "name": "catalog-category",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-service-detail",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-action=service]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-detail-back",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-action=service]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===1",
+    "msg": "back from detail returns to category list"
+   }
+  ]
+ },
+ {
+  "name": "catalog-request-form",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-action=service]"
+   },
+   {
+    "click": "[data-action=book-service]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-search",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "(()=>{const f=document.querySelector('form[data-form=search]');f.querySelector('input').value='清洁';f.requestSubmit();return true})()"
+   }
+  ]
+ },
+ {
+  "name": "catalog-orders",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=orders]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-order-detail",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=orders]"
+   },
+   {
+    "click": "[data-action=order-detail]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-social-profile",
+  "hash": "social",
+  "steps": [
+   {
+    "click": "[data-action=person]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-social-feed",
+  "hash": "social",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "动态"
+   }
+  ]
+ },
+ {
+  "name": "catalog-chat-p1",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=p1]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-chat-support",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=support]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-groups",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "群组"
+   }
+  ]
+ },
+ {
+  "name": "catalog-group-chat",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "群组"
+   },
+   {
+    "click": "[data-action=chat]"
+   }
+  ]
+ },
+ {
+  "name": "catalog-new-friends",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=new-friends]"
+   }
+  ]
+ }
+]

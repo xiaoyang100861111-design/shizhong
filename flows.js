@@ -953,14 +953,7 @@ async function copyText(value, message) {
     );
   }
 }
-document.addEventListener('click', event => {
-  const button = event.target.closest('[data-action]');
-  if (button && !button.disabled) {
-    menuAction(button.dataset.action, button.dataset.id || '', button);
-    return;
-  }
-  if (event.target.matches('[data-dismiss]')) closeOverlay();
-});
+// Click dispatch, Escape and focus trapping live in core/sz.js (SZ.actions / SZ.overlay).
 document.addEventListener('submit', event => {
   const form = event.target.closest('[data-form]');
   if (!form) return;
@@ -1235,30 +1228,6 @@ document.addEventListener('change', event => {
     const p = people.find(x => x.id === el.closest('form').dataset.person);
     const total = document.querySelector('#call-total');
     if (total && p) total.textContent = 'RM ' + ((p.price * parseInt(el.value, 10)) / 10).toFixed(2);
-  }
-});
-document.addEventListener('keydown', event => {
-  if (!currentOverlay) return;
-  if (event.key === 'Escape') {
-    closeOverlay();
-    return;
-  }
-  if (event.key === 'Tab') {
-    const els = [
-      ...document.querySelectorAll(
-        '#overlay-root button:not(:disabled),#overlay-root input,#overlay-root textarea,#overlay-root select,#overlay-root [tabindex="0"]'
-      ),
-    ].filter(el => el.offsetParent !== null && !el.closest('[inert]'));
-    if (!els.length) return;
-    const first = els[0],
-      last = els[els.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   }
 });
 let touchStartY = 0;

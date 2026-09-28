@@ -1,0 +1,60 @@
+[
+ {
+  "name": "live-room",
+  "hash": "live",
+  "steps": [
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 2500
+   }
+  ]
+ },
+ {
+  "name": "live-gift-panel",
+  "hash": "live",
+  "steps": [
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 2500
+   },
+   {
+    "click": "[data-action=lr-gifts]"
+   }
+  ]
+ },
+ {
+  "name": "live-room-back",
+  "hash": "live",
+  "steps": [
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===0",
+    "msg": "back closes the live room"
+   }
+  ]
+ },
+ {
+  "name": "live-start",
+  "hash": "live",
+  "steps": [
+   {
+    "click": "[data-action=start-live]"
+   }
+  ]
+ }
+]

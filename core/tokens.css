@@ -1,0 +1,186 @@
+/*
+ * Shizhong design tokens. The single source of colour, type, spacing, radius, elevation,
+ * motion and stacking values. Feature CSS must use these variables instead of raw values
+ * (see docs/DESIGN.md). Light is the default; dark applies with [data-theme="dark"] or,
+ * when the user picks "system", via prefers-color-scheme.
+ */
+:root {
+  color-scheme: light;
+
+  /* brand */
+  --c-brand: #da2d3a; /* fills (buttons, active indicators); white text 4.75:1 */
+  --c-brand-hover: #c72431;
+  --c-brand-text: #c21f2e; /* brand-coloured text on light surfaces, 5.9:1 */
+  --c-brand-soft: #fdecee;
+  --c-brand-soft-2: #fad6da;
+  --c-on-brand: #ffffff;
+  --c-accent: #ffd43b; /* panda yellow: check-in, highlights */
+  --c-accent-soft: #fff6d6;
+  --c-on-accent: #4a3700;
+  --c-gold: #8a6420; /* VIP / premium text */
+  --c-gold-soft: #f7efdf;
+  --c-gold-line: #e6d3ad;
+
+  /* neutrals (warm) */
+  --c-bg: #f6f5f2;
+  --c-surface: #ffffff;
+  --c-surface-2: #f1efeb;
+  --c-surface-3: #e9e6e0;
+  --c-border: #e6e3dd;
+  --c-border-strong: #d4d0c8;
+  --c-text: #1d1b1f;
+  --c-text-2: #57535b; /* secondary, 7.5:1 */
+  --c-text-3: #6e6a72; /* tertiary / captions, >=4.6:1 on every light surface */
+  --c-text-disabled: #a8a4ab;
+  --c-icon: #57535b;
+  --c-overlay: rgba(20, 18, 22, 0.48);
+  --c-scrim-strong: rgba(12, 10, 14, 0.72);
+
+  /* status */
+  --c-success: #177546;
+  --c-success-soft: #e5f4ec;
+  --c-warning: #9a5b00;
+  --c-warning-soft: #fdf1dc;
+  --c-danger: #c21f2e;
+  --c-danger-soft: #fdecee;
+  --c-info: #2459c4;
+  --c-info-soft: #e8effc;
+
+  /* immersive (live / call screens are always dark) */
+  --c-immersive-bg: #121014;
+  --c-immersive-surface: rgba(24, 20, 28, 0.72);
+  --c-immersive-text: #f6f3f7;
+  --c-immersive-text-2: #cfc8d4;
+
+  /* focus ring works on light and dark surfaces */
+  --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px #1d4ed8;
+
+  /* type */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
+  --font-num: 'SF Pro Display', 'Segoe UI', Roboto, system-ui, sans-serif;
+  --fs-11: 0.6875rem; /* minimum: badges, legal */
+  --fs-12: 0.75rem; /* captions, meta */
+  --fs-13: 0.8125rem; /* secondary body */
+  --fs-14: 0.875rem; /* body small, buttons sm */
+  --fs-15: 0.9375rem; /* body */
+  --fs-16: 1rem; /* inputs (prevents iOS zoom), body large */
+  --fs-18: 1.125rem; /* section titles */
+  --fs-20: 1.25rem; /* page titles */
+  --fs-24: 1.5rem;
+  --fs-28: 1.75rem; /* hero numbers */
+  --fs-34: 2.125rem;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.25;
+  --lh-snug: 1.4;
+  --lh-body: 1.55;
+
+  /* space (4px grid) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --gutter: 16px; /* page side padding */
+
+  /* radius */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-full: 999px;
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgba(28, 22, 18, 0.05), 0 1px 3px rgba(28, 22, 18, 0.04);
+  --shadow-2: 0 4px 16px rgba(28, 22, 18, 0.08);
+  --shadow-3: 0 12px 36px rgba(28, 22, 18, 0.16);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+
+  /* sizes */
+  --tap: 44px; /* minimum hit area */
+  --appbar-h: 56px;
+  --tabbar-h: 58px;
+  --control-h: 44px;
+  --control-h-lg: 50px;
+  --control-h-sm: 34px;
+
+  /* stacking */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-fab: 20;
+  --z-nav: 30;
+  --z-overlay: 40;
+  --z-effect: 50;
+  --z-toast: 60;
+  --z-system: 70;
+
+  /* safe areas */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  /* legacy aliases used by older module CSS */
+  --safe: var(--safe-bottom);
+  --red: var(--c-brand);
+  --red-dark: var(--c-brand-hover);
+  --yellow: var(--c-accent);
+  --ink: var(--c-text);
+  --muted: var(--c-text-3);
+  --line: var(--c-border);
+  --bg: var(--c-bg);
+  --card: var(--c-surface);
+  --soft-red: var(--c-brand-soft);
+  --shadow: var(--shadow-1);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --c-brand: #e0404c;
+  --c-brand-hover: #ec5561;
+  --c-brand-text: #ff7a84;
+  --c-brand-soft: #3a1c21;
+  --c-brand-soft-2: #4d232a;
+  --c-accent: #f5c83a;
+  --c-accent-soft: #3a3018;
+  --c-on-accent: #2b2000;
+  --c-gold: #e2be78;
+  --c-gold-soft: #332a1a;
+  --c-gold-line: #5b4a2b;
+  --c-bg: #141316;
+  --c-surface: #1d1c20;
+  --c-surface-2: #26252a;
+  --c-surface-3: #302f35;
+  --c-border: #34323a;
+  --c-border-strong: #45424b;
+  --c-text: #f3f1f5;
+  --c-text-2: #c4c0c8;
+  --c-text-3: #a29ea7;
+  --c-text-disabled: #6c6871;
+  --c-icon: #c4c0c8;
+  --c-overlay: rgba(0, 0, 0, 0.62);
+  --c-success: #4cc38a;
+  --c-success-soft: #173326;
+  --c-warning: #f0b35a;
+  --c-warning-soft: #3a2a12;
+  --c-danger: #ff7a84;
+  --c-danger-soft: #3a1c21;
+  --c-info: #7aa7ff;
+  --c-info-soft: #1a2640;
+  --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px #8ab4ff;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 12px 36px rgba(0, 0, 0, 0.6);
+}

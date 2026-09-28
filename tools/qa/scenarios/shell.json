@@ -1,0 +1,51 @@
+[
+ {
+  "name": "shell-home",
+  "hash": "home",
+  "steps": []
+ },
+ {
+  "name": "shell-home-scrolled",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "document.querySelector('#app').scrollTo(0,900),true"
+   }
+  ]
+ },
+ {
+  "name": "shell-social",
+  "hash": "social",
+  "steps": []
+ },
+ {
+  "name": "shell-live",
+  "hash": "live",
+  "steps": []
+ },
+ {
+  "name": "shell-comms",
+  "hash": "comms",
+  "steps": []
+ },
+ {
+  "name": "shell-me",
+  "hash": "me",
+  "steps": []
+ },
+ {
+  "name": "shell-me-scrolled",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "document.querySelector('#app').scrollTo(0,1400),true"
+   }
+  ]
+ },
+ {
+  "name": "shell-guest-me",
+  "hash": "me",
+  "session": "guest",
+  "steps": []
+ }
+]

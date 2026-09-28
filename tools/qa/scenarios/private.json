@@ -1,0 +1,28 @@
+[
+ {
+  "name": "private-lobby",
+  "hash": "live",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "一对一"
+   }
+  ]
+ },
+ {
+  "name": "private-room",
+  "hash": "live",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "一对一"
+   },
+   {
+    "click": "[data-action=oo-enter]"
+   },
+   {
+    "wait": 3500
+   }
+  ]
+ }
+]

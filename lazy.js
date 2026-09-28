@@ -91,6 +91,8 @@ function loadChunk(key) {
           document.head.append(script);
         })
     )
+    // Optional translated demo content for the active language (data/i18n/<locale>/<key>.js).
+    .then(() => window.SZ_I18N.loadContent(key))
     .finally(() => pendingChunks.delete(key));
   pendingChunks.set(key, task);
   return task;
@@ -273,5 +275,4 @@ window.addEventListener('hashchange', () => {
   const page = location.hash.slice(1);
   if (NAV.some(item => item[0] === page)) navigate(page);
 });
-nav();
-render();
+// The first render happens in core/boot.js once translations and accounts are ready.

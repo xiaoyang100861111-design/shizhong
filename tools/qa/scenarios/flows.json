@@ -1,0 +1,157 @@
+[
+ {
+  "name": "flows-notifications",
+  "hash": "home",
+  "steps": [
+   {
+    "click": "[data-action=notifications]"
+   }
+  ]
+ },
+ {
+  "name": "flows-edit-profile",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=edit-profile]"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=settings]"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings-back",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=settings]"
+   },
+   {
+    "click": "[data-action=addresses]"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===1",
+    "msg": "back from addresses returns to settings"
+   }
+  ]
+ },
+ {
+  "name": "flows-wallet",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=wallet]"
+   }
+  ]
+ },
+ {
+  "name": "flows-recharge",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=wallet]"
+   },
+   {
+    "click": "[data-action=recharge]"
+   }
+  ]
+ },
+ {
+  "name": "flows-coupons",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=coupons]"
+   }
+  ]
+ },
+ {
+  "name": "flows-checkin",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=checkin]"
+   }
+  ]
+ },
+ {
+  "name": "flows-tasks",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=tasks]"
+   }
+  ]
+ },
+ {
+  "name": "flows-addresses",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=addresses]"
+   }
+  ]
+ },
+ {
+  "name": "flows-help",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=help]"
+   }
+  ]
+ },
+ {
+  "name": "flows-language",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=language]"
+   }
+  ]
+ },
+ {
+  "name": "flows-merchant",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=merchant]"
+   }
+  ]
+ },
+ {
+  "name": "flows-invite",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=invite]"
+   }
+  ]
+ },
+ {
+  "name": "flows-compose-post",
+  "hash": "social",
+  "steps": [
+   {
+    "click": ".top-tabs button, [role=tab]",
+    "text": "动态"
+   },
+   {
+    "click": "[data-action=compose]"
+   }
+  ]
+ }
+]

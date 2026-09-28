@@ -1,0 +1,45 @@
+[
+ {
+  "name": "gifts-shop",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=gift-shop]"
+   }
+  ]
+ },
+ {
+  "name": "gifts-studio",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=gift-studio]"
+   }
+  ]
+ },
+ {
+  "name": "gifts-chat-picker",
+  "hash": "comms",
+  "steps": [
+   {
+    "click": "[data-action=chat][data-id=p1]"
+   },
+   {
+    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
+   },
+   {
+    "click": "#overlay-root button",
+    "text": "礼物"
+   }
+  ]
+ },
+ {
+  "name": "gifts-qr-card",
+  "hash": "me",
+  "steps": [
+   {
+    "click": "[data-action=share-profile]"
+   }
+  ]
+ }
+]
