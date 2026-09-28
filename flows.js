@@ -1,71 +1,182 @@
 'use strict';
-let callTimer,
-  activeCallOrder = null,
-  activeRoom = 'p1',
-  uploadData = '',
-  selectedAmount = 20;
+/*
+ * flows.js (owner: flows, see docs/CONTRACTS.md)
+ * Account and everyday utility flows: settings, language & theme, wallet & bills, recharge,
+ * check-in, tasks, coupons, addresses, notifications centre, edit profile, compose post, greet,
+ * friend requests, invite, merchant application, feedback / after-sales / report, help,
+ * privacy policy, about & licences, block list. Also the shared form helpers other modules
+ * render (field, selectField, summary, submitButton, formNote, uploadField).
+ *
+ * Public APIs: window.ShizhongNotices, ShizhongCoupons, ShizhongAddresses, ShizhongCheckin.
+ * Everything is registered through SZ.actions; menuAction at the end is only the legacy fallback
+ * for actions other modules have not registered yet.
+ */
+
+// ------------------------------------------------------------------ compat globals
+// compat: catalog.js and live-room.js still assign the current room id here; remove after integration.
+let activeRoom = 'p1';
+// City values are stored in the source language (shared with catalog.js); show them with td('city', value).
 const cities = ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保'];
-function field(label, name, type = 'text', placeholder = '', required = false, value = '') {
-  return `<label class="form-group"><span class="form-label">${label}${required ? '<span class="required">*</span>' : ''}</span>${type === 'textarea' ? `<textarea class="field" name="${name}" placeholder="${placeholder}" maxlength="1000" ${required ? 'required' : ''}>${esc(value)}</textarea>` : `<input class="field" type="${type}" name="${name}" placeholder="${placeholder}" value="${esc(value)}" ${required ? 'required' : ''} ${type === 'date' ? `min="${localDate()}"` : ''} ${type === 'tel' ? 'title="请输入有效的联系电话" inputmode="tel"' : ''} ${type === 'number' ? 'min="1" max="99"' : ''} ${type === 'text' ? 'maxlength="120"' : ''}>`}</label>`;
+// Labels for order form fields (catalog.js order detail reads and extends this map).
+const fieldNames = {};
+for (const key of [
+  'candidate',
+  'experience',
+  'project',
+  'address',
+  'date',
+  'time',
+  'phone',
+  'city',
+  'people',
+  'language',
+  'intent',
+  'salary',
+  'from',
+  'to',
+  'flight',
+  'number',
+  'provider',
+  'amount',
+  'note',
+  'duration',
+  'mode',
+  'topic',
+  'host',
+])
+  fieldNames[key] = t(`flows.fieldName.${key}`);
+// The old 1:1 booking and room gift panel live in private-room.js / live-room.js now.
+function callBooking(id) {
+  return window.ShizhongPrivate?.enter(id);
+} // compat: remove after integration
+function connectCall(id) {
+  return window.ShizhongPrivate?.enter(id);
+} // compat: remove after integration
+function giftPanel() {} // compat: remove after integration
+
+// ------------------------------------------------------------------ small utilities
+const FLOWS_DAY = 86400000;
+// Shell tab/filter defaults, captured before anything changes them (used by the legacy fallback).
+const FLOWS_UI_DEFAULTS = {
+  homeFilter: ui.homeFilter,
+  socialFilter: ui.socialFilter,
+  liveFilter: ui.liveFilter,
+};
+const flowsUI = { noticeFilter: 'all', couponTab: 'available', billsShown: 40 };
+function flowsCall(name, ...args) {
+  const fn = window[name];
+  return typeof fn === 'function' ? fn(...args) : undefined;
 }
-function selectField(label, name, items, selected = '') {
+/** Load catalog data chunks first when the lazy loader is present (people names, profiles). */
+function flowsNeed(keys, draw) {
+  return typeof demand === 'function' ? demand(keys, draw) : draw();
+}
+function flowsPerson(id) {
+  return people.find(p => p.id === id) || null;
+}
+function flowsPhoto(src) {
+  return asset(src || 'ui/avatar-default.svg');
+}
+function flowsRender() {
+  if (typeof render === 'function') render();
+}
+function flowsHash(text) {
+  let h = 0;
+  for (const ch of String(text)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return h;
+}
+function flowsValidPhone(value) {
+  return /^\+?[0-9 ()-]{7,20}$/.test(value) && value.replace(/\D/g, '').length >= 7;
+}
+function flowsRound(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+// Icons this module needs that the shell icon set does not have.
+const flowsIconPaths = {
+  card: '<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/>',
+  bank: '<path d="m3 9 9-6 9 6M5 9v9m4.7-9v9m4.6-9v9M19 9v9M3 21h18"/>',
+  lock: '<rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  trash: '<path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
+  block: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+  file: '<path d="M6 2h8l5 5v15H6z"/><path d="M14 2v5h5M9 13h6m-6 4h6"/>',
+  in: '<path d="M12 4v13m-5-5 5 5 5-5M5 20h14"/>',
+  out: '<path d="M12 20V7m-5 5 5-5 5 5M5 4h14"/>',
+  flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-9.5v.01"/>',
+  message: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9 11h6"/>',
+  swap: '<path d="M7 4 3 8l4 4M3 8h14m0 12 4-4-4-4m4 4H7"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.7-4.4L3 9m0-5v5h5m-4 4a8 8 0 0 0 14.7 4.4L21 15m0 5v-5h-5"/>',
+};
+function flowsIcon(name, cls = '') {
+  return flowsIconPaths[name]
+    ? `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${flowsIconPaths[name]}</svg>`
+    : icon(name, cls);
+}
+
+// ------------------------------------------------------------------ shared form helpers
+let flowsFieldSeq = 0;
+function flowsFieldId(name) {
+  return 'ff-' + String(name).replace(/[^\w-]/g, '') + '-' + ++flowsFieldSeq;
+}
+/**
+ * field(label, name, type, placeholder, required, value, opts)
+ * label is trusted text (already translated); placeholder and value are escaped here.
+ * opts: { hint, maxlength, counter, rows, autocomplete, inputmode, min, max, attrs, id }
+ */
+function field(label, name, type = 'text', placeholder = '', required = false, value = '', opts = {}) {
+  const id = opts.id || flowsFieldId(name);
+  const max = opts.maxlength ?? (type === 'textarea' ? 1000 : type === 'text' ? 120 : null);
+  const hintId = opts.hint || opts.counter ? id + '-hint' : '';
+  let attrs = `id="${id}" class="field" name="${esc(name)}"`;
+  if (placeholder) attrs += ` placeholder="${esc(placeholder)}"`;
+  if (required) attrs += ' required aria-required="true"';
+  if (hintId) attrs += ` aria-describedby="${hintId}"`;
+  if (max) attrs += ` maxlength="${max}"`;
+  if (opts.autocomplete) attrs += ` autocomplete="${opts.autocomplete}"`;
+  if (opts.attrs) attrs += ' ' + opts.attrs;
+  let control;
+  if (type === 'textarea') control = `<textarea ${attrs} rows="${opts.rows || 4}">${esc(value)}</textarea>`;
+  else {
+    if (type === 'date') attrs += ` min="${opts.min || localDate()}"`;
+    if (type === 'tel') attrs += ` inputmode="tel"${opts.autocomplete ? '' : ' autocomplete="tel"'}`;
+    if (type === 'email') attrs += ` inputmode="email"${opts.autocomplete ? '' : ' autocomplete="email"'}`;
+    if (type === 'number')
+      attrs += ` inputmode="${opts.inputmode || 'numeric'}" min="${opts.min ?? 1}" max="${opts.max ?? 99}"`;
+    else if (opts.inputmode) attrs += ` inputmode="${opts.inputmode}"`;
+    control = `<input ${attrs} type="${type}" value="${esc(value)}">`;
+  }
+  const counter = opts.counter
+    ? `<span class="flows-counter" data-counter-for="${id}" aria-hidden="true">${String(value || '').length}/${max}</span>`
+    : '';
+  const hint =
+    opts.hint || counter
+      ? `<p class="form-hint flows-hint" id="${hintId}"><span>${opts.hint || ''}</span>${counter}</p>`
+      : '';
+  return `<div class="form-group"><label class="form-label" for="${id}">${label}${required ? '<span class="required" aria-hidden="true">*</span>' : ''}</label>${control}${hint}</div>`;
+}
+/**
+ * selectField(label, name, items, selected, opts)
+ * items: strings (value = label) or { value, label }. name 'city' uses the region picker when present.
+ */
+function selectField(label, name, items, selected = '', opts = {}) {
   if (name === 'city' && window.ShizhongRegions?.field)
     return window.ShizhongRegions.field(label, name, selected);
+  const id = flowsFieldId(name);
+  const labelOf = v => (name === 'city' ? td('city', v) : String(v));
+  const list = (items || []).map(item =>
+    item && typeof item === 'object'
+      ? { value: String(item.value), label: String(item.label ?? item.value) }
+      : { value: String(item), label: labelOf(item) }
+  );
   const current = selected && typeof selected === 'object' ? selected.cityName : selected;
-  const options = current !== '' && current != null && !items.includes(current) ? [current, ...items] : items;
-  return `<label class="form-group"><span class="form-label">${label}</span><select class="field" name="${name}">${options.map(s => `<option ${s === current ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>`;
+  if (current != null && current !== '' && !list.some(o => o.value === String(current)))
+    list.unshift({ value: String(current), label: labelOf(current) });
+  const hint = opts.hint ? `<p class="form-hint" id="${id}-hint">${opts.hint}</p>` : '';
+  return `<div class="form-group"><label class="form-label" for="${id}">${label}</label><select class="field" id="${id}" name="${esc(name)}"${opts.required ? ' required' : ''}${hint ? ` aria-describedby="${id}-hint"` : ''}>${list.map(o => `<option value="${esc(o.value)}"${o.value === String(current) ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${hint}</div>`;
 }
-function flowLegacyLocation(city) {
-  return {
-    countryCode: 'MY',
-    countryName: '马来西亚',
-    cityId: '',
-    cityName: city || '',
-    stateId: '',
-    stateName: '',
-    custom: !cities.includes(city),
-  };
-}
-function flowFormLocation(form) {
-  if (window.ShizhongRegions?.readForm) return window.ShizhongRegions.readForm(form);
-  const city = form.querySelector('[name="city"]')?.value || state.city;
-  const saved =
-    form.dataset.form === 'address' && form.dataset.address !== 'new'
-      ? state.address[Number(form.dataset.address)]
-      : null;
-  if (saved && (saved.location?.cityName || saved.city) === city)
-    return { ...(saved.location || flowLegacyLocation(city)) };
-  if (state.location?.cityName === city) return { ...state.location };
-  return flowLegacyLocation(city);
-}
-function flowApplyLocation(location, city) {
-  if (location && window.ShizhongRegions?.applyLocation) window.ShizhongRegions.applyLocation(location);
-  else if (location) {
-    state.location = { ...location };
-    state.city = location.cityName || city || state.city;
-  } else if (city) state.city = city;
-}
-function flowDefaultAddress(service) {
-  const saved = state.address[0];
-  if (!saved) return '';
-  const addressLocation = saved.location || flowLegacyLocation(saved.city);
-  const target = service
-    ? service.location || { countryCode: service.countryCode || 'MY', cityName: service.city || state.city }
-    : state.location || flowLegacyLocation(state.city);
-  const sameCountry =
-    String(addressLocation.countryCode || 'MY').toUpperCase() ===
-    String(target.countryCode || 'MY').toUpperCase();
-  const sameCity =
-    addressLocation.cityId && target.cityId
-      ? String(addressLocation.cityId) === String(target.cityId)
-      : (addressLocation.cityName || saved.city) === (target.cityName || state.city);
-  return sameCountry && sameCity ? saved.address || '' : '';
-}
-function uploadField(label = '添加一张照片', options = {}) {
-  const avatar = Boolean(options.avatar),
-    preview = options.preview ? asset(options.preview) : '';
-  return `<label class="upload-box ${avatar ? 'avatar-upload-box' : ''}">${avatar ? `<img class="upload-preview avatar-upload-preview" src="${esc(preview)}" alt="当前头像预览" style="display:block">` : icon('image')}<span>${label}</span><input type="file" name="photo" ${avatar ? 'data-avatar-upload="true"' : ''} accept="${avatar ? 'image/png,image/jpeg,image/gif,image/webp' : 'image/png,image/jpeg,image/webp'}">${avatar ? '' : '<img class="upload-preview" alt="已选图片预览"> '}</label>`;
-}
+/** Two-column label/value rows. Values are escaped; labels are trusted text. */
 function summary(rows) {
   return rows
     .map(
@@ -73,1196 +184,2870 @@ function summary(rows) {
     )
     .join('');
 }
+/** Primary submit button in a sticky footer (stays reachable at the end of long forms). */
 function submitButton(text) {
-  return `<button class="primary-button" type="submit">${text}</button>`;
+  return `<div class="flows-cta"><button class="btn btn-primary btn-lg btn-block" type="submit">${text}</button></div>`;
 }
-function formNote() {
-  return '<p class="form-note">当前为设计体验，提交的信息仅保存在本机，不会产生真实订单或费用。</p>';
+function formNote(text) {
+  return `<p class="form-note flows-note">${flowsIcon('info')}<span>${text || t('flows.form.demoNote')}</span></p>`;
 }
-function legacyRequestForm(id, serviceId = '') {
-  const c = [...categories, ...moreCategories].find(x => x.id === id) || categories[0];
-  const s = services.find(x => x.id === serviceId);
-  let content = '';
-  let contactRequired = true;
-  const address = flowDefaultAddress(s);
-  if (['clean', 'repair', 'beauty'].includes(id)) {
-    content =
-      selectField(
-        '需要什么服务',
-        'project',
-        id === 'clean'
-          ? ['日常保洁', '空调清洗', '深度清洁', '搬家清洁']
-          : id === 'repair'
-            ? ['家电维修', '手机 / 电脑维修', '宽带安装', '其他维修']
-            : ['美甲', '美发', '日常护理']
-      ) +
-      field('服务地址', 'address', 'text', '街道、公寓名称及单元号', true, address) +
-      field('期望日期', 'date', 'date', '', true);
-  } else if (id === 'guide') {
-    content =
-      selectField('想去的城市', 'city', cities, state.city) +
-      `<div class="form-grid">${field('出游日期', 'date', 'date', '', true)}${selectField('出游人数', 'people', ['1 人', '2 人', '3–4 人', '5 人以上'])}</div>` +
-      selectField('沟通语言', 'language', ['中文', 'English', 'Bahasa Melayu']);
-  } else if (['market', 'food', 'flower'].includes(id)) {
-    content = s
-      ? ''
-      : field(
-          '想买什么',
-          'project',
-          'text',
-          id === 'flower' ? '例如：一束鲜花，生日蛋糕' : '例如：牛奶、水果、两份椰浆饭',
-          true
-        );
-    content +=
-      field('送达地址', 'address', 'text', '收货地址、楼栋与单元号', true, address) +
-      selectField('送达时间', 'time', ['尽快送达', '今天下午', '今天晚上', '明天上午']);
-    if (s)
-      content += `<div class="count-control">${act('quantity', '-1', '−', '', 'aria-label="减少数量"')}<output id="quantity">${ui.quantity}</output>${act('quantity', '1', '+', '', 'aria-label="增加数量"')}</div><div class="summary-row"><span>商品小计</span><strong id="goods-total">RM ${(s.price * ui.quantity).toFixed(2)}</strong></div>`;
-  } else if (id === 'jobs') {
-    content =
-      selectField('我想', 'intent', ['找工作', '招人才']) +
-      field('职位', 'project', 'text', '例如：中文客服 / 餐厅店员', true) +
-      selectField('工作城市', 'city', cities, state.city) +
-      field('薪资范围', 'salary', 'text', '选填，例如：RM 3,000–4,000 / 月');
-  } else if (id === 'car') {
-    content =
-      field('上车地点', 'from', 'text', '机场、酒店或地址', true) +
-      field('目的地', 'to', 'text', '想去哪里', true) +
-      `<div class="form-grid">${field('用车日期', 'date', 'date', '', true)}${field('用车时间', 'time', 'time', '', true)}</div>` +
-      field('航班号', 'flight', 'text', '接机可填写，例如 MH 123');
-  } else if (id === 'delivery') {
-    content =
-      field('从哪里取', 'from', 'text', '取件地址', true) +
-      field('送到哪里', 'to', 'text', '收件地址', true) +
-      field('配送物品', 'project', 'text', '物品名称和大约大小', true);
-  } else if (id === 'phone') {
-    content =
-      field('充值号码', 'number', 'tel', '+60 手机号码', true) +
-      selectField('运营商', 'provider', ['Maxis / Hotlink', 'CelcomDigi', 'U Mobile', 'Yes', '其他']) +
-      selectField('充值金额', 'amount', ['RM 10', 'RM 20', 'RM 50', 'RM 100']);
-    contactRequired = false;
-  } else {
-    content =
-      field(
-        id === 'visa' ? '目的地与咨询事项' : '想去哪里',
-        'project',
-        'text',
-        id === 'visa' ? '例如：旅游签证，材料咨询' : '国家、城市或景点',
-        true
-      ) +
-      field('预计日期', 'date', 'date', '', true) +
-      selectField('人数', 'people', ['1 人', '2 人', '3–4 人', '5 人以上']);
+/**
+ * uploadField(label, { avatar, preview, name, hint })
+ * The picked file is processed right away (photos → SZ.media reference, avatars → small data URL,
+ * or a media reference for animations); read the result with flowsUploadValue(form).
+ */
+function uploadField(label = t('flows.upload.photo'), options = {}) {
+  const avatar = Boolean(options.avatar);
+  const id = flowsFieldId(options.name || 'photo');
+  const preview = options.preview ? flowsPhoto(options.preview) : '';
+  const hint = options.hint || (avatar ? t('flows.upload.avatarHint') : t('flows.upload.photoHint'));
+  const accept = avatar ? 'image/png,image/jpeg,image/gif,image/webp' : 'image/png,image/jpeg,image/webp';
+  const thumb = preview
+    ? `<img src="${esc(preview)}" alt=""${SZ.media.isRef(options.preview) ? ` data-media="${esc(options.preview)}"` : ''}>`
+    : flowsIcon('image');
+  return `<div class="flows-upload${avatar ? ' flows-upload--avatar' : ''}" data-flows-upload-box><input class="flows-upload-input" type="file" id="${id}" name="${esc(options.name || 'photo')}" accept="${accept}" data-flows-upload="${avatar ? 'avatar' : 'photo'}" aria-describedby="${id}-status"><label class="flows-upload-pick" for="${id}"><span class="flows-upload-thumb">${thumb}</span><span class="flows-upload-text"><strong>${label}</strong><small>${hint}</small></span></label><button type="button" class="btn btn-ghost btn-sm flows-upload-remove" data-flows-upload-remove${preview && !avatar ? '' : ' hidden'}>${t('flows.upload.remove')}</button><p class="form-hint flows-upload-status" id="${id}-status" role="status" aria-live="polite"></p></div>`;
+}
+/** Required fields filled? Marks the empty ones (aria-invalid + message) and focuses the first. */
+function validateRequiredText(form, data) {
+  flowsClearErrors(form);
+  let first = null;
+  for (const input of form.querySelectorAll('[required]')) {
+    if (input.type === 'radio' || input.type === 'checkbox') continue;
+    const value = data && input.name in data ? data[input.name] : input.value;
+    if (typeof value === 'string' && !value.trim()) {
+      flowsFieldError(input, t('flows.form.required', { label: flowsLabelOf(input) }));
+      first = first || input;
+    }
   }
-  if (!s && !['guide', 'jobs'].includes(id))
-    content = selectField('服务国家 / 城市', 'city', cities, state.location || state.city) + content;
-  showSheet(
-    s ? s.name : '发布' + c.name + '需求',
-    `<form data-form="request" data-category="${id}" data-service="${serviceId}">${s ? `<div class="form-summary"><img src="${asset(s.image)}" alt="${s.name}"><div><h3>${s.store}</h3><p>RM ${s.price} / ${s.unit}</p></div></div>` : ''}${content}${contactRequired ? field('联系电话', 'phone', 'tel', s ? '+60 手机号，方便确认需求' : '国家 / 地区代码与手机号', true, state.profile.phone) : ''}${field('补充说明', 'note', 'textarea', '选填，告诉我们一点你的偏好')}${formNote()}${submitButton(s?.type === 'goods' ? '确认演示订单' : '提交需求')}</form>`
+  if (first) {
+    first.focus();
+    return false;
+  }
+  return true;
+}
+function nextDate() {
+  return SZ.fmt.date(Date.now() + FLOWS_DAY, 'iso');
+}
+function flowsLabelOf(input) {
+  const label = input.id && input.form?.querySelector(`label[for="${input.id}"]`);
+  return (label?.textContent || input.getAttribute('aria-label') || input.name || '')
+    .replace(/\*$/, '')
+    .trim();
+}
+function flowsFieldError(input, message) {
+  input.setAttribute('aria-invalid', 'true');
+  const group = input.closest('.form-group, fieldset') || input.parentElement;
+  let error = group.querySelector(':scope > .form-error');
+  if (!error) {
+    error = document.createElement('p');
+    error.className = 'form-error';
+    error.id = (input.id || flowsFieldId(input.name)) + '-error';
+    group.append(error);
+  }
+  error.textContent = message;
+  const described = (input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+  if (!described.includes(error.id))
+    input.setAttribute('aria-describedby', [...described, error.id].join(' '));
+}
+function flowsClearErrors(form) {
+  for (const el of form.querySelectorAll('[aria-invalid="true"]')) el.removeAttribute('aria-invalid');
+  for (const el of form.querySelectorAll('.form-error')) el.remove();
+}
+function flowsFormData(form) {
+  const data = {};
+  for (const [k, v] of new FormData(form)) if (typeof v === 'string') data[k] = v.trim();
+  return data;
+}
+/** Region field value (window.ShizhongRegions) or the plain city select. */
+function flowsFormLocation(form) {
+  if (window.ShizhongRegions?.readForm && form.querySelector('[name="locationData"]'))
+    return window.ShizhongRegions.readForm(form);
+  const city = form.querySelector('[name="city"]')?.value;
+  if (!city) return null;
+  if (state.location?.cityName === city) return { ...state.location };
+  return {
+    countryCode: 'MY',
+    countryName: '',
+    cityId: '',
+    cityName: city,
+    stateId: '',
+    stateName: '',
+    custom: !cities.includes(city),
+  };
+}
+function flowsApplyLocation(location) {
+  if (!location) return;
+  if (window.ShizhongRegions?.applyLocation) window.ShizhongRegions.applyLocation(location);
+  else {
+    state.location = { ...location };
+    state.city = location.cityName || state.city;
+  }
+}
+function flowsPlaceLabel(location, fallbackCity) {
+  if (location) {
+    const city = location.cityName || location.stateName || '';
+    const cityLabel = city ? td('city', city) : '';
+    const country = location.countryName ? td('city', location.countryName) : '';
+    return [cityLabel, country].filter(Boolean).join(' · ');
+  }
+  return fallbackCity ? td('city', fallbackCity) : '';
+}
+
+// ------------------------------------------------------------------ layers
+/*
+ * flowsOpen(key, { kind, title, body, right, className, mode, form, onClose })
+ * body is a function so the layer can be re-rendered in place with flowsRefresh(key) after a
+ * state change (lists only; layers with a form keep their inputs untouched).
+ */
+function flowsOpen(key, opts) {
+  const {
+    kind = 'screen',
+    title = '',
+    body,
+    right = '',
+    className = '',
+    mode = 'auto',
+    form = null,
+    onClose,
+  } = opts;
+  const inner = `<div class="flows-body" data-flows-body>${body()}</div>`;
+  const layer = SZ.overlay.open({
+    kind,
+    title,
+    mode,
+    right,
+    className: `flows-layer flows-${key} ${className}`.trim(),
+    html: inner,
+    meta: { flowsKey: key, flowsBody: form ? null : body },
+    beforeClose: form ? flowsGuardClose : undefined,
+    onClose(l, reason) {
+      flowsUploadCleanup(l);
+      onClose?.(l, reason);
+    },
+  });
+  if (form) flowsBindForm(layer, form);
+  return layer;
+}
+function flowsLayers(key) {
+  return SZ.overlay.layers().filter(l => l.meta.flowsKey === key);
+}
+function flowsRefresh(...keys) {
+  for (const key of keys)
+    for (const layer of flowsLayers(key)) {
+      const el = layer.el.querySelector('[data-flows-body]');
+      if (el && layer.meta.flowsBody) el.innerHTML = layer.meta.flowsBody();
+    }
+}
+/** Close a flows layer after its task succeeded (skips the unsaved-changes guard). */
+function flowsDone(layer) {
+  if (!layer) return;
+  layer.meta.flowsDone = true;
+  return SZ.overlay.close({ layer, force: true });
+}
+
+// ------------------------------------------------------------------ form plumbing
+function flowsSnapshot(form) {
+  const parts = [];
+  for (const [k, v] of new FormData(form)) if (typeof v === 'string') parts.push(k + '=' + v);
+  for (const input of form.querySelectorAll('[data-flows-upload]'))
+    parts.push('upload=' + (flowsUploads.get(input)?.value || ''));
+  return parts.join('&');
+}
+function flowsIsDirty(layer) {
+  const form = layer.el.querySelector('form');
+  return !!form && !layer.meta.flowsDone && flowsSnapshot(form) !== layer.meta.flowsInitial;
+}
+async function flowsGuardClose(layer) {
+  if (layer.meta.flowsLocked) return false;
+  const form = layer.el.querySelector('form');
+  if (form?.dataset.busy) return false;
+  if (!flowsIsDirty(layer)) return true;
+  return SZ.confirm({
+    title: t('flows.form.discardTitle'),
+    message: t('flows.form.discardBody'),
+    confirmText: t('flows.form.discard'),
+    cancelText: t('flows.form.keepEditing'),
+    danger: true,
+  });
+}
+function flowsValidate(form, data) {
+  if (!validateRequiredText(form, data)) return false;
+  let first = null;
+  const fail = (input, message) => {
+    flowsFieldError(input, message);
+    first = first || input;
+  };
+  for (const input of form.querySelectorAll('input[type="tel"]')) {
+    const v = data[input.name];
+    if (v && !flowsValidPhone(v)) fail(input, t('flows.form.phoneInvalid'));
+  }
+  for (const input of form.querySelectorAll('input[type="email"]')) {
+    const v = data[input.name];
+    if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) fail(input, t('flows.form.emailInvalid'));
+  }
+  for (const group of form.querySelectorAll('[data-flows-required-group]')) {
+    const name = group.dataset.flowsRequiredGroup;
+    if (!data[name]) {
+      const target = group.querySelector('input') || group;
+      fail(target, t('flows.form.choose', { label: group.dataset.label || '' }));
+    }
+  }
+  if (first) {
+    first.focus();
+    return false;
+  }
+  return true;
+}
+/** Attach validation, busy state and the submit handler (data, form, layer) to the layer's form. */
+function flowsBindForm(layer, handler) {
+  const form = layer.el.querySelector('form');
+  if (!form) return;
+  form.noValidate = true;
+  layer.meta.flowsInitial = flowsSnapshot(form);
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (form.dataset.busy) return;
+    const data = flowsFormData(form);
+    if (!flowsValidate(form, data)) return;
+    const button = form.querySelector('[type="submit"]');
+    form.dataset.busy = '1';
+    if (button) {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+    }
+    try {
+      await flowsUploadsSettled(form);
+      await handler(data, form, layer);
+    } catch (error) {
+      console.error('[flows]', error);
+      toast(t('common.unknownError'), { type: 'error' });
+    } finally {
+      delete form.dataset.busy;
+      if (button?.isConnected) {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+      }
+    }
+  });
+}
+// Live feedback while typing: clear an error once the field changes, update character counters.
+document.addEventListener('input', event => {
+  const el = event.target;
+  if (!el.closest?.('.flows-layer')) return;
+  if (el.getAttribute('aria-invalid') === 'true') {
+    el.removeAttribute('aria-invalid');
+    el.closest('.form-group, fieldset')?.querySelector(':scope > .form-error')?.remove();
+  }
+  const counter = el.id && el.closest('.form-group')?.querySelector(`[data-counter-for="${el.id}"]`);
+  if (counter) counter.textContent = el.value.length + '/' + el.maxLength;
+});
+
+// ------------------------------------------------------------------ uploads
+const flowsUploads = new WeakMap(); // input -> { promise, value, committed }
+const FLOWS_AVATAR_MAX_DATA_URL = 40000;
+async function flowsIsAnimatedPng(file) {
+  const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+  for (let i = 0; i < head.length - 4; i++)
+    if (head[i] === 0x61 && head[i + 1] === 0x63 && head[i + 2] === 0x54 && head[i + 3] === 0x4c) return true;
+  return false;
+}
+function flowsBitmap(file) {
+  if (window.createImageBitmap) return createImageBitmap(file);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function flowsStoreBlob(blob, name) {
+  const ref = await SZ.media.put(blob, { name });
+  await SZ.media.url(ref);
+  return ref;
+}
+/** Avatars: animations are kept (media reference); still images become a ≤256px square data URL. */
+async function flowsAvatarFromFile(file) {
+  if (file.type === 'image/gif' || (file.type === 'image/png' && (await flowsIsAnimatedPng(file)))) {
+    if (file.size > 2 * 1024 * 1024) throw new Error('too-large');
+    return flowsStoreBlob(file, file.name);
+  }
+  const bitmap = await flowsBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const size = Math.min(256, side);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff'; // JPEG has no alpha: flatten transparent PNGs onto white
+  ctx.fillRect(0, 0, size, size);
+  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  for (const quality of [0.86, 0.72, 0.6]) {
+    const url = canvas.toDataURL('image/jpeg', quality);
+    if (url.length <= FLOWS_AVATAR_MAX_DATA_URL) return url;
+  }
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+  return flowsStoreBlob(blob || file, file.name);
+}
+async function flowsPhotoFromFile(file) {
+  const blob = await SZ.media.compress(file, { max: 1600 });
+  return flowsStoreBlob(blob, file.name);
+}
+function flowsUploadBox(input) {
+  return input.closest('[data-flows-upload-box]');
+}
+function flowsUploadPreview(input, src) {
+  const box = flowsUploadBox(input);
+  const thumb = box.querySelector('.flows-upload-thumb');
+  thumb.innerHTML = src ? `<img src="${esc(src)}" alt="">` : flowsIcon('image');
+  box.classList.toggle('has-file', !!src);
+  box.querySelector('[data-flows-upload-remove]').hidden = !src || input.dataset.flowsUpload === 'avatar';
+}
+function flowsUploadStatus(input, text, error = false) {
+  const status = flowsUploadBox(input).querySelector('.flows-upload-status');
+  status.textContent = text;
+  status.classList.toggle('is-error', error);
+}
+function flowsDiscardUpload(entry) {
+  if (entry && !entry.committed && SZ.media.isRef(entry.value)) SZ.media.remove(entry.value).catch(() => {});
+}
+document.addEventListener('change', event => {
+  const input = event.target;
+  if (!input.matches?.('[data-flows-upload]')) return;
+  const file = input.files?.[0];
+  if (!file) return;
+  const avatar = input.dataset.flowsUpload === 'avatar';
+  const types = avatar
+    ? ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    : ['image/jpeg', 'image/png', 'image/webp'];
+  input.value = '';
+  if (!types.includes(file.type)) {
+    flowsUploadStatus(input, avatar ? t('flows.upload.typeAvatar') : t('flows.upload.typePhoto'), true);
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    flowsUploadStatus(input, t('flows.upload.tooLarge', { size: '15 MB' }), true);
+    return;
+  }
+  flowsDiscardUpload(flowsUploads.get(input));
+  flowsUploadStatus(input, t('flows.upload.processing'));
+  const entry = { value: '', committed: false };
+  entry.promise = (avatar ? flowsAvatarFromFile(file) : flowsPhotoFromFile(file)).then(
+    value => {
+      if (flowsUploads.get(input) !== entry) return flowsDiscardUpload({ value });
+      entry.value = value;
+      flowsUploadPreview(input, SZ.media.isRef(value) ? SZ.media.src(value) : value);
+      flowsUploadStatus(input, t('flows.upload.ready'));
+    },
+    error => {
+      if (flowsUploads.get(input) !== entry) return;
+      flowsUploads.delete(input);
+      flowsUploadStatus(
+        input,
+        error?.message === 'too-large'
+          ? t('flows.upload.tooLarge', { size: '2 MB' })
+          : t('flows.upload.failed'),
+        true
+      );
+    }
+  );
+  flowsUploads.set(input, entry);
+});
+function flowsUploadsSettled(form) {
+  return Promise.all(
+    [...form.querySelectorAll('[data-flows-upload]')].map(i => flowsUploads.get(i)?.promise)
   );
 }
-function orderSuccess(order) {
-  showSheet(
-    '提交成功',
-    `<div class="success-icon">${icon('check')}</div><h3 class="success-title">好生活，已安排</h3><p class="success-text">你的需求已保存，随时可以在「我的订单」查看。<br>当前为本地演示，不会发送给真实商家。</p><div class="panel" style="margin-bottom:21px">${summary([['需求编号', order.id], ['服务内容', order.title], ['当前状态', order.status], ...(order.total ? [['参考合计', 'RM ' + order.total.toFixed(2)]] : [])])}</div>${act('order-detail', order.id, '查看订单', 'primary-button')}<div style="margin-top:10px">${act('close', '', '继续逛逛', 'secondary-button')}</div>`
-  );
+/** Processed upload value of a form: media reference or small data URL ('' when nothing picked). */
+function flowsUploadValue(form, name = 'photo') {
+  const input = form.querySelector(`[data-flows-upload][name="${name}"]`);
+  return (input && flowsUploads.get(input)?.value) || '';
 }
-const fieldNames = {
-  candidate: '应聘人',
-  experience: '相关经验',
-  project: '需求项目',
-  address: '服务地址',
-  date: '预约日期',
-  time: '预约时间',
-  phone: '联系电话',
-  city: '服务城市',
-  people: '人数',
-  language: '沟通语言',
-  intent: '需求类型',
-  salary: '薪资范围',
-  from: '出发 / 取件地址',
-  to: '目的 / 送达地址',
-  flight: '航班号',
-  number: '充值号码',
-  provider: '运营商',
-  amount: '充值金额',
-  note: '补充说明',
-  duration: '时长',
-  mode: '连线方式',
-  topic: '聊天话题',
-  host: '预约对象',
+function flowsUploadCommit(form) {
+  for (const input of form.querySelectorAll('[data-flows-upload]')) {
+    const entry = flowsUploads.get(input);
+    if (entry) entry.committed = true;
+  }
+}
+function flowsUploadCleanup(layer) {
+  for (const input of layer.el.querySelectorAll('[data-flows-upload]'))
+    flowsDiscardUpload(flowsUploads.get(input));
+}
+function flowsUploadRemove(button) {
+  const input = flowsUploadBox(button)?.querySelector('[data-flows-upload]');
+  if (!input) return;
+  flowsDiscardUpload(flowsUploads.get(input));
+  flowsUploads.delete(input);
+  flowsUploadPreview(input, '');
+  flowsUploadStatus(input, t('flows.upload.removed'));
+  input.focus();
+}
+
+// ------------------------------------------------------------------ state (defaults + migration)
+initialState.checkin = { streak: 0, lastDate: '', history: [] };
+initialState.notices = [];
+initialState.friendRequests = { incoming: [], outgoing: [] };
+const FLOWS_SERVICE_LANGS = ['zh', 'en', 'ms', 'zh-en'];
+const FLOWS_COUPON_PRESETS = {
+  welcome: { amount: 10, min: 80, days: 30 },
+  member: { amount: 5, min: 50, days: 30 },
+  food: { amount: 5, min: 30, days: 14, category: 'food' },
+  autumn: { amount: 15, min: 120, days: -14 },
 };
-function greet(id) {
-  const p = people.find(x => x.id === id);
-  if (!p) return;
-  if (state.greeted.includes(id)) return openChat(id);
-  showSheet(
-    '向 ' + p.name + ' 打招呼',
-    `<form data-form="greet" data-person="${id}"><div class="form-summary"><img class="avatar" src="${asset(p.photo)}" alt="${p.name}"><div><h3>${p.name}</h3><p>${p.tags.join(' · ')}</p></div></div><div class="selection-list">${['你好，很高兴认识你！', '你也喜欢探店吗？', '周末有出去走走的计划吗？'].map(t => act('greeting-text', t, t, 'chip outline')).join('')}</div>${field('想说的话', 'message', 'textarea', '一句真诚的问候，就是好的开始', true, '你好，很高兴认识你！')}<p class="form-note">此处为本地聊天演示，对方不会收到真实消息。</p>${submitButton('发送问候')}</form>`
+/** Value as stored on disk (app.js may have replaced a new-format value with an old default on load). */
+function flowsSavedValue(key) {
+  try {
+    const raw = localStorage.getItem(SZ.store.key());
+    return raw ? JSON.parse(raw)?.[key] : undefined;
+  } catch (_) {
+    return undefined;
+  }
+}
+function flowsServiceLangCode(value) {
+  if (FLOWS_SERVICE_LANGS.includes(value)) return value;
+  // Older saves kept the label text (in the source language or English).
+  for (const code of SZ_I18N.available().map(m => m.code)) {
+    const labels = SZ_I18N.messages(code)?.flows?.serviceLang || {};
+    const hit = FLOWS_SERVICE_LANGS.find(k => labels[k] === value);
+    if (hit) return hit;
+  }
+  return 'zh';
+}
+function flowsCouponFrom(entry, now = Date.now()) {
+  if (typeof entry === 'string') {
+    const preset = FLOWS_COUPON_PRESETS[entry] ? entry : 'welcome';
+    const p = FLOWS_COUPON_PRESETS[preset];
+    return {
+      id: entry,
+      preset,
+      amount: p.amount,
+      min: p.min,
+      category: p.category || '',
+      expiresAt: now + p.days * FLOWS_DAY,
+      createdAt: now,
+      status: 'available',
+    };
+  }
+  if (!entry || typeof entry !== 'object' || !entry.id) return null;
+  return {
+    amount: 0,
+    min: 0,
+    category: '',
+    expiresAt: 0,
+    status: 'available',
+    ...entry,
+    amount: Number(entry.amount) || 0,
+    min: Number(entry.min) || 0,
+  };
+}
+function flowsMigrate(s = state) {
+  if (!s.settings || typeof s.settings !== 'object') s.settings = {};
+  if (typeof s.settings.notifications !== 'boolean') s.settings.notifications = true;
+  if (typeof s.settings.nearby !== 'boolean') s.settings.nearby = true;
+  let c = s.checkin;
+  if (!c || typeof c !== 'object') {
+    const saved = flowsSavedValue('checkin');
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) c = saved;
+    else
+      c = /^\d{4}-\d{2}-\d{2}$/.test(String(c || ''))
+        ? { streak: 1, lastDate: c, history: [c] }
+        : { streak: 0, lastDate: '', history: [] };
+  }
+  s.checkin = {
+    streak: Math.max(0, Math.floor(Number(c.streak) || 0)),
+    lastDate: typeof c.lastDate === 'string' ? c.lastDate : '',
+    history: Array.isArray(c.history) ? c.history.filter(d => typeof d === 'string').slice(-60) : [],
+  };
+  const seen = new Set();
+  s.coupons = (Array.isArray(s.coupons) ? s.coupons : [])
+    .map(x => flowsCouponFrom(x))
+    .filter(x => x && !seen.has(x.id) && seen.add(x.id));
+  s.address = (Array.isArray(s.address) ? s.address : []).filter(a => a && typeof a === 'object');
+  for (const a of s.address) if (!a.id) a.id = SZ.uid('addr');
+  const fr = s.friendRequests;
+  if (Array.isArray(fr))
+    s.friendRequests = {
+      incoming: [],
+      outgoing: fr.map(f => ({
+        id: SZ.uid('fr'),
+        account: String(f?.account || ''),
+        message: String(f?.text || ''),
+        ts: Date.now(),
+        status: 'pending',
+      })),
+    };
+  else if (!fr || typeof fr !== 'object') s.friendRequests = { incoming: [], outgoing: [] };
+  else {
+    fr.incoming = Array.isArray(fr.incoming) ? fr.incoming.filter(Boolean) : [];
+    fr.outgoing = Array.isArray(fr.outgoing) ? fr.outgoing.filter(Boolean) : [];
+  }
+  if (!Array.isArray(s.notices)) s.notices = [];
+  if (!Array.isArray(s.blocked)) s.blocked = [];
+  if (!Array.isArray(s.feedback)) s.feedback = [];
+  if (!Array.isArray(s.bills)) s.bills = [];
+  if (!Array.isArray(s.greeted)) s.greeted = [];
+  if (s.profile && typeof s.profile === 'object')
+    s.profile.language = flowsServiceLangCode(s.profile.language);
+}
+{
+  const keys = ['settings', 'checkin', 'coupons', 'address', 'friendRequests', 'notices', 'profile'];
+  const before = JSON.stringify(keys.map(k => state[k]));
+  flowsMigrate();
+  if (JSON.stringify(keys.map(k => state[k])) !== before) SZ.store.saveSoon();
+}
+
+// ------------------------------------------------------------------ notices API
+const FLOWS_NOTICE_TYPES = ['order', 'social', 'system', 'promo'];
+function flowsNoticeParams(n) {
+  const p = { ...(n.params || {}) };
+  if (p.personId) p.name = personName(flowsPerson(p.personId)) || p.name || '';
+  if (p.amount != null) p.money = SZ.fmt.money(p.amount);
+  return p;
+}
+function flowsNoticeView(n) {
+  const params = flowsNoticeParams(n);
+  return {
+    ...n,
+    title: n.titleKey ? t(n.titleKey, params) : n.title || '',
+    body: n.bodyKey ? t(n.bodyKey, params) : n.body || '',
+  };
+}
+function flowsNoticesOpen() {
+  return flowsLayers('notifications').length > 0;
+}
+function flowsNoticesChanged() {
+  flowsRefresh('notifications');
+  SZ.emit('notices:change', { unread: window.ShizhongNotices.unread() });
+  if (ui.page === 'home' || ui.page === 'me') flowsRender();
+}
+window.ShizhongNotices = {
+  /** push({ type, title, body, action: { name, id }, ts }) — title/body are already-translated text. */
+  push(input = {}) {
+    const n = {
+      id: SZ.uid('n'),
+      type: FLOWS_NOTICE_TYPES.includes(input.type) ? input.type : 'system',
+      title: String(input.title || ''),
+      body: String(input.body || ''),
+      ts: Number(input.ts) || Date.now(),
+      read: false,
+    };
+    if (input.titleKey) n.titleKey = input.titleKey;
+    if (input.bodyKey) n.bodyKey = input.bodyKey;
+    if (input.params) n.params = input.params;
+    if (input.action?.name) n.action = { name: String(input.action.name), id: String(input.action.id ?? '') };
+    SZ.store.commit(
+      s => {
+        s.notices.unshift(n);
+        if (s.notices.length > 100) s.notices.length = 100;
+      },
+      { quiet: true }
+    );
+    flowsNoticesChanged();
+    if (state.settings.notifications !== false && !input.silent && !flowsNoticesOpen()) {
+      const view = flowsNoticeView(n);
+      toast(
+        view.title,
+        n.action ? { action: { label: t('flows.notice.view'), run: () => flowsOpenNotice(n.id) } } : {}
+      );
+    }
+    return flowsNoticeView(n);
+  },
+  list: () => state.notices.map(flowsNoticeView),
+  unread: () => state.notices.filter(n => !n.read).length,
+  markAllRead() {
+    if (!state.notices.some(n => !n.read)) return;
+    SZ.store.commit(s => s.notices.forEach(n => (n.read = true)), { quiet: true });
+    flowsNoticesChanged();
+  },
+  open: () => notifications(),
+};
+
+// ------------------------------------------------------------------ coupons API
+function flowsCouponStatus(c, now = Date.now()) {
+  return c.status === 'available' && c.expiresAt && c.expiresAt < now ? 'expired' : c.status;
+}
+function flowsCouponTitle(c) {
+  return c.preset ? t(`flows.coupon.preset.${c.preset}`) : c.title || t('flows.coupon.generic');
+}
+function flowsCouponView(c) {
+  return { ...c, title: flowsCouponTitle(c), status: flowsCouponStatus(c) };
+}
+window.ShizhongCoupons = {
+  all: () => state.coupons.map(flowsCouponView),
+  /** Coupons usable for an order of amountRM in a category, best discount first. */
+  available(amountRM, category) {
+    const amount = Number(amountRM);
+    return state.coupons
+      .filter(
+        c =>
+          flowsCouponStatus(c) === 'available' &&
+          (!Number.isFinite(amount) || amount >= c.min) &&
+          (!category || !c.category || c.category === category)
+      )
+      .map(flowsCouponView)
+      .sort((a, b) => b.amount - a.amount);
+  },
+  /** Mark used (call inside SZ.store.commit together with the order). */
+  use(id, orderId) {
+    const c = state.coupons.find(x => x.id === id);
+    if (!c || flowsCouponStatus(c) !== 'available') return false;
+    c.status = 'used';
+    c.orderId = orderId || '';
+    c.usedAt = Date.now();
+    return true;
+  },
+  /** Give a used coupon back (order cancelled). Call inside SZ.store.commit. */
+  release(id) {
+    const c = state.coupons.find(x => x.id === id);
+    if (!c || c.status !== 'used') return false;
+    c.status = 'available';
+    delete c.orderId;
+    delete c.usedAt;
+    return true;
+  },
+  /** Add a coupon: a preset id ('welcome', 'member', …) or a full object. Call inside commit. */
+  grant(entry) {
+    const c = flowsCouponFrom(entry);
+    if (!c || state.coupons.some(x => x.id === c.id)) return null;
+    state.coupons.unshift(c);
+    return c;
+  },
+  open: () => coupons(),
+};
+
+// ------------------------------------------------------------------ addresses API
+function flowsAddressCity(a) {
+  return a?.location?.cityName || a?.city || '';
+}
+window.ShizhongAddresses = {
+  list: () => state.address.map((a, i) => ({ ...a, isDefault: i === 0 })),
+  get(id) {
+    const i = state.address.findIndex(a => a.id === id);
+    return i < 0 ? null : { ...state.address[i], isDefault: i === 0 };
+  },
+  /** Default address for a city (the default one first, then any saved in that city). */
+  defaultFor(city) {
+    const list = window.ShizhongAddresses.list();
+    if (!city) return list[0] || null;
+    const name = typeof city === 'object' ? city.cityName : city;
+    const id = typeof city === 'object' ? city.cityId : '';
+    return (
+      list.find(
+        a =>
+          (id && a.location?.cityId && String(a.location.cityId) === String(id)) ||
+          flowsAddressCity(a) === name
+      ) || null
+    );
+  },
+  open: () => addresses(),
+};
+
+// ------------------------------------------------------------------ check-in API
+function flowsCheckinState() {
+  const c = state.checkin;
+  const today = localDate();
+  const yesterday = SZ.fmt.date(Date.now() - FLOWS_DAY, 'iso');
+  const done = c.lastDate === today;
+  const alive = done || c.lastDate === yesterday;
+  const streak = alive ? c.streak : 0;
+  // Position inside the current 7-day cycle: days already lit, and which box is today.
+  const lit = done ? ((streak - 1) % 7) + 1 : streak % 7;
+  return { done, streak, lit, todayIndex: done ? lit - 1 : lit };
+}
+const FLOWS_CHECKIN_REWARD = 10;
+const FLOWS_CHECKIN_BONUS = 50;
+window.ShizhongCheckin = {
+  status() {
+    const s = flowsCheckinState();
+    return {
+      done: s.done,
+      streak: s.streak,
+      reward: s.todayIndex === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD,
+    };
+  },
+  open: () => checkin(),
+};
+
+// ------------------------------------------------------------------ shared markup
+function flowsSection(title, content, extraClass = '') {
+  const id = flowsFieldId('sec');
+  return `<section class="flows-section ${extraClass}" aria-labelledby="${id}"><h3 class="flows-section-title" id="${id}">${title}</h3>${content}</section>`;
+}
+/** Navigation row inside a .list: icon, label (+ optional second line), trailing value, chevron. */
+function flowsRow(iconName, label, action, opts = {}) {
+  const { id = '', value = '', sub = '', danger = false, chevron = true } = opts;
+  return act(
+    action,
+    id,
+    `${flowsIcon(iconName)}<span class="list-row-main"><span class="flows-row-label">${label}</span>${sub ? `<small class="flows-row-sub">${sub}</small>` : ''}</span>${value ? `<span class="row-value">${value}</span>` : ''}${chevron ? icon('chevron', 'chevron') : ''}`,
+    `list-row flows-row${danger ? ' danger' : ''}`
   );
 }
-function sendChat(id, text, self = true) {
-  if (!state.messages[id]) state.messages[id] = [];
-  state.messages[id].push({ text, self, time: Date.now() });
-  save();
+function flowsStaticRow(iconName, label, value) {
+  return `<div class="list-row flows-row">${flowsIcon(iconName)}<span class="list-row-main"><span class="flows-row-label">${label}</span></span><span class="row-value">${value}</span></div>`;
 }
-function composer() {
-  uploadData = '';
-  showSheet(
-    '分享此刻的生活',
-    `<form data-form="post">${field('今天想分享什么', 'text', 'textarea', '一个小发现、一杯好咖啡，或一个好心情…', true)}${uploadField()}<div style="margin-top:17px">${field('所在地点', 'place', 'text', '例如：Bukit Bintang', false, state.city)}</div><div class="form-grid">${selectField('话题', 'topic', ['记录生活', '周末不宅家', '大马日常', '我的城市有点美'])}${selectField('谁可以看', 'visibility', ['公开', '仅自己'])}</div>${formNote()}${submitButton('发布动态')}</form>`
-  );
+function flowsSwitchRow(iconName, label, key, sub = '') {
+  const on = state.settings[key] !== false;
+  const id = 'flows-switch-' + key;
+  return `<div class="list-row flows-row">${flowsIcon(iconName)}<span class="list-row-main"><span class="flows-row-label" id="${id}">${label}</span>${sub ? `<small class="flows-row-sub">${sub}</small>` : ''}</span>${act('flows-toggle', key, '', 'switch', `role="switch" aria-checked="${on}" aria-labelledby="${id}"`)}</div>`;
 }
-function giftPanel() {
-  const gifts = [
-    ['flower', 'flower', '心意鲜花', 10],
-    ['coffee', 'food', '暖心咖啡', 20],
-    ['crown', 'crown', '闪耀皇冠', 100],
-  ];
-  showSheet(
-    '送一份小心意',
-    `<p>送给 ${people.find(p => p.id === activeRoom).name}</p><div class="gift-grid">${gifts.map(([id, ico, name, price]) => act('select-gift', id, `${icon(ico)}<h3>${name}</h3><p>${price} 金豆</p>`, `gift-item ${ui.gift === id ? 'active' : ''}`)).join('')}</div><div class="balance-strip"><span>我的金豆 <b>${state.points}</b></span>${act('points', '', '去领取金豆 ›')}</div><p class="form-note">礼物是本地演示效果，仅扣除体验金豆。</p>${act('send-gift', '', '送出礼物', 'primary-button')}<div style="margin-top:10px">${act('room', activeRoom, '返回直播间', 'secondary-button')}</div>`
-  );
+function flowsEmpty(iconName, title, text, action = '', label = '', id = '') {
+  return `<div class="empty-state flows-empty">${flowsIcon(iconName)}<h3>${title}</h3><p>${text}</p>${action ? act(action, id, label, 'btn btn-primary') : ''}</div>`;
 }
-function callBooking(id) {
-  const p = people.find(x => x.id === id);
-  showSheet(
-    '预约面对面',
-    `<form data-form="book-call" data-person="${id}"><div class="form-summary"><img class="avatar" src="${asset(p.photo)}" alt="${p.name}"><div><h3>${p.name}</h3><p>${p.theme} · RM ${p.price}/10 分钟</p></div></div><div class="form-grid">${field('预约日期', 'date', 'date', '', true, nextDate())}${selectField('预约时间', 'time', ['10:00', '14:00', '16:00', '19:00', '20:00', '21:00'])}</div><div class="form-grid">${selectField('连线时长', 'duration', ['10 分钟', '20 分钟', '30 分钟'])}${selectField('连线方式', 'mode', ['视频聊天', '语音聊天'])}</div>${field('想聊的话题', 'topic', 'textarea', '选填：旅行、城市生活，或随便聊聊…')}<div class="summary-row"><span>预约参考合计</span><strong id="call-total">RM ${p.price.toFixed(2)}</strong></div>${formNote()}${submitButton('确认预约')}</form>`
-  );
+function flowsAvatar(src, size = 48, alt = '') {
+  const media = SZ.media.isRef(src) ? ` data-media="${esc(src)}"` : '';
+  return `<img class="avatar avatar-${size}" src="${esc(flowsPhoto(src))}"${media} alt="${esc(alt)}" loading="lazy" decoding="async">`;
 }
-function connectCall(id, orderId = null) {
-  activeCallOrder = orderId;
-  const p = people.find(x => x.id === id);
-  if (!p) return;
-  clearInterval(callTimer);
-  currentOverlay = { kind: 'call', title: '面对面连线' };
-  document.body.style.overflow = 'hidden';
-  document.querySelector('#overlay-root').innerHTML =
-    `<section class="full-screen call-room" role="dialog" aria-modal="true" aria-label="面对面体验"><div class="live-pill" style="margin-bottom:40px;background:#ffffff13">面对面 · 模拟连线</div><img class="avatar" src="${asset(p.photo)}" alt="${p.name}"><h2>${p.name}</h2><p>${p.theme}</p><p id="call-timer" style="font-size:24px;letter-spacing:3px;margin-top:28px">00:00</p><span class="small-remark">当前为界面演示，未启用摄像头与麦克风。</span><div class="call-controls"><button class="call-control" data-action="call-toggle" aria-pressed="false" aria-label="静音"><span class="icon-button">${icon('mic')}</span><span>静音</span></button><button class="call-control end" data-action="end-call"><span class="icon-button">${icon('phone')}</span><span>结束</span></button><button class="call-control" data-action="call-toggle" aria-pressed="false" aria-label="扬声器"><span class="icon-button">${icon('volume')}</span><span>扬声器</span></button></div></section>`;
-  let secs = 0;
-  callTimer = setInterval(() => {
-    secs++;
-    const el = document.querySelector('#call-timer');
-    if (el)
-      el.textContent =
-        String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
-  }, 1000);
-  focusOverlay();
+function flowsSuccess({ title, text = '', steps = [], primary = '', extra = '', mode = 'auto' }) {
+  return SZ.overlay.open({
+    kind: 'sheet',
+    mode,
+    title,
+    className: 'flows-layer flows-success-sheet',
+    html: `<div class="flows-success" role="status"><span class="flows-success-icon">${icon('check')}</span>${text ? `<p class="flows-success-text">${text}</p>` : ''}</div>${extra}${steps.length ? `<ol class="flows-steps">${steps.map(s => `<li>${s}</li>`).join('')}</ol>` : ''}<div class="flows-cta flows-cta--stack">${primary}${act('close', '', t('common.done'), `btn ${primary ? 'btn-secondary' : 'btn-primary'} btn-lg btn-block`)}</div>`,
+    meta: { flowsKey: 'success' },
+  });
 }
-function editProfile() {
-  uploadData = '';
-  showSheet(
-    '编辑个人资料',
-    `<form data-form="profile">${uploadField('上传头像 · 可选动态图片', { avatar: true, preview: state.profile.photo })}<p class="form-note">支持 JPG、PNG/APNG、GIF、WebP；动态图片会在个人主页与聊天头像中播放。建议方形图片，文件不超过 2 MB。</p><div style="margin-top:18px">${field('昵称', 'name', 'text', '你希望大家怎么称呼你', true, state.profile.name)}</div>${field('个人介绍', 'bio', 'textarea', '简单介绍自己', false, state.profile.bio)}<div class="form-grid">${selectField('所在城市', 'city', cities, state.city)}${selectField('沟通语言', 'language', ['中文', 'English', 'Bahasa Melayu', '中文 / English'], state.profile.language)}</div>${field('联系电话', 'phone', 'tel', '选填，填写国家 / 地区代码与手机号', false, state.profile.phone)}${submitButton('保存资料')}</form>`
-  );
+function flowsDisplayId(account = SZ.session.account) {
+  return account?.displayId ? String(account.displayId).replace(/(\d{4})(?=\d)/g, '$1 ') : '';
 }
+function flowsThemeLabel(value = window.SZ_THEME?.get() || 'light') {
+  return t(`flows.theme.${value}`);
+}
+function flowsLocaleName() {
+  return SZ_I18N.meta()?.name || SZ_I18N.locale;
+}
+/**
+ * Stop this page from writing the in-memory state back after the account's data was removed or
+ * the session changed (core flushes on pagehide, which would otherwise restore it).
+ */
+function flowsDetachState() {
+  state = null;
+  SZ.store.attach(null);
+}
+
+// ------------------------------------------------------------------ settings
 function settings() {
-  showScreen(
-    '设置',
-    `<div class="detail-content"><div class="panel list-panel" style="margin:0">${listRow('user', '个人资料', 'edit-profile')}${listRow('pin', '常用地址', 'addresses')}${listRow('globe', '语言与地区', 'language', '中文 · ' + (window.ShizhongRegions?.locationLabel() || '马来西亚'))}<div class="list-row">${icon('bell')}<span>接收站内提醒</span>${act('toggle-setting', 'notifications', '', `toggle ${state.settings.notifications ? 'on' : ''}`, `role="switch" aria-checked="${state.settings.notifications}" aria-label="接收站内提醒"`)}</div><div class="list-row">${icon('pin')}<span>在附近的人中可见</span>${act('toggle-setting', 'nearby', '', `toggle ${state.settings.nearby ? 'on' : ''}`, `role="switch" aria-checked="${state.settings.nearby}" aria-label="附近的人可见"`)}</div>${listRow('shield', '隐私与使用说明', 'privacy')}${listRow('help', '关于适中', 'about', 'v1.0 原稿')}</div><h3 class="subsection-title">我的体验数据</h3><p class="detail-description">订单、动态、聊天与资料保存在当前浏览器。照片仅保存在本机，不会自动上传。</p><div class="button-row">${act('export-data', '', '导出演示数据', 'secondary-button')}${act('reset-data', '', '重置体验', 'secondary-button')}</div></div>`
+  return flowsOpen('settings', { title: t('flows.settings.title'), body: flowsSettingsBody });
+}
+function flowsSettingsBody() {
+  const account = SZ.session.account;
+  const loggedIn = SZ.session.isLoggedIn;
+  const head = loggedIn
+    ? act(
+        'edit-profile',
+        '',
+        `${flowsAvatar(state.profile.photo, 56)}<span class="flows-account-main"><strong>${esc(state.profile.name)}</strong><small>${esc(t('flows.settings.accountId', { id: flowsDisplayId(account) }))}</small></span>${icon('chevron', 'chevron')}`,
+        'flows-account-card',
+        `aria-label="${esc(t('flows.settings.editProfileAria', { name: state.profile.name }))}"`
+      )
+    : `<div class="flows-account-card is-guest">${flowsAvatar('ui/avatar-default.svg', 56)}<span class="flows-account-main"><strong>${t('flows.settings.guestTitle')}</strong><small>${t('flows.settings.guestBody')}</small></span>${act('flows-signin', '', t('flows.settings.signIn'), 'btn btn-primary btn-sm')}</div>`;
+  const accountRows = loggedIn
+    ? flowsSection(
+        t('flows.settings.account'),
+        `<div class="list">${flowsStaticRow('phone', t('flows.settings.phone'), esc(account?.phone || t('flows.settings.notSet')))}${flowsStaticRow('message', t('flows.settings.email'), esc(account?.email || t('flows.settings.notSet')))}${flowsRow('lock', t('flows.settings.password'), 'flows-password')}${flowsRow('pin', t('flows.settings.addresses'), 'addresses', { value: state.address.length ? SZ.fmt.number(state.address.length) : '' })}</div>`
+      )
+    : '';
+  const prefs = flowsSection(
+    t('flows.settings.preferences'),
+    `<div class="list">${flowsRow('globe', t('flows.settings.language'), 'language', { value: esc(flowsLocaleName()) })}${flowsRow('moon', t('flows.settings.theme'), 'flows-theme', { value: flowsThemeLabel() })}${flowsSwitchRow('bell', t('flows.settings.notifications'), 'notifications', t('flows.settings.notificationsSub'))}${flowsSwitchRow('compass', t('flows.settings.nearby'), 'nearby', t('flows.settings.nearbySub'))}</div>`
   );
+  const privacy = flowsSection(
+    t('flows.settings.privacy'),
+    `<div class="list">${flowsRow('block', t('flows.settings.blocked'), 'flows-blocked', { value: state.blocked.length ? SZ.fmt.number(state.blocked.length) : '' })}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media', { sub: t('flows.settings.clearMediaSub') })}${flowsRow('download', t('flows.settings.export'), 'export-data')}</div>`
+  );
+  const about = flowsSection(
+    t('flows.settings.support'),
+    `<div class="list">${flowsRow('help', t('flows.settings.help'), 'help')}${flowsRow('info', t('flows.settings.about'), 'about', { value: esc(SHIZHONG_BUILD) })}</div>`
+  );
+  const session = loggedIn
+    ? `<div class="list">${flowsRow('swap', t('flows.settings.switchAccount'), 'flows-switch-account')}${flowsRow('logout', t('flows.settings.signOut'), 'flows-logout', { danger: true, chevron: false })}</div>`
+    : '';
+  const danger = flowsSection(
+    t('flows.settings.dangerZone'),
+    `<div class="list">${flowsRow('refresh', t('flows.settings.reset'), 'reset-data', { danger: true, sub: t('flows.settings.resetSub') })}${loggedIn && !SZ.session.isDemo ? flowsRow('trash', t('flows.settings.delete'), 'flows-delete-account', { danger: true, sub: t('flows.settings.deleteSub') }) : ''}</div>`
+  );
+  return `${head}${accountRows}${prefs}${privacy}${about}${session ? `<section class="flows-section">${session}</section>` : ''}${danger}<p class="caption flows-footnote">${t('flows.settings.localNote')}</p>`;
+}
+function flowsToggleSetting(key, el) {
+  if (!['notifications', 'nearby'].includes(key)) return;
+  const next = state.settings[key] === false;
+  if (!SZ.store.commit(s => (s.settings[key] = next))) return;
+  el?.setAttribute('aria-checked', String(next));
+  if (key === 'nearby') flowsRender();
+  toast(t(next ? 'flows.settings.' + key + 'On' : 'flows.settings.' + key + 'Off'));
+}
+function flowsThemeSheet() {
+  flowsOpen('theme', {
+    kind: 'sheet',
+    title: t('flows.theme.title'),
+    body: () => {
+      const current = window.SZ_THEME?.get() || 'light';
+      const rows = [
+        ['system', 'settings'],
+        ['light', 'sun'],
+        ['dark', 'moon'],
+      ]
+        .map(([value, ic]) =>
+          act(
+            'flows-theme-set',
+            value,
+            `${flowsIcon(ic)}<span class="list-row-main"><span class="flows-row-label">${t(`flows.theme.${value}`)}</span>${value === 'system' ? `<small class="flows-row-sub">${t('flows.theme.systemSub')}</small>` : ''}</span>${value === current ? icon('check', 'flows-check') : ''}`,
+            'list-row flows-row flows-choice',
+            `role="radio" aria-checked="${value === current}"`
+          )
+        )
+        .join('');
+      return `<div class="list" role="radiogroup" aria-label="${esc(t('flows.theme.title'))}">${rows}</div>`;
+    },
+  });
+}
+function flowsSetTheme(value) {
+  window.SZ_THEME?.set(value);
+  flowsRefresh('theme', 'settings');
+}
+function flowsPasswordSheet() {
+  const account = SZ.session.account;
+  if (!account) return;
+  if (SZ.session.isDemo) {
+    flowsOpen('password', {
+      kind: 'sheet',
+      title: t('flows.password.title'),
+      body: () =>
+        `<p class="flows-lead">${t('flows.password.demoLocked')}</p><div class="flows-cta">${act('close', '', t('common.ok'), 'btn btn-primary btn-lg btn-block')}</div>`,
+    });
+    return;
+  }
+  const hasPassword = !!account.passHash;
+  flowsOpen('password', {
+    kind: 'sheet',
+    title: hasPassword ? t('flows.password.title') : t('flows.password.setTitle'),
+    body: () =>
+      `<form>${hasPassword ? field(t('flows.password.current'), 'current', 'password', '', true, '', { autocomplete: 'current-password', maxlength: 64 }) : `<p class="flows-lead">${t('flows.password.noPassword')}</p>`}${field(t('flows.password.new'), 'next', 'password', '', true, '', { autocomplete: 'new-password', maxlength: 64, hint: t('flows.password.rule') })}${field(t('flows.password.repeat'), 'repeat', 'password', '', true, '', { autocomplete: 'new-password', maxlength: 64 })}${submitButton(t('flows.password.save'))}</form>`,
+    form(data, form, layer) {
+      const input = name => form.querySelector(`[name="${name}"]`);
+      if (hasPassword && !SZ.accounts.verify(SZ.accounts.get(account.id), data.current))
+        return flowsFieldError(input('current'), t('flows.password.wrong'));
+      if (data.next.length < 8 || !/\d/.test(data.next) || !/[a-z]/i.test(data.next))
+        return flowsFieldError(input('next'), t('flows.password.rule'));
+      if (data.next !== data.repeat) return flowsFieldError(input('repeat'), t('flows.password.mismatch'));
+      SZ.accounts.setPassword(account.id, data.next);
+      flowsDone(layer);
+      toast(t('flows.password.saved'), { type: 'success' });
+    },
+  });
+}
+async function flowsLogout() {
+  const ok = await SZ.confirm({
+    title: t('flows.settings.signOutTitle'),
+    message: t('flows.settings.signOutBody'),
+    confirmText: t('flows.settings.signOut'),
+  });
+  if (!ok) return;
+  SZ.store.flush();
+  flowsDetachState();
+  SZ.session.logout();
+}
+async function flowsDeleteAccount() {
+  const account = SZ.session.account;
+  if (!account || SZ.session.isDemo) return;
+  const first = await SZ.confirm({
+    title: t('flows.settings.deleteTitle'),
+    message: t('flows.settings.deleteBody'),
+    confirmText: t('flows.settings.deleteContinue'),
+    danger: true,
+  });
+  if (!first) return;
+  const second = await SZ.confirm({
+    title: t('flows.settings.deleteFinalTitle'),
+    message: t('flows.settings.deleteFinalBody', { id: flowsDisplayId(account) }),
+    confirmText: t('flows.settings.deleteConfirm'),
+    danger: true,
+  });
+  if (!second) return;
+  toast(t('flows.settings.deleting'));
+  flowsDetachState();
+  await SZ.accounts.remove(account.id);
+  SZ.session.logout();
+}
+async function flowsResetAccount() {
+  const ok = await SZ.confirm({
+    title: t('flows.settings.resetTitle'),
+    message: t('flows.settings.resetBody'),
+    confirmText: t('flows.settings.resetConfirm'),
+    danger: true,
+    html: `<p class="caption flows-confirm-extra">${t('flows.settings.resetExportHint')}</p>`,
+  });
+  if (!ok) return;
+  toast(t('flows.settings.resetting'));
+  flowsDetachState();
+  await SZ.store.reset();
+  location.reload();
+}
+async function flowsClearMedia() {
+  let usage = '';
+  try {
+    const estimate = await SZ.media.estimate();
+    if (estimate?.usage) usage = t('flows.settings.storageUsed', { size: flowsBytes(estimate.usage) });
+  } catch (_) {}
+  const ok = await SZ.confirm({
+    title: t('flows.settings.clearMediaTitle'),
+    message: t('flows.settings.clearMediaBody'),
+    confirmText: t('flows.settings.clearMediaConfirm'),
+    danger: true,
+    html: usage ? `<p class="caption flows-confirm-extra">${esc(usage)}</p>` : '',
+  });
+  if (!ok) return;
+  try {
+    await SZ.media.clearAccount();
+  } catch (_) {
+    toast(t('flows.settings.clearMediaFailed'), { type: 'error' });
+    return;
+  }
+  const fallback = flowsCall('accountDefaults')?.profile?.photo || 'ui/avatar-default.svg';
+  SZ.store.commit(s => {
+    if (SZ.media.isRef(s.profile.photo)) s.profile.photo = fallback;
+    for (const post of s.posts || []) if (SZ.media.isRef(post.image)) post.image = '';
+  });
+  flowsRender();
+  flowsRefresh('settings');
+  toast(t('flows.settings.clearMediaDone'), { type: 'success' });
+}
+function flowsBytes(n) {
+  if (n < 1024 * 1024) return SZ.fmt.number(Math.max(1, Math.round(n / 1024))) + ' KB';
+  return SZ.fmt.number(n / 1024 / 1024, { maximumFractionDigits: 1 }) + ' MB';
+}
+function flowsExportSheet() {
+  flowsOpen('export', {
+    kind: 'sheet',
+    title: t('flows.export.title'),
+    body: () =>
+      `<p class="flows-lead">${t('flows.export.intro')}</p><h4 class="flows-mini-title">${t('flows.export.included')}</h4><ul class="flows-bullets">${['profile', 'orders', 'social', 'messages', 'wallet', 'settings'].map(k => `<li>${t(`flows.export.item.${k}`)}</li>`).join('')}</ul><h4 class="flows-mini-title">${t('flows.export.excluded')}</h4><ul class="flows-bullets">${['media', 'password'].map(k => `<li>${t(`flows.export.skip.${k}`)}</li>`).join('')}</ul><p class="caption">${t('flows.export.care')}</p><div class="flows-cta">${act('flows-export-download', '', `${flowsIcon('download')}${t('flows.export.download')}`, 'btn btn-primary btn-lg btn-block')}</div>`,
+  });
+}
+function flowsExportDownload() {
+  const account = SZ.session.account;
+  const payload = {
+    app: 'Shizhong',
+    build: SHIZHONG_BUILD,
+    exportedAt: new Date().toISOString(),
+    account: account
+      ? {
+          id: account.id,
+          displayId: account.displayId,
+          phone: account.phone,
+          email: account.email,
+          createdAt: account.createdAt,
+        }
+      : { id: SZ.session.accountId },
+    state,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `shizhong-${account?.displayId || 'guest'}-${localDate()}.json`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast(t('flows.export.done'), { type: 'success' });
+}
+function flowsBlockedList() {
+  flowsNeed(['people'], () =>
+    flowsOpen('blocked', { title: t('flows.blocked.title'), body: flowsBlockedBody })
+  );
+}
+function flowsBlockedBody() {
+  if (!state.blocked.length)
+    return flowsEmpty('block', t('flows.blocked.emptyTitle'), t('flows.blocked.emptyText'));
+  return `<p class="flows-lead">${t('flows.blocked.intro')}</p><ul class="list flows-people">${state.blocked
+    .map(id => {
+      const p = flowsPerson(id);
+      const name = p ? personName(p) : id;
+      return `<li class="list-row flows-person">${flowsAvatar(p ? avatarSource(p) : '', 48)}<span class="list-row-main"><span class="flows-row-label">${esc(name)}</span></span>${act('flows-unblock', id, t('flows.blocked.unblock'), 'btn btn-outline btn-sm', `aria-label="${esc(t('flows.blocked.unblockAria', { name }))}"`)}</li>`;
+    })
+    .join('')}</ul>`;
+}
+async function flowsBlock(id, el) {
+  if (!id) return;
+  const p = flowsPerson(id);
+  const name = p ? personName(p) : id;
+  if (state.blocked.includes(id)) return toast(t('flows.block.already', { name }));
+  const ok = await SZ.confirm({
+    title: t('flows.block.title', { name }),
+    message: t('flows.block.body'),
+    confirmText: t('flows.block.confirm'),
+    danger: true,
+  });
+  if (!ok || !SZ.store.commit(s => s.blocked.push(id))) return;
+  const layer = el?.isConnected ? SZ.overlay.of(el) : null;
+  if (layer && !layer.meta.flowsKey) SZ.overlay.close({ layer, force: true });
+  flowsRender();
+  flowsRefresh('blocked', 'settings');
+  toast(t('flows.block.done', { name }), {
+    action: { label: t('common.undo'), run: () => flowsUnblock(id, true) },
+  });
+}
+function flowsUnblock(id, quiet = false) {
+  const at = state.blocked.indexOf(id);
+  if (at < 0) return;
+  if (!SZ.store.commit(s => s.blocked.splice(at, 1))) return;
+  flowsRender();
+  flowsRefresh('blocked', 'settings');
+  if (quiet) return;
+  const p = flowsPerson(id);
+  const name = p ? personName(p) : id;
+  toast(t('flows.blocked.unblocked', { name }), {
+    action: {
+      label: t('common.undo'),
+      run: () => {
+        if (
+          !state.blocked.includes(id) &&
+          SZ.store.commit(s => s.blocked.splice(Math.min(at, s.blocked.length), 0, id))
+        ) {
+          flowsRender();
+          flowsRefresh('blocked', 'settings');
+        }
+      },
+    },
+  });
+}
+
+// ------------------------------------------------------------------ language & region
+function flowsLanguage() {
+  flowsOpen('language', {
+    title: t('flows.lang.title'),
+    body: () => {
+      const current = SZ_I18N.locale;
+      const locales = SZ_I18N.available()
+        .map(m =>
+          act(
+            'flows-locale',
+            m.code,
+            `<span class="list-row-main"><span class="flows-row-label" lang="${esc(m.htmlLang || m.code)}">${esc(m.name)}</span>${m.englishName && m.englishName !== m.name ? `<small class="flows-row-sub">${esc(m.englishName)}</small>` : ''}</span>${m.code === current ? icon('check', 'flows-check') : ''}`,
+            'list-row flows-row flows-choice flows-plain',
+            `role="radio" aria-checked="${m.code === current}"`
+          )
+        )
+        .join('');
+      const serviceLangs = FLOWS_SERVICE_LANGS.map(code => ({
+        value: code,
+        label: t(`flows.serviceLang.${code}`),
+      }));
+      return `${flowsSection(t('flows.lang.app'), `<div class="list" role="radiogroup" aria-label="${esc(t('flows.lang.app'))}">${locales}</div><p class="caption flows-section-note">${t('flows.lang.reloadNote')}</p>`)}<form>${flowsSection(
+        t('flows.lang.regionTitle'),
+        `<div class="card card-pad">${selectField(t('flows.lang.region'), 'city', cities, state.location || state.city)}${selectField(t('flows.lang.service'), 'language', serviceLangs, state.profile.language, { hint: t('flows.lang.serviceHint') })}<ul class="flows-facts"><li>${flowsIcon('wallet')}<span>${t('flows.lang.currency')}</span></li><li>${icon('clock')}<span>${t('flows.lang.timezone')}</span></li></ul></div>`
+      )}${submitButton(t('flows.lang.save'))}</form>`;
+    },
+    form(data, form, layer) {
+      const location = flowsFormLocation(form);
+      if (
+        !SZ.store.commit(s => {
+          flowsApplyLocation(location);
+          s.profile.language = flowsServiceLangCode(data.language);
+        })
+      )
+        return;
+      flowsDone(layer);
+      flowsRender();
+      flowsRefresh('settings');
+      toast(t('flows.lang.saved'), { type: 'success' });
+    },
+  });
+}
+function flowsSetLocale(code) {
+  if (code === SZ_I18N.locale) return;
+  SZ.store.flush();
+  toast(t('flows.lang.switching'));
+  SZ_I18N.setLocale(code);
+}
+
+// ------------------------------------------------------------------ wallet & recharge
+const FLOWS_METHODS = {
+  tng: { icon: 'wallet' },
+  duitnow: { icon: 'qr' },
+  fpx: { icon: 'bank' },
+  card: { icon: 'card' },
+};
+const FLOWS_AMOUNTS = [20, 50, 100, 200, 500, 1000];
+function flowsMethodLabel(method) {
+  if (FLOWS_METHODS[method]) return t(`flows.pay.${method}`);
+  return method ? td('flows.billMethod', method) : '';
+}
+function flowsMoney(n) {
+  return SZ.fmt.money(n, { cents: true });
+}
+function flowsLegacyTime(text) {
+  const m = /(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(
+    String(text || '')
+  );
+  if (!m) return null;
+  const pad = v => String(v || 0).padStart(2, '0');
+  const ts = Date.parse(`${m[1]}-${pad(m[2])}-${pad(m[3])}T${pad(m[4])}:${pad(m[5])}:${pad(m[6])}+08:00`);
+  return Number.isFinite(ts) ? ts : null;
+}
+function flowsBillTs(b) {
+  if (typeof b.ts === 'number') return b.ts;
+  if (typeof b.time === 'number') return b.time;
+  return flowsLegacyTime(b.time);
+}
+function flowsBillTitle(b) {
+  if (b.kind && t.has(`flows.wallet.kind.${b.kind}`) && !b.title) return t(`flows.wallet.kind.${b.kind}`);
+  // Older records keep source-language text like "<prefix> · <name>": translate the known prefix, keep the name.
+  return String(b.title || t('flows.wallet.kind.misc'))
+    .split(' · ')
+    .map(part => td('flows.billTitle', part))
+    .join(' · ');
+}
+function flowsBillIcon(b) {
+  const kind = b.kind || '';
+  if (kind === 'recharge') return 'in';
+  if (kind === 'refund') return 'refresh';
+  if (kind === 'order') return 'order';
+  if (kind === 'gift') return 'gift';
+  if (kind === 'transfer' || kind === 'envelope') return 'swap';
+  return Number(b.amount) >= 0 ? 'in' : 'out';
+}
+function flowsDayLabel(ts) {
+  const day = SZ.fmt.date(ts, 'iso');
+  if (day === localDate()) return t('time.today');
+  if (day === SZ.fmt.date(Date.now() - FLOWS_DAY, 'iso')) return t('time.yesterday');
+  return SZ.fmt.date(ts, 'medium');
 }
 function wallet() {
-  showSheet(
-    '我的钱包',
-    `<div style="text-align:center;padding:15px"><p style="font-size:12px;color:#a18ca8">体验余额</p><h3 style="font-size:clamp(20px,6vw,30px);margin:12px 0 7px"><small style="font-size:18px">RM </small>${state.wallet.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3><p class="small-remark">用于展示钱包操作，不是真实资金</p></div><div class="button-row">${act('recharge', '', '体验充值', 'primary-button')}${act('bills', '', '查看账单', 'secondary-button')}</div>`
-  );
+  return flowsOpen('wallet', { title: t('flows.wallet.title'), body: flowsWalletBody });
+}
+function flowsWalletBody() {
+  const demoTools = SZ.session.isDemo
+    ? act(
+        'flows-restore-balance',
+        '',
+        t('flows.wallet.restore'),
+        'btn btn-ghost btn-sm flows-balance-restore'
+      )
+    : '';
+  const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t('flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('checkin', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
+  const bills = state.bills.slice(0, flowsUI.billsShown);
+  let list = '';
+  if (!bills.length) list = flowsEmpty('order', t('flows.wallet.emptyTitle'), t('flows.wallet.emptyText'));
+  else {
+    const groups = [];
+    for (const b of bills) {
+      const ts = flowsBillTs(b);
+      const key = ts ? SZ.fmt.date(ts, 'iso') : 'earlier';
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== key)
+        groups.push((g = { key, label: ts ? flowsDayLabel(ts) : t('flows.wallet.earlier'), rows: [] }));
+      g.rows.push(flowsBillRow(b, ts));
+    }
+    list = groups
+      .map(
+        g =>
+          `<h4 class="flows-group-title">${esc(g.label)}</h4><ul class="list flows-bills">${g.rows.join('')}</ul>`
+      )
+      .join('');
+    if (state.bills.length > bills.length)
+      list += `<div class="flows-more">${act('flows-bills-more', '', t('common.loadMore'), 'btn btn-secondary')}</div>`;
+  }
+  return `${balance}${flowsSection(t('flows.wallet.history'), list, 'flows-bills-section')}`;
+}
+function flowsBillRow(b, ts) {
+  const amount = Number(b.amount) || 0;
+  const income = amount > 0;
+  const time = ts ? SZ.fmt.time(ts) : esc(b.time || '');
+  const method = flowsMethodLabel(b.method);
+  const meta = [time, method ? esc(method) : ''].filter(Boolean).join(' · ');
+  return `<li class="list-row flows-bill"><span class="flows-bill-icon ${income ? 'is-in' : 'is-out'}">${flowsIcon(flowsBillIcon(b))}</span><span class="list-row-main"><span class="flows-row-label">${esc(flowsBillTitle(b))}</span><small class="flows-row-sub">${meta}</small></span><span class="flows-bill-amount num ${income ? 'is-in' : ''}">${income ? '+' : '−'}${esc(flowsMoney(Math.abs(amount)))}</span></li>`;
+}
+function flowsRestoreBalance() {
+  if (!SZ.session.isDemo) return;
+  const target = initialState.wallet;
+  if (!SZ.store.commit(s => (s.wallet = target))) return;
+  flowsRefresh('wallet');
+  flowsRender();
+  toast(t('flows.wallet.restored', { money: flowsMoney(target) }), { type: 'success' });
 }
 function recharge() {
-  showSheet(
-    '体验充值',
-    `<p>选择一个金额，查看充值完成后的效果。</p><div class="payment-options">${[20, 50, 100].map(n => act('recharge-amount', n, `<strong>${n}</strong>RM`, `payment-option ${n === selectedAmount ? 'active' : ''}`)).join('')}</div><form data-form="recharge">${selectField('支付方式', 'method', ["Touch 'n Go eWallet", 'DuitNow', '银行卡'])}${formNote()}${submitButton('模拟充值 RM ' + selectedAmount)}</form>`
-  );
+  if (!SZ.requireLogin(t('flows.reason.recharge'))) return;
+  const layer = flowsOpen('recharge', {
+    kind: 'sheet',
+    mode: 'push',
+    title: t('flows.recharge.title'),
+    body: flowsRechargeBody,
+    form: flowsRechargeSubmit,
+  });
+  const sync = () => {
+    const form = layer.el.querySelector('form');
+    if (!form) return;
+    const amount = flowsRechargeAmount(flowsFormData(form));
+    const button = form.querySelector('[type="submit"]');
+    button.textContent = amount
+      ? t('flows.recharge.pay', { money: flowsMoney(amount) })
+      : t('flows.recharge.payEmpty');
+  };
+  layer.el.addEventListener('input', sync);
+  layer.el.addEventListener('change', event => {
+    if (event.target.name === 'amount') {
+      const custom = layer.el.querySelector('[name="custom"]');
+      if (custom) custom.value = '';
+    }
+    sync();
+  });
+  return layer;
 }
+function flowsRechargeAmount(data) {
+  const n = data.custom ? Number(String(data.custom).replace(/,/g, '')) : Number(data.amount);
+  return Number.isFinite(n) && n > 0 ? flowsRound(n) : 0;
+}
+function flowsRechargeBody() {
+  const amounts = FLOWS_AMOUNTS.map(
+    (a, i) =>
+      `<label class="flows-amount"><input type="radio" name="amount" value="${a}"${i === 2 ? ' checked' : ''}><span class="num">${esc(SZ.fmt.money(a))}</span></label>`
+  ).join('');
+  const methods = Object.keys(FLOWS_METHODS)
+    .map(
+      (m, i) =>
+        `<label class="list-row flows-method"><input type="radio" name="method" value="${m}"${i === 0 ? ' checked' : ''}>${flowsIcon(FLOWS_METHODS[m].icon)}<span class="list-row-main"><span class="flows-row-label">${t(`flows.pay.${m}`)}</span><small class="flows-row-sub">${t(`flows.pay.${m}Sub`)}</small></span><span class="flows-radio-mark" aria-hidden="true"></span></label>`
+    )
+    .join('');
+  return `<form><p class="flows-lead">${t('flows.recharge.balanceNow', { money: esc(flowsMoney(state.wallet)) })}</p><fieldset class="flows-fieldset"><legend class="form-label">${t('flows.recharge.amount')}</legend><div class="flows-amounts">${amounts}</div></fieldset>${field(t('flows.recharge.custom'), 'custom', 'text', t('flows.recharge.customPlaceholder'), false, '', { inputmode: 'decimal', maxlength: 8, hint: t('flows.recharge.limit') })}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.recharge.method')}</legend><div class="list flows-methods">${methods}</div></fieldset>${formNote(t('flows.recharge.note'))}${submitButton(t('flows.recharge.pay', { money: flowsMoney(FLOWS_AMOUNTS[2]) }))}</form>`;
+}
+async function flowsRechargeSubmit(data, form, layer) {
+  const amount = flowsRechargeAmount(data);
+  if (!(amount >= 1 && amount <= 5000)) {
+    const input = form.querySelector('[name="custom"]');
+    flowsFieldError(input, t('flows.recharge.limit'));
+    input.focus();
+    return;
+  }
+  const method = FLOWS_METHODS[data.method] ? data.method : 'tng';
+  const body = layer.el.querySelector('[data-flows-body]');
+  layer.meta.flowsLocked = true;
+  body.innerHTML = `<div class="flows-authorising" role="status" aria-live="polite"><span class="flows-spinner" aria-hidden="true"></span><h3>${t('flows.recharge.authorising')}</h3><p>${t('flows.recharge.authorisingBody', { method: esc(flowsMethodLabel(method)), money: esc(flowsMoney(amount)) })}</p></div>`;
+  await new Promise(resolve => setTimeout(resolve, 1400));
+  layer.meta.flowsLocked = false;
+  if (!layer.el.isConnected) return;
+  const ok = SZ.store.commit(s => {
+    s.wallet = flowsRound(s.wallet + amount);
+    s.bills.unshift({ id: SZ.uid('bill'), kind: 'recharge', title: '', amount, method, ts: Date.now() });
+  });
+  if (!ok) {
+    flowsDone(layer);
+    return;
+  }
+  layer.meta.flowsDone = true;
+  SZ.overlay.setTitle(t('flows.recharge.successTitle'), layer);
+  body.innerHTML = `<div class="flows-success" role="status"><span class="flows-success-icon">${icon('check')}</span><p class="flows-success-amount num">+${esc(flowsMoney(amount))}</p><p class="flows-success-text">${t('flows.recharge.successBody', { money: esc(flowsMoney(state.wallet)) })}</p></div><div class="flows-cta">${act('close', '', t('common.done'), 'btn btn-primary btn-lg btn-block')}</div>`;
+  flowsRefresh('wallet');
+  flowsRender();
+}
+
+// ------------------------------------------------------------------ check-in & tasks
 function checkin() {
-  const done = state.checkin === localDate();
-  showSheet(
-    '每日签到',
-    `<div style="text-align:center"><span class="mini-label">LITTLE THINGS, EVERY DAY</span><h3 style="font-size:24px;margin-top:10px">把小确幸，攒起来</h3><p class="small-remark">每天见面，送你 10 金豆</p></div><div class="date-chips">${Array.from({ length: 7 }, (_, i) => `<div class="day-box ${i === 0 && done ? 'done' : ''}">${i === 0 ? '今天' : '第 ' + (i + 1) + ' 天'}<strong>${i === 0 && done ? '✓' : '+10'}</strong></div>`).join('')}</div><div class="info-highlight">当前拥有 <b>${state.points}</b> 金豆，可以在直播间送出一份小心意。</div>${act('do-checkin', '', done ? '今日已签到，明天再来' : '领取今日 10 金豆', 'primary-button yellow', done ? 'disabled' : '')}`
-  );
+  return flowsOpen('checkin', { kind: 'sheet', title: t('flows.checkin.title'), body: flowsCheckinBody });
 }
+function flowsCheckinBody() {
+  const s = flowsCheckinState();
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const done = i < s.lit;
+    const today = i === s.todayIndex;
+    const reward = i === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD;
+    const label = today ? t('time.today') : t('flows.checkin.day', { n: i + 1 });
+    const status = done ? t('flows.checkin.stateDone') : today ? t('flows.checkin.stateToday') : '';
+    return `<li class="flows-day${done ? ' is-done' : ''}${today ? ' is-today' : ''}${i === 6 ? ' is-bonus' : ''}"><span class="flows-sr">${esc([label, t('flows.checkin.rewardAria', { n: reward }), status].filter(Boolean).join(', '))}</span><span class="flows-day-label" aria-hidden="true">${label}</span><span class="flows-day-mark" aria-hidden="true">${done ? icon('check') : i === 6 ? icon('gift') : flowsIcon('medal')}</span><strong class="flows-day-reward num" aria-hidden="true">+${reward}</strong></li>`;
+  }).join('');
+  const reward = s.todayIndex === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD;
+  const streakText = s.streak ? tn('flows.checkin.streak', s.streak) : t('flows.checkin.noStreak');
+  return `<div class="flows-checkin-head"><div><p class="flows-checkin-streak">${streakText}</p><p class="flows-checkin-hint">${t('flows.checkin.bonusHint', { bonus: FLOWS_CHECKIN_BONUS })}</p></div><div class="flows-checkin-beans"><small>${t('flows.checkin.beans')}</small><strong class="num">${esc(SZ.fmt.compact(state.points))}</strong></div></div><ol class="flows-week" aria-label="${esc(t('flows.checkin.weekAria'))}">${days}</ol><div class="flows-cta flows-cta--stack">${act('do-checkin', '', s.done ? t('flows.checkin.doneToday') : t('flows.checkin.claim', { n: reward }), 'btn btn-accent btn-lg btn-block', s.done ? 'disabled' : '')}${act('tasks', '', t('flows.checkin.moreTasks'), 'btn btn-ghost btn-block')}</div>`;
+}
+function flowsDoCheckin() {
+  if (!SZ.requireLogin(t('flows.reason.checkin'))) return;
+  const before = flowsCheckinState();
+  if (before.done) return;
+  const today = localDate();
+  const streak = before.streak + 1;
+  const bonus = streak % 7 === 0 ? FLOWS_CHECKIN_BONUS : 0;
+  const reward = FLOWS_CHECKIN_REWARD + bonus;
+  if (
+    !SZ.store.commit(s => {
+      s.checkin.streak = streak;
+      s.checkin.lastDate = today;
+      s.checkin.history = [...s.checkin.history.filter(d => d !== today), today].slice(-60);
+      s.points += reward;
+    })
+  )
+    return;
+  flowsRefresh('checkin', 'tasks');
+  flowsRender();
+  toast(bonus ? t('flows.checkin.bonusDone', { n: reward }) : t('flows.checkin.done', { n: reward }), {
+    type: 'success',
+  });
+}
+function flowsTaskList() {
+  const c = flowsCheckinState();
+  return [
+    {
+      id: 'checkin',
+      icon: 'calendar',
+      reward: FLOWS_CHECKIN_REWARD,
+      done: c.done,
+      progress: c.done ? 1 : 0,
+      total: 1,
+      action: 'checkin',
+    },
+    {
+      id: 'streak',
+      icon: 'medal',
+      reward: FLOWS_CHECKIN_BONUS,
+      done: c.lit === 7 && c.done,
+      progress: c.lit,
+      total: 7,
+      action: 'checkin',
+    },
+    {
+      id: 'profile',
+      icon: 'user',
+      reward: 20,
+      done: !!state.profileReward,
+      progress: state.profileReward ? 1 : 0,
+      total: 1,
+      action: 'edit-profile',
+    },
+    {
+      id: 'post',
+      icon: 'edit',
+      reward: 10,
+      done: !!state.postReward,
+      progress: state.postReward ? 1 : 0,
+      total: 1,
+      action: 'compose',
+    },
+    {
+      id: 'address',
+      icon: 'pin',
+      reward: 10,
+      done: !!state.addressReward,
+      progress: state.addressReward ? 1 : 0,
+      total: 1,
+      action: 'addresses',
+    },
+  ];
+}
+function flowsTasks() {
+  return flowsOpen('tasks', { title: t('flows.tasks.title'), body: flowsTasksBody });
+}
+function flowsTasksBody() {
+  const list = flowsTaskList();
+  const done = list.filter(x => x.done).length;
+  const rows = list
+    .map(task => {
+      const pct = Math.round((Math.min(task.progress, task.total) / task.total) * 100);
+      const title = t(`flows.tasks.${task.id}.title`);
+      return `<li class="card flows-task${task.done ? ' is-done' : ''}"><span class="flows-task-icon">${flowsIcon(task.icon)}</span><div class="flows-task-main"><h3>${title}</h3><p>${t(`flows.tasks.${task.id}.text`)}</p><div class="flows-task-meta"><span class="tag tag-gold">${t('flows.tasks.reward', { n: task.reward })}</span><span class="flows-progress" role="progressbar" aria-label="${esc(title)}" aria-valuemin="0" aria-valuemax="${task.total}" aria-valuenow="${Math.min(task.progress, task.total)}"><span style="--flows-progress:${pct}%"></span></span><span class="caption num">${Math.min(task.progress, task.total)}/${task.total}</span></div></div>${task.done ? `<span class="tag tag-success flows-task-done">${icon('check')}${t('flows.tasks.done')}</span>` : act(task.action, '', t('flows.tasks.go'), 'btn btn-tonal btn-sm', `aria-label="${esc(t('flows.tasks.goAria', { task: title }))}"`)}</li>`;
+    })
+    .join('');
+  return `<div class="flows-tasks-summary"><strong class="num">${done}/${list.length}</strong><span>${t('flows.tasks.summary')}</span></div><ul class="flows-task-list">${rows}</ul><p class="caption flows-footnote">${t('flows.tasks.note')}</p>`;
+}
+
+// ------------------------------------------------------------------ coupons
 function coupons() {
-  showScreen(
-    '我的优惠券',
-    `<div class="detail-content">${state.coupons.length ? state.coupons.map((c, i) => `<div class="coupon"><div class="coupon-value"><small>RM</small>${c === 'welcome' ? '10' : '5'}</div><div><h3>${c === 'welcome' ? '新人见面礼' : '城市生活优惠券'}</h3><p>生活服务满 RM 80 可用<br>本地原稿展示券</p>${act('use-coupon', '', '去逛逛')}</div></div>`).join('') : empty('优惠正在路上', '继续发现你喜欢的城市生活。', 'go-home', '去逛逛')}<p class="form-note">原稿中展示优惠券样式，参考价格未扣减优惠。</p></div>`
-  );
+  return flowsOpen('coupons', { title: t('flows.coupons.title'), body: flowsCouponsBody });
 }
-function addresses() {
-  showScreen(
-    '常用地址',
-    `<div class="detail-content">${state.address.length ? state.address.map((a, i) => `<div class="address-card"><h3>${esc(a.name)} <small style="color:#a69aac">${esc(a.phone)}</small></h3><p>${esc(a.address)}<br>${esc(a.location?.countryName || '马来西亚')} · ${esc(a.location?.cityName || a.city)} ${esc(a.postcode || '')}</p><div class="order-actions">${i === 0 ? '<span class="tag">默认地址</span>' : act('default-address', i, '设为默认')}${act('edit-address', i, '编辑')}${act('remove-address', i, '删除')}</div></div>`).join('') : empty('把常用地址存起来', '下次预约，就能少填一步。')}${act('edit-address', 'new', '+ 添加新地址', 'primary-button')}</div>`
-  );
+function flowsCategoryName(id) {
+  const c = [...categories, ...moreCategories].find(x => x.id === id);
+  return c ? c.name : id;
 }
-function addressForm(id) {
-  const a = state.address[Number(id)] || {};
-  showSheet(
-    id === 'new' ? '添加地址' : '编辑地址',
-    `<form data-form="address" data-address="${id}"><div class="form-grid">${field('联系人', 'name', 'text', '怎么称呼你', true, a.name || '')}${field('联系电话', 'phone', 'tel', '国家 / 地区代码与手机号', true, a.phone || '')}</div>${selectField('城市', 'city', cities, a.location || (a.city ? flowLegacyLocation(a.city) : state.location || state.city))}${field('详细地址', 'address', 'textarea', '街道、楼栋与单元号', true, a.address || '')}${field('邮编', 'postcode', 'text', '马来西亚需填写 5 位；其他地区选填', false, a.postcode || '').replace('maxlength="120"', 'maxlength="20"')}${submitButton('保存地址')}</form>`
-  );
-}
-function showHelp() {
-  showScreen(
-    '帮助与反馈',
-    `<div class="detail-content">${[
-      [
-        '如何预约生活服务？',
-        '在首页选择服务，填写地点、时间和联系方式。提交后，可在「我的订单」查看需求进度。',
-      ],
-      [
-        '如何开始一对一聊天？',
-        '在直播页切换到一对一聊天，选择在线等候的主播即可直接进入。连线中可发消息、赠送礼物、控制镜头和结束聊天；本原稿提供免费演示连线。',
-      ],
-      ['支付和退款如何处理？', '当前为 HTML 交互设计原稿，钱包、订单与支付均为演示状态，不会产生真实扣款。'],
-      [
-        '如何保护我的隐私？',
-        '在设置中管理附近可见和站内提醒。当前原稿的数据仅保存在本机浏览器，可导出或重置。',
-      ],
-    ]
-      .map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`)
-      .join(
-        ''
-      )}<div class="button-row">${act('chat', 'support', '联系小助手', 'primary-button')}${act('feedback', '', '意见反馈', 'secondary-button')}</div></div>`
-  );
-}
-function notifications() {
-  showScreen(
-    '消息通知',
-    `<div class="detail-content"><div class="notice-card"><h3>欢迎来到适中</h3><p>给你准备了一份新人见面礼。到「我的优惠」看看，一起开启大马好生活。</p><time>今天 09:41</time>${act('coupons', '', '查看新人礼', 'small-primary', 'style="margin-top:12px"')}</div>${state.orders
-      .slice(0, 5)
-      .map(
-        o =>
-          `<div class="notice-card"><h3>你的${esc(o.title)} · ${o.status}</h3><p>需求编号 ${o.id}，点击查看详细信息。</p><time>${esc(o.created)}</time>${act('order-detail', o.id, '查看详情', 'small-primary', 'style="margin-top:12px"')}</div>`
+function flowsCouponsBody() {
+  const all = window.ShizhongCoupons.all();
+  const tabsList = ['available', 'used', 'expired'];
+  const tab = flowsUI.couponTab;
+  const count = s => all.filter(c => c.status === s).length;
+  const tabBar = `<div class="tabs flows-tabs" role="tablist" aria-label="${esc(t('flows.coupons.title'))}">${tabsList
+    .map(s =>
+      act(
+        'flows-coupon-tab',
+        s,
+        `${t(`flows.coupons.tab.${s}`)}<span class="flows-tab-count num">${count(s)}</span>`,
+        'tab',
+        `role="tab" aria-selected="${s === tab}"`
       )
-      .join(
-        ''
-      )}${state.checkin === localDate() ? '<div class="notice-card"><h3>今天的小确幸已到账</h3><p>签到成功，10 金豆已加入你的账户。</p></div>' : ''}</div>`
+    )
+    .join('')}</div>`;
+  const list = all.filter(c => c.status === tab);
+  const cards = list.length
+    ? `<ul class="flows-coupon-list">${list.map(flowsCouponCard).join('')}</ul>`
+    : flowsEmpty(
+        'ticket',
+        t(`flows.coupons.empty.${tab}`),
+        t(`flows.coupons.emptyText.${tab}`),
+        tab === 'available' ? 'go-home' : '',
+        t('flows.coupons.browse')
+      );
+  return `${tabBar}<div class="flows-tabpanel" role="tabpanel">${cards}</div><p class="caption flows-footnote">${t('flows.coupons.note')}</p>`;
+}
+function flowsCouponCard(c) {
+  const date = c.status === 'used' ? c.usedAt : c.expiresAt;
+  const when = date
+    ? t(`flows.coupon.${c.status}Date`, { date: SZ.fmt.date(date, 'medium') })
+    : t('flows.coupon.noExpiry');
+  const scope = c.category
+    ? t('flows.coupon.onlyCategory', { category: esc(flowsCategoryName(c.category)) })
+    : t('flows.coupon.allServices');
+  const end =
+    c.status === 'available'
+      ? act(
+          'use-coupon',
+          c.id,
+          t('flows.coupon.use'),
+          'btn btn-tonal btn-sm',
+          `aria-label="${esc(t('flows.coupon.useAria', { title: c.title }))}"`
+        )
+      : `<span class="tag">${t(`flows.coupons.tab.${c.status}`)}</span>`;
+  return `<li class="flows-coupon is-${c.status}"><div class="flows-coupon-value"><strong class="num">${esc(SZ.fmt.money(c.amount))}</strong><small>${c.min ? t('flows.coupon.min', { money: esc(SZ.fmt.money(c.min)).replace(' ', '&nbsp;') }) : t('flows.coupon.noMin')}</small></div><div class="flows-coupon-main"><h3>${esc(c.title)}</h3><p>${scope}</p><p class="caption">${esc(when)}</p></div><div class="flows-coupon-end">${end}</div></li>`;
+}
+function flowsUseCoupon(id) {
+  const c = state.coupons.find(x => x.id === id);
+  navigate('home');
+  if (c?.category) SZ.actions.dispatch('category', c.category);
+  toast(t('flows.coupon.applyHint'));
+}
+
+// ------------------------------------------------------------------ addresses
+function addresses() {
+  return flowsOpen('addresses', { title: t('flows.address.title'), body: flowsAddressesBody });
+}
+function flowsAddressesBody() {
+  const list = state.address;
+  const cards = list.length
+    ? `<ul class="flows-address-list">${list
+        .map((a, i) => {
+          const place = flowsPlaceLabel(a.location, a.city);
+          return `<li class="card flows-address"><div class="flows-address-head"><strong>${esc(a.name)}</strong><span class="flows-address-phone">${esc(a.phone)}</span>${i === 0 ? `<span class="tag tag-brand">${t('flows.address.default')}</span>` : ''}</div><p class="flows-address-line">${esc(a.address)}</p><p class="caption">${esc([place, a.postcode].filter(Boolean).join(' · '))}</p><div class="flows-address-actions">${i ? act('default-address', a.id, t('flows.address.setDefault'), 'btn btn-ghost btn-sm') : ''}${act('edit-address', a.id, t('common.edit'), 'btn btn-ghost btn-sm flows-ghost-neutral', `aria-label="${esc(t('flows.address.editAria', { name: a.name }))}"`)}${act('remove-address', a.id, t('common.delete'), 'btn btn-ghost btn-sm flows-danger-text', `aria-label="${esc(t('flows.address.deleteAria', { name: a.name }))}"`)}</div></li>`;
+        })
+        .join('')}</ul>`
+    : flowsEmpty('pin', t('flows.address.emptyTitle'), t('flows.address.emptyText'));
+  return `${cards}<div class="flows-cta">${act('edit-address', 'new', `${icon('add')}${t('flows.address.add')}`, 'btn btn-primary btn-lg btn-block')}</div>`;
+}
+function flowsAddressForm(id) {
+  const isNew = !id || id === 'new';
+  const a = isNew ? {} : state.address.find(x => x.id === id) || state.address[Number(id)] || {};
+  if (!isNew && !a.id) return;
+  flowsOpen('address-form', {
+    kind: 'sheet',
+    title: isNew ? t('flows.address.addTitle') : t('flows.address.editTitle'),
+    body: () =>
+      `<form><div class="form-row">${field(t('flows.address.name'), 'name', 'text', t('flows.address.namePlaceholder'), true, a.name || (isNew ? state.profile.name : ''), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.address.phone'), 'phone', 'tel', t('flows.address.phonePlaceholder'), true, a.phone || (isNew ? state.profile.phone || SZ.session.account?.phone || '' : ''), { maxlength: 20 })}</div>${selectField(t('flows.address.city'), 'city', cities, a.location || a.city || state.location || state.city)}${field(t('flows.address.detail'), 'address', 'textarea', t('flows.address.detailPlaceholder'), true, a.address || '', { maxlength: 200, rows: 3, autocomplete: 'street-address' })}${field(t('flows.address.postcode'), 'postcode', 'text', '', false, a.postcode || '', { maxlength: 10, inputmode: 'numeric', autocomplete: 'postal-code', hint: t('flows.address.postcodeHint') })}${isNew && state.address.length ? `<label class="flows-check-row"><input type="checkbox" name="makeDefault" value="1"><span>${t('flows.address.makeDefault')}</span></label>` : ''}${submitButton(t('flows.address.save'))}</form>`,
+    form(data, form, layer) {
+      const location = flowsFormLocation(form);
+      const postcode = form.querySelector('[name="postcode"]');
+      if ((location?.countryCode || 'MY') === 'MY' && !/^\d{5}$/.test(data.postcode || ''))
+        return flowsFieldError(postcode, t('flows.address.postcodeError'));
+      const record = {
+        id: isNew ? SZ.uid('addr') : a.id,
+        name: data.name,
+        phone: data.phone,
+        address: data.address,
+        postcode: data.postcode || '',
+        city: location?.cityName || data.city || state.city,
+        location: location || null,
+      };
+      const reward = !state.addressReward;
+      if (
+        !SZ.store.commit(s => {
+          if (isNew) data.makeDefault ? s.address.unshift(record) : s.address.push(record);
+          else s.address[s.address.findIndex(x => x.id === a.id)] = record;
+          if (reward) {
+            s.addressReward = true;
+            s.points += 10;
+          }
+        })
+      )
+        return;
+      flowsDone(layer);
+      flowsRefresh('addresses', 'settings', 'tasks');
+      toast(reward ? t('flows.address.savedReward', { n: 10 }) : t('flows.address.saved'), {
+        type: 'success',
+      });
+    },
+  });
+}
+function flowsDefaultAddress(id) {
+  const i = state.address.findIndex(a => a.id === id);
+  if (i <= 0) return;
+  if (!SZ.store.commit(s => s.address.unshift(s.address.splice(i, 1)[0]))) return;
+  flowsRefresh('addresses');
+  toast(t('flows.address.defaultSet'));
+}
+async function flowsRemoveAddress(id) {
+  const i = state.address.findIndex(a => a.id === id);
+  if (i < 0) return;
+  const record = state.address[i];
+  const ok = await SZ.confirm({
+    title: t('flows.address.deleteTitle'),
+    message: t('flows.address.deleteBody', { address: record.address }),
+    confirmText: t('common.delete'),
+    danger: true,
+  });
+  if (!ok || !SZ.store.commit(s => s.address.splice(i, 1))) return;
+  flowsRefresh('addresses', 'settings');
+  toast(t('flows.address.deleted'), {
+    action: {
+      label: t('common.undo'),
+      run: () => {
+        if (state.address.some(a => a.id === record.id)) return;
+        if (SZ.store.commit(s => s.address.splice(Math.min(i, s.address.length), 0, record)))
+          flowsRefresh('addresses', 'settings');
+      },
+    },
+  });
+}
+
+// ------------------------------------------------------------------ notifications centre
+const FLOWS_NOTICE_ICON = { order: 'order', social: 'heart', system: 'bell', promo: 'ticket' };
+function notifications() {
+  return flowsOpen('notifications', {
+    title: t('flows.notice.title'),
+    right: act(
+      'flows-notices-read',
+      '',
+      icon('check'),
+      'icon-button',
+      `aria-label="${esc(t('flows.notice.markAll'))}"`
+    ),
+    body: flowsNoticesBody,
+  });
+}
+function flowsNoticesBody() {
+  const filters = ['all', 'order', 'social', 'system'];
+  const f = flowsUI.noticeFilter;
+  const chipsHtml = `<div class="chip-row flows-chip-row" role="group" aria-label="${esc(t('flows.notice.filter'))}">${filters
+    .map(x => act('flows-notice-filter', x, t(`flows.notice.f.${x}`), 'chip', `aria-pressed="${x === f}"`))
+    .join('')}</div>`;
+  const list = window.ShizhongNotices.list().filter(
+    n => f === 'all' || n.type === f || (f === 'system' && n.type === 'promo')
+  );
+  const unread = window.ShizhongNotices.unread();
+  const head = `<p class="flows-lead flows-notice-count" aria-live="polite">${unread ? tn('flows.notice.unreadCount', unread) : t('flows.notice.allRead')}</p>`;
+  if (!list.length)
+    return `${chipsHtml}${head}${flowsEmpty('bell', t('flows.notice.emptyTitle'), t('flows.notice.emptyText'))}`;
+  const rows = list
+    .map(
+      n =>
+        `<li>${act(
+          'flows-notice-open',
+          n.id,
+          `<span class="flows-notice-icon type-${n.type}">${icon(FLOWS_NOTICE_ICON[n.type] || 'bell')}</span><span class="flows-notice-main"><strong class="flows-notice-title">${esc(n.title)}</strong>${n.body ? `<span class="flows-notice-body">${esc(n.body)}</span>` : ''}<span class="flows-notice-meta"><time datetime="${new Date(n.ts).toISOString()}">${esc(SZ.fmt.relative(n.ts))}</time>${n.action ? `<span class="flows-notice-link">${t('flows.notice.view')}${icon('chevron')}</span>` : ''}</span></span>${n.read ? '' : `<span class="dot flows-notice-dot"><span class="flows-sr">${t('flows.notice.unread')}</span></span>`}`,
+          `flows-notice${n.read ? '' : ' is-unread'}`
+        )}</li>`
+    )
+    .join('');
+  return `${chipsHtml}${head}<ul class="list flows-notices">${rows}</ul>`;
+}
+function flowsOpenNotice(id) {
+  const n = state.notices.find(x => x.id === id);
+  if (!n) return;
+  if (!n.read) {
+    SZ.store.commit(() => (n.read = true), { quiet: true });
+    flowsNoticesChanged();
+  }
+  if (n.action?.name) SZ.actions.dispatch(n.action.name, n.action.id || '');
+}
+
+// ------------------------------------------------------------------ edit profile
+function editProfile() {
+  if (!SZ.requireLogin(t('flows.reason.profile'))) return;
+  const p = state.profile;
+  const serviceLangs = FLOWS_SERVICE_LANGS.map(code => ({
+    value: code,
+    label: t(`flows.serviceLang.${code}`),
+  }));
+  return flowsOpen('profile', {
+    title: t('flows.profile.title'),
+    body: () =>
+      `<form class="flows-form">${uploadField(t('flows.profile.avatar'), { avatar: true, preview: p.photo })}${field(t('flows.profile.name'), 'name', 'text', t('flows.profile.namePlaceholder'), true, p.name, { maxlength: 24, autocomplete: 'nickname', counter: true })}${field(t('flows.profile.bio'), 'bio', 'textarea', t('flows.profile.bioPlaceholder'), false, p.bio, { maxlength: 120, rows: 3, counter: true })}${selectField(t('flows.profile.city'), 'city', cities, state.location || state.city)}${selectField(t('flows.profile.language'), 'language', serviceLangs, p.language)}${field(t('flows.profile.phone'), 'phone', 'tel', t('flows.profile.phonePlaceholder'), false, p.phone, { maxlength: 20, hint: t('flows.profile.phoneHint') })}${submitButton(t('flows.profile.save'))}</form>`,
+    form: flowsProfileSubmit,
+  });
+}
+function flowsProfileSubmit(data, form, layer) {
+  const before = state.profile;
+  const photo = flowsUploadValue(form) || before.photo;
+  const location = flowsFormLocation(form);
+  const changed = data.name !== before.name || data.bio !== (before.bio || '') || photo !== before.photo;
+  const reward = changed && !state.profileReward;
+  const oldPhoto = before.photo;
+  if (
+    !SZ.store.commit(s => {
+      flowsApplyLocation(location);
+      s.profile = {
+        ...s.profile,
+        name: data.name,
+        bio: data.bio,
+        phone: data.phone,
+        language: flowsServiceLangCode(data.language),
+        photo,
+      };
+      if (reward) {
+        s.profileReward = true;
+        s.points += 20;
+      }
+    })
+  )
+    return;
+  flowsUploadCommit(form);
+  if (oldPhoto !== photo && SZ.media.isRef(oldPhoto)) SZ.media.remove(oldPhoto).catch(() => {});
+  if (SZ.session.isLoggedIn) SZ.accounts.update(SZ.session.accountId, { name: data.name });
+  flowsDone(layer);
+  flowsRender();
+  flowsRefresh('settings', 'tasks');
+  toast(reward ? t('flows.profile.savedReward', { n: 20 }) : t('flows.profile.saved'), { type: 'success' });
+}
+
+// ------------------------------------------------------------------ compose post
+const FLOWS_TOPICS = ['life', 'weekend', 'daily', 'city', 'food'];
+function composer() {
+  if (!SZ.requireLogin(t('flows.reason.post'))) return;
+  return flowsOpen('compose', {
+    kind: 'sheet',
+    title: t('flows.compose.title'),
+    body: () => {
+      const topics = FLOWS_TOPICS.map(
+        (id, i) =>
+          `<label class="flows-chip"><input type="radio" name="topic" value="${id}"${i === 0 ? ' checked' : ''}><span>${t(`flows.compose.topic.${id}`)}</span></label>`
+      ).join('');
+      const visibility = ['public', 'private']
+        .map(
+          (v, i) =>
+            `<label class="flows-seg"><input type="radio" name="visibility" value="${v}"${i === 0 ? ' checked' : ''}><span>${flowsIcon(v === 'public' ? 'globe' : 'lock')}${t(`flows.compose.visibility.${v}`)}</span></label>`
+        )
+        .join('');
+      return `<form class="flows-form">${field(t('flows.compose.text'), 'text', 'textarea', t('flows.compose.placeholder'), false, '', { maxlength: 500, rows: 5, counter: true })}${uploadField(t('flows.compose.photo'))}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.topicLabel')}</legend><div class="flows-chips">${topics}</div></fieldset>${field(t('flows.compose.place'), 'place', 'text', t('flows.compose.placePlaceholder'), false, flowsPlaceLabel(state.location, state.city), { maxlength: 60 })}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.visibilityLabel')}</legend><div class="flows-segmented">${visibility}</div></fieldset>${formNote(t('flows.compose.note'))}${submitButton(t('flows.compose.submit'))}</form>`;
+    },
+    form(data, form, layer) {
+      const image = flowsUploadValue(form);
+      if (!data.text && !image) {
+        const input = form.querySelector('[name="text"]');
+        flowsFieldError(input, t('flows.compose.empty'));
+        input.focus();
+        return;
+      }
+      const topicId = FLOWS_TOPICS.includes(data.topic) ? data.topic : 'life';
+      const reward = !state.postReward;
+      const now = Date.now();
+      if (
+        !SZ.store.commit(s => {
+          s.posts.unshift({
+            id: 'f' + now,
+            person: 'self',
+            text: data.text,
+            image,
+            place: data.place,
+            topic: t(`flows.compose.topic.${topicId}`),
+            topicId,
+            visibility: data.visibility === 'private' ? 'private' : 'public',
+            likes: 0,
+            time: now,
+            createdAt: now,
+          });
+          if (reward) {
+            s.postReward = true;
+            s.points += 10;
+          }
+        })
+      )
+        return;
+      flowsUploadCommit(form);
+      flowsDone(layer);
+      ui.socialTab = 'feed';
+      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
+      navigate('social');
+      toast(reward ? t('flows.compose.postedReward', { n: 10 }) : t('flows.compose.posted'), {
+        type: 'success',
+      });
+    },
+  });
+}
+
+// ------------------------------------------------------------------ greet & messages
+function flowsAppendMessage(chatId, message) {
+  const m = { id: SZ.uid('msg'), self: true, type: 'text', time: Date.now(), ...message };
+  if (window.ShizhongChat?.append) return window.ShizhongChat.append(chatId, m);
+  const ok = SZ.store.commit(s => {
+    if (!s.messages[chatId]) s.messages[chatId] = [];
+    s.messages[chatId].push(m);
+  });
+  return ok ? m : null;
+}
+function flowsOpenChat(id) {
+  if (window.ShizhongChat?.open) return window.ShizhongChat.open(id);
+  return flowsCall('openChat', id);
+}
+function greet(id) {
+  const p = flowsPerson(id);
+  if (!p) return;
+  if (state.greeted.includes(id)) return flowsOpenChat(id);
+  if (!SZ.requireLogin(t('flows.reason.message'))) return;
+  const keys = typeof profileChunks === 'function' ? profileChunks(id) : ['people'];
+  return flowsNeed(keys, () => {
+    const name = personName(p);
+    const tags = lc('people', p, 'tags');
+    const suggestions = [1, 2, 3].map(i => t(`flows.greet.suggest${i}`));
+    return flowsOpen('greet', {
+      kind: 'sheet',
+      title: t('flows.greet.title', { name }),
+      body: () =>
+        `<form class="flows-form"><div class="flows-person-card">${flowsAvatar(avatarSource(p), 48)}<div><strong>${esc(name)}</strong><p>${esc((Array.isArray(tags) ? tags : []).slice(0, 3).join(' · '))}</p></div></div><div class="flows-chips flows-suggestions" role="group" aria-label="${esc(t('flows.greet.suggestions'))}">${suggestions.map((s, i) => act('greeting-text', s, esc(s), 'chip', `aria-pressed="${i === 0}"`)).join('')}</div>${field(t('flows.greet.message'), 'message', 'textarea', t('flows.greet.placeholder'), true, suggestions[0], { maxlength: 200, rows: 3, counter: true })}${formNote(t('flows.greet.note'))}${submitButton(t('flows.greet.send'))}</form>`,
+      form(data, form, layer) {
+        if (!flowsAppendMessage(id, { text: data.message })) return;
+        if (!state.greeted.includes(id)) SZ.store.commit(s => s.greeted.push(id));
+        flowsDone(layer);
+        flowsRender();
+        flowsOpenChat(id);
+      },
+    });
+  });
+}
+function flowsGreetingText(text, el) {
+  const layer = SZ.overlay.of(el);
+  const input = layer?.el.querySelector('textarea[name="message"]');
+  if (!input) return;
+  input.value = text;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  for (const chip of layer.el.querySelectorAll('[data-action="greeting-text"]'))
+    chip.setAttribute('aria-pressed', String(chip === el));
+  input.focus();
+}
+
+// ------------------------------------------------------------------ friend requests
+function flowsRequestMessage(r) {
+  return r.messageKey ? t(r.messageKey) : r.message || '';
+}
+function flowsFriends() {
+  return flowsNeed(['people'], () =>
+    flowsOpen('friends', {
+      title: t('flows.friends.title'),
+      right: act(
+        'add-friend',
+        '',
+        icon('plususer'),
+        'icon-button',
+        `aria-label="${esc(t('flows.friends.add'))}"`
+      ),
+      body: flowsFriendsBody,
+    })
   );
 }
-function menuAction(action, id, button) {
-  if (expandedAction(action, id, button)) return;
-  switch (action) {
-    case 'nav':
-      navigate(id);
-      break;
-    case 'close':
-      closeOverlay();
-      break;
-    case 'go-home':
-    case 'use-coupon':
-      navigate('home');
-      break;
-    case 'home-tab':
-      ui.homeTab = id;
-      ui.homeFilter = '推荐';
-      render();
-      break;
-    case 'home-filter':
-      ui.homeFilter = id;
-      render();
-      break;
-    case 'social-tab':
-      ui.socialTab = id;
-      ui.socialFilter = '推荐';
-      render();
-      break;
-    case 'social-filter':
-      ui.socialFilter = id;
-      render();
-      break;
-    case 'live-tab':
-      ui.liveTab = id;
-      ui.liveFilter = '全部';
-      render();
-      break;
-    case 'live-filter':
-      ui.liveFilter = id;
-      render();
-      break;
-    case 'comms-tab':
-      ui.commsTab = id;
-      render();
-      break;
-    case 'city':
-      showSheet(
-        '选择你的城市',
-        `<p>好生活，从你所在的城市开始。</p><div class="city-grid">${cities.map(c => act('select-city', c, c, state.city === c ? 'active' : '')).join('')}</div><p class="form-note">当前服务和人物为示例内容，城市切换用于填写当地需求。</p>`
-      );
-      break;
-    case 'select-city':
-      state.city = id;
-      save();
-      render();
-      closeOverlay();
-      toast('已切换至 ' + id);
-      break;
-    case 'category':
-      categoryPage(id);
-      break;
-    case 'service':
-      serviceDetail(id);
-      break;
-    case 'request':
-      ui.quantity = 1;
-      requestForm(id);
-      break;
-    case 'book-service':
-      ui.quantity = 1;
-      requestForm(services.find(s => s.id === id).cat, id);
-      break;
-    case 'all-services':
-      showScreen(
-        '发现好生活',
-        `<div class="detail-content"><div class="product-grid">${services.map(productCard).join('')}</div></div>`
-      );
-      break;
-    case 'campaign':
-      showScreen(
-        '你好，马来西亚',
-        `<div class="detail-hero"><img src="${asset('hero.png')}" alt="吉隆坡城市生活"></div><div class="detail-content"><h2>在大马，把日子过成喜欢。</h2><p class="detail-description">跟着本地人走一条新路线，吃一顿喜欢的饭，再给自己一个轻松的周末。</p>${heading('这周值得体验')}<div class="product-grid">${services
-          .filter(s => ['s1', 's2', 's5', 's6'].includes(s.id))
-          .map(productCard)
-          .join('')}</div></div>`
-      );
-      break;
-    case 'quantity':
-      ui.quantity = Math.max(1, Math.min(20, ui.quantity + Number(id)));
-      document.querySelector('#quantity').value = ui.quantity;
-      {
-        const f = button.closest('form');
-        const s = services.find(s => s.id === f.dataset.service);
-        document.querySelector('#goods-total').textContent = 'RM ' + (s.price * ui.quantity).toFixed(2);
-      }
-      break;
-    case 'save-service':
-      {
-        const at = state.saved.indexOf(id);
-        at < 0 ? state.saved.push(id) : state.saved.splice(at, 1);
-        save();
-        button.style.color = at < 0 ? 'var(--red)' : 'inherit';
-        toast(at < 0 ? '已收藏到「我的」' : '已取消收藏');
-        render();
-      }
-      break;
-    case 'orders':
-      orders(id);
-      break;
-    case 'order-detail':
-      orderDetail(id);
-      break;
-    case 'confirm-order':
-      {
-        const o = state.orders.find(o => o.id === id);
-        o.status = '待服务';
-        save();
-        render();
-        orderDetail(id);
-        toast('已模拟商家确认预约');
-      }
-      break;
-    case 'complete-order':
-      {
-        const o = state.orders.find(o => o.id === id);
-        o.status = '已完成';
-        save();
-        render();
-        orderDetail(id);
-        toast('服务已完成，谢谢你的体验');
-      }
-      break;
-    case 'cancel-order':
-      showSheet(
-        '取消这条需求？',
-        `<p>这条需求将标记为已取消，你可以随时重新预约。</p><div class="button-row">${act('order-detail', id, '保留需求', 'secondary-button')}${act('cancel-confirm', id, '确认取消', 'primary-button')}</div>`
-      );
-      break;
-    case 'cancel-confirm':
-      state.orders.find(o => o.id === id).status = '已取消';
-      save();
-      render();
-      orderDetail(id);
-      break;
-    case 'person':
-      personDetail(id);
-      break;
-    case 'greet':
-      greet(id);
-      break;
-    case 'chat':
-      openChat(id);
-      break;
-    case 'follow':
-    case 'person-follow':
-    case 'room-follow':
-      {
-        const at = state.follows.indexOf(id);
-        at < 0 ? state.follows.push(id) : state.follows.splice(at, 1);
-        save();
-        render();
-        if (action === 'person-follow') personDetail(id);
-        else if (action === 'room-follow') button.textContent = at < 0 ? '已关注' : '+ 关注';
-        toast(at < 0 ? '已关注，去动态看看 TA 的生活吧' : '已取消关注');
-      }
-      break;
-    case 'greeting-text':
-      document.querySelector('textarea[name="message"]').value = id;
-      break;
-    case 'like':
-      {
-        const at = state.likes.indexOf(id);
-        at < 0 ? state.likes.push(id) : state.likes.splice(at, 1);
-        save();
-        render();
-      }
-      break;
-    case 'compose':
-      composer();
-      break;
-    case 'comments':
-      comments(id);
-      break;
-    case 'social-filters':
-      filterPeople();
-      break;
-    case 'social-recommend':
-      closeOverlay();
-      ui.socialTab = 'friends';
-      ui.socialFilter = '推荐';
-      render();
-      break;
-    case 'social-event':
-      showSheet(
-        '你好，新朋友',
-        `<div class="info-highlight">周末一起探店、徒步、看日落。试着用一个共同兴趣，开启一段新对话。</div><div class="people-list" style="padding:0">${people.slice(0, 3).map(personRow).join('')}</div>`
-      );
-      break;
-    case 'photo':
-      showSheet(
-        '生活瞬间',
-        `<img src="${esc(id)}" alt="动态照片大图" style="width:100%;border-radius:12px">`
-      );
-      break;
-    case 'report':
-      showSheet(
-        '举报内容',
-        `<form data-form="report" data-person="${id}">${selectField('举报原因', 'reason', ['不友善内容', '骚扰或广告', '冒用资料', '其他'])}${field('补充说明', 'text', 'textarea', '描述你遇到的问题', true)}${formNote()}${submitButton('提交举报')}</form>`
-      );
-      break;
-    case 'block':
-      state.blocked.push(id);
-      save();
-      closeOverlay();
-      render();
-      toast('已不再推荐这位用户');
-      break;
-    case 'room':
-      room(id);
-      break;
-    case 'next-room':
-      nextRoom();
-      break;
-    case 'room-like':
-      button.style.color = '#ffb4bc';
-      button.innerHTML = icon('heart');
-      toast('送出一颗小心心');
-      break;
-    case 'gifts':
-      giftPanel();
-      break;
-    case 'select-gift':
-      ui.gift = id;
-      giftPanel();
-      break;
-    case 'send-gift':
-      {
-        const prices = { flower: 10, coffee: 20, crown: 100 },
-          names = { flower: '心意鲜花', coffee: '暖心咖啡', crown: '闪耀皇冠' };
-        if (state.points < prices[ui.gift]) {
-          toast('金豆还不够，去签到领一点吧');
-          break;
-        }
-        state.points -= prices[ui.gift];
-        state.sentGifts = state.sentGifts || [];
-        state.sentGifts.unshift({
-          name: names[ui.gift],
-          host: people.find(p => p.id === activeRoom).name,
-          time: localDate(),
-        });
-        save();
-        render();
-        room(activeRoom);
-        const line = document.createElement('p');
-        line.textContent = '我 送出「' + names[ui.gift] + '」';
-        line.style.color = '#ffdd8f';
-        document.querySelector('#room-comments').append(line);
-        toast('你的心意已送出');
-      }
-      break;
-    case 'book-call':
-      callBooking(id);
-      break;
-    case 'connect-order':
-      {
-        const o = state.orders.find(o => o.id === id);
-        connectCall(o.hostId, o.id);
-      }
-      break;
-    case 'call-toggle':
-      button.classList.toggle('selected');
-      button.setAttribute('aria-pressed', button.classList.contains('selected'));
-      break;
-    case 'end-call':
-      clearInterval(callTimer);
-      if (activeCallOrder) {
-        const completed = state.orders.find(o => o.id === activeCallOrder);
-        if (completed) completed.status = '已完成';
-        activeCallOrder = null;
-        save();
-        render();
-      }
-      showSheet(
-        '连线已结束',
-        `<div class="success-icon">${icon('heart')}</div><h3 class="success-title">谢谢这段相伴时光</h3><p class="success-text">期待下一次，聊到更多有趣的事。</p>${act('close', '', '返回直播', 'primary-button')}`
-      );
-      break;
-    case 'start-live':
-      uploadData = '';
-      showSheet(
-        '开启你的直播',
-        `<form data-form="start-live">${field('直播标题', 'title', 'text', '给这次分享起个名字', true)}${selectField('直播话题', 'topic', ['同城聊天', '旅行分享', '语言交流', '音乐时光'])}${uploadField('选择直播封面')}<p class="form-note">提交后展示主播界面，不会启动真实摄像或推流。</p>${submitButton('预览开播')}</form>`
-      );
-      break;
-    case 'edit-profile':
-      editProfile();
-      break;
-    case 'settings':
-      settings();
-      break;
-    case 'toggle-setting':
-      state.settings[id] = !state.settings[id];
-      save();
-      button.classList.toggle('on', state.settings[id]);
-      button.setAttribute('aria-checked', state.settings[id]);
-      break;
-    case 'language':
-      showSheet(
-        '语言与地区',
-        `<form data-form="language">${selectField('所在城市', 'city', cities, state.city)}${selectField('服务沟通语言偏好', 'language', ['中文', 'English', 'Bahasa Melayu', '中文 / English'], state.profile.language)}<div class="info-highlight">界面语言：简体中文<br>当前地区：${esc(window.ShizhongRegions?.locationLabel() || '马来西亚')}<br>演示结算货币：马来西亚令吉 RM<br>预约时间以服务所在地标注为准</div>${submitButton('保存偏好')}</form>`
-      );
-      break;
-    case 'wallet':
-      wallet();
-      break;
-    case 'recharge':
-      recharge();
-      break;
-    case 'recharge-amount':
-      selectedAmount = Number(id);
-      recharge();
-      break;
-    case 'bills':
-      showSheet(
-        '钱包账单',
-        state.bills.length
-          ? state.bills
-              .map(
-                b =>
-                  `<div class="notice-card"><h3>${esc(b.title)}</h3><p>${esc(b.time)} · ${esc(b.method || '体验余额')}</p><strong style="display:block;color:var(--red);margin-top:10px">${b.amount > 0 ? '+' : ''} RM ${b.amount.toFixed(2)}</strong></div>`
-              )
-              .join('')
-          : empty('暂时没有账单', '你的体验充值和权益领取会显示在这里。')
-      );
-      break;
-    case 'checkin':
-    case 'points':
-      checkin();
-      break;
-    case 'do-checkin':
-      if (state.checkin === localDate()) break;
-      state.checkin = localDate();
-      state.points += 10;
-      save();
-      render();
-      checkin();
-      toast('签到成功，10 金豆已到账');
-      break;
-    case 'coupons':
-      coupons();
-      break;
-    case 'saved':
-      showScreen(
-        '心动收藏',
-        `<div class="detail-content">${
-          state.saved.length
-            ? `<div class="product-grid">${services
-                .filter(s => state.saved.includes(s.id))
-                .map(productCard)
-                .join('')}</div>`
-            : empty('把喜欢的生活先收好', '在服务详情点亮爱心，下次就能轻松找到。', 'go-home', '发现好生活')
-        }</div>`
-      );
-      break;
-    case 'stat':
-      if (id === 'saved') {
-        menuAction('saved', '', button);
-        break;
-      }
-      showScreen(
-        { follows: '我关注的人', fans: '我的粉丝', visitors: '最近访客' }[id],
-        `<div class="people-list">${(id === 'follows' ? people.filter(p => state.follows.includes(p.id)) : people.slice(0, id === 'fans' ? 3 : 2)).map(personRow).join('') || empty('从一位新朋友开始', '遇见喜欢的人，可以先关注 TA。')}</div>`
-      );
-      break;
-    case 'membership':
-      showSheet(
-        '适中会员 PLUS',
-        `<div class="member-card"><div class="member-head">${icon('crown')}把好生活，升级一点</div><p>城市服务与日常陪伴的专属礼遇</p></div><div class="panel" style="margin-bottom:18px">${summary(
-          [
-            ['专属服务', '优先客服与预约支持'],
-            ['会员礼遇', '每月生活服务体验券'],
-            ['社交名片', '专属会员标识'],
-            ['体验状态', state.member ? '已领取会员体验' : '可领取 7 天体验'],
-          ]
-        )}</div>${act('claim-member', '', state.member ? '已领取体验' : '领取 7 天会员体验', 'primary-button yellow', state.member ? 'disabled' : '')}<p class="form-note">演示权益，不自动续费，不产生扣款。</p>`
-      );
-      break;
-    case 'claim-member':
-      state.member = true;
-      if (!state.coupons.includes('member')) state.coupons.push('member');
-      save();
-      render();
-      menuAction('membership', '', button);
-      toast('会员体验已领取，优惠券已放入账户');
-      break;
-    case 'tasks':
-      showSheet(
-        '任务中心',
-        `<div class="notice-card"><h3>每日签到 · +10 金豆</h3><p>见面的小礼物，每天都有。</p>${act('checkin', '', state.checkin === localDate() ? '已完成' : '去签到', 'small-primary', 'style="margin-top:10px"')}</div><div class="notice-card"><h3>完善资料 · +20 金豆</h3><p>写下你的昵称与个人介绍，让朋友更了解你。</p>${act(state.profileReward ? 'close' : 'edit-profile', '', state.profileReward ? '已领取' : '去完善', 'small-primary', 'style="margin-top:10px"')}</div><div class="notice-card"><h3>分享生活 · +10 金豆</h3><p>发布第一条动态，记录一个美好瞬间。</p>${act(state.postReward ? 'close' : 'compose', '', state.postReward ? '已领取' : '去分享', 'small-primary', 'style="margin-top:10px"')}</div>`
-      );
-      break;
-    case 'gift-wall':
-      showSheet(
-        '我的礼物墙',
-        (state.sentGifts || []).length
-          ? state.sentGifts
-              .map(
-                g =>
-                  `<div class="notice-card"><h3>${icon('gift')} ${g.name}</h3><p>送给 ${esc(g.host)} · ${g.time}</p></div>`
-              )
-              .join('')
-          : empty('一份心意，一次温暖的相遇', '你在直播间送出的礼物，会留在这里。')
-      );
-      break;
-    case 'addresses':
-      addresses();
-      break;
-    case 'edit-address':
-      addressForm(id);
-      break;
-    case 'default-address':
-      state.address.unshift(state.address.splice(Number(id), 1)[0]);
-      save();
-      addresses();
-      break;
-    case 'remove-address':
-      state.address.splice(Number(id), 1);
-      save();
-      addresses();
-      toast('地址已删除');
-      break;
-    case 'help':
-      showHelp();
-      break;
-    case 'feedback':
-      showSheet(
-        '意见反馈',
-        `<form data-form="feedback">${selectField('反馈类型', 'type', ['功能建议', '页面体验', '服务问题', '其他'])}${field('你的建议', 'text', 'textarea', '告诉我们怎样可以做得更好', true)}${field('联系方式', 'contact', 'text', '选填，方便回复你')}${formNote()}${submitButton('提交反馈')}</form>`
-      );
-      break;
-    case 'after-sales':
-      showSheet(
-        '售后服务',
-        `<form data-form="after-sales">${selectField('选择订单', 'order', state.orders.length ? state.orders.map(o => o.id + ' · ' + o.title) : ['暂无订单，可直接咨询'])}${selectField('需要什么帮助', 'reason', ['修改服务时间', '取消或退款咨询', '服务体验反馈', '其他问题'])}${field('问题描述', 'text', 'textarea', '简单描述遇到的问题', true)}${formNote()}${submitButton('提交售后申请')}</form>`
-      );
-      break;
-    case 'invite':
-      showSheet(
-        '邀请朋友，一起适中',
-        `<div style="text-align:center;padding:20px 10px"><img src="${asset('logo.png')}" alt="适中" style="width:80px;margin:0 auto 18px;border-radius:20px"><h3 style="font-size:22px">好生活，值得一起分享</h3><p class="detail-description" style="margin-top:12px">你的专属邀请码</p><div style="font-size:34px;font-weight:800;color:var(--red);letter-spacing:5px;margin:15px 0">SZ2688</div></div>${act('copy-invite', '', '复制邀请文案', 'primary-button')}<p class="form-note">当前为原稿邀请展示，没有实际拉新奖励。</p>`
-      );
-      break;
-    case 'merchant':
-      showSheet(
-        '成为适中服务伙伴',
-        `<form data-form="merchant">${field('商家 / 服务名称', 'name', 'text', '让用户认识你的服务', true)}${selectField(
-          '服务类别',
-          'category',
-          categories.filter(c => c.id !== 'all').map(c => c.name)
-        )}${selectField('所在城市', 'city', cities, state.city)}${field('联系电话', 'phone', 'tel', '国家 / 地区代码与联系电话', true)}${field('服务介绍', 'text', 'textarea', '简单介绍你的特色', true)}${formNote()}${submitButton('提交入驻意向')}</form>`
-      );
-      break;
-    case 'add-friend':
-      showSheet(
-        '添加新朋友',
-        `<form data-form="add-friend">${field('适中 ID / 手机号', 'account', 'text', '请输入对方的适中 ID 或手机号', true)}${field('验证消息', 'text', 'textarea', '你好，我想和你交个朋友。', false, '你好，很高兴认识你！')}${formNote()}${submitButton('发送好友申请')}</form>`
-      );
-      break;
-    case 'new-friends':
-      showSheet(
-        '新的朋友',
-        `<div class="people-list" style="padding:0">${people
-          .slice(0, 2)
-          .map(
-            p =>
-              `<div class="person-row"><img class="avatar" src="${asset(p.photo)}" alt="${p.name}"><div class="person-content"><h3 style="font-size:14px">${p.name}</h3><p>你好，一起发现城市生活吧！</p></div>${act('accept-friend', p.id, state.greeted.includes(p.id) ? '发消息' : '接受', 'greet-btn')}</div>`
+function flowsFriendsBody() {
+  const { incoming, outgoing } = state.friendRequests;
+  if (!incoming.length && !outgoing.length)
+    return flowsEmpty(
+      'plususer',
+      t('flows.friends.emptyTitle'),
+      t('flows.friends.emptyText'),
+      'add-friend',
+      t('flows.friends.add')
+    );
+  const inRows = incoming
+    .map(r => {
+      const p = flowsPerson(r.personId);
+      const name = p ? personName(p) : r.personId;
+      return `<li class="list-row flows-person">${flowsAvatar(p ? avatarSource(p) : '', 48)}<span class="list-row-main"><span class="flows-row-label">${esc(name)}</span><small class="flows-row-sub">${esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.ts))}</small></span><span class="flows-person-actions">${act('flows-friend-ignore', r.id, t('flows.friends.ignore'), 'btn btn-secondary btn-sm', `aria-label="${esc(t('flows.friends.ignoreAria', { name }))}"`)}${act('accept-friend', r.id, t('flows.friends.accept'), 'btn btn-primary btn-sm', `aria-label="${esc(t('flows.friends.acceptAria', { name }))}"`)}</span></li>`;
+    })
+    .join('');
+  const outRows = outgoing
+    .map(r => {
+      const p = r.personId ? flowsPerson(r.personId) : null;
+      const accepted = r.status === 'accepted' && p;
+      const title = accepted ? personName(p) : r.account;
+      const end = accepted
+        ? act('chat', p.id, t('flows.friends.message'), 'btn btn-tonal btn-sm')
+        : `<span class="tag tag-warning">${t('flows.friends.pending')}</span>`;
+      return `<li class="list-row flows-person">${accepted ? flowsAvatar(avatarSource(p), 48) : `<span class="flows-person-placeholder">${icon('user')}</span>`}<span class="list-row-main"><span class="flows-row-label">${esc(title)}</span><small class="flows-row-sub">${accepted ? t('flows.friends.acceptedSub', { account: esc(r.account) }) : esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.acceptedAt || r.ts))}</small></span>${end}</li>`;
+    })
+    .join('');
+  return `${flowsSection(t('flows.friends.incoming'), incoming.length ? `<ul class="list flows-people">${inRows}</ul>` : `<p class="caption flows-section-note">${t('flows.friends.noIncoming')}</p>`)}${outgoing.length ? flowsSection(t('flows.friends.outgoing'), `<ul class="list flows-people">${outRows}</ul>`) : ''}`;
+}
+function flowsAcceptFriend(id) {
+  if (!SZ.requireLogin(t('flows.reason.friend'))) return;
+  const list = state.friendRequests.incoming;
+  const r = list.find(x => x.id === id) || list.find(x => x.personId === id);
+  const personId = r ? r.personId : id;
+  const p = flowsPerson(personId);
+  if (!p) return;
+  if (
+    !SZ.store.commit(s => {
+      s.friendRequests.incoming = s.friendRequests.incoming.filter(x => x !== r && x.id !== r?.id);
+      if (!s.greeted.includes(personId)) s.greeted.push(personId);
+    })
+  )
+    return;
+  if (r) flowsAppendMessage(personId, { self: false, text: flowsRequestMessage(r) });
+  window.ShizhongNotices.push({
+    type: 'social',
+    titleKey: 'flows.notice.friendAdded',
+    params: { personId },
+    action: { name: 'chat', id: personId },
+    silent: true,
+  });
+  flowsRefresh('friends');
+  flowsRender();
+  toast(t('flows.friends.accepted', { name: personName(p) }), {
+    type: 'success',
+    action: { label: t('flows.friends.sayHi'), run: () => flowsOpenChat(personId) },
+  });
+}
+function flowsIgnoreFriend(id) {
+  const list = state.friendRequests.incoming;
+  const at = list.findIndex(x => x.id === id);
+  if (at < 0) return;
+  const r = list[at];
+  if (!SZ.store.commit(s => s.friendRequests.incoming.splice(at, 1))) return;
+  flowsRefresh('friends');
+  toast(t('flows.friends.ignored'), {
+    action: {
+      label: t('common.undo'),
+      run: () => {
+        if (
+          SZ.store.commit(s =>
+            s.friendRequests.incoming.splice(Math.min(at, s.friendRequests.incoming.length), 0, r)
           )
-          .join(
-            ''
-          )}</div>${state.friendRequests?.map(f => `<div class="notice-card"><h3>${esc(f.account)}</h3><p>申请已记录 · 等待对方通过（演示）</p></div>`).join('') || ''}`
-      );
-      break;
-    case 'accept-friend':
-      if (!state.greeted.includes(id)) state.greeted.push(id);
-      save();
-      openChat(id);
-      toast('现在可以开始聊天啦');
-      break;
-    case 'contacts':
-      showScreen(
-        '通讯录',
-        `<div class="people-list">${people
-          .filter(p => !state.blocked.includes(p.id))
-          .map(personRow)
-          .join('')}</div>`
-      );
-      break;
-    case 'create-group':
-      showSheet(
-        '创建群聊',
-        `<form data-form="group">${field('群名称', 'name', 'text', '给你们的小圈子起个名字', true)}${selectField('城市', 'city', cities, state.city)}${field('群介绍', 'desc', 'textarea', '聊什么，玩什么，欢迎什么样的朋友', true)}${submitButton('创建群组')}</form>`
-      );
-      break;
-    case 'discover-groups':
-      showScreen(
-        '发现群组',
-        `<div style="padding-top:10px">${defaultGroups.map(g => groupRow(g, true)).join('')}</div>`
-      );
-      break;
-    case 'group-detail':
-      groupDetail(id);
-      break;
-    case 'join-group':
-      if (!state.joined.includes(id)) state.joined.push(id);
-      save();
-      render();
-      openChat(id);
-      toast('已加入群组');
-      break;
-    case 'leave-group':
-      state.joined = state.joined.filter(g => g !== id);
-      save();
-      render();
-      closeOverlay();
-      toast('已退出群组');
-      break;
-    case 'chat-emoji':
-      {
-        const el = document.querySelector('input[name="text"]');
-        el.value += ' ❤️';
-        el.focus();
-      }
-      break;
-    case 'chat-options':
-      showSheet(
-        '会话设置',
-        `<div class="panel list-panel" style="margin:0">${id !== 'support' ? listRow('user', '查看个人主页', 'person', '', id) : ''}${listRow('shield', '聊天与隐私说明', 'privacy')}</div><p class="form-note">聊天为本地演示，输入内容不会发送给其他人。</p>${act('chat', id, '返回会话', 'primary-button')}`
-      );
-      break;
-    case 'notifications':
-      notifications();
-      break;
-    case 'privacy':
-      showSheet(
-        '隐私与使用说明',
-        `<div class="notice-card"><h3>本地设计体验</h3><p>当前为适中 H5 交互原稿。人物、商家、距离、评价和直播人数均为示例，照片用于界面设计展示。</p></div><div class="notice-card"><h3>数据留在本机</h3><p>表单、聊天、动态和图片保存在当前浏览器，不会发送到服务器。支付不会扣款，连线不会启用摄像头或麦克风。</p></div><div class="notice-card"><h3>尊重彼此</h3><p>在真实产品中，我们希望每次相遇都建立在尊重、友善与自愿的基础上。</p></div>`
-      );
-      break;
-    case 'about':
-      showSheet(
-        '关于适中',
-        `<img src="${asset('logo.png')}" alt="适中" style="width:86px;margin:12px auto 22px;border-radius:20px"><h3 class="success-title">适中 SHIZHONG</h3><p class="success-text">在大马，好好生活。<br>生活服务 · 社交 · 直播 · 通讯</p><div class="panel">${summary(
-          [
-            ['版本', '1.0 H5 交互设计原稿'],
-            ['地区', 'Malaysia'],
-            ['语言', '简体中文'],
-            ['摄影素材', 'Unsplash / Pexels'],
-            ['品牌主视觉', '原创 AI 生活方式图'],
-          ]
-        )}</div>`
-      );
-      break;
-    case 'copy-id':
-      copyText('88002688', '适中 ID 已复制');
-      break;
-    case 'copy-invite':
-      copyText('和我一起发现大马好生活！适中邀请码：SZ2688', '邀请文案已复制');
-      break;
-    case 'share-profile':
-      if (window.ShizhongPersonalQR) window.ShizhongPersonalQR.open();
-      else toast('二维码正在准备，请稍后重试');
-      break;
-    case 'copy-profile':
-      copyText(
-        '适中 | ' + state.profile.name + '\n' + state.profile.bio + '\n适中 ID：88002688',
-        '名片文案已复制'
-      );
-      break;
-    case 'export-data':
-      {
-        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = '适中-本地体验数据.json';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        toast('体验数据已导出');
-      }
-      break;
-    case 'reset-data':
-      showSheet(
-        '重新开始体验？',
-        `<p>将清除当前浏览器中的演示订单、动态和聊天记录。你可以先在设置中导出演示数据。</p><div class="button-row">${act('settings', '', '保留数据', 'secondary-button')}${act('reset-confirm', '', '重置原稿', 'primary-button')}</div>`
-      );
-      break;
-    case 'reset-confirm':
-      state = JSON.parse(JSON.stringify(initialState));
-      save();
-      navigate('home');
-      toast('已恢复初始体验');
-      break;
-    default:
-      toast('请从页面选择一项操作');
+        )
+          flowsRefresh('friends');
+      },
+    },
+  });
+}
+function flowsAddFriend() {
+  if (!SZ.requireLogin(t('flows.reason.friend'))) return;
+  return flowsOpen('add-friend', {
+    kind: 'sheet',
+    title: t('flows.friends.addTitle'),
+    body: () =>
+      `<form class="flows-form">${field(t('flows.friends.account'), 'account', 'text', t('flows.friends.accountPlaceholder'), true, '', { maxlength: 24, inputmode: 'tel', autocomplete: 'off', hint: t('flows.friends.accountHint') })}${field(t('flows.friends.note'), 'message', 'textarea', '', false, t('flows.friends.defaultMessage'), { maxlength: 120, rows: 3, counter: true })}${formNote(t('flows.friends.demoNote'))}${submitButton(t('flows.friends.send'))}</form>`,
+    form(data, form, layer) {
+      const input = form.querySelector('[name="account"]');
+      const raw = data.account.replace(/\s/g, '');
+      if (!/^\d{6,10}$/.test(raw) && !flowsValidPhone(data.account))
+        return flowsFieldError(input, t('flows.friends.accountInvalid'));
+      const me = SZ.session.account;
+      if (raw === String(me?.displayId || '') || (me?.phone && SZ.accounts.normalizePhone(raw) === me.phone))
+        return flowsFieldError(input, t('flows.friends.self'));
+      if (
+        state.friendRequests.outgoing.some(
+          r => r.account.replace(/\s/g, '') === raw && r.status === 'pending'
+        )
+      )
+        return flowsFieldError(input, t('flows.friends.duplicate'));
+      const request = {
+        id: SZ.uid('fr'),
+        account: data.account,
+        message: data.message,
+        ts: Date.now(),
+        status: 'pending',
+      };
+      if (!SZ.store.commit(s => s.friendRequests.outgoing.unshift(request))) return;
+      flowsDone(layer);
+      flowsRefresh('friends');
+      toast(t('flows.friends.sent'), { type: 'success' });
+      setTimeout(flowsResolveFriendRequests, 4500);
+    },
+  });
+}
+/** Demo: every sent request is accepted by a sample person a few seconds later. */
+function flowsResolveFriendRequests() {
+  if (!state) return;
+  const due = state.friendRequests.outgoing.filter(r => r.status === 'pending' && Date.now() - r.ts > 4000);
+  for (const r of due) {
+    const pool = people.filter(p => !state.greeted.includes(p.id) && !state.blocked.includes(p.id));
+    if (!pool.length) return;
+    const p = pool[flowsHash(r.account) % pool.length];
+    if (
+      !SZ.store.commit(
+        s => {
+          const target = s.friendRequests.outgoing.find(x => x.id === r.id);
+          if (!target) return;
+          target.status = 'accepted';
+          target.personId = p.id;
+          target.acceptedAt = Date.now();
+          if (!s.greeted.includes(p.id)) s.greeted.push(p.id);
+        },
+        { quiet: true }
+      )
+    )
+      return;
+    flowsAppendMessage(p.id, { self: false, text: t('flows.friends.helloBack') });
+    window.ShizhongNotices.push({
+      type: 'social',
+      titleKey: 'flows.notice.friendAccepted',
+      bodyKey: 'flows.notice.friendAcceptedBody',
+      params: { personId: p.id },
+      action: { name: 'chat', id: p.id },
+    });
+  }
+  if (due.length) {
+    flowsRefresh('friends');
+    flowsRender();
+  }
+}
+
+// ------------------------------------------------------------------ invite
+function flowsInviteCode() {
+  return 'SZ' + (SZ.session.account?.displayId || '');
+}
+function flowsInviteText() {
+  const url = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : '';
+  return t('flows.invite.shareText', { code: flowsInviteCode() }) + (url ? ' ' + url : '');
+}
+function flowsInvite() {
+  if (!SZ.requireLogin(t('flows.reason.invite'))) return;
+  return flowsOpen('invite', {
+    kind: 'sheet',
+    title: t('flows.invite.title'),
+    body: () => {
+      const text = flowsInviteText();
+      const share = navigator.share
+        ? act(
+            'flows-invite-share',
+            '',
+            `${icon('share')}${t('flows.invite.share')}`,
+            'btn btn-primary btn-lg btn-block'
+          )
+        : '';
+      return `<div class="flows-invite-card"><img class="flows-invite-logo" src="${asset('logo.png')}" alt=""><h3>${t('flows.invite.headline')}</h3><p>${t('flows.invite.sub')}</p><div class="flows-invite-code"><span class="caption">${t('flows.invite.codeLabel')}</span><strong class="num" aria-label="${esc(t('flows.invite.codeAria', { code: flowsInviteCode().split('').join(' ') }))}">${esc(flowsInviteCode())}</strong>${act('flows-invite-copy-code', '', `${icon('copy')}${t('flows.invite.copyCode')}`, 'btn btn-ghost btn-sm')}</div>${formNote(t('flows.invite.honest'))}</div><div class="flows-cta flows-cta--stack">${share}<a class="btn ${share ? 'btn-secondary' : 'btn-primary'} btn-lg btn-block" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${flowsIcon('message')}${t('flows.invite.whatsapp')}</a>${act('copy-invite', '', `${icon('copy')}${t('flows.invite.copyText')}`, 'btn btn-outline btn-lg btn-block')}</div>`;
+    },
+  });
+}
+async function flowsInviteShare() {
+  try {
+    await navigator.share({ title: t('flows.invite.title'), text: flowsInviteText() });
+  } catch (error) {
+    if (error?.name !== 'AbortError') copyText(flowsInviteText(), t('flows.invite.copied'));
   }
 }
 async function copyText(value, message) {
   try {
     await navigator.clipboard.writeText(value);
-    toast(message);
+    toast(message || t('common.copied'), { type: 'success' });
   } catch (_) {
-    showSheet(
-      '复制内容',
-      `<textarea class="field" readonly aria-label="待复制内容">${esc(value)}</textarea><p class="form-note">长按或全选后复制。</p>`
-    );
+    SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('flows.copy.title'),
+      className: 'flows-layer',
+      html: `<textarea class="field flows-copy-box" readonly rows="4" aria-label="${esc(t('flows.copy.aria'))}">${esc(value)}</textarea><p class="form-hint">${t('flows.copy.hint')}</p>`,
+    });
+    requestAnimationFrame(() => SZ.overlay.$('.flows-copy-box')?.select());
   }
 }
-// Click dispatch, Escape and focus trapping live in core/sz.js (SZ.actions / SZ.overlay).
-document.addEventListener('submit', event => {
-  const form = event.target.closest('[data-form]');
-  if (!form) return;
-  event.preventDefault();
-  if (!form.reportValidity()) return;
-  const data = Object.fromEntries(new FormData(form));
-  for (const [k, v] of Object.entries(data)) {
-    if (typeof v === 'string') data[k] = v.trim();
-  }
-  for (const input of form.querySelectorAll('input[type="tel"]')) {
-    const value = data[input.name];
-    if (value && (!/^\+?[0-9 ()-]{7,20}$/.test(value) || value.replace(/\D/g, '').length < 7)) {
-      toast('请填写有效的电话号码');
-      input.focus();
-      return;
-    }
-  }
-  const kind = form.dataset.form;
-  if (
-    ['profile', 'language', 'address', 'group', 'merchant'].includes(kind) ||
-    (kind === 'request' && !form.dataset.service)
-  ) {
-    const location = flowFormLocation(form);
-    if (location) {
-      data.location = { ...location };
-      data.city = location.cityName || data.city;
-    }
-  }
-  delete data.locationData;
-  if (kind === 'search') search(data.q);
-  else if (kind === 'chat-search') search(data.q, true);
-  else if (kind === 'request') {
-    if (!validateRequiredText(form, data)) return;
-    createOrder(data, form.dataset.category, form.dataset.service);
-  } else if (kind === 'greet') {
-    if (!data.message) return toast('写下一句问候吧');
-    sendChat(form.dataset.person, data.message);
-    if (!state.greeted.includes(form.dataset.person)) state.greeted.push(form.dataset.person);
-    save();
-    render();
-    openChat(form.dataset.person);
-  } else if (kind === 'chat') {
-    if (!data.text) return;
-    const id = form.dataset.chat;
-    sendChat(id, data.text);
-    if (id === 'support')
-      sendChat(
-        id,
-        '已记下你的问题。你可以在「我的订单」查看需求，或从「帮助与反馈」提交详细建议。本会话是自动演示回复。',
-        false
-      );
-    render();
-    openChat(id);
-    document.querySelector('.chat-composer input').focus();
-  } else if (kind === 'post') {
-    if (!data.text) return toast('先写一点想分享的内容吧');
-    state.posts.unshift({
-      id: 'f' + Date.now(),
-      person: 'self',
-      text: data.text,
-      imageData: uploadData,
-      place: data.place || state.city,
-      topic: data.topic,
-      visibility: data.visibility,
-      likes: 0,
-      time: '刚刚',
-    });
-    if (!state.postReward) {
-      state.points += 10;
-      state.postReward = true;
-    }
-    save();
-    closeOverlay();
-    ui.page = 'social';
-    ui.socialTab = 'feed';
-    ui.socialFilter = '推荐';
-    render();
-    document.querySelector('#app').scrollTo({ top: 0, behavior: 'instant' });
-    toast('已发布，生活的这一刻被好好记录了');
-  } else if (kind === 'comment') {
-    if (!data.text) return;
-    const id = form.dataset.post;
-    if (!state.comments[id]) state.comments[id] = [];
-    state.comments[id].push({ name: state.profile.name, text: data.text });
-    save();
-    render();
-    comments(id);
-  } else if (kind === 'live-comment') {
-    if (!data.text) return;
-    const line = document.createElement('p');
-    const b = document.createElement('b');
-    b.textContent = state.profile.name;
-    line.append(b, document.createTextNode(data.text));
-    const box = document.querySelector('#room-comments');
-    box.append(line);
-    box.scrollTop = box.scrollHeight;
-    form.reset();
-  } else if (kind === 'book-call') {
-    if (new Date(data.date + 'T' + data.time + ':00+08:00').getTime() <= Date.now())
-      return toast('这个时段已过去，请选择之后的时间');
-    const p = people.find(p => p.id === form.dataset.person);
-    const order = {
-      id: 'SZ' + Date.now().toString().slice(-9),
-      category: 'call',
-      title: '面对面 · ' + p.name,
-      hostId: p.id,
-      data: { ...data, host: p.name },
-      total: (p.price * parseInt(data.duration, 10)) / 10,
-      status: '待服务',
-      created: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur', hour12: false }),
-    };
-    state.orders.unshift(order);
-    save();
-    render();
-    orderSuccess(order);
-  } else if (kind === 'profile') {
-    if (!data.name) return toast('请填写昵称');
-    if (form.querySelector('[data-avatar-upload]')?.dataset.reading === 'true')
-      return toast('头像正在读取，请稍等片刻');
-    const previous = {
-      profile: { ...state.profile },
-      city: state.city,
-      location: state.location && { ...state.location },
-      profileReward: state.profileReward,
-      points: state.points,
-    };
-    flowApplyLocation(data.location, data.city);
-    state.profile = { ...state.profile, ...data, photo: uploadData || state.profile.photo };
-    if (data.bio && !state.profileReward) {
-      state.profileReward = true;
-      state.points += 20;
-    }
-    if (!save()) {
-      state.profile = previous.profile;
-      state.city = previous.city;
-      state.location = previous.location;
-      state.profileReward = previous.profileReward;
-      state.points = previous.points;
-      return toast('头像文件较大，浏览器存储空间不足，请换一张较小的图片');
-    }
-    closeOverlay();
-    render();
-    toast('个人资料已保存');
-  } else if (kind === 'social-filter') {
-    ui.cityFilter = data.city;
-    ui.interestFilter = data.interest;
-    closeOverlay();
-    render();
-  } else if (kind === 'language') {
-    flowApplyLocation(data.location, data.city);
-    state.profile.language = data.language;
-    save();
-    closeOverlay();
-    render();
-    toast('沟通偏好已保存');
-  } else if (kind === 'address') {
-    if (!validateRequiredText(form, data)) return;
-    if ((data.location?.countryCode || 'MY') === 'MY' && !/^\d{5}$/.test(data.postcode || ''))
-      return toast('请输入 5 位马来西亚邮编');
-    if ((data.postcode || '').length > 20) return toast('邮编请控制在 20 个字符以内');
-    if (form.dataset.address === 'new') state.address.push(data);
-    else state.address[Number(form.dataset.address)] = data;
-    save();
-    addresses();
-    toast('地址已保存');
-  } else if (kind === 'recharge') {
-    state.wallet += selectedAmount;
-    state.bills.unshift({
-      title: '演示充值',
-      amount: selectedAmount,
-      method: data.method,
-      time: new Date().toLocaleString('zh-CN'),
-    });
-    save();
-    render();
-    wallet();
-    toast('演示余额已到账，未发生真实扣款');
-  } else if (kind === 'group') {
-    if (!validateRequiredText(form, data)) return;
-    const id = 'g' + Date.now();
-    state.groups.unshift({ id, ...data, count: 1, icon: 'group' });
-    state.joined.push(id);
-    save();
-    render();
-    openChat(id);
-    toast('群组已创建');
-  } else if (kind === 'add-friend') {
-    if (!data.account) return toast('请输入适中 ID 或手机号');
-    state.friendRequests = state.friendRequests || [];
-    state.friendRequests.unshift(data);
-    save();
-    closeOverlay();
-    toast('好友申请已保存在本地');
-  } else if (kind === 'start-live') {
-    if (!data.title) return toast('请填写直播标题');
-    showScreen(
-      '我的直播预览',
-      `<div class="detail-hero"><img src="${uploadData || asset('city-kl.jpg')}" alt="直播封面"></div><div class="detail-content"><span class="live-pill">${liveBars()} 主播预览</span><h2 style="margin-top:20px">${esc(data.title)}</h2><p class="detail-description">${esc(data.topic)} · 0 位观众<br>这里将承载你的实时直播画面。当前没有启动推流。</p><div class="button-row">${act('close', '', '结束预览', 'primary-button')}</div></div>`
-    );
-  } else if (['feedback', 'after-sales', 'merchant', 'report'].includes(kind)) {
-    if (!validateRequiredText(form, data)) return;
-    state.feedback.unshift({ kind, ...data, time: Date.now() });
-    save();
-    showSheet(
-      '已记录你的' +
-        { feedback: '建议', 'after-sales': '售后申请', merchant: '入驻意向', report: '举报' }[kind],
-      `<div class="success-icon">${icon('check')}</div><h3 class="success-title">谢谢你的认真填写</h3><p class="success-text">内容已保存在本地体验数据中。<br>设计原稿不会向外部发送信息。</p>${act('close', '', '完成', 'primary-button')}`
-    );
-  }
-});
-function validateRequiredText(form, data) {
-  for (const input of form.querySelectorAll('[required]')) {
-    if (typeof data[input.name] === 'string' && !data[input.name]) {
-      toast('请填写完整必填信息');
-      input.focus();
-      return false;
-    }
-  }
-  return true;
+
+// ------------------------------------------------------------------ merchant, feedback, after-sales, report
+function flowsRecordFeedback(entry) {
+  return SZ.store.commit(s => {
+    s.feedback.unshift({ id: SZ.uid('fb'), ts: Date.now(), status: 'received', ...entry });
+    if (s.feedback.length > 200) s.feedback.length = 200;
+  });
 }
-document.addEventListener('change', event => {
-  const el = event.target;
-  if (el.matches('input[type="file"]')) {
-    const file = el.files?.[0];
-    if (!file) return;
-    el.photoReadToken = Symbol('new-selection');
-    uploadData = '';
-    const avatar = el.dataset.avatarUpload === 'true';
-    const types = avatar
-      ? ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-      : ['image/jpeg', 'image/png', 'image/webp'];
-    if (!types.includes(file.type)) {
-      el.value = '';
-      toast(avatar ? '请选择 JPG、PNG/APNG、GIF 或 WebP 图片' : '请选择 JPG、PNG 或 WebP 图片');
-      return;
-    }
-    const limit = avatar ? 2000000 : 1500000;
-    if (file.size > limit) {
-      el.value = '';
-      toast(`请选择小于 ${avatar ? '2' : '1.5'} MB 的图片`);
-      return;
-    }
-    const reader = new FileReader(),
-      readToken = Symbol('photo');
-    el.photoReadToken = readToken;
-    el.dataset.reading = 'true';
-    reader.onload = () => {
-      if (el.photoReadToken !== readToken) return;
-      delete el.dataset.reading;
+function flowsMerchant() {
+  if (!SZ.requireLogin(t('flows.reason.merchant'))) return;
+  const cats = [...categories, ...moreCategories]
+    .filter(c => c.id !== 'all')
+    .map(c => ({ value: c.id, label: c.name }));
+  return flowsOpen('merchant', {
+    title: t('flows.merchant.title'),
+    body: () =>
+      `<form class="flows-form"><div class="flows-intro">${flowsIcon('bag')}<div><h3>${t('flows.merchant.headline')}</h3><p>${t('flows.merchant.sub')}</p></div></div>${field(t('flows.merchant.name'), 'name', 'text', t('flows.merchant.namePlaceholder'), true, '', { maxlength: 60, autocomplete: 'organization' })}${selectField(t('flows.merchant.category'), 'category', cats)}${selectField(t('flows.merchant.city'), 'city', cities, state.location || state.city)}${field(t('flows.merchant.contact'), 'contact', 'text', t('flows.merchant.contactPlaceholder'), true, state.profile.name, { maxlength: 40, autocomplete: 'name' })}${field(t('flows.merchant.phone'), 'phone', 'tel', t('flows.merchant.phonePlaceholder'), true, SZ.session.account?.phone || state.profile.phone || '', { maxlength: 20 })}${field(t('flows.merchant.about'), 'text', 'textarea', t('flows.merchant.aboutPlaceholder'), true, '', { maxlength: 500, counter: true })}${formNote(t('flows.merchant.note'))}${submitButton(t('flows.merchant.submit'))}</form>`,
+    form(data, form, layer) {
+      const location = flowsFormLocation(form);
+      if (!flowsRecordFeedback({ kind: 'merchant', ...data, location })) return;
+      flowsDone(layer);
+      flowsSuccess({
+        title: t('flows.merchant.doneTitle'),
+        text: t('flows.merchant.doneText', { name: esc(data.name) }),
+        steps: [1, 2, 3].map(i => t(`flows.merchant.step${i}`)),
+      });
+    },
+  });
+}
+function flowsFeedback() {
+  const types = ['idea', 'design', 'service', 'bug', 'misc'].map(v => ({
+    value: v,
+    label: t(`flows.feedback.type.${v}`),
+  }));
+  return flowsOpen('feedback', {
+    kind: 'sheet',
+    title: t('flows.feedback.title'),
+    body: () =>
+      `<form class="flows-form">${selectField(t('flows.feedback.typeLabel'), 'type', types)}${field(t('flows.feedback.text'), 'text', 'textarea', t('flows.feedback.placeholder'), true, '', { maxlength: 1000, counter: true })}${field(t('flows.feedback.contact'), 'contact', 'text', t('flows.feedback.contactPlaceholder'), false, SZ.session.account?.email || '', { maxlength: 80, autocomplete: 'email' })}${formNote()}${submitButton(t('flows.feedback.submit'))}</form>`,
+    form(data, form, layer) {
+      if (!flowsRecordFeedback({ kind: 'feedback', ...data })) return;
+      layer.meta.flowsDone = true;
+      flowsSuccess({
+        title: t('flows.feedback.doneTitle'),
+        text: t('flows.feedback.doneText'),
+        mode: 'replace',
+      });
+    },
+  });
+}
+function flowsOrderTitle(o) {
+  return lc('orders', o, 'title') || o.title || o.id;
+}
+function flowsAfterSales(orderId) {
+  if (!SZ.requireLogin(t('flows.reason.afterSales'))) return;
+  const orders = (state.orders || []).slice(0, 50);
+  if (!orders.length) {
+    flowsOpen('after-sales', {
+      kind: 'sheet',
+      title: t('flows.afterSales.title'),
+      body: () =>
+        `${flowsEmpty('order', t('flows.afterSales.noOrdersTitle'), t('flows.afterSales.noOrdersText'))}<div class="flows-cta">${act('chat', 'support', `${icon('headset')}${t('flows.afterSales.contact')}`, 'btn btn-primary btn-lg btn-block')}</div>`,
+    });
+    return;
+  }
+  const options = orders.map(o => ({ value: o.id, label: `${o.id} · ${flowsOrderTitle(o)}` }));
+  const reasons = ['reschedule', 'refund', 'quality', 'missing', 'misc'].map(v => ({
+    value: v,
+    label: t(`flows.afterSales.reason.${v}`),
+  }));
+  return flowsOpen('after-sales', {
+    kind: 'sheet',
+    title: t('flows.afterSales.title'),
+    body: () =>
+      `<form class="flows-form">${selectField(t('flows.afterSales.order'), 'orderId', options, orderId || orders[0].id)}${selectField(t('flows.afterSales.reasonLabel'), 'reason', reasons)}${field(t('flows.afterSales.text'), 'text', 'textarea', t('flows.afterSales.placeholder'), true, '', { maxlength: 800, counter: true })}${formNote(t('flows.afterSales.note'))}${submitButton(t('flows.afterSales.submit'))}</form>`,
+    form(data, form, layer) {
+      if (!flowsRecordFeedback({ kind: 'after-sales', ...data })) return;
+      layer.meta.flowsDone = true;
+      window.ShizhongNotices.push({
+        type: 'order',
+        titleKey: 'flows.notice.afterSales',
+        bodyKey: 'flows.notice.afterSalesBody',
+        params: { id: data.orderId },
+        action: { name: 'order-detail', id: data.orderId },
+        silent: true,
+      });
+      flowsSuccess({
+        title: t('flows.afterSales.doneTitle'),
+        text: t('flows.afterSales.doneText', { id: esc(data.orderId) }),
+        steps: [1, 2].map(i => t(`flows.afterSales.step${i}`)),
+        primary: act(
+          'order-detail',
+          data.orderId,
+          t('flows.afterSales.viewOrder'),
+          'btn btn-primary btn-lg btn-block'
+        ),
+        mode: 'replace',
+      });
+    },
+  });
+}
+const FLOWS_REPORT_REASONS = ['harassment', 'inappropriate', 'fake', 'spam', 'scam', 'minor', 'misc'];
+function flowsReport(targetId) {
+  if (!SZ.requireLogin(t('flows.reason.report'))) return;
+  const p = flowsPerson(targetId);
+  const name = p ? personName(p) : '';
+  const blocked = state.blocked.includes(targetId);
+  const origin = SZ.overlay.top(); // the reported person's screen, closed if they get blocked too
+  return flowsOpen('report', {
+    kind: 'sheet',
+    title: name ? t('flows.report.titleName', { name }) : t('flows.report.title'),
+    body: () =>
+      `<form class="flows-form"><p class="flows-lead">${t('flows.report.intro')}</p><fieldset class="flows-fieldset" data-flows-required-group="reason" data-label="${esc(t('flows.report.reason'))}"><legend class="form-label">${t('flows.report.reason')}<span class="required" aria-hidden="true">*</span></legend><div class="list flows-methods">${FLOWS_REPORT_REASONS.map(r => `<label class="list-row flows-method"><input type="radio" name="reason" value="${r}"><span class="list-row-main"><span class="flows-row-label">${t(`flows.report.r.${r}`)}</span></span><span class="flows-radio-mark" aria-hidden="true"></span></label>`).join('')}</div></fieldset>${field(t('flows.report.details'), 'details', 'textarea', t('flows.report.detailsPlaceholder'), false, '', { maxlength: 500, rows: 3, counter: true })}${p && !blocked ? `<label class="flows-check-row"><input type="checkbox" name="alsoBlock" value="1"><span>${t('flows.report.alsoBlock', { name: esc(name) })}</span></label>` : ''}${submitButton(t('flows.report.submit'))}</form>`,
+    form(data, form, layer) {
+      const block = data.alsoBlock === '1' && p;
       if (
-        !document.querySelector('#overlay-root')?.contains(el) &&
-        !window.ShizhongRegions?.containsPreservedNode(el)
+        !SZ.store.commit(s => {
+          s.feedback.unshift({
+            id: SZ.uid('rp'),
+            kind: 'report',
+            targetType: 'person',
+            targetId,
+            reason: data.reason,
+            details: data.details,
+            ts: Date.now(),
+            status: 'received',
+          });
+          if (block && !s.blocked.includes(targetId)) s.blocked.push(targetId);
+        })
       )
         return;
-      uploadData = String(reader.result || '');
-      const preview = el.parentElement.querySelector('.upload-preview');
-      if (preview) {
-        preview.src = uploadData;
-        preview.style.display = 'block';
+      layer.meta.flowsDone = true;
+      if (block) {
+        // Close the reported person's screen underneath: their content is hidden from now on.
+        if (origin && !origin.meta.flowsKey && origin.el.isConnected)
+          SZ.overlay.close({ layer: origin, force: true });
+        flowsRender();
       }
-    };
-    reader.onerror = () => {
-      if (el.photoReadToken === readToken) {
-        delete el.dataset.reading;
-        el.value = '';
-        toast('头像读取失败，请重新选择图片');
-      }
-    };
-    reader.readAsDataURL(file);
+      window.ShizhongNotices.push({
+        type: 'system',
+        titleKey: 'flows.notice.report',
+        bodyKey: 'flows.notice.reportBody',
+        silent: true,
+      });
+      flowsSuccess({
+        title: t('flows.report.doneTitle'),
+        text: block ? t('flows.report.doneBlocked', { name: esc(name) }) : t('flows.report.doneText'),
+        steps: [1, 2, 3].map(i => t(`flows.report.step${i}`)),
+        mode: 'replace',
+      });
+    },
+  });
+}
+async function flowsLeaveGroup(id, el) {
+  const group = [...(state.groups || []), ...defaultGroups].find(g => g.id === id);
+  const name = group ? lc('groups', group, 'name') || group.name : '';
+  const ok = await SZ.confirm({
+    title: t('flows.group.leaveTitle'),
+    message: t('flows.group.leaveBody', { name }),
+    confirmText: t('flows.group.leave'),
+    danger: true,
+  });
+  if (!ok || !SZ.store.commit(s => (s.joined = s.joined.filter(g => g !== id)))) return;
+  const layer = el?.isConnected ? SZ.overlay.of(el) : null;
+  if (layer && !layer.meta.flowsKey) SZ.overlay.close({ layer, force: true });
+  flowsRender();
+  toast(t('flows.group.left', { name }));
+}
+
+// ------------------------------------------------------------------ help, privacy, about, licences
+function flowsHelp() {
+  return flowsOpen('help', {
+    title: t('flows.help.title'),
+    body: () => {
+      const faqs = [1, 2, 3, 4, 5, 6]
+        .map(
+          i =>
+            `<details class="flows-faq"><summary>${t(`flows.help.q${i}`)}${icon('down')}</summary><p>${t(`flows.help.a${i}`)}</p></details>`
+        )
+        .join('');
+      return `${flowsSection(t('flows.help.faq'), `<div class="list flows-faqs">${faqs}</div>`)}${flowsSection(t('flows.help.more'), `<div class="list">${flowsRow('headset', t('flows.help.support'), 'chat', { id: 'support', sub: t('flows.help.supportSub') })}${flowsRow('edit', t('flows.help.feedback'), 'feedback', { sub: t('flows.help.feedbackSub') })}${flowsRow('order', t('flows.help.afterSales'), 'after-sales', { sub: t('flows.help.afterSalesSub') })}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}</div>`)}`;
+    },
+  });
+}
+function flowsPrivacy() {
+  return flowsOpen('privacy', {
+    title: t('flows.privacy.title'),
+    body: () => {
+      const section = key => {
+        const paras = [1, 2, 3, 4]
+          .map(i => 'flows.privacy.' + key + '.p' + i)
+          .filter(k => t.has(k))
+          .map(k => `<p>${t(k)}</p>`)
+          .join('');
+        return `<section class="flows-doc-section"><h3>${t(`flows.privacy.${key}.title`)}</h3>${paras}</section>`;
+      };
+      const perms = ['photos', 'microphone', 'location', 'camera']
+        .map(
+          k =>
+            `<li><strong>${t(`flows.privacy.perm.${k}`)}</strong><span>${t(`flows.privacy.perm.${k}Why`)}</span></li>`
+        )
+        .join('');
+      const choices = `<div class="list">${flowsRow('download', t('flows.settings.export'), 'export-data')}${flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media')}${flowsRow('refresh', t('flows.settings.reset'), 'reset-data', { danger: true })}${SZ.session.isLoggedIn && !SZ.session.isDemo ? flowsRow('trash', t('flows.settings.delete'), 'flows-delete-account', { danger: true }) : ''}</div>`;
+      return `<article class="flows-doc"><p class="flows-lead">${t('flows.privacy.intro')}</p><p class="caption">${t('flows.privacy.updated', { date: SZ.fmt.date('2026-09-29', 'long') })}</p>${section('stored')}<section class="flows-doc-section"><h3>${t('flows.privacy.perm.title')}</h3><p>${t('flows.privacy.perm.intro')}</p><ul class="flows-perms">${perms}</ul></section>${section('share')}${section('keep')}<section class="flows-doc-section"><h3>${t('flows.privacy.choices.title')}</h3><p>${t('flows.privacy.choices.p1')}</p>${choices}</section>${section('pdpa')}${section('community')}</article>`;
+    },
+  });
+}
+function flowsAbout() {
+  return flowsOpen('about', {
+    title: t('flows.about.title'),
+    body: () =>
+      `<div class="flows-about-hero"><img src="${asset('logo.png')}" alt=""><h3>${t('flows.about.name')}</h3><p>${t('flows.about.tagline')}</p><span class="tag">${t('flows.about.version', { version: esc(SHIZHONG_BUILD) })}</span></div><div class="list">${flowsRow('file', t('flows.about.licences'), 'flows-licences')}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${flowsRow('help', t('flows.settings.help'), 'help')}</div><p class="caption flows-footnote">${t('flows.about.demo')}</p>`,
+  });
+}
+const FLOWS_CREDITS = [
+  {
+    key: 'photos',
+    files: ['assets/sources.json', 'assets/sources-v2.json', 'assets/service-photo-map.json'],
+  },
+  { key: 'portraits', files: ['assets/avatar-sources.json'] },
+  {
+    key: 'gifts',
+    files: [
+      'assets/gifts/ATTRIBUTION.txt',
+      'assets/gifts/LICENSE-MICROSOFT.txt',
+      'assets/gifts/sources.json',
+    ],
+  },
+  { key: 'liveGifts', files: ['assets/live-gifts/ATTRIBUTION.txt', 'assets/live-gifts/sources.json'] },
+  { key: 'flags', files: ['assets/flags/ATTRIBUTION.txt', 'assets/flags/sources.json'] },
+  { key: 'regions', files: ['data/regions/'] },
+  { key: 'qr', files: ['vendor/QR-LICENSE.txt'] },
+  { key: 'brand', files: [] },
+];
+function flowsLicences() {
+  return flowsOpen('licences', {
+    title: t('flows.licences.title'),
+    body: () => {
+      const art = window.SHIZHONG_GIFT_ART || {};
+      const artCredits = [
+        ...new Set(
+          Object.values(art)
+            .map(a => a && a.credit)
+            .filter(Boolean)
+        ),
+      ].slice(0, 12);
+      const items = FLOWS_CREDITS.map(
+        c =>
+          `<li class="card card-pad flows-credit"><h3>${t(`flows.licences.${c.key}.title`)}</h3><p>${t(`flows.licences.${c.key}.text`)}</p>${c.files.length ? `<ul class="flows-files">${c.files.map(f => `<li>${f.endsWith('/') ? `<code>${esc(f)}</code>` : `<a href="${esc(resourceURL(f))}" target="_blank" rel="noopener"><code>${esc(f)}</code></a>`}</li>`).join('')}</ul>` : ''}</li>`
+      );
+      if (artCredits.length)
+        items.push(
+          `<li class="card card-pad flows-credit"><h3>${t('flows.licences.giftArt.title')}</h3><p>${t('flows.licences.giftArt.text')}</p><ul class="flows-files">${artCredits.map(c => `<li>${esc(c)}</li>`).join('')}</ul><ul class="flows-files"><li><a href="${esc(resourceURL('assets/gift-art/manifest.js'))}" target="_blank" rel="noopener"><code>assets/gift-art/manifest.js</code></a></li></ul></li>`
+        );
+      return `<p class="flows-lead">${t('flows.licences.intro')}</p><ul class="flows-credits">${items.join('')}</ul>`;
+    },
+  });
+}
+
+// ------------------------------------------------------------------ profile sharing, membership (legacy entry points)
+function flowsCopyId() {
+  const id = SZ.session.account?.displayId;
+  if (!id) return SZ.requireLogin(t('flows.reason.profile'));
+  copyText(String(id), t('flows.profile.idCopied'));
+}
+function flowsCopyProfile() {
+  const id = SZ.session.account?.displayId || '';
+  copyText(
+    t('flows.profile.cardText', { name: state.profile.name, bio: state.profile.bio || '', id }),
+    t('flows.profile.cardCopied')
+  );
+}
+function flowsMembership() {
+  flowsOpen('membership', {
+    kind: 'sheet',
+    title: t('flows.member.title'),
+    body: () =>
+      `<p class="flows-lead">${t('flows.member.sub')}</p><div class="card card-pad">${summary([
+        [t('flows.member.support'), t('flows.member.supportValue')],
+        [t('flows.member.coupon'), t('flows.member.couponValue')],
+        [t('flows.member.badge'), t('flows.member.badgeValue')],
+        [t('flows.member.status'), state.member ? t('flows.member.claimed') : t('flows.member.available')],
+      ])}</div>${formNote(t('flows.member.note'))}<div class="flows-cta">${act('claim-member', '', state.member ? t('flows.member.claimedButton') : t('flows.member.claim'), 'btn btn-accent btn-lg btn-block', state.member ? 'disabled' : '')}</div>`,
+  });
+}
+function flowsClaimMember() {
+  if (state.member || !SZ.requireLogin(t('flows.reason.member'))) return;
+  if (
+    !SZ.store.commit(s => {
+      s.member = true;
+      window.ShizhongCoupons.grant('member');
+    })
+  )
+    return;
+  flowsRefresh('membership', 'coupons');
+  flowsRender();
+  toast(t('flows.member.done'), { type: 'success' });
+}
+
+// ------------------------------------------------------------------ order success & legacy request form (catalog.js calls these)
+function flowsOrderStatusLabel(order) {
+  const code = typeof orderStatus === 'function' ? orderStatus(order) : '';
+  return code && t.has(`flows.orderStatus.${code}`) ? t(`flows.orderStatus.${code}`) : order.status || '';
+}
+function orderSuccess(order) {
+  const rows = [
+    [t('flows.order.id'), order.id],
+    [t('flows.order.item'), flowsOrderTitle(order)],
+    [t('flows.order.status'), flowsOrderStatusLabel(order)],
+  ];
+  const total = Number(order.payable ?? order.total);
+  if (total) rows.push([t('flows.order.total'), SZ.fmt.money(total, { cents: true })]);
+  return flowsSuccess({
+    title: t('flows.order.successTitle'),
+    text: t('flows.order.successText'),
+    extra: `<div class="card card-pad flows-order-summary">${summary(rows)}</div>`,
+    primary: act('order-detail', order.id, t('flows.order.view'), 'btn btn-primary btn-lg btn-block'),
+  });
+}
+function flowsServiceAddress(service) {
+  const city = service ? service.location || service.city : state.location || state.city;
+  return window.ShizhongAddresses.defaultFor(city)?.address || '';
+}
+/** Old generic request form, still used by catalog.js requestForm() for categories without their own flow. */
+function legacyRequestForm(id, serviceId = '') {
+  const c = [...categories, ...moreCategories].find(x => x.id === id) || categories[0];
+  const s = services.find(x => x.id === serviceId);
+  const L = key => t(`flows.request.${key}`);
+  const options = key => L('options.' + key).split('|');
+  const address = flowsServiceAddress(s);
+  let content = '';
+  let contactRequired = true;
+  if (['clean', 'repair', 'beauty'].includes(id)) {
+    content =
+      selectField(L('project'), 'project', options(id)) +
+      field(L('address'), 'address', 'text', L('addressPlaceholder'), true, address) +
+      field(L('date'), 'date', 'date', '', true);
+  } else if (id === 'guide') {
+    content =
+      selectField(L('guideCity'), 'city', cities, state.city) +
+      `<div class="form-row">${field(L('tripDate'), 'date', 'date', '', true)}${selectField(L('people'), 'people', options('people'))}</div>` +
+      selectField(L('language'), 'language', options('language'));
+  } else if (['market', 'food', 'flower'].includes(id)) {
+    content = s
+      ? ''
+      : field(L('want'), 'project', 'text', id === 'flower' ? L('wantFlower') : L('wantGoods'), true);
+    content +=
+      field(L('deliverTo'), 'address', 'text', L('deliverPlaceholder'), true, address) +
+      selectField(L('deliverTime'), 'time', options('deliverTime'));
+    if (s)
+      content += `<div class="count-control">${act('quantity', '-1', '−', '', `aria-label="${esc(L('less'))}"`)}<output id="quantity" aria-live="polite">${ui.quantity}</output>${act('quantity', '1', '+', '', `aria-label="${esc(L('more'))}"`)}</div><div class="summary-row"><span>${L('subtotal')}</span><strong id="goods-total">${esc(SZ.fmt.money(s.price * ui.quantity, { cents: true }))}</strong></div>`;
+  } else if (id === 'jobs') {
+    content =
+      selectField(L('intent'), 'intent', options('intent')) +
+      field(L('position'), 'project', 'text', L('positionPlaceholder'), true) +
+      selectField(L('workCity'), 'city', cities, state.city) +
+      field(L('salary'), 'salary', 'text', L('salaryPlaceholder'));
+  } else if (id === 'car') {
+    content =
+      field(L('pickup'), 'from', 'text', L('pickupPlaceholder'), true) +
+      field(L('destination'), 'to', 'text', L('destinationPlaceholder'), true) +
+      `<div class="form-row">${field(L('rideDate'), 'date', 'date', '', true)}${field(L('rideTime'), 'time', 'time', '', true)}</div>` +
+      field(L('flight'), 'flight', 'text', L('flightPlaceholder'));
+  } else if (id === 'delivery') {
+    content =
+      field(L('pickFrom'), 'from', 'text', L('pickFromPlaceholder'), true) +
+      field(L('deliverTo'), 'to', 'text', L('deliverPlaceholder'), true) +
+      field(L('item'), 'project', 'text', L('itemPlaceholder'), true);
+  } else if (id === 'phone') {
+    content =
+      field(L('number'), 'number', 'tel', L('numberPlaceholder'), true) +
+      selectField(L('provider'), 'provider', options('provider')) +
+      selectField(L('amount'), 'amount', ['RM 10', 'RM 20', 'RM 50', 'RM 100']);
+    contactRequired = false;
+  } else {
+    content =
+      field(
+        id === 'visa' ? L('visaTopic') : L('where'),
+        'project',
+        'text',
+        id === 'visa' ? L('visaPlaceholder') : L('wherePlaceholder'),
+        true
+      ) +
+      field(L('when'), 'date', 'date', '', true) +
+      selectField(L('people'), 'people', options('people'));
   }
-  if (el.matches('[name="duration"]')) {
-    const p = people.find(x => x.id === el.closest('form').dataset.person);
-    const total = document.querySelector('#call-total');
-    if (total && p) total.textContent = 'RM ' + ((p.price * parseInt(el.value, 10)) / 10).toFixed(2);
+  if (!s && !['guide', 'jobs'].includes(id))
+    content = selectField(L('serviceCity'), 'city', cities, state.location || state.city) + content;
+  const name = s ? lc('services', s, 'name') : '';
+  const title = s ? name : t('flows.request.title', { category: c.name });
+  const head = s
+    ? `<div class="form-summary"><img src="${asset(s.image)}" alt=""><div><h3>${esc(lc('services', s, 'store'))}</h3><p>${esc(SZ.fmt.money(s.price))} / ${esc(lc('services', s, 'unit'))}</p></div></div>`
+    : '';
+  const contact = contactRequired
+    ? field(
+        L('phone'),
+        'phone',
+        'tel',
+        s ? L('phonePlaceholderService') : L('phonePlaceholder'),
+        true,
+        state.profile.phone
+      )
+    : '';
+  return SZ.overlay.open({
+    kind: 'sheet',
+    title,
+    className: 'flows-layer flows-request',
+    html: `<div class="flows-body"><form data-form="request" data-category="${esc(id)}" data-service="${esc(serviceId)}">${head}${content}${contact}${field(L('note'), 'note', 'textarea', L('notePlaceholder'))}${formNote()}${submitButton(s?.type === 'goods' ? L('submitGoods') : L('submit'))}</form></div>`,
+  });
+}
+
+// ------------------------------------------------------------------ actions
+const FLOWS_ACTIONS = {
+  settings: () => settings(),
+  'toggle-setting': (id, el) => flowsToggleSetting(id, el),
+  'edit-profile': () => editProfile(),
+  language: () => flowsLanguage(),
+  wallet: () => wallet(),
+  bills: () => wallet(),
+  recharge: () => recharge(),
+  checkin: () => checkin(),
+  points: () => checkin(),
+  'do-checkin': () => flowsDoCheckin(),
+  tasks: () => flowsTasks(),
+  coupons: () => coupons(),
+  'use-coupon': id => flowsUseCoupon(id),
+  addresses: () => addresses(),
+  'edit-address': id => flowsAddressForm(id),
+  'default-address': id => flowsDefaultAddress(id),
+  'remove-address': id => flowsRemoveAddress(id),
+  notifications: () => notifications(),
+  compose: () => composer(),
+  greet: id => greet(id),
+  'greeting-text': (id, el) => flowsGreetingText(id, el),
+  'new-friends': () => flowsFriends(),
+  'add-friend': () => flowsAddFriend(),
+  'accept-friend': id => flowsAcceptFriend(id),
+  invite: () => flowsInvite(),
+  'copy-invite': () => copyText(flowsInviteText(), t('flows.invite.copied')),
+  merchant: () => flowsMerchant(),
+  feedback: () => flowsFeedback(),
+  'after-sales': id => flowsAfterSales(id),
+  report: id => flowsReport(id),
+  block: (id, el) => flowsBlock(id, el),
+  unblock: id => flowsUnblock(id),
+  'leave-group': (id, el) => flowsLeaveGroup(id, el),
+  help: () => flowsHelp(),
+  privacy: () => flowsPrivacy(),
+  about: () => flowsAbout(),
+  'export-data': () => flowsExportSheet(),
+  'reset-data': () => flowsResetAccount(),
+  'copy-id': () => flowsCopyId(),
+  'copy-profile': () => flowsCopyProfile(),
+  'share-profile': () =>
+    window.ShizhongPersonalQR?.open
+      ? window.ShizhongPersonalQR.open()
+      : toast(t('flows.profile.qrUnavailable')),
+  membership: () => flowsMembership(),
+  'claim-member': () => flowsClaimMember(),
+};
+const FLOWS_INTERNAL = {
+  'flows-toggle': (id, el) => flowsToggleSetting(id, el),
+  'flows-theme': () => flowsThemeSheet(),
+  'flows-theme-set': id => flowsSetTheme(id),
+  'flows-password': () => flowsPasswordSheet(),
+  'flows-logout': () => flowsLogout(),
+  'flows-switch-account': () =>
+    window.ShizhongAuth?.open
+      ? window.ShizhongAuth.open('switch')
+      : toast(t('flows.settings.authUnavailable')),
+  'flows-signin': () =>
+    window.ShizhongAuth?.open
+      ? window.ShizhongAuth.open('login')
+      : SZ.requireLogin(t('flows.reason.profile')),
+  'flows-delete-account': () => flowsDeleteAccount(),
+  'flows-clear-media': () => flowsClearMedia(),
+  'flows-blocked': () => flowsBlockedList(),
+  'flows-unblock': id => flowsUnblock(id),
+  'flows-locale': id => flowsSetLocale(id),
+  'flows-export-download': () => flowsExportDownload(),
+  'flows-restore-balance': () => flowsRestoreBalance(),
+  'flows-bills-more': () => {
+    flowsUI.billsShown += 40;
+    flowsRefresh('wallet');
+  },
+  'flows-coupon-tab': id => {
+    flowsUI.couponTab = id;
+    flowsRefresh('coupons');
+    SZ.overlay.$(`[data-action="flows-coupon-tab"][data-id="${id}"]`)?.focus();
+  },
+  'flows-notices-read': () => {
+    window.ShizhongNotices.markAllRead();
+    toast(t('flows.notice.allMarked'));
+  },
+  'flows-notice-filter': id => {
+    flowsUI.noticeFilter = id;
+    flowsRefresh('notifications');
+    SZ.overlay.$(`[data-action="flows-notice-filter"][data-id="${id}"]`)?.focus();
+  },
+  'flows-notice-open': id => flowsOpenNotice(id),
+  'flows-friend-ignore': id => flowsIgnoreFriend(id),
+  'flows-upload-remove': (id, el) => flowsUploadRemove(el),
+  'flows-licences': () => flowsLicences(),
+  'flows-invite-share': () => flowsInviteShare(),
+  'flows-invite-copy-code': () => copyText(flowsInviteCode(), t('flows.invite.codeCopied')),
+};
+SZ.actions.register(new RegExp('^(?:' + Object.keys(FLOWS_ACTIONS).join('|') + ')$'), (action, id, el) => {
+  FLOWS_ACTIONS[action](id, el);
+});
+SZ.actions.register('flows-', (action, id, el) => {
+  const run = FLOWS_INTERNAL[action];
+  if (!run) return false;
+  run(id, el);
+});
+
+// ------------------------------------------------------------------ legacy fallback (other owners' actions)
+/*
+ * Actions that other modules render but have not registered with SZ.actions yet. Kept as thin
+ * delegates so nothing breaks while modules migrate; SZ.actions handlers always win.
+ */
+function menuAction(action, id, button) {
+  if (typeof expandedAction === 'function' && expandedAction(action, id, button)) return;
+  switch (action) {
+    case 'nav':
+      return navigate(id);
+    case 'go-home':
+      return navigate('home');
+    case 'home-tab':
+      ui.homeTab = id;
+      ui.homeFilter = FLOWS_UI_DEFAULTS.homeFilter;
+      return flowsRender();
+    case 'home-filter':
+      ui.homeFilter = id;
+      return flowsRender();
+    case 'social-tab':
+      ui.socialTab = id;
+      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
+      return flowsRender();
+    case 'social-filter':
+      ui.socialFilter = id;
+      return flowsRender();
+    case 'live-tab':
+      ui.liveTab = id;
+      ui.liveFilter = FLOWS_UI_DEFAULTS.liveFilter;
+      return flowsRender();
+    case 'live-filter':
+      ui.liveFilter = id;
+      return flowsRender();
+    case 'comms-tab':
+      ui.commsTab = id;
+      return flowsRender();
+    case 'category':
+      return flowsCall('categoryPage', id);
+    case 'service':
+      return flowsCall('serviceDetail', id);
+    case 'request':
+      ui.quantity = 1;
+      return flowsCall('requestForm', id);
+    case 'book-service': {
+      const s = services.find(x => x.id === id);
+      if (!s) return;
+      ui.quantity = 1;
+      return flowsCall('requestForm', s.cat, id);
+    }
+    case 'quantity':
+      return flowsLegacyQuantity(id, button);
+    case 'save-service':
+      return flowsLegacySave(id);
+    case 'orders':
+      return flowsCall('orders', id);
+    case 'order-detail':
+      return flowsCall('orderDetail', id);
+    case 'person':
+      return flowsCall('personDetail', id);
+    case 'chat':
+      return flowsOpenChat(id);
+    case 'comments':
+      return flowsCall('comments', id);
+    case 'social-filters':
+      return flowsCall('filterPeople');
+    case 'social-recommend':
+      SZ.overlay.closeAll();
+      ui.socialTab = 'friends';
+      ui.socialFilter = FLOWS_UI_DEFAULTS.socialFilter;
+      return flowsRender();
+    case 'photo':
+      return SZ.overlay.open({
+        kind: 'sheet',
+        title: t('flows.legacy.photo'),
+        className: 'flows-layer',
+        html: `<img class="flows-photo" src="${esc(id)}" alt="${esc(t('flows.legacy.photoAlt'))}">`,
+      });
+    case 'room':
+      return flowsCall('room', id);
+    case 'next-room':
+      return flowsCall('nextRoom');
+    case 'group-detail':
+      return flowsCall('groupDetail', id);
+    case 'join-group':
+      return flowsLegacyJoinGroup(id);
+    case 'create-group':
+      return flowsLegacyCreateGroup();
+    case 'start-live':
+      return flowsLegacyStartLive();
+    case 'book-call':
+      return callBooking(id);
+    case 'connect-order': {
+      const o = state.orders.find(x => x.id === id);
+      return o?.hostId ? callBooking(o.hostId) : undefined;
+    }
+    case 'chat-options':
+      return flowsChatOptions(id);
+    case 'social-event':
+      return flowsNeed(['people'], () =>
+        SZ.overlay.open({
+          kind: 'sheet',
+          title: t('flows.legacy.eventTitle'),
+          className: 'flows-layer',
+          html: `<p class="flows-lead">${t('flows.legacy.eventText')}</p><div class="people-list">${people
+            .filter(p => !state.blocked.includes(p.id))
+            .slice(0, 3)
+            .map(p => flowsCall('personRow', p) || '')
+            .join('')}</div>`,
+        })
+      );
+    case 'chat-emoji': {
+      const input = SZ.overlay.$('.chat-composer input[name="text"]');
+      if (input) {
+        input.value += ' ❤️';
+        input.focus();
+      }
+      return;
+    }
+    default:
+      console.warn('[flows] unhandled action', action);
+      toast(t('flows.legacy.unavailable'));
+  }
+}
+/** Conversation menu: profile, report and block for people; group info and leaving for groups. */
+function flowsChatOptions(id) {
+  const person = flowsPerson(id);
+  const group = !person && [...(state.groups || []), ...defaultGroups].find(g => g.id === id);
+  let rows = '';
+  if (person)
+    rows = `${flowsRow('user', t('flows.chatOptions.profile'), 'person', { id })}${flowsRow('flag', t('flows.chatOptions.report'), 'report', { id })}${flowsRow('block', t('flows.chatOptions.block'), 'block', { id, danger: true, chevron: false })}`;
+  else if (group)
+    rows = `${flowsRow('group', t('flows.chatOptions.group'), 'group-detail', { id })}${state.joined.includes(id) ? flowsRow('logout', t('flows.group.leave'), 'leave-group', { id, danger: true, chevron: false }) : ''}`;
+  rows += flowsRow('shield', t('flows.settings.policy'), 'privacy');
+  SZ.overlay.open({
+    kind: 'sheet',
+    title: t('flows.chatOptions.title'),
+    className: 'flows-layer',
+    html: `<div class="list">${rows}</div><p class="caption flows-footnote">${t('flows.chatOptions.note')}</p>`,
+  });
+}
+function flowsLegacyQuantity(step, button) {
+  const form = button?.closest('form');
+  const s = services.find(x => x.id === form?.dataset.service);
+  ui.quantity = Math.max(1, Math.min(20, ui.quantity + Number(step)));
+  const out = form?.querySelector('#quantity');
+  if (out) out.value = ui.quantity;
+  const total = form?.querySelector('#goods-total');
+  if (total && s) total.textContent = SZ.fmt.money(s.price * ui.quantity, { cents: true });
+}
+function flowsLegacySave(id) {
+  const at = state.saved.indexOf(id);
+  if (!SZ.store.commit(s => (at < 0 ? s.saved.push(id) : s.saved.splice(at, 1)))) return;
+  flowsRender();
+  toast(at < 0 ? t('flows.legacy.saved') : t('flows.legacy.unsaved'));
+}
+function flowsLegacyJoinGroup(id) {
+  if (!SZ.requireLogin(t('flows.reason.message'))) return;
+  if (!state.joined.includes(id) && !SZ.store.commit(s => s.joined.push(id))) return;
+  flowsRender();
+  flowsOpenChat(id);
+  toast(t('flows.legacy.joined'));
+}
+function flowsLegacyCreateGroup() {
+  if (!SZ.requireLogin(t('flows.reason.message'))) return;
+  flowsOpen('create-group', {
+    kind: 'sheet',
+    title: t('flows.legacy.groupTitle'),
+    body: () =>
+      `<form class="flows-form">${field(t('flows.legacy.groupName'), 'name', 'text', t('flows.legacy.groupNamePlaceholder'), true, '', { maxlength: 30 })}${selectField(t('flows.address.city'), 'city', cities, state.location || state.city)}${field(t('flows.legacy.groupDesc'), 'desc', 'textarea', t('flows.legacy.groupDescPlaceholder'), true, '', { maxlength: 200, rows: 3 })}${submitButton(t('flows.legacy.groupCreate'))}</form>`,
+    form(data, form, layer) {
+      const location = flowsFormLocation(form);
+      const id = 'g' + Date.now();
+      if (
+        !SZ.store.commit(s => {
+          s.groups.unshift({
+            id,
+            name: data.name,
+            desc: data.desc,
+            city: location?.cityName || data.city,
+            location,
+            count: 1,
+            icon: 'group',
+          });
+          s.joined.push(id);
+        })
+      )
+        return;
+      flowsDone(layer);
+      flowsRender();
+      flowsOpenChat(id);
+      toast(t('flows.legacy.groupCreated'), { type: 'success' });
+    },
+  });
+}
+function flowsLegacyStartLive() {
+  if (!SZ.requireLogin(t('flows.reason.live'))) return;
+  const topics = ['chat', 'travel', 'language', 'music'].map(v => ({
+    value: v,
+    label: t(`flows.legacy.liveTopic.${v}`),
+  }));
+  flowsOpen('start-live', {
+    kind: 'sheet',
+    title: t('flows.legacy.liveTitle'),
+    body: () =>
+      `<form class="flows-form">${field(t('flows.legacy.liveName'), 'title', 'text', t('flows.legacy.liveNamePlaceholder'), true, '', { maxlength: 40 })}${selectField(t('flows.legacy.liveTopicLabel'), 'topic', topics)}${uploadField(t('flows.legacy.liveCover'))}${formNote(t('flows.legacy.liveNote'))}${submitButton(t('flows.legacy.livePreview'))}</form>`,
+    form(data, form, layer) {
+      const cover = flowsUploadValue(form);
+      flowsUploadCommit(form);
+      flowsDone(layer);
+      SZ.overlay.open({
+        kind: 'screen',
+        title: t('flows.legacy.livePreviewTitle'),
+        className: 'flows-layer',
+        html: `<div class="detail-hero"><img src="${esc(cover ? asset(cover) : asset('city-kl.jpg'))}" alt=""></div><div class="flows-body"><span class="tag tag-brand">${t('flows.legacy.liveBadge')}</span><h2 class="flows-live-title">${esc(data.title)}</h2><p class="flows-lead">${esc(topics.find(x => x.value === data.topic)?.label || '')} · ${t('flows.legacy.liveViewers')}</p><p class="caption">${t('flows.legacy.liveNoStream')}</p><div class="flows-cta">${act('close', '', t('flows.legacy.liveEnd'), 'btn btn-primary btn-lg btn-block')}</div></div>`,
+      });
+    },
+  });
+}
+/*
+ * Forms rendered by modules that do not handle their own submit yet. This listener sits on
+ * window, so a module's own document-level handler runs first; anything it already handled
+ * (defaultPrevented) is left alone. Flows' own forms are bound directly in flowsBindForm.
+ */
+window.addEventListener('submit', event => {
+  const form = event.target.closest?.('form[data-form]');
+  if (!form || event.defaultPrevented) return;
+  event.preventDefault();
+  if (!form.reportValidity()) return;
+  const data = flowsFormData(form);
+  const kind = form.dataset.form;
+  if (kind === 'search') return flowsCall('search', data.q || '');
+  if (kind === 'chat-search') return flowsCall('search', data.q || '', true);
+  if (kind === 'request') {
+    if (!validateRequiredText(form, data)) return;
+    for (const input of form.querySelectorAll('input[type="tel"]'))
+      if (data[input.name] && !flowsValidPhone(data[input.name])) {
+        flowsFieldError(input, t('flows.form.phoneInvalid'));
+        return input.focus();
+      }
+    if (!form.dataset.service) {
+      const location = flowsFormLocation(form);
+      if (location) {
+        data.location = location;
+        data.city = location.cityName || data.city;
+      }
+    }
+    delete data.locationData;
+    if (!SZ.requireLogin(t('flows.reason.order'))) return;
+    return flowsCall('createOrder', data, form.dataset.category, form.dataset.service);
+  }
+  if (kind === 'chat') {
+    if (!data.text) return;
+    const id = form.dataset.chat;
+    if (!SZ.requireLogin(t('flows.reason.message'))) return;
+    flowsAppendMessage(id, { text: data.text });
+    if (id === 'support') flowsAppendMessage(id, { self: false, text: t('flows.legacy.supportReply') });
+    form.reset();
+    if (window.ShizhongChat?.refresh) window.ShizhongChat.refresh(id);
+    else flowsCall('openChat', id);
+    return;
+  }
+  if (kind === 'comment') {
+    if (!data.text || !SZ.requireLogin(t('flows.reason.post'))) return;
+    const id = form.dataset.post;
+    if (
+      !SZ.store.commit(s => {
+        if (!s.comments[id]) s.comments[id] = [];
+        s.comments[id].push({ name: s.profile.name, text: data.text, time: Date.now() });
+      })
+    )
+      return;
+    flowsRender();
+    return flowsCall('comments', id);
+  }
+  if (kind === 'social-filter') {
+    ui.cityFilter = data.city;
+    ui.interestFilter = data.interest;
+    SZ.overlay.close();
+    return flowsRender();
   }
 });
-let touchStartY = 0;
-document.addEventListener(
-  'touchstart',
-  event => {
-    if (
-      event.target.closest('.live-room') &&
-      !event.target.closest('input,button,.room-comments,.lr-comments,.lr-panel-layer,.lr-composer')
-    )
-      touchStartY = event.touches[0].clientY;
-    else touchStartY = 0;
-  },
-  { passive: true }
-);
-document.addEventListener(
-  'touchend',
-  event => {
-    if (
-      touchStartY &&
-      currentOverlay?.kind === 'room' &&
-      touchStartY - event.changedTouches[0].clientY > 90
-    ) {
-      nextRoom();
-    }
-    touchStartY = 0;
-  },
-  { passive: true }
-);
 
-function nextDate() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kuala_Lumpur',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(Date.now() + 86400000));
+// ------------------------------------------------------------------ boot: media migration, demo seeds
+/** Older versions kept avatars and post photos as big data URLs in state; move them to SZ.media. */
+async function flowsMigrateMedia() {
+  try {
+    const big = v => typeof v === 'string' && v.startsWith('data:') && v.length > FLOWS_AVATAR_MAX_DATA_URL;
+    const toRef = async url => flowsStoreBlob(await (await fetch(url)).blob(), 'migrated');
+    const photo = big(state.profile?.photo) ? await toRef(state.profile.photo) : null;
+    const posts = [];
+    for (const post of state.posts || [])
+      if (big(post.imageData)) posts.push([post.id, await toRef(post.imageData)]);
+    if (!photo && !posts.length) return;
+    SZ.store.commit(
+      s => {
+        if (photo) s.profile.photo = photo;
+        for (const [id, ref] of posts) {
+          const post = s.posts.find(p => p.id === id);
+          if (post) {
+            post.image = ref;
+            delete post.imageData;
+          }
+        }
+      },
+      { quiet: true }
+    );
+  } catch (error) {
+    console.warn('[flows] media migration skipped', error);
+  }
 }
+/** Warm object URLs so asset('media:…') renders real images on the first paint. */
+async function flowsWarmMedia() {
+  const refs = [state.profile?.photo, ...(state.posts || []).slice(0, 20).map(p => p.image)].filter(
+    SZ.media.isRef
+  );
+  await Promise.all(refs.map(ref => SZ.media.url(ref).catch(() => null)));
+}
+if (!Array.isArray(SZ.bootTasks)) SZ.bootTasks = [];
+SZ.bootTasks.push(async () => {
+  await flowsMigrateMedia();
+  await flowsWarmMedia();
+});
+function flowsSeed() {
+  if (!state) return;
+  const done = Array.isArray(state.flowsSeeds) ? state.flowsSeeds : [];
+  const now = Date.now();
+  const notices = [];
+  const tasks = [];
+  if (!done.includes('welcome')) {
+    tasks.push('welcome');
+    notices.push({
+      id: SZ.uid('n'),
+      type: 'system',
+      titleKey: 'flows.seed.welcomeTitle',
+      bodyKey: 'flows.seed.welcomeBody',
+      action: { name: 'coupons', id: '' },
+      ts: SZ.session.account?.createdAt || now,
+      read: false,
+    });
+  }
+  if (SZ.session.isDemo && !done.includes('demo')) {
+    tasks.push('demo');
+    notices.push({
+      id: SZ.uid('n'),
+      type: 'social',
+      titleKey: 'flows.seed.followerTitle',
+      bodyKey: 'flows.seed.followerBody',
+      params: { personId: 'p2' },
+      action: { name: 'person', id: 'p2' },
+      ts: now - 26 * 3600000,
+      read: false,
+    });
+  }
+  const order = (state.orders || [])[0];
+  if (SZ.session.isDemo && order && !done.includes('demo-order')) {
+    tasks.push('demo-order');
+    notices.push({
+      id: SZ.uid('n'),
+      type: 'order',
+      titleKey: 'flows.seed.orderTitle',
+      bodyKey: 'flows.seed.orderBody',
+      params: { id: order.id },
+      action: { name: 'order-detail', id: order.id },
+      ts: now - 2 * 3600000,
+      read: false,
+    });
+  }
+  if (!tasks.length) return;
+  SZ.store.commit(
+    s => {
+      s.flowsSeeds = [...done, ...tasks];
+      s.notices = [...notices, ...s.notices].sort((a, b) => b.ts - a.ts).slice(0, 100);
+      if (tasks.includes('demo')) {
+        window.ShizhongCoupons.grant('food');
+        window.ShizhongCoupons.grant('autumn');
+        for (const [personId, key, hours] of [
+          ['p4', 'flows.seed.request1', 3],
+          ['p2', 'flows.seed.request2', 30],
+        ])
+          if (!s.greeted.includes(personId) && !s.friendRequests.incoming.some(r => r.personId === personId))
+            s.friendRequests.incoming.push({
+              id: SZ.uid('fr'),
+              personId,
+              messageKey: key,
+              ts: now - hours * 3600000,
+            });
+      }
+    },
+    { quiet: true }
+  );
+}
+SZ.on('boot:ready', () => {
+  // After every module's boot:ready (catalog seeds the demo orders there).
+  setTimeout(() => {
+    flowsSeed();
+    flowsResolveFriendRequests();
+    if (ui.page === 'home' && window.ShizhongNotices.unread())
+      SZ.emit('notices:change', { unread: window.ShizhongNotices.unread() });
+  }, 0);
+});
