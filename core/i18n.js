@@ -291,14 +291,15 @@
   }
   /** Load data/i18n/<locale>/<chunk>.js if the active locale ships one. */
   function loadContent(chunk) {
+    ensure();
     const meta = locales.get(active)?.meta;
     if (active === SOURCE || !meta?.content?.includes(chunk)) return Promise.resolve(false);
     const key = active + '/' + chunk;
     if (loadContent.done.has(key)) return loadContent.done.get(key);
     const task = new Promise(resolve => {
       const script = document.createElement('script');
-      const base = new URL('.', document.currentScript?.src || document.baseURI);
-      const url = new URL('data/i18n/' + active + '/' + chunk + '.js', base);
+      // Resolve against the page (index.html), never against the calling script's folder.
+      const url = new URL('data/i18n/' + active + '/' + chunk + '.js', document.baseURI);
       if (/^https?:$/.test(url.protocol) && window.SHIZHONG_BUILD) url.searchParams.set('v', window.SHIZHONG_BUILD);
       script.src = url.href;
       script.charset = 'utf-8';

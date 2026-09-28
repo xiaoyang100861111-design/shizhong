@@ -82,3 +82,22 @@ payMethod, quantity, createdAt, history: [{ status, at, note? }], review? }`.
 ### gift art (assets)
 `assets/gift-art/manifest.js` → `window.SHIZHONG_GIFT_ART = { <giftId>: { full, thumb, charm?, credit } }` (paths relative to `assets/`).
 Loaded by index.html before gift-data.js. `ShizhongGifts.giftArt()` and the live module read it and fall back to the old `image` field.
+
+## Additions from wave 1 (implemented)
+
+- **core**: `SZ.bootTasks` (array), `SZ.actions.register([names…], fn)`, `SZ.store.detach()` (called automatically on
+  login / guest / logout / reset / delete so the unload flush can never write one account's state into another's key).
+- **events**: `chat:unread` `{ chatId, unread }`, `chat:message` `{ chatId, message }`, `notices:change`.
+- **chat**: `ShizhongChat.preview(message) → short text`, `ShizhongChat.isOpen(chatId)`. Merchant chats use id `merchant:<serviceId>`.
+- **gifts**: `ShizhongGifts.openCollection(tab)`, `openDetail(giftId)`, `playEffect(giftId)`, `giftName(gift)`, `gift(id)`,
+  `cover()`, `charmed(personId)`, `avatarFrameId()`, `config`. Gift messages `{ type:'gift', giftId, quantity, price, note, text }`
+  rendered as a complete `.message-line`. Routes `#gift/<id>`.
+- **personal QR**: `ShizhongPersonalQR.share()`, `copyId()`, `openPublic(card)`. Route `#u/<displayId>`.
+- **auth**: guard reasons `t('auth.reason.<key>')` with keys order, pay, post, comment, message, gift, follow, like, live, call,
+  wallet, greet, join, checkin, review, profile. Buttons may use `data-action="auth-login" data-id="<reasonKey>"`,
+  `auth-switch`, `auth-welcome`.
+- **flows**: bills `{ id, kind:'order'|'gift'|'chat-envelope'|'chat-transfer'|'chat-refund'|'recharge'…, title, amount, method,
+  time: epochMs, i18n?: { key, params }, orderId? }`.
+- **layout**: task CTAs go in `<div class="sheet-footer">` / `<div class="screen-footer">` as the last element of a layer.
+  Visually hidden text: `.sr-text` (not reported as clipped by QA).
+- **scenarios**: select by `data-action`/`data-id`, never by visible text, so they work in every language.

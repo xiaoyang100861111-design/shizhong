@@ -66,7 +66,7 @@ PROBE = r"""
       if (cjk.test(text) && !seen.has(text)) { seen.add(text); out.cjk.push(text.slice(0, 60)); }
     }
     for (const el of root.querySelectorAll('*')) {
-      if (el.children.length || !el.textContent.trim() || !visible(el)) continue;
+      if (el.children.length || !el.textContent.trim() || !visible(el) || el.closest('.sr-only,.sr-text,[aria-hidden="true"]')) continue;
       const cs = getComputedStyle(el);
       if (el.scrollWidth > el.clientWidth + 1 && cs.overflowX !== 'visible' && cs.textOverflow !== 'ellipsis' && !/-webkit-box/.test(cs.display))
         out.clipped.push(el.textContent.trim().slice(0, 40));

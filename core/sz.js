@@ -31,6 +31,7 @@
       clearTimeout(timer);
       fn(...args);
     };
+    run.cancel = () => clearTimeout(timer);
     return run;
   }
   /** Fill missing keys from defaults (recursively for plain objects); wrong types fall back to defaults. */
@@ -81,6 +82,10 @@
   const actionHandlers = [];
   const actions = {
     register(match, handler) {
+      if (Array.isArray(match)) {
+        const offs = match.map(m => actions.register(m, handler));
+        return () => offs.forEach(off => off());
+      }
       const entry = { match, handler };
       actionHandlers.unshift(entry);
       return () => actionHandlers.splice(actionHandlers.indexOf(entry), 1);
@@ -565,6 +570,7 @@
     },
     async remove(id) {
       if (id === DEMO_ID) return false;
+      if (id === session.accountId) store.detach();
       accountList = accountList.filter(a => a.id !== id);
       persistAccounts();
       try {
@@ -597,18 +603,22 @@
     /** Switch account and reload so every module starts from that account's state. */
     login(accountId, { reload = true } = {}) {
       store.flush();
+      if (accountId !== session.accountId || reload) store.detach();
       sessionData = { accountId, at: Date.now() };
       writeJSON(KEYS.session, sessionData);
       accounts.update(accountId, { lastLoginAt: Date.now() });
       if (reload) location.reload();
     },
     guest({ reload = false } = {}) {
+      store.flush();
+      if (session.accountId !== 'guest' || reload) store.detach();
       sessionData = { accountId: 'guest', at: Date.now() };
       writeJSON(KEYS.session, sessionData);
       if (reload) location.reload();
     },
     logout() {
       store.flush();
+      store.detach();
       sessionData = null;
       try {
         localStorage.removeItem(KEYS.session);
@@ -625,6 +635,10 @@
 
   // ------------------------------------------------------------------ store
   let stateRef = null;
+  // The storage key is fixed when state is loaded. After a session switch, reset or account
+  // deletion the store is detached, so the unload flush can never write this state elsewhere.
+  let storeKey = null;
+  let detached = false;
   // app.js owns the global `let state`; read it live so code that reassigns it stays in sync.
   function live() {
     try {
@@ -634,10 +648,20 @@
     }
   }
   const store = {
-    key: () => KEYS.state(session.accountId),
+    key: () => storeKey || KEYS.state(session.accountId),
+    get detached() {
+      return detached;
+    },
+    /** Stop persisting (called before the page reloads into another account). */
+    detach() {
+      store.saveSoon?.cancel?.();
+      detached = true;
+    },
     /** Build the state object for the current account from defaults + saved data. */
     load(defaults) {
-      const saved = readJSON(store.key(), null);
+      storeKey = KEYS.state(session.accountId);
+      detached = false;
+      const saved = readJSON(storeKey, null);
       stateRef = withDefaults(saved && typeof saved === 'object' ? saved : {}, clone(defaults));
       return stateRef;
     },
@@ -646,6 +670,7 @@
     },
     /** Write now. Returns false (and shows the storage notice) when the browser refuses. */
     save(target) {
+      if (detached) return true;
       const data = target || live();
       if (!data) return false;
       try {
@@ -689,6 +714,7 @@
     snapshot: () => clone(live()),
     /** Remove this account's state (used by "reset experience"). */
     async reset() {
+      store.detach();
       try {
         localStorage.removeItem(store.key());
       } catch (_) {}
@@ -880,6 +906,8 @@
 
   window.SZ = {
     version: '2.0.0',
+    /** async functions run by core/boot.js before the first render (e.g. loading translations) */
+    bootTasks: [],
     $,
     esc,
     clone,

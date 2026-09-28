@@ -1,0 +1,19 @@
+[
+ {"name": "core-switch-keeps-data", "hash": "me", "session": "demo", "steps": [
+   {"expect": "state.wallet > 1e8", "msg": "demo account has the demo balance"},
+   {"eval": "setTimeout(() => SZ.session.guest({ reload: true }), 50), true"},
+   {"wait": 3500},
+   {"expect": "SZ.session.isGuest && state.wallet < 1e6", "msg": "guest has its own small balance"},
+   {"expect": "JSON.parse(localStorage.getItem('sz:v2:state:demo')).wallet > 1e8", "msg": "demo data was not overwritten by the switch"},
+   {"expect": "!localStorage.getItem('sz:v2:state:guest') || JSON.parse(localStorage.getItem('sz:v2:state:guest')).wallet < 1e6", "msg": "guest data was not overwritten with demo data"}
+ ]},
+ {"name": "core-back-button", "hash": "home", "steps": [
+   {"click": "[data-action=category][data-id=clean]"},
+   {"click": "[data-action=service]"},
+   {"expect": "SZ.overlay.depth() === 2"},
+   {"back": true}, {"wait": 500},
+   {"expect": "SZ.overlay.depth() === 1", "msg": "back returns to the list"},
+   {"back": true}, {"wait": 500},
+   {"expect": "SZ.overlay.depth() === 0 && location.href.includes('index.html')", "msg": "second back closes the list and stays in the app"}
+ ]}
+]
