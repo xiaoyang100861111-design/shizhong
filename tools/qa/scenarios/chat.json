@@ -1,49 +1,1012 @@
 [
- {
-  "name": "chat-plus-panel",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": "[data-action=chat][data-id=p1]"
-   },
-   {
-    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
-   }
-  ]
- },
- {
-  "name": "chat-voice-call",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": "[data-action=chat][data-id=p1]"
-   },
-   {
-    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
-   },
-   {
-    "click": "#overlay-root button",
-    "text": "语音通话"
-   },
-   {
-    "wait": 2500
-   }
-  ]
- },
- {
-  "name": "chat-redpacket",
-  "hash": "comms",
-  "steps": [
-   {
-    "click": "[data-action=chat][data-id=p1]"
-   },
-   {
-    "click": "[aria-label*=\"更多\"], [data-action=wx-tools]"
-   },
-   {
-    "click": "#overlay-root button",
-    "text": "红包"
-   }
-  ]
- }
+  {
+    "name": "chat-friend",
+    "hash": "comms",
+    "steps": [
+      {
+        "expect": "window.ShizhongChat && ShizhongChat.unreadCount() >= 3",
+        "msg": "demo account starts with unread chats"
+      },
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 700
+      },
+      {
+        "expect": "!!document.querySelector('.cx-screen .cx-log .cx-row')",
+        "msg": "chat screen renders messages"
+      },
+      {
+        "expect": "ShizhongChat.unread('p1') === 0",
+        "msg": "opening a chat marks it read"
+      }
+    ],
+    "setup": [
+      "window.SZ&&(SZ.store.flush=()=>{})",
+      "localStorage.removeItem('sz:v2:state:demo')"
+    ]
+  },
+  {
+    "name": "chat-back",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "SZ.overlay.depth() === 0",
+        "msg": "back button closes the chat"
+      }
+    ]
+  },
+  {
+    "name": "chat-plus-panel",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "expect": "!document.querySelector('.cx-tools').hidden && document.querySelectorAll('.cx-tool').length === 9",
+        "msg": "friend chat shows all 9 tools"
+      }
+    ]
+  },
+  {
+    "name": "chat-emoji-panel",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-emoji]"
+      },
+      {
+        "click": ".cx-emoji"
+      },
+      {
+        "click": ".cx-emoji"
+      },
+      {
+        "expect": "document.querySelector('.cx-input').value.length > 0 && !document.querySelector('.cx-send').hidden",
+        "msg": "emoji inserted, send button visible"
+      }
+    ]
+  },
+  {
+    "name": "chat-send-reply",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__rows = document.querySelectorAll('.cx-log .cx-row[data-mid]').length, true"
+      },
+      {
+        "type": ".cx-input",
+        "value": "周末有空一起去喝咖啡吗？"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-log .cx-row[data-mid]').length === window.__rows + 1",
+        "msg": "sending appends exactly one bubble"
+      },
+      {
+        "expect": "document.querySelector('.cx-row.is-self:last-of-type .cx-tick, .cx-log .cx-row.is-self:nth-last-child(2) .cx-tick')?.dataset.state === 'sent'",
+        "msg": "new message has a single tick"
+      },
+      {
+        "wait": 1450
+      },
+      {
+        "expect": "!!document.querySelector('.cx-status.is-typing') && !document.querySelector('.cx-typing').hidden",
+        "msg": "typing indicator while the friend is replying"
+      },
+      {
+        "shot": "typing"
+      },
+      {
+        "wait": 2400
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-log .cx-row[data-mid]').length >= window.__rows + 2",
+        "msg": "friend replied"
+      },
+      {
+        "expect": "!document.querySelector('.cx-tick[data-state=sent]')",
+        "msg": "ticks turn to read after the reply"
+      }
+    ]
+  },
+  {
+    "name": "chat-message-menu",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "type": ".cx-input",
+        "value": "这条消息用来测试长按菜单"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row.is-self .cx-bubble')].pop();b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-action=cx-m-recall]') && !!SZ.overlay.$('[data-action=cx-m-quote]')",
+        "msg": "menu offers recall and reply for a fresh own message"
+      }
+    ]
+  },
+  {
+    "name": "chat-quote-reply",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row:not(.is-self) .cx-b-text')].pop();b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-m-quote]"
+      },
+      {
+        "expect": "!document.querySelector('.cx-quote-bar').hidden",
+        "msg": "quote bar shown"
+      },
+      {
+        "type": ".cx-input",
+        "value": "回复你这句"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row.is-self .cx-quote-ref')",
+        "msg": "quoted reply rendered"
+      }
+    ]
+  },
+  {
+    "name": "chat-recall",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "type": ".cx-input",
+        "value": "发错了，马上撤回"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row.is-self .cx-bubble')].pop();b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-m-recall]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!!document.querySelector('.cx-sys [data-action=cx-reedit]')",
+        "msg": "recalled notice with edit-again link"
+      }
+    ]
+  },
+  {
+    "name": "chat-delete-undo",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__n = document.querySelectorAll('.cx-log .cx-row[data-mid]').length, true"
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row:not(.is-self) .cx-b-text')].pop();b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-m-delete]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-log .cx-row[data-mid]').length === window.__n - 1",
+        "msg": "message hidden"
+      },
+      {
+        "shot": "deleted"
+      },
+      {
+        "click": "#toast .toast-action"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-log .cx-row[data-mid]').length === window.__n",
+        "msg": "undo restores it"
+      }
+    ]
+  },
+  {
+    "name": "chat-forward",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "(()=>{const b=[...document.querySelectorAll('.cx-row:not(.is-self) .cx-b-text')].pop();b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));return true})()"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-m-forward]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "picker"
+      },
+      {
+        "click": "[data-action=cx-fwd][data-id=support]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-sz-confirm='1']"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "(state.messages.support||[]).some(m => m.forwarded)",
+        "msg": "forwarded copy saved in the target chat"
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1",
+        "msg": "picker closed, chat still open"
+      }
+    ]
+  },
+  {
+    "name": "chat-search",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-menu]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "menu"
+      },
+      {
+        "click": "[data-action=cx-search]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-search-input",
+        "value": "的"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-row.is-hit').length > 0",
+        "msg": "search highlights matches"
+      }
+    ]
+  },
+  {
+    "name": "chat-voice-call",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=voiceCall]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "shot": "ringing"
+      },
+      {
+        "wait": 2800
+      },
+      {
+        "expect": "!!document.querySelector('.cx-call.is-connected')",
+        "msg": "demo call connects"
+      }
+    ]
+  },
+  {
+    "name": "chat-call-end",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=voiceCall]"
+      },
+      {
+        "wait": 3200
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1 && !!document.querySelector('.cx-row[data-type=call]')",
+        "msg": "back ends the call and leaves a call record"
+      }
+    ]
+  },
+  {
+    "name": "chat-video-call",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=videoCall]"
+      },
+      {
+        "wait": 3200
+      },
+      {
+        "click": "[data-action=cx-call-toggle][data-id=camera]"
+      }
+    ]
+  },
+  {
+    "name": "chat-redpacket",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!!SZ.overlay.$('input[name=amount]')",
+        "msg": "red packet form"
+      }
+    ]
+  },
+  {
+    "name": "chat-redpacket-send",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__wallet = state.wallet, true"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "8.88"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "Math.round((window.__wallet - state.wallet) * 100) === 888",
+        "msg": "wallet debited exactly once"
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=envelope]') && SZ.overlay.depth() === 1",
+        "msg": "packet bubble shown, sheet closed"
+      },
+      {
+        "wait": 4200
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=envelope] .is-settled') && !!document.querySelector('.cx-sys')",
+        "msg": "friend opens the packet"
+      }
+    ]
+  },
+  {
+    "name": "chat-redpacket-detail",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=transfer]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "120"
+      },
+      {
+        "type": ".cx-sheet input[name=note]",
+        "value": "晚餐"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "click": ".cx-row[data-type=transfer] .cx-bubble"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!SZ.overlay.$('.cx-pay-amount')",
+        "msg": "transfer detail"
+      }
+    ]
+  },
+  {
+    "name": "chat-money-back",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1 && !!document.querySelector('.cx-screen')",
+        "msg": "back closes the sheet and keeps the chat"
+      }
+    ]
+  },
+  {
+    "name": "chat-group",
+    "hash": "comms",
+    "steps": [
+      {
+        "eval": "(ShizhongChat.open('g1'), true)"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "expect": "!!document.querySelector('.cx-screen[data-chat-kind=group]')",
+        "msg": "group chat opens"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-tool').length === 5 && !document.querySelector('[data-tool=voiceCall]')",
+        "msg": "group tools: no calls or transfers"
+      }
+    ]
+  },
+  {
+    "name": "chat-group-redpacket",
+    "hash": "comms",
+    "steps": [
+      {
+        "eval": "(ShizhongChat.open('g1'), true)"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=count]",
+        "value": "3"
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "30"
+      },
+      {
+        "shot": "form"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 6500
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-sys').length >= 1",
+        "msg": "group members open the packet"
+      }
+    ]
+  },
+  {
+    "name": "chat-location",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=location]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-place][data-id=klcc]"
+      },
+      {
+        "shot": "form"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=location]') && SZ.overlay.depth() === 1",
+        "msg": "location sent"
+      }
+    ]
+  },
+  {
+    "name": "chat-card",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=card]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!SZ.overlay.$('[data-action=cx-card-pick][data-id=p1]')",
+        "msg": "card list excludes the current person"
+      },
+      {
+        "click": "[data-action=cx-card-pick]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "preview"
+      },
+      {
+        "click": "[data-action=cx-card-send]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=contact]')",
+        "msg": "card sent"
+      }
+    ]
+  },
+  {
+    "name": "chat-image",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "(async()=>{const c=document.createElement('canvas');c.width=640;c.height=480;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,640,480);g.addColorStop(0,'#f6b26b');g.addColorStop(1,'#6fa8dc');x.fillStyle=g;x.fillRect(0,0,640,480);const b=await new Promise(r=>c.toBlob(r,'image/png'));const dt=new DataTransfer();dt.items.add(new File([b],'sunset.png',{type:'image/png'}));const i=document.querySelector('.cx-file-input');i.dataset.kind='image';i.files=dt.files;i.dispatchEvent(new Event('change'));return true})()"
+      },
+      {
+        "wait": 1200
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=image] img.cx-photo')",
+        "msg": "photo bubble with inline thumbnail"
+      },
+      {
+        "shot": "bubble"
+      },
+      {
+        "click": ".cx-row[data-type=image] .cx-bubble"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "expect": "!!document.querySelector('.cx-viewer img')",
+        "msg": "tap opens the viewer"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "SZ.overlay.depth() === 1",
+        "msg": "back closes the viewer"
+      }
+    ]
+  },
+  {
+    "name": "chat-file",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "(()=>{const dt=new DataTransfer();dt.items.add(new File(['Weekend plan\\n10:30 KLCC\\n12:00 lunch'],'weekend-plan.txt',{type:'text/plain'}));const i=document.querySelector('.cx-file-input');i.dataset.kind='file';i.files=dt.files;i.dispatchEvent(new Event('change'));return true})()"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=file]')",
+        "msg": "file bubble"
+      },
+      {
+        "click": ".cx-row[data-type=file] .cx-bubble"
+      },
+      {
+        "wait": 700
+      },
+      {
+        "expect": "!!SZ.overlay.$('.cx-file-preview') && !!SZ.overlay.$('a[download]')",
+        "msg": "file sheet with preview and save link"
+      }
+    ]
+  },
+  {
+    "name": "chat-voice",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-voice]"
+      },
+      {
+        "expect": "!document.querySelector('.cx-hold').hidden",
+        "msg": "hold-to-talk visible"
+      },
+      {
+        "shot": "hold"
+      },
+      {
+        "click": ".cx-hold"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "sheet"
+      },
+      {
+        "click": "[data-cx-voice=sample]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=voice] .cx-b-voice')",
+        "msg": "voice bubble"
+      },
+      {
+        "click": ".cx-row[data-type=voice] .cx-b-voice"
+      },
+      {
+        "expect": "!!document.querySelector('.cx-b-voice.is-playing')",
+        "msg": "inline playback state"
+      }
+    ]
+  },
+  {
+    "name": "chat-support",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=support]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "expect": "document.querySelectorAll('.cx-tool').length === 3",
+        "msg": "support tools: photo, file, location"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "type": ".cx-input",
+        "value": "我的订单什么时候确认？"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "wait": 4200
+      },
+      {
+        "expect": "(state.messages.support||[]).some(m => !m.self)",
+        "msg": "assistant auto-replies"
+      }
+    ]
+  },
+  {
+    "name": "chat-merchant",
+    "hash": "home",
+    "steps": [
+      {
+        "eval": "(ShizhongChat.open('merchant:s3'), true)"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "expect": "!!document.querySelector('.cx-screen[data-chat-kind=merchant]')",
+        "msg": "merchant chat opens"
+      }
+    ]
+  },
+  {
+    "name": "chat-unread-reply",
+    "hash": "comms",
+    "steps": [
+      {
+        "click": "[data-action=chat][data-id=p2]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "type": ".cx-input",
+        "value": "你好呀"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 6000
+      },
+      {
+        "expect": "ShizhongChat.unread('p2') === 1",
+        "msg": "a reply that arrives after leaving counts as unread"
+      }
+    ]
+  },
+  {
+    "name": "chat-guest",
+    "hash": "comms",
+    "session": "guest",
+    "steps": [
+      {
+        "eval": "(ShizhongChat.open('support'), true)"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "type": ".cx-input",
+        "value": "hello"
+      },
+      {
+        "submit": ".cx-composer"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!(state.messages.support||[]).some(m => m.self && m.text === 'hello')",
+        "msg": "guests cannot send"
+      }
+    ]
+  }
 ]
