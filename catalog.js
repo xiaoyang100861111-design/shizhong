@@ -1,22 +1,147 @@
 'use strict';
+/*
+ * Catalogue & social lists (owner: catalog): Home, categories, service detail, search, Discover
+ * (people, moments, person detail, comments), the public Live list, the Messages list and group
+ * detail, plus the demo-data helpers other modules use (chatInfo, conversationMessages, …).
+ * Commerce (request form → confirm → pay → orders → reviews, cart) lives in checkout.js and chunk
+ * loading in lazy.js; both load right after this file. Public globals follow docs/CONTRACTS.md;
+ * internals shared by the three files hang off window.ShizhongCatalog.
+ */
+(function () {
+  const C = (window.ShizhongCatalog = window.ShizhongCatalog || {});
+  const demoData = window.SHIZHONG_DEMO;
+  const DEMO_VERSION = '2026-09-catalog-4';
+  // Demo "minutes ago" offsets are anchored to page load so times stay put while the app is open.
+  const DEMO_NOW = Date.now();
+  const CJK = /[㐀-鿿]/;
+  const catalogUI = { category: null, city: 'all', sort: 'recommended', query: '', groupScope: 'mine' };
+  const HOME_FILTERS = ['recommended', 'nearby', 'rating', 'deals'];
+  const SORTS = ['recommended', 'priceAsc', 'priceDesc', 'rating', 'sales'];
+  const LIVE_TOPICS = { all: '', local: '同城聊天', travel: '旅行分享', language: '语言交流' };
+  const listPages = new Map();
+  const pageLimits = new Map();
+  const fmt = () => SZ.fmt;
 
-// The catalogue stays in memory; only a visitor's changes are written to localStorage.
-const demoData = window.SHIZHONG_DEMO;
-const listPages = new Map();
-const pageLimits = new Map();
-const catalogUI = { category: null, city: '全部城市', sort: '综合推荐', query: '', groupScope: '发现群组' };
-const DEMO_VERSION = '2026-09-catalog-3';
-
-function stableHash(text) {
-  let n = 2166136261;
-  for (const c of String(text)) {
-    n ^= c.codePointAt(0);
-    n = Math.imul(n, 16777619);
+  // ------------------------------------------------------------------ text helpers
+  /** Escaped demo text. Untranslated Chinese is marked lang="zh-CN" (screen readers, QA). */
+  function html(value) {
+    const text = String(value ?? '');
+    return !SZ_I18N.isSource && CJK.test(text) ? `<span lang="zh-CN">${esc(text)}</span>` : esc(text);
   }
-  return n >>> 0;
-}
-function prepareServices(items) {
-  const fallback = {
+  const txt = (kind, record, field) => (record ? (lc(kind, record, field) ?? '') : '');
+  function contentList(kind, record, field) {
+    const value = record ? lc(kind, record, field) : null;
+    if (Array.isArray(value)) return value;
+    return Array.isArray(record?.[field]) ? record[field] : [];
+  }
+  function stableHash(text) {
+    let n = 2166136261;
+    for (const c of String(text)) {
+      n ^= c.codePointAt(0);
+      n = Math.imul(n, 16777619);
+    }
+    return n >>> 0;
+  }
+  function cityName(value) {
+    if (!value) return '';
+    const hit = td('city', value);
+    return hit !== value ? hit : td('catalog.city', value);
+  }
+  const catName = id => t(`catalog.cat.${id}`);
+  const catHint = id => t(`catalog.catHint.${id}`);
+  const allCategories = () => [...categories, ...moreCategories];
+  const findCategory = id => allCategories().find(c => c.id === id) || null;
+  const unitName = unit => td('catalog.unit', String(unit || '次').replace(/起$/, '') || '次');
+  const isFromPrice = s => /起$/.test(String(s?.unit || ''));
+  const serviceName = s => txt('services', s, 'name');
+  const storeName = s => txt('services', s, 'store');
+  const number = (n, opts) => fmt().number(n, opts);
+  const rating1 = n => number(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  function img(src, alt = '', cls = '', extra = '') {
+    const media = SZ.media.isRef(src);
+    return `<img${cls ? ` class="${cls}"` : ''} src="${esc(asset(src))}"${media ? ` data-media="${esc(src)}"` : ''} alt="${esc(alt)}" loading="lazy" decoding="async" ${extra}>`;
+  }
+  function avatarHTML(person, size = 48, placement = 'list') {
+    const image = img(avatarSource(person), '', `avatar avatar-${size}`);
+    return window.ShizhongGifts?.avatarDecoration
+      ? window.ShizhongGifts.avatarDecoration(image, person.id, placement)
+      : image;
+  }
+  const selfPhoto = () => state.profile?.photo || 'ui/avatar-default.svg';
+
+  // ------------------------------------------------------------------ price, sales, rating
+  function priceParts(s) {
+    if (s.type === 'job') {
+      const min = fmt().money(s.salaryMin || s.price);
+      const price = s.salaryMax ? t('catalog.salaryRange', { min, max: fmt().money(s.salaryMax) }) : min;
+      return { key: 'catalog.priceUnit', price, unit: unitName(s.unit || '月') };
+    }
+    return {
+      key: isFromPrice(s) ? 'catalog.priceFrom' : 'catalog.priceUnit',
+      price: fmt().money(s.price),
+      unit: unitName(s.unit),
+    };
+  }
+  /** "From RM 85 / visit" with only the amount styled as a price; word order comes from the locale. */
+  function priceHTML(s, cls = '') {
+    const p = priceParts(s);
+    const [before, after] = t(p.key, { price: '\u0000', unit: p.unit }).split('\u0000');
+    return `<span class="checkout-price ${cls}">${before ? `<span class="checkout-price-note">${esc(before)}</span>` : ''}<span class="price">${esc(p.price)}</span>${after ? `<span class="checkout-price-note">${esc(after)}</span>` : ''}</span>`;
+  }
+  function priceText(s) {
+    const p = priceParts(s);
+    return t(p.key, { price: p.price, unit: p.unit });
+  }
+  function parseSales(text) {
+    const s = String(text || '');
+    const num = v => Number(String(v).replace(/,/g, '')) || 0;
+    let m;
+    if ((m = /近\s*(\d+)\s*天售出\s*([\d,]+)/.exec(s)))
+      return { kind: 'sold', days: num(m[1]), count: num(m[2]) };
+    if ((m = /月售\s*([\d,]+)/.exec(s))) return { kind: 'monthly', count: num(m[1]) };
+    if ((m = /(?:累计服务|已服务)\s*([\d,]+)/.exec(s))) return { kind: 'served', count: num(m[1]) };
+    if ((m = /已预约\s*([\d,]+)/.exec(s))) return { kind: 'booked', count: num(m[1]) };
+    if ((m = /已接送\s*([\d,]+)/.exec(s))) return { kind: 'trips', count: num(m[1]) };
+    if ((m = /([\d,]+)\s*人看过/.exec(s))) return { kind: 'views', count: num(m[1]) };
+    return { kind: '', count: num((/[\d,]+/.exec(s) || [0])[0]) };
+  }
+  function salesText(s) {
+    if (!s.salesKind) return s.sales ? txt('services', s, 'sales') : '';
+    return t(`catalog.sales.${s.salesKind}`, { n: fmt().compact(s.salesCount), days: s.salesDays || 30 });
+  }
+  const userReviews = id => (Array.isArray(state.reviews?.[id]) ? state.reviews[id] : []);
+  /** Sample rating blended with the visitor's own reviews (the sample weighs more for busy services). */
+  function serviceRating(s) {
+    const base = Number(s.rating) || 4.6;
+    const own = userReviews(s.id);
+    if (!own.length) return base;
+    const votes = Math.max((s.reviews || []).length, Math.min(Math.round((s.salesCount || 0) / 10), 60), 5);
+    return (base * votes + own.reduce((n, r) => n + (Number(r.stars) || 0), 0)) / (votes + own.length);
+  }
+  function stars(value, label = true) {
+    const n = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
+    return `<span class="checkout-stars" ${label ? `role="img" aria-label="${esc(t('catalog.review.starsLabel', { n }))}"` : 'aria-hidden="true"'}>${'★'.repeat(n)}<span class="checkout-stars-off">${'★'.repeat(5 - n)}</span></span>`;
+  }
+
+  // ------------------------------------------------------------------ indexes & data preparation
+  C.serviceById = new Map();
+  C.personById = new Map();
+  C.groupById = new Map();
+  C.postById = new Map();
+  C.dataVersion = 0;
+  C.index = (kind, records) => {
+    const map = { services: C.serviceById, people: C.personById, groups: C.groupById, posts: C.postById }[
+      kind
+    ];
+    for (const r of records || []) if (r && r.id != null && !map.has(r.id)) map.set(r.id, r);
+  };
+  const findService = id => C.serviceById.get(id) || null;
+  const findPerson = id => C.personById.get(id) || null;
+  const findGroup = id => C.groupById.get(id) || state.groups.find(g => g.id === id) || null;
+  const findPost = id => C.postById.get(id) || state.posts.find(p => p.id === id) || null;
+
+  const FALLBACK_IMAGES = {
     clean: 'clean-home.jpg',
     guide: 'city-kl.jpg',
     market: 'fresh-fruit.jpg',
@@ -31,933 +156,2230 @@ function prepareServices(items) {
     phone: 'cafe-brunch.jpg',
     visa: 'city-kl.jpg',
   };
-  for (const s of items) {
-    if (!s.image || s.image.startsWith('data:image/svg')) s.image = fallback[s.cat] || 'city-kl.jpg';
-    s.countryCode = String(s.countryCode || 'MY').toUpperCase();
-    s.city = s.city || '吉隆坡';
-    s.area = s.area || '市区';
-    s.rating = Number(s.rating || 4.6).toFixed(1);
-    s.description = s.description || '';
-    s.includes = s.includes || [];
-    s.details = s.details || [];
-    s.faq = s.faq || [];
-    s.reviews = s.reviews || [];
-    if (s.legacy) {
-      s.languages = s.languages || ['中文', 'English'];
-      s.duration = s.duration || '具体服务时长在预约时确认';
-      s.availability = s.availability || '请提前预约，具体时段由双方确认';
-      s.excludes = s.excludes || ['超出已确认范围的服务与第三方费用需另行确认'];
-      s.notice = s.notice || '历史设计样例，时间、地点及服务范围需预约后确认。';
-      s.pricingNote = s.pricingNote || '展示价格为参考起价，具体费用以预约确认内容为准。';
+  function prepareServices(items) {
+    for (const s of items) {
+      if (!s.image || s.image.startsWith('data:image/svg')) s.image = FALLBACK_IMAGES[s.cat] || 'city-kl.jpg';
+      s.countryCode = String(s.countryCode || 'MY').toUpperCase();
+      s.city = s.city || '吉隆坡';
+      s.rating = Number(s.rating) || 4.6;
+      s.description = s.description || '';
+      for (const key of ['includes', 'details', 'faq', 'reviews']) if (!Array.isArray(s[key])) s[key] = [];
+      const sales = parseSales(s.sales);
+      s.salesKind = sales.kind;
+      s.salesCount = sales.count;
+      s.salesDays = sales.days || 0;
+      s._rank = stableHash(s.id) % 1000;
     }
   }
-}
-function preparePeople(items) {
-  for (const p of items) {
-    p.countryCode = String(p.countryCode || 'MY').toUpperCase();
-    if (!p.photo || p.photo.startsWith('data:image/svg'))
-      p.photo = 'avatars/' + (p.gender === '女' ? 'women' : 'men') + '-000.jpg';
-    p.distance = p.distance || Number(p.distanceKm || 1.3).toFixed(1) + ' km';
-    p.activeText = p.activeText || (p.online ? '在线' : '最近来过');
+  function preparePeople(items) {
+    for (const p of items) {
+      p.countryCode = String(p.countryCode || 'MY').toUpperCase();
+      if (!p.photo || p.photo.startsWith('data:image/svg'))
+        p.photo = 'avatars/' + (p.gender === '女' ? 'women' : 'men') + '-000.jpg';
+      p.distanceKm = Number(p.distanceKm ?? parseFloat(p.distance)) || 1.3;
+      p.tags = Array.isArray(p.tags) ? p.tags : [];
+    }
   }
-}
-function preparePosts(items) {
-  const pictures = {
-    'city-kl': 'city-kl.jpg',
-    city: 'city-kl.jpg',
-    'cafe-brunch': 'cafe-brunch.jpg',
-    coffee: 'cafe-brunch.jpg',
-    'fresh-fruit': 'fresh-fruit.jpg',
-    'clean-home': 'clean-home.jpg',
-    'nasi-lemak': 'nasi-lemak.jpg',
-  };
-  for (const p of items) {
-    if (!p.image && p.imageKey) p.image = pictures[p.imageKey] || null;
-    if (p.image === 'city-kl.jpg' && p.city && !['吉隆坡', '八打灵再也'].includes(p.city)) p.image = null;
-    p.time = p.time || relativeTime(p.minutesAgo || 1);
-    p.text = p.text.replace(/<br\s*\/?>/g, '\n');
+  function preparePosts(items) {
+    const pictures = {
+      'city-kl': 'city-kl.jpg',
+      city: 'city-kl.jpg',
+      'cafe-brunch': 'cafe-brunch.jpg',
+      coffee: 'cafe-brunch.jpg',
+      'fresh-fruit': 'fresh-fruit.jpg',
+      'clean-home': 'clean-home.jpg',
+      'nasi-lemak': 'nasi-lemak.jpg',
+    };
+    for (const p of items) {
+      if (!p.image && p.imageKey) p.image = pictures[p.imageKey] || null;
+      if (p.image === 'city-kl.jpg' && p.city && !['吉隆坡', '八打灵再也'].includes(p.city)) p.image = null;
+      if (!p.at) {
+        let minutes = Number(p.minutesAgo);
+        if (!minutes && typeof p.time === 'string') {
+          const m = /(\d+)\s*(分钟|小时|天)/.exec(p.time);
+          minutes = m ? Number(m[1]) * { 分钟: 1, 小时: 60, 天: 1440 }[m[2]] : 60;
+        }
+        p.at = DEMO_NOW - (minutes || 1) * 60000;
+      }
+      p.text = String(p.text || '').replace(/<br\s*\/?>/g, '\n');
+    }
   }
-}
-function prepareCatalogue() {
   prepareServices(services);
   preparePeople(people);
   preparePosts(basePosts);
-}
-function groupAvatar(g) {
-  let members = (g.memberIds || [])
-    .map(id => people.find(p => p.id === id))
-    .filter(Boolean)
-    .slice(0, 4);
-  if (!members.length) members = people.slice(0, 4);
-  return `<span class="group-avatar" role="img" aria-label="${esc(g.name)}的群头像"><span class="group-avatar-grid" data-count="${members.length}">${members.map(p => `<img src="${asset(p.photo)}" alt="" width="32" height="32" loading="lazy" decoding="async">`).join('')}</span></span>`;
-}
-function relativeTime(minutes) {
-  if (minutes < 2) return '刚刚';
-  if (minutes < 60) return Math.floor(minutes) + ' 分钟前';
-  if (minutes < 1440) return Math.floor(minutes / 60) + ' 小时前';
-  if (minutes < 10080) return Math.floor(minutes / 1440) + ' 天前';
-  return Math.floor(minutes / 10080) + ' 周前';
-}
-function installDemoState() {
-  const followIds = demoData.seedFollowIds || [];
-  initialState.follows = [...new Set([...initialState.follows, ...followIds])];
-  initialState.orders = JSON.parse(JSON.stringify(demoData.orders || []));
-  initialState.joined = [...new Set([...initialState.joined, ...(demoData.seedGroupIds || [])])];
-  initialState.demoVersion = DEMO_VERSION;
-  if (state.demoVersion !== DEMO_VERSION) {
-    const oldOrderIds = new Set(state.orders.map(o => o.id));
-    state.orders = [...state.orders, ...initialState.orders.filter(o => !oldOrderIds.has(o.id))];
-    state.follows = [...new Set([...state.follows, ...followIds])];
-    state.joined = [...new Set([...state.joined, ...initialState.joined])];
+  C.index('services', services);
+  C.index('people', people);
+  C.index('groups', defaultGroups);
+  C.index('posts', basePosts);
+  const catalogueServices = () => services.filter(s => !s.legacy);
+
+  // ------------------------------------------------------------------ state
+  initialState.reviews = {};
+  initialState.searchHistory = [];
+  function ensureState() {
+    if (!state) return;
+    const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+    const arr = v => (Array.isArray(v) ? v : []);
+    state.reviews = obj(state.reviews);
+    state.cart = obj(state.cart);
+    state.comments = obj(state.comments);
+    state.messages = obj(state.messages);
+    state.settings = obj(state.settings);
+    for (const key of [
+      'searchHistory',
+      'orders',
+      'follows',
+      'likes',
+      'saved',
+      'blocked',
+      'joined',
+      'groups',
+      'bills',
+      'posts',
+      'greeted',
+      'readChats',
+    ])
+      state[key] = arr(state[key]);
+  }
+  /** Demo account only: seed sample orders, follows and groups once per data version. */
+  function installDemoState() {
+    ensureState();
+    if (!SZ.session.isDemo || state.demoVersion === DEMO_VERSION) return;
+    const known = new Set(state.orders.map(o => o.id));
+    const seeds = JSON.parse(JSON.stringify(demoData.orders || [])).filter(o => !known.has(o.id));
+    state.orders.push(...seeds);
+    state.follows = [...new Set([...state.follows, ...(demoData.seedFollowIds || [])])];
+    state.joined = [...new Set([...state.joined, ...(demoData.seedGroupIds || [])])];
     state.demoVersion = DEMO_VERSION;
+    C.migrateOrders?.();
     save();
   }
-}
-function catalogueServices() {
-  return services.filter(s => !s.legacy);
-}
-function catalogCountryCode() {
-  return String(state.location?.countryCode || 'MY').toUpperCase();
-}
-function catalogCity() {
-  return state.location?.cityName || state.city;
-}
-function catalogLocationKey() {
-  return catalogCountryCode() + '-' + String(state.location?.cityId || catalogCity());
-}
-function catalogMatchesLocation(item) {
-  return (
-    String(item.countryCode || 'MY').toUpperCase() === catalogCountryCode() && item.city === catalogCity()
-  );
-}
-function catalogServiceLocation(city) {
-  const actualCity = city || '吉隆坡';
-  return (
-    window.ShizhongRegions?.serviceLocation?.(actualCity) || {
-      countryCode: 'MY',
-      countryName: '马来西亚',
-      cityId: '',
-      cityName: actualCity,
-      stateId: '',
-      stateName: '',
-      custom: !cities.includes(actualCity),
-    }
-  );
-}
-function catalogOrderCity(order, service) {
-  return order.data?.location?.cityName || order.data?.city || service?.city || '地区待确认';
-}
-function countNote(count, label = '项服务') {
-  return `<div class="catalog-count"><span>共 <b>${count.toLocaleString()}</b> ${label}</span><span class="sample-mark">内容为演示样本</span></div>`;
-}
-function pagedList(key, items, draw, layout = 'product-grid', pageSize = 20) {
-  const token = 'list-' + stableHash(key).toString(36),
-    limit = Math.min(pageLimits.get(key) || pageSize, items.length);
-  pageLimits.set(key, limit);
-  listPages.set(token, { key, items, draw, layout, pageSize, limit });
-  return `<div id="${token}" class="${layout}">${items.slice(0, limit).map(draw).join('')}</div>${pagerFooter(token)}`;
-}
-function pagerFooter(token) {
-  const p = listPages.get(token);
-  if (!p) return '';
-  return `<div class="catalog-pager" id="${token}-pager"><span>已展示 ${p.limit} / ${p.items.length} 条</span>${p.limit < p.items.length ? act('load-more', token, '再看 ' + Math.min(p.pageSize, p.items.length - p.limit) + ' 条', 'load-more-button') : p.items.length ? '<span class="pager-end">已经看完啦</span>' : ''}</div>`;
-}
-function loadMore(token) {
-  const p = listPages.get(token),
-    container = document.getElementById(token);
-  if (!p || !container) return;
-  const end = Math.min(p.limit + p.pageSize, p.items.length);
-  container.insertAdjacentHTML('beforeend', p.items.slice(p.limit, end).map(p.draw).join(''));
-  p.limit = end;
-  pageLimits.set(p.key, end);
-  document.getElementById(token + '-pager').outerHTML = pagerFooter(token);
-}
-function amount(value) {
-  return Number(value).toLocaleString('en-MY', { maximumFractionDigits: 2 });
-}
-function servicePrice(s) {
-  if (s.type === 'job')
-    return `<span class="price wage"><small>RM</small>${amount(s.salaryMin || s.price)}${s.salaryMax ? `–${amount(s.salaryMax)}` : ''}<em>/${esc(s.unit || '月')}</em></span>`;
-  return `<span class="price"><small>RM</small>${amount(s.price)}<em>/${esc((s.unit || '次').replace(/起$/, ''))}</em></span>`;
-}
-function productCard(s) {
-  return act(
-    'service',
-    s.id,
-    `<div class="product-cover ${s.image.startsWith('data:') ? 'catalog-art' : ''}"><img src="${asset(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async"><span class="cover-label">${esc(s.badge)}</span><span class="cover-caption">${esc(s.city || '吉隆坡')} · ${esc(s.area || s.sub)}</span></div><div class="product-body"><h3>${esc(s.name)}</h3><div class="product-meta">${s.type === 'job' ? '<span>招聘中</span>' : `<span class="rating">★ ${s.rating}</span>`}<span>·</span><span class="store-name">${esc(s.store)}</span></div><div class="price-row">${servicePrice(s)}</div><p class="catalog-item-note">${esc(s.type === 'job' ? s.employment || '职位详情内查看要求' : s.sales)}</p></div>`,
-    'product-card'
-  );
-}
-function homePage() {
-  const foreign = catalogCountryCode() !== 'MY';
-  let list = catalogueServices();
-  if (ui.homeTab === 'discover')
-    list = list.filter(s => ['food', 'market', 'flower', 'beauty'].includes(s.cat));
-  if (ui.homeFilter === '超值好物') list = list.filter(s => s.type === 'goods' && s.price < 35);
-  if (ui.homeFilter === '附近服务')
-    list = list.filter(s => s.type === 'service' && catalogMatchesLocation(s));
-  list = [...list].sort((a, b) =>
-    ui.homeFilter === '好评优先'
-      ? +b.rating - +a.rating
-      : Number(catalogMatchesLocation(b)) - Number(catalogMatchesLocation(a)) ||
-        (stableHash(a.id) % 1000) - (stableHash(b.id) % 1000)
-  );
-  if (ui.homeFilter === '推荐') {
-    const chosen = [],
-      usedImages = new Set();
-    const preferred = (demoData.featuredIds || []).map(id => list.find(s => s.id === id)).filter(Boolean);
-    for (const s of [...preferred, ...list]) {
-      if (catalogMatchesLocation(s) && !s.image.startsWith('data:') && !usedImages.has(s.image)) {
-        chosen.push(s);
-        usedImages.add(s.image);
-      }
-      if (chosen.length === 6) break;
-    }
-    const ids = new Set(chosen.map(s => s.id));
-    list = [...chosen, ...list.filter(s => !ids.has(s.id))];
-  }
-  return `<section class="page"><div class="white-section"><header class="topbar"><div class="brand-lockup"><img class="brand-logo" src="${asset('logo.png')}" alt="适中"><div><div class="brand-name">适中</div><div class="brand-sub">SHIZHONG</div></div></div><div class="header-right">${act('city', '', `${icon('pin')}<span class="region-location-name">${esc(catalogCity())}</span>${icon('down')}`, 'location-button')}${act('notifications', '', `${icon('bell')}<i class="notify-dot"></i>`, 'icon-button', 'aria-label="通知"')}</div></header>${searchForm()}${tabs(
-    [
-      ['life', '生活服务'],
-      ['discover', '发现好店'],
-    ],
-    ui.homeTab,
-    'home-tab'
-  )}${categoryGrid(categories)}</div><div class="section-padding"><button class="hero-banner" style="width:100%;text-align:left" data-action="campaign" aria-label="探索马来西亚城市生活"><img src="${asset('hero.png')}" alt="马来西亚城市生活" fetchpriority="high" decoding="async"><div class="hero-copy"><div class="hero-kicker">HELLO, MALAYSIA</div><h2>在大马，<br>把日子过成<span>喜欢</span>。</h2><p>${foreign ? '发现马来西亚的城市好生活' : '地道好生活，就在你身边'}</p><span class="hero-cta">开启城市好生活 ${icon('chevron')}</span></div></button><div class="benefit-strip"><span>${icon('shield')}安心服务</span><span>${icon('chat')}中文沟通</span><span>${icon('clock')}便捷响应</span></div>${heading(foreign ? '马来西亚精选' : ui.homeTab === 'life' ? '为你精选' : '值得去的好店', 'all-services', '', '好生活，不将就')}${foreign ? '<p class="form-note">当前商家样例位于马来西亚，具体服务城市请查看详情；其他地区可发布需求。</p>' : ''}<div class="filter-row">${chips(['推荐', '附近服务', '好评优先', '超值好物'], ui.homeFilter, 'home-filter')}</div>${countNote(list.length)}${list.length ? pagedList('home-' + ui.homeTab + ui.homeFilter + catalogLocationKey(), list, productCard) : empty(ui.homeFilter === '附近服务' ? '当前城市暂无附近服务样例' : '暂时没有符合条件的服务', ui.homeFilter === '附近服务' ? '附近仅展示同一国家、同一城市的商家；可查看马来西亚精选，或切换城市。' : '换个筛选条件，发现更多好生活。', ui.homeFilter === '附近服务' ? 'city' : 'all-services', ui.homeFilter === '附近服务' ? '切换国家 / 城市' : '查看全部服务')}<div class="endnote">— 让每一份生活，都刚刚好 —</div></div></section>`;
-}
-function categoryPage(id, keepFilters = false) {
-  if (id === 'all') {
-    showScreen(
-      '全部生活服务',
-      `<div class="white-section">${categoryGrid([...categories.filter(c => c.id !== 'all'), ...moreCategories])}</div><div class="detail-content"><div class="info-highlight">生活里的大小事，在这里找到合适的帮手。选择类目，查看服务范围与具体规格。</div>${categoryCounts()}</div>`
+  ensureState();
+  installDemoState();
+
+  // ------------------------------------------------------------------ location
+  const catalogCountryCode = () => String(state.location?.countryCode || 'MY').toUpperCase();
+  const catalogCity = () => state.location?.cityName || state.city;
+  const locationKey = () => catalogCountryCode() + '-' + String(state.location?.cityId || catalogCity());
+  const isLocal = item =>
+    String(item.countryCode || 'MY').toUpperCase() === catalogCountryCode() && item.city === catalogCity();
+  const abroad = () => catalogCountryCode() !== 'MY';
+
+  // ------------------------------------------------------------------ ui state (app.js ships legacy Chinese defaults)
+  function normalizeUi() {
+    const pick = (value, ids, fallback) => (ids.includes(value) ? value : fallback);
+    ui.homeFilter = pick(ui.homeFilter, HOME_FILTERS, 'recommended');
+    ui.socialTab = pick(ui.socialTab, ['friends', 'feed'], 'friends');
+    ui.socialFilter = pick(
+      ui.socialFilter,
+      ui.socialTab === 'feed' ? ['recommended', 'following'] : ['recommended', 'nearby'],
+      'recommended'
     );
-    return;
+    ui.liveTab = pick(ui.liveTab, ['public', 'private'], 'public');
+    ui.liveFilter = pick(ui.liveFilter, Object.keys(LIVE_TOPICS), 'all');
+    ui.commsTab =
+      ui.commsTab === 'friends' ? 'chats' : pick(ui.commsTab, ['chats', 'groups', 'contacts'], 'chats');
+    if (!ui.cityFilter || ui.cityFilter === '全部') ui.cityFilter = 'all';
+    if (!ui.interestFilter || ui.interestFilter === '全部') ui.interestFilter = 'all';
+    if (!['mine', 'discover'].includes(catalogUI.groupScope)) catalogUI.groupScope = 'mine';
   }
-  const c = [...categories, ...moreCategories].find(c => c.id === id);
-  if (!c) return;
-  if (!keepFilters) {
-    catalogUI.city = '全部城市';
-    catalogUI.sort = '综合推荐';
-    catalogUI.query = '';
+  normalizeUi();
+
+  // ------------------------------------------------------------------ small components
+  function tabBar(items, current, action, label) {
+    return `<div class="tabs checkout-tabs" role="tablist" aria-label="${esc(label)}">${items
+      .map(([id, text]) => act(action, id, esc(text), 'tab', `role="tab" aria-selected="${current === id}"`))
+      .join('')}</div>`;
   }
-  catalogUI.category = id;
-  let list = catalogueServices().filter(s => s.cat === id);
-  if (catalogUI.city !== '全部城市') list = list.filter(s => s.city === catalogUI.city);
-  if (catalogUI.query)
-    list = list.filter(s =>
-      (s.name + s.description + s.store + s.area).toLowerCase().includes(catalogUI.query.toLowerCase())
+  function chipGroup(items, current, action, label, extra = '') {
+    return `<div class="chip-row checkout-chips" role="group" aria-label="${esc(label)}">${items
+      .map(([id, text]) => act(action, id, esc(text), 'chip', `aria-pressed="${current === id}"`))
+      .join('')}${extra}</div>`;
+  }
+  function emptyState(iconName, title, text, action = '', label = '', id = '') {
+    return `<div class="empty-state checkout-empty">${icon(iconName)}<h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ''}${action ? act(action, id, esc(label), 'btn btn-tonal btn-sm') : ''}</div>`;
+  }
+  function skeleton(kind = 'row', count = 4) {
+    return `<div class="checkout-skeletons checkout-skeletons-${kind}" aria-busy="true"><span class="sr-only" role="status">${esc(t('common.loading'))}</span>${Array.from(
+      { length: count },
+      () =>
+        `<div class="checkout-skeleton" aria-hidden="true"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`
+    ).join('')}</div>`;
+  }
+  function loadError() {
+    return emptyState(
+      'help',
+      t('catalog.load.errorTitle'),
+      t('catalog.load.errorText'),
+      'load-retry',
+      t('common.retry')
     );
-  list = [...list].sort((a, b) =>
-    catalogUI.sort === '价格从低到高'
-      ? a.price - b.price
-      : catalogUI.sort === '好评优先'
-        ? +b.rating - +a.rating
-        : (id === 'phone' ? Number(a.phoneKind !== 'topup') - Number(b.phoneKind !== 'topup') : 0) ||
-          (stableHash(a.id) % 997) - (stableHash(b.id) % 997)
-  );
-  showScreen(
-    c.name,
-    `<div class="detail-content"><div class="form-summary"><span class="category-icon" style="--icon-color:${c.color};--icon-bg:${c.bg}">${icon(c.icon)}</span><div><h3>${c.name}</h3><p>${c.hint}</p></div></div>${act('request', id, '发布我的需求 ' + icon('add'), 'primary-button')}<form class="catalog-search" data-form="catalog-search">${icon('search')}<input class="field" name="q" value="${esc(catalogUI.query)}" aria-label="类目内搜索" placeholder="搜索具体服务或商品"><button type="submit" class="small-primary">搜索</button></form><div class="catalog-selects">${selectField('服务城市', 'catalogCity', ['全部城市', ...cities], catalogUI.city)}${selectField('排序方式', 'catalogSort', ['综合推荐', '价格从低到高', '好评优先'], catalogUI.sort)}</div>${countNote(list.length)}${list.length ? pagedList('category-' + id + catalogUI.city + catalogUI.sort + catalogUI.query, list, productCard) : empty('暂时没有匹配的内容', '换个城市或关键词，再找找看。')}</div>`
-  );
-}
-function categoryCounts() {
-  return `<div class="category-summary">${[...categories, ...moreCategories]
-    .filter(c => c.id !== 'all')
-    .map(c =>
-      act(
-        'category',
-        c.id,
-        `${icon(c.icon)}<span>${c.name}</span><b>${catalogueServices().filter(s => s.cat === c.id).length}</b>${icon('chevron')}`,
-        'list-row'
-      )
-    )
-    .join('')}</div>`;
-}
-function serviceDetail(id) {
-  const s = services.find(s => s.id === id);
-  if (!s) return;
-  const reviews = s.reviews || [],
-    details = s.details.map(d => [d.label, d.value]);
-  const included = s.includes || [];
-  showScreen(
-    s.type === 'job' ? '职位详情' : s.type === 'goods' ? '商品详情' : '服务详情',
-    `<div class="detail-hero ${s.image.startsWith('data:') ? 'catalog-art' : ''}"><img src="${asset(s.image)}" alt="${esc(s.name)}"><span class="cover-label red">${esc(s.badge)}</span></div><div class="detail-content"><div class="price-row">${servicePrice(s)}</div><h2 style="margin-top:13px">${esc(s.name)}</h2><p class="service-location">${icon('pin')}${esc(s.city || '吉隆坡')} · ${esc(s.area || '市区')}<span>${s.type === 'job' ? esc(s.employment || '') : '★ ' + s.rating}</span></p><div class="tags">${included.map(t => `<span class="tag">${icon('check')}${esc(t)}</span>`).join('')}</div><p class="detail-description rich-description">${esc(s.description)}</p><div class="panel"><div class="panel-heading">${esc(s.store)}<span class="sample-mark">示例商家</span></div>${summary([['城市 / 地区', (s.city || '吉隆坡') + ' · ' + (s.area || '市区')], ['沟通语言', (s.languages || ['中文', 'English']).join(' · ')], ['服务 / 交付时长', s.duration || '预约后确认'], ['可预约时间', s.availability || '下单后确认'], ...details])}</div>${s.type === 'job' ? `<div class="panel"><h3 class="subsection-title">岗位要求</h3>${bulletItems(s.requirements || included)}<h3 class="subsection-title">工作安排与福利</h3>${bulletItems(s.benefits || [])}</div>` : `<div class="panel"><h3 class="subsection-title">费用包含</h3>${bulletItems(included)}<h3 class="subsection-title">未包含 / 需要提前确认</h3>${bulletItems(s.excludes || ['超出约定范围的项目需另行确认'])}<p class="pricing-note">${esc(s.pricingNote || '具体规格和费用以服务确认单为准。')}</p></div>`}<div class="panel"><h3 class="subsection-title">预约前了解</h3><p class="detail-description">${esc(s.notice || '提交需求后确认具体时间与地点。')}</p>${s.faq.map(f => `<details class="faq compact-faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</div>${reviews.length ? `<div class="panel"><div class="panel-heading">${s.type === 'job' ? '面试与沟通反馈' : '体验评价'}<span class="sample-mark">${reviews.length} 条样例</span></div>${reviews.map(r => `<article class="review-record"><div><b>${esc(r.author)}</b><span>${'★'.repeat(Math.max(1, Math.min(5, Number(r.stars))))}</span></div><p>${esc(r.text)}</p><time>${esc(r.date || '近期体验')}</time></article>`).join('')}</div>` : ''}<p class="form-note">该条目及评价为设计演示，价格用于展示规格差异，不代表真实商家报价。</p></div><div class="detail-bottom">${act('service-chat', id, `${icon('chat')}咨询商家`, 'detail-contact')}${act('book-service', id, s.type === 'job' ? '提交应聘意向' : s.type === 'goods' ? '选购并下单' : '预约这项服务', 'primary-button')}</div>`,
-    '',
-    act(
-      'save-service',
+  }
+  function countLine(text) {
+    return `<p class="checkout-count">${esc(text)}</p>`;
+  }
+  function searchLauncher(scope, placeholder) {
+    return act(
+      'catalog-search',
+      scope,
+      `${icon('search')}<span>${esc(placeholder)}</span>`,
+      'checkout-search-launch'
+    );
+  }
+  function sectionHeader(title, action = '', id = '', headingId = '') {
+    return `<div class="section-header"><h2 class="section-title"${headingId ? ` id="${headingId}"` : ''}>${esc(title)}</h2>${action ? act(action, id, `${esc(t('common.viewAll'))}${icon('chevron')}`, 'btn btn-ghost btn-sm checkout-view-all') : ''}</div>`;
+  }
+
+  /*
+   * Paged lists: first page rendered inline, "load more" appends in place (no full re-render).
+   * The list is looked up inside the layer holding the button, so the same list can be stacked.
+   */
+  function pagedList(key, items, draw, layout = 'checkout-grid', pageSize = 20) {
+    const token = 'list-' + stableHash(key).toString(36);
+    const limit = Math.min(pageLimits.get(key) || pageSize, items.length);
+    listPages.set(token, { key, items, draw, pageSize, limit });
+    return `<div class="${layout}" data-list="${token}">${items.slice(0, limit).map(draw).join('')}</div>${pager(token)}`;
+  }
+  function pager(token) {
+    const p = listPages.get(token);
+    if (!p || p.items.length <= p.pageSize) return '';
+    const left = p.items.length - p.limit;
+    return `<div class="checkout-pager" data-pager="${token}"><span>${esc(t('catalog.list.shown', { shown: number(p.limit), total: number(p.items.length) }))}</span>${
+      left > 0
+        ? act(
+            'load-more',
+            token,
+            esc(t('catalog.list.more', { n: number(Math.min(p.pageSize, left)) })),
+            'btn btn-outline btn-sm'
+          )
+        : `<span>${esc(t('catalog.list.end'))}</span>`
+    }</div>`;
+  }
+  function loadMore(token, button) {
+    const p = listPages.get(token);
+    const scope = button?.closest('[data-sz-layer]') || document.querySelector('#app');
+    const container = scope?.querySelector(`[data-list="${token}"]`);
+    if (!p || !container) return;
+    const start = p.limit;
+    const end = Math.min(p.limit + p.pageSize, p.items.length);
+    container.insertAdjacentHTML('beforeend', p.items.slice(start, end).map(p.draw).join(''));
+    p.limit = end;
+    pageLimits.set(p.key, end);
+    const old = scope.querySelector(`[data-pager="${token}"]`);
+    if (old) old.outerHTML = pager(token);
+    // The button may be gone now; keep keyboard focus inside the list.
+    const next =
+      scope.querySelector(`[data-pager="${token}"] button`) ||
+      container.children[start]?.querySelector('button,a') ||
+      container.children[start];
+    next?.focus?.({ preventScroll: true });
+  }
+
+  // ------------------------------------------------------------------ cards & rows
+  function productCard(s) {
+    const job = s.type === 'job';
+    const meta = job
+      ? [s.employment ? td('catalog.employment', s.employment) : t('catalog.card.hiring'), salesText(s)]
+      : [`★ ${rating1(serviceRating(s))}`, salesText(s)];
+    return act(
+      'service',
       s.id,
-      icon('heart'),
-      'icon-button',
-      `aria-label="收藏服务" style="color:${state.saved.includes(id) ? 'var(--red)' : 'inherit'}"`
-    )
-  );
-}
-function bulletItems(items) {
-  return `<ul class="detail-bullets">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
-}
-function lockedField(label, name, value) {
-  return `<label class="form-group"><span class="form-label">${esc(label)}</span><input class="field" name="${esc(name)}" value="${esc(value)}" readonly aria-readonly="true"></label>`;
-}
-function phonePlan(s) {
-  const numeric = value => {
-    if (value === null || value === undefined || value === '') return null;
-    const n = Number(String(value).replace(/RM|MYR|\s|,/gi, ''));
-    return Number.isFinite(n) && n >= 0 ? n : null;
-  };
-  const total = numeric(s.price) || 0,
-    declaredFace = numeric(s.faceValue),
-    declaredFee = numeric(s.serviceFee);
-  const kind = String(s.phoneKind || s.type || '').toLowerCase();
-  const consultation =
-    /consult|advice|support|咨询|协助/.test(kind) ||
-    (s.type === 'service' && declaredFace === null && !/topup|top-up|recharge|充值/.test(kind));
-  const faceValue = consultation ? null : (declaredFace ?? Math.max(0, total - (declaredFee || 0)));
-  return {
-    consultation,
-    operator: s.operator || s.provider || '预约时确认运营商',
-    faceValue,
-    serviceFee: declaredFee ?? (consultation ? total : Math.max(0, total - faceValue)),
-    total,
-  };
-}
-function phoneRequestForm(s) {
-  const plan = phonePlan(s);
-  const priceRows = plan.consultation
-    ? [
-        ['咨询服务费', 'RM ' + amount(plan.serviceFee)],
-        ['参考合计', 'RM ' + amount(plan.total)],
-      ]
-    : [
-        ['充值面额', 'RM ' + amount(plan.faceValue)],
-        ['服务费', 'RM ' + amount(plan.serviceFee)],
-        ['参考合计', 'RM ' + amount(plan.total)],
-      ];
-  showSheet(
-    (plan.consultation ? '咨询 · ' : '充值 · ') + s.name,
-    `<form data-form="request" data-category="phone" data-service="${esc(s.id)}"><div class="form-summary"><img src="${asset(s.image)}" alt="${esc(s.name)}"><div><h3>${esc(s.store)}</h3><p>${esc(s.name)}</p></div></div><input type="hidden" name="serviceName" value="${esc(s.name)}">${lockedField('服务城市', 'city', s.city || '吉隆坡')}${lockedField('运营商', 'operator', plan.operator)}${plan.consultation ? field('需要咨询什么', 'project', 'textarea', '号码、套餐或使用问题，请简单说明', true) : lockedField('充值面额', 'faceValue', 'RM ' + amount(plan.faceValue))}${field(plan.consultation ? '联系电话' : '充值号码', plan.consultation ? 'phone' : 'number', 'tel', '+60 手机号码', true, plan.consultation ? state.profile.phone : '')}<div class="panel" style="margin-bottom:18px">${summary(priceRows)}</div>${field('补充说明', 'note', 'textarea', '选填，套餐范围之外的要求请先咨询')}<p class="form-note">${plan.consultation ? '当前项目仅为咨询，不会进行话费充值。' : '运营商和面额与当前套餐一致，套餐总价已包含上列服务费。'}</p>${formNote()}${submitButton(plan.consultation ? '提交咨询需求' : '确认演示充值需求')}</form>`
-  );
-}
-function requestForm(id, serviceId = '') {
-  const s = services.find(s => s.id === serviceId);
-  if (s?.cat === 'phone') {
-    phoneRequestForm(s);
-    return;
-  }
-  if (s?.type === 'job') {
-    showSheet(
-      '应聘 · ' + s.name,
-      `<form data-form="request" data-category="jobs" data-service="${s.id}"><div class="form-summary"><img src="${asset(s.image)}" alt="职位"><div><h3>${esc(s.store)}</h3><p>${esc(s.city)} · ${esc(s.employment || '全职')}</p></div></div><input type="hidden" name="serviceName" value="${esc(s.name)}">${lockedField('工作城市', 'city', s.city || '吉隆坡')}${field('怎么称呼你', 'candidate', 'text', '你的称呼', true)}${field('联系电话', 'phone', 'tel', '+60', true, state.profile.phone)}${selectField('相关工作经验', 'experience', ['暂无相关经验', '1 年以内', '1–3 年', '3–5 年', '5 年以上'])}${field('简单介绍', 'note', 'textarea', '能到岗的时间、语言或相关经历', true)}${formNote()}${submitButton('提交应聘意向')}</form>`
+      `<span class="checkout-card-media">${img(s.image, '')}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</span><span class="checkout-card-body"><span class="checkout-card-title">${html(serviceName(s))}</span><span class="checkout-card-meta">${meta
+        .filter(Boolean)
+        .map(m => `<span>${html(m)}</span>`)
+        .join(
+          ''
+        )}</span><span class="checkout-card-store">${html(storeName(s))} · ${html(cityName(s.city))}</span>${priceHTML(s)}</span>`,
+      'checkout-card'
     );
-    return;
   }
-  legacyRequestForm(id, serviceId);
-  if (!s) return;
-  const form = document.querySelector('form[data-form="request"]');
-  const hidden = document.createElement('input');
-  hidden.type = 'hidden';
-  hidden.name = 'serviceName';
-  hidden.value = s.name;
-  form.append(hidden);
-  const project = form.querySelector('select[name="project"]');
-  if (project) {
-    const option = document.createElement('option');
-    option.value = '';
-    option.textContent = '无额外项目';
-    project.prepend(option);
-    project.value = '';
-    const label = project.closest('label')?.querySelector('.form-label');
-    if (label) label.textContent = '其他需求（选填，范围另行确认）';
+  function onlineLabel(p) {
+    if (p.online) return t('catalog.person.online');
+    return txt('people', p, 'activeText') || t('catalog.person.away');
   }
-  const actualCity = s.city || '吉隆坡',
-    city = form.querySelector('[name="city"]');
-  const regionField = city?.closest('.region-form-field');
-  if (regionField) regionField.outerHTML = lockedField('服务城市', 'city', actualCity);
-  else if (city) {
-    const replacement = document.createElement('input');
-    replacement.className = 'field';
-    replacement.name = 'city';
-    replacement.value = actualCity;
-    replacement.readOnly = true;
-    replacement.setAttribute('aria-readonly', 'true');
-    city.replaceWith(replacement);
-  } else form.insertAdjacentHTML('afterbegin', lockedField('服务城市', 'city', actualCity));
-  form.querySelectorAll('[name="locationData"]').forEach(input => input.remove());
-  const savedAddress = state.address[0],
-    address = form.querySelector('[name="address"]');
-  if (address) {
-    address.placeholder = actualCity + ' · ' + (s.area || '市区') + '，补充楼栋与单元号';
-    if (
-      String(savedAddress?.location?.countryCode || 'MY').toUpperCase() !== 'MY' ||
-      (savedAddress?.location?.cityName || savedAddress?.city) !== actualCity
-    )
-      address.value = '';
+  function personPlace(p) {
+    if (ui.socialFilter === 'nearby' && ui.page === 'social' && isLocal(p))
+      return t('catalog.person.distance', { km: number(p.distanceKm, { maximumFractionDigits: 1 }) });
+    return abroad() && p.countryCode === 'MY'
+      ? t('catalog.person.inMalaysia', { city: cityName(p.city) })
+      : cityName(p.city);
   }
-  if (s.cat === 'car')
-    for (const [name, label] of [
-      ['from', '单程起点'],
-      ['to', '单程终点'],
-    ]) {
-      const input = form.querySelector(`[name="${name}"]`),
-        value = s.details.find(d => d.label === label)?.value;
-      if (input && value) input.value = value;
+  function followButton(id, compact = false) {
+    const on = state.follows.includes(id);
+    return act(
+      'follow',
+      id,
+      esc(on ? t('catalog.person.following') : t('catalog.person.follow')),
+      `btn btn-sm ${on ? 'btn-secondary' : 'btn-tonal'} checkout-follow${compact ? ' checkout-follow-compact' : ''}`,
+      `data-toggle="follow" aria-pressed="${on}"`
+    );
+  }
+  function personRow(p) {
+    const name = personName(p);
+    const tags = contentList('people', p, 'tags').slice(0, 3);
+    const greeted = state.greeted.includes(p.id);
+    return `<div class="checkout-person">${act('person', p.id, `${avatarHTML(p, 56)}${p.online ? '<span class="checkout-online-dot" aria-hidden="true"></span>' : ''}`, 'checkout-person-avatar', 'tabindex="-1" aria-hidden="true"')}<div class="checkout-person-head">${act(
+      'person',
+      p.id,
+      `<span class="checkout-person-name">${html(name)}</span>${p.age ? `<span class="checkout-person-age">${esc(t('catalog.person.age', { n: p.age }))}</span>` : ''}`,
+      'checkout-person-link',
+      `aria-label="${esc(t('catalog.person.viewProfile', { name }))}"`
+    )}<p class="checkout-person-status"><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span><span aria-hidden="true">·</span><span>${html(personPlace(p))}</span></p></div>${act('greet', p.id, esc(greeted ? t('catalog.person.message') : t('catalog.person.greet')), 'btn btn-sm btn-tonal checkout-person-cta')}<div class="checkout-person-body"><p class="checkout-person-bio">${html(txt('people', p, 'bio'))}</p>${tags.length ? `<div class="checkout-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}</div></div>`;
+  }
+  function postAuthor(post) {
+    if (post.person === 'self') return { id: 'self', name: state.profile.name, self: true };
+    const p = findPerson(post.person);
+    return p ? { id: p.id, name: personName(p), person: p } : null;
+  }
+  function postTime(post) {
+    const ts = post.at || post.createdAt || (typeof post.time === 'number' ? post.time : null);
+    return ts ? esc(fmt().relative(ts)) : html(post.time || '');
+  }
+  const postImage = post => post.image || post.imageData || '';
+  function postComments(id) {
+    const post = findPost(id);
+    const texts = contentList('posts', { id, comments: (post?.comments || []).map(c => c.text) }, 'comments');
+    const sample = (post?.comments || []).map((c, i) => ({ ...c, text: texts[i] ?? c.text, sample: true }));
+    return [...sample, ...(Array.isArray(state.comments[id]) ? state.comments[id] : [])];
+  }
+  function likeButton(post) {
+    const on = state.likes.includes(post.id);
+    const count = (Number(post.likes) || 0) + (on ? 1 : 0);
+    return act(
+      'like',
+      post.id,
+      `${icon('heart')}<span>${esc(number(count))}</span>`,
+      'checkout-post-action checkout-like',
+      `data-toggle="like" aria-pressed="${on}" aria-label="${esc(t('catalog.post.likeLabel', { n: number(count) }))}"`
+    );
+  }
+  function feedCard(post) {
+    const author = postAuthor(post);
+    if (!author) return '';
+    const photo = postImage(post);
+    const own = author.self;
+    const avatar = own ? img(selfPhoto(), '', 'avatar avatar-40') : avatarHTML(author.person, 40);
+    const place = own ? post.place || '' : txt('posts', post, 'place');
+    const topic = own ? td('catalog.topic', post.topic || '') : txt('posts', post, 'topic');
+    const text = own ? post.text || '' : txt('posts', post, 'text');
+    const privateOnly = ['仅自己', 'private', 'self'].includes(post.visibility);
+    const count = postComments(post.id).length;
+    return `<article class="checkout-post" data-post-id="${esc(post.id)}"><header class="checkout-post-head">${act(own ? 'edit-profile' : 'person', own ? '' : author.id, avatar, 'checkout-post-avatar', `aria-label="${esc(t('catalog.person.viewProfile', { name: author.name }))}"`)}<div class="checkout-post-author"><h3>${html(author.name)}</h3><p>${postTime(post)}${place ? ` · ${html(place)}` : ''}</p></div>${own ? (privateOnly ? `<span class="tag">${esc(t('catalog.post.private'))}</span>` : '') : followButton(author.id, true)}</header>${text ? `<p class="checkout-post-text">${html(text).replace(/\n/g, '<br>')}</p>` : ''}${photo ? act('photo', post.id, img(photo, topic || t('catalog.post.photo')), 'checkout-post-photo', `aria-label="${esc(t('catalog.post.openPhoto'))}"`) : ''}${topic ? `<p class="checkout-post-topic">#${html(topic)}</p>` : ''}<footer class="checkout-post-actions">${likeButton(post)}${act('comments', post.id, `${icon('chat')}<span>${esc(count ? number(count) : t('catalog.post.comment'))}</span>`, 'checkout-post-action', `data-comments="${esc(post.id)}" aria-label="${esc(t('catalog.post.commentsLabel', { n: number(count) }))}"`)}${own ? '' : act('greet', author.id, `${icon('chat')}<span>${esc(t('catalog.person.greet'))}</span>`, 'checkout-post-action checkout-post-greet')}</footer></article>`;
+  }
+  const groupName = g => txt('groups', g, 'name');
+  function groupAvatar(g, size = 48) {
+    let members = (g.memberIds || []).map(findPerson).filter(Boolean).slice(0, 4);
+    if (!members.length) members = people.slice(0, 4);
+    return `<span class="checkout-group-avatar" style="--size:${size}px" role="img" aria-label="${esc(t('catalog.group.avatar', { name: groupName(g) }))}" data-count="${members.length}">${members.map(p => img(p.photo, '', '', 'width="32" height="32"')).join('')}</span>`;
+  }
+  function groupRow(g, discover = false) {
+    const joined = state.joined.includes(g.id);
+    const last = joined ? lastMessage(g.id) : null;
+    const preview = last ? messagePreview(last, { group: true }) : txt('groups', g, 'desc');
+    const meta = [tn('catalog.group.members', Number(g.count) || 1), cityName(g.city)]
+      .filter(Boolean)
+      .join(' · ');
+    const open = discover || !joined;
+    return act(
+      open ? 'group-detail' : 'chat',
+      g.id,
+      `${groupAvatar(g)}<span class="checkout-row-main"><span class="checkout-row-head"><span class="checkout-row-title">${html(groupName(g))}</span>${last?.time ? `<time>${esc(fmt().stamp(last.time))}</time>` : ''}</span><span class="checkout-row-sub">${html(meta)}</span><span class="checkout-row-text">${html(preview)}</span></span>${open ? `<span class="checkout-row-end">${joined ? `<span class="tag tag-success">${esc(t('catalog.group.joined'))}</span>` : ''}${icon('chevron', 'chevron')}</span>` : ''}`,
+      'checkout-row'
+    );
+  }
+  const liveViewers = p => Number(p.watch) || (stableHash(p.id) % 900) + 40;
+  function liveCard(p) {
+    const name = personName(p);
+    const title = txt('people', p, 'room') || name;
+    const topic = td('catalog.liveTopic', p.topic);
+    return act(
+      'room',
+      p.id,
+      `${img(p.photo, '')}<span class="checkout-live-top"><span class="checkout-live-pill">${liveBars()}${esc(t('catalog.live.badge'))}</span><span class="checkout-live-viewers">${esc(tn('catalog.live.viewers', liveViewers(p), { viewers: fmt().compact(liveViewers(p)) }))}</span></span><span class="checkout-live-bottom"><span class="checkout-live-title">${html(title)}</span><span class="checkout-live-host">${html(name)} · ${html(cityName(p.city))}</span>${topic ? `<span class="checkout-live-topic">${html(topic)}</span>` : ''}</span>`,
+      'checkout-live-card',
+      `aria-label="${esc(t('catalog.live.enter', { name, title }))}"`
+    );
+  }
+  /** 1:1 card used only when the private module is not loaded (also a global for old callers). */
+  function privateCard(p) {
+    const name = personName(p);
+    return `<article class="checkout-private-card">${act('person', p.id, img(p.photo, name), 'checkout-private-photo')}<div class="checkout-private-body"><h3>${html(name)}</h3><p>${html(txt('people', p, 'theme'))}</p><p class="caption">${html(txt('people', p, 'language'))}</p><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span></div></article>`;
+  }
+
+  // ------------------------------------------------------------------ messages data
+  function normalizeTime(value) {
+    if (typeof value === 'number') return value;
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 1e11) return n;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : DEMO_NOW;
+  }
+  function conversationMessages(id) {
+    id = String(id || '');
+    const group = findGroup(id);
+    const person = findPerson(id);
+    const at = offset => DEMO_NOW - (Number(offset) || 0) * 60000;
+    let history = [];
+    const conv = demoData.conversations?.[id];
+    if (Array.isArray(conv)) {
+      const texts = tc('conversations', id, 'messages', null);
+      history = conv.map((m, i) => ({
+        ...m,
+        id: `demo-${id}-${i}`,
+        type: m.type || 'text',
+        text: texts?.[i] ?? m.text,
+        time: at(m.timeOffsetMinutes),
+        demo: true,
+      }));
+    } else if (Array.isArray(group?.messages)) {
+      const texts = tc('groups', id, 'messages', null);
+      history = group.messages.map((m, i) => {
+        const author = m.person ? findPerson(m.person) : null;
+        return {
+          ...m,
+          id: `demo-${id}-${i}`,
+          type: m.type || 'text',
+          text: texts?.[i] ?? m.text,
+          author: author ? personName(author) : m.author,
+          time: at(m.timeOffsetMinutes),
+          demo: true,
+        };
+      });
     }
-  const line = document.createElement('div');
-  line.className = 'booking-scope';
-  line.innerHTML = `${icon('pin')}<span>${esc(actualCity)} · ${esc(s.area || '市区')}<br><small>${esc(s.duration || '预约后确认')} · ${esc(s.availability || '时间由双方确认')}</small></span>`;
-  form.querySelector('.form-summary')?.after(line);
-}
-function createOrder(data, category, serviceId) {
-  const s = services.find(s => s.id === serviceId),
-    c = [...categories, ...moreCategories].find(c => c.id === category);
-  const location = s
-    ? catalogServiceLocation(s.city)
-    : data.location && typeof data.location === 'object'
-      ? data.location
-      : state.location || catalogServiceLocation(data.city || state.city);
-  const orderData = {
-    ...data,
-    location: { ...location },
-    city: s ? s.city || '吉隆坡' : location.cityName || data.city || state.city,
-  };
-  delete orderData.locationData;
-  if (s) orderData.serviceName = s.name;
-  const quantity = s?.cat === 'phone' ? 1 : ui.quantity;
-  let total = s && s.type !== 'job' ? Number(s.price) * (s.type === 'goods' ? quantity : 1) : null;
-  if (s?.cat === 'phone') {
-    const plan = phonePlan(s);
-    total = plan.total;
-    orderData.operator = plan.operator;
-    orderData.phoneKind = plan.consultation ? '套餐咨询' : '话费充值';
-    orderData.serviceFee = 'RM ' + amount(plan.serviceFee);
-    if (plan.consultation) {
-      delete orderData.faceValue;
-      delete orderData.amount;
-    } else orderData.faceValue = 'RM ' + amount(plan.faceValue);
+    const samples =
+      person && window.ShizhongFriends?.demoMessages ? window.ShizhongFriends.demoMessages(id) : [];
+    if (samples.length && !history.length)
+      history.push({
+        id: `demo-${id}-hello`,
+        self: false,
+        type: 'text',
+        text: txt('profiles', person, 'friendMessage') || txt('people', person, 'bio'),
+        timeOffsetMinutes: 45,
+        time: at(45),
+        demo: true,
+      });
+    const lastOffset = Number(history[history.length - 1]?.timeOffsetMinutes) || 45;
+    // Demo gifts are computed here, never written to saved messages or financial state.
+    const gifts = samples.map((m, i) => {
+      const offset = Math.max(1, lastOffset - i - 1);
+      return {
+        ...m,
+        id: m.id || `demo-${id}-gift-${i}`,
+        type: 'gift',
+        timeOffsetMinutes: offset,
+        time: at(offset),
+        demo: true,
+      };
+    });
+    const local = (Array.isArray(state.messages[id]) ? state.messages[id] : []).map(m => ({
+      ...m,
+      time: normalizeTime(m.time),
+    }));
+    return [...history, ...gifts, ...local].sort((a, b) => a.time - b.time);
   }
-  const order = {
-    id: 'SZ' + Date.now().toString().slice(-9),
-    title: s?.name || c?.name || '服务需求',
-    category,
-    serviceId,
-    data: orderData,
-    status: '待确认',
-    total,
-    quantity,
-    created: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur', hour12: false }),
-  };
-  state.orders.unshift(order);
-  save();
-  render();
-  orderSuccess(order);
-}
-function personRow(p) {
-  const near = ui.socialFilter === '附近的人' && catalogMatchesLocation(p);
-  const place = catalogCountryCode() !== 'MY' && p.countryCode === 'MY' ? '马来西亚 · ' + p.city : p.city;
-  const avatarImage = `<img class="avatar" src="${asset(avatarSource(p))}" alt="${esc(p.name)}" loading="lazy" decoding="async">`;
-  const avatar = window.ShizhongGifts?.avatarDecoration
-    ? window.ShizhongGifts.avatarDecoration(avatarImage, p.id, 'list')
-    : avatarImage;
-  return `<div class="person-row"><button class="avatar-wrap" data-action="person" data-id="${p.id}" aria-label="查看 ${esc(p.name)}">${avatar}${p.online ? '<i class="online-dot"></i>' : ''}</button><div class="person-content"><button class="person-name" data-action="person" data-id="${p.id}">${esc(p.name)}<span class="age-tag">${p.age}</span></button><p>${esc(p.bio)}</p><div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></div><div class="row-aside"><span class="distance">${near ? esc(p.distance) : esc(place)}</span>${act('greet', p.id, state.greeted.includes(p.id) ? '发消息' : '打招呼', 'greet-btn')}</div></div>`;
-}
-function postComments(postId) {
-  const post = basePosts.find(p => p.id === postId);
-  return [...(post?.comments || []), ...(state.comments[postId] || [])];
-}
-function feedCard(post) {
-  const person =
-    post.person === 'self'
-      ? { name: state.profile.name, photo: state.profile.photo }
-      : people.find(p => p.id === post.person);
-  if (!person) return '';
-  const photo = post.imageData || (post.image ? asset(post.image) : '');
-  return `<article class="feed-card" data-post="${post.id}"><div class="feed-user">${act(post.person === 'self' ? 'edit-profile' : 'person', post.person, `<img class="avatar" src="${asset(avatarSource(person))}" alt="${esc(person.name)}" loading="lazy" decoding="async">`)}<div><h3>${esc(person.name)}</h3><p>${esc(post.time)} · ${esc(post.place)}</p></div>${post.person !== 'self' ? act('follow', post.person, state.follows.includes(post.person) ? '已关注' : '+ 关注', 'follow-btn') : ''}</div><p class="feed-text">${esc(post.text).replace(/\n/g, '<br>')}</p>${photo ? `<button class="feed-image-button" data-action="photo" data-id="${esc(photo)}"><img class="feed-photo" src="${esc(photo)}" alt="${esc(post.topic)}" loading="lazy" decoding="async"></button>` : ''}<div class="feed-topic"># ${esc(post.topic || '记录生活')} <span>${post.visibility === '仅自己' ? '仅自己可见' : esc(post.city || post.place)}</span></div><div class="feed-actions">${act('like', post.id, `${icon('heart')} ${post.likes + (state.likes.includes(post.id) ? 1 : 0)}`, state.likes.includes(post.id) ? 'liked' : '', `aria-label="点赞动态，当前 ${post.likes + (state.likes.includes(post.id) ? 1 : 0)} 赞"`)}${act('comments', post.id, `${icon('chat')} ${postComments(post.id).length || '评论'}`)}${post.person !== 'self' ? act('greet', post.person, `${icon('chat')} 聊一聊`, 'end') : ''}</div></article>`;
-}
-function socialPage() {
-  const foreign = catalogCountryCode() !== 'MY';
-  let list = people.filter(p => !state.blocked.includes(p.id));
-  if (ui.socialFilter === '附近的人')
-    list = list
-      .filter(catalogMatchesLocation)
-      .sort((a, b) => Number(a.distanceKm || 1.2) - Number(b.distanceKm || 1.2));
-  if (ui.cityFilter !== '全部') list = list.filter(p => p.city === ui.cityFilter);
-  if (ui.interestFilter !== '全部') list = list.filter(p => p.tags.includes(ui.interestFilter));
-  let posts = [...state.posts, ...basePosts].filter(p => !state.blocked.includes(p.person));
-  if (ui.socialFilter === '关注')
-    posts = posts.filter(p => state.follows.includes(p.person) || p.person === 'self');
-  return `<section class="page"><div class="white-section"><div class="standard-header"><h1 class="page-title">相遇，总有惊喜<span style="color:var(--red)">。</span></h1>${act('notifications', '', icon('bell'), 'icon-button', 'aria-label="社交通知"')}</div>${tabs(
-    [
-      ['friends', '交友'],
-      ['feed', '动态'],
-    ],
-    ui.socialTab,
-    'social-tab'
-  )}<div class="subtabs">${chips(ui.socialTab === 'friends' ? ['推荐', '附近的人'] : ['推荐', '关注'], ui.socialFilter, 'social-filter')}${ui.socialTab === 'friends' ? act('social-filters', '', icon('filter'), 'right icon-button', 'aria-label="筛选朋友"') : ''}</div></div>${ui.socialTab === 'friends' ? `<div class="white-section" style="padding-top:2px"><button class="warm-banner" data-action="social-event" style="width:calc(100% - 36px);text-align:left"><div><span class="mini-label">GOOD PEOPLE, GOOD DAYS</span><h3 style="margin-top:6px">从一句「你好」，认识这座城</h3><p>${foreign ? '认识来自马来西亚的示例朋友' : '在 ' + esc(catalogCity()) + '，发现同频的朋友'}</p></div>${icon('spark')}</button><div class="people-list">${countNote(list.length, '位朋友')}${ui.socialFilter === '附近的人' && !state.settings.nearby ? empty('附近可见已关闭', '开启后可发现附近的示例朋友。', 'settings', '去设置') : list.length ? pagedList('people-' + ui.socialFilter + catalogLocationKey() + ui.cityFilter + ui.interestFilter, list, personRow, 'people-records') : ui.socialFilter === '附近的人' ? empty('当前城市暂无附近朋友样例', '附近仅显示同一国家、同一城市的朋友。可以切换地区，或在推荐中认识马来西亚的朋友。', 'city', '切换国家 / 城市') : empty('还没有符合条件的朋友', '换个城市或兴趣，认识更多新朋友。', 'social-filters', '调整筛选')}</div></div>` : `<div class="feed-records">${countNote(posts.length, '条动态')}${posts.length ? pagedList('posts-' + ui.socialFilter, posts, feedCard, 'posts-list', 12) : empty('关注有趣的人', '你关注的朋友的生活，会出现在这里。', 'social-recommend', '发现朋友')}</div>${act('compose', '', icon('edit'), 'floating-button', 'aria-label="发布动态"')}`}<div class="endnote">真实的分享，温暖的相遇</div></section>`;
-}
-function personDetail(id) {
-  const p = people.find(p => p.id === id);
-  if (!p) return;
-  const ownPosts = [...state.posts, ...basePosts].filter(f => f.person === id);
-  showScreen(
-    '个人主页',
-    `${window.ShizhongFriends ? window.ShizhongFriends.profileHero(p) : `<div class="profile-cover"><img src="${asset(p.photo)}" alt="${esc(p.name)}"><div class="profile-cover-title"><h2>${esc(p.name)}</h2><p>${p.age} 岁 · ${esc(p.city)} · ${esc(p.activeText)}</p></div></div>`}<div class="detail-content">${window.ShizhongFriends ? window.ShizhongFriends.collection(p) : ''}<div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="tag">${esc(p.language)}</span></div><p class="detail-description">${esc(p.bio)}</p><div class="button-row">${act('person-follow', id, state.follows.includes(id) ? '已关注' : '+ 关注', 'secondary-button')}${act('greet', id, '打个招呼', 'primary-button')}</div><div class="panel">${summary(
-      [
-        ['生活城市', p.city + ' · ' + (p.area || '市区')],
-        ['工作 / 日常', p.occupation || '城市生活记录者'],
-        ['最近来过', p.activeText],
-        ['方便聊天的时间', p.schedule || '周末下午'],
-      ]
-    )}<p class="detail-description" style="margin-top:15px">${esc(p.about || p.bio)}</p></div>${p.callTopics ? `<div class="panel"><h3 class="subsection-title">这些话题，我很愿意聊</h3>${bulletItems(p.callTopics)}</div>` : ''}<h3 class="subsection-title">TA 的生活 · ${ownPosts.length}</h3>${ownPosts.length ? ownPosts.map(feedCard).join('') : empty('生活正在发生', '期待 TA 的下一次分享。')}<div class="button-row">${act('report', id, '举报', 'secondary-button')}${act('block', id, '不再推荐', 'secondary-button')}</div><p class="form-note">人物经历、姓名与动态为虚构演示内容。头像为图库照片，与虚构人物资料无对应关系。</p></div>`,
-    'friend-profile-screen'
-  );
-  currentOverlay.personId = id;
-}
-function livePeople() {
-  return people
-    .filter(
+  function lastMessage(id) {
+    const all = conversationMessages(id);
+    return all[all.length - 1] || null;
+  }
+  function messagePreview(m, who) {
+    if (!m) return '';
+    const type = m.type || 'text';
+    const body =
+      type === 'text'
+        ? m.text || ''
+        : t.has(`catalog.msg.${type}`)
+          ? t(`catalog.msg.${type}`)
+          : t('catalog.msg.unknown');
+    if (who?.group && !m.self && m.author) return t('catalog.msg.fromAuthor', { name: m.author, text: body });
+    if (m.self && type !== 'text') return t('catalog.msg.youSent', { text: body });
+    return body;
+  }
+  function chatInfo(id) {
+    id = String(id || '');
+    if (id === 'support')
+      return {
+        id,
+        name: t('catalog.chat.supportName'),
+        photo: 'logo.png',
+        initial: t('catalog.chat.supportHello'),
+        support: true,
+      };
+    if (id.startsWith('merchant:')) {
+      const s = findService(id.slice(9));
+      if (s)
+        return {
+          id,
+          name: storeName(s),
+          photo: s.image,
+          initial: t('catalog.chat.merchantHello', { name: serviceName(s) }),
+          serviceId: s.id,
+          merchant: true,
+        };
+    }
+    const p = findPerson(id);
+    if (p)
+      return {
+        ...p,
+        id,
+        personId: id,
+        name: personName(p),
+        bio: txt('people', p, 'bio'),
+        avatar: avatarSource(p),
+        initial: txt('profiles', p, 'friendMessage') || txt('people', p, 'bio'),
+        online: !!p.online,
+        activeText: onlineLabel(p),
+      };
+    const g = findGroup(id);
+    if (g)
+      return {
+        ...g,
+        id,
+        name: groupName(g),
+        desc: txt('groups', g, 'desc'),
+        photo: findPerson((g.memberIds || [])[0])?.photo || people[0]?.photo || 'logo.png',
+        initial: txt('groups', g, 'desc') || t('catalog.group.welcome'),
+        group: true,
+        count: Number(g.count) || 1,
+        memberIds: g.memberIds || [],
+      };
+    return {
+      id,
+      name: t('catalog.chat.newFriend'),
+      photo: 'avatars/women-000.jpg',
+      initial: t('catalog.chat.requestSaved'),
+    };
+  }
+  function contactPeople() {
+    const ids = new Set([...Object.keys(state.messages || {}), ...state.greeted]);
+    if (SZ.session.isDemo) {
+      for (const id of demoData.contactIds || []) ids.add(id);
+      for (const id of Object.keys(demoData.conversations || {})) ids.add(id);
+      for (const id of ['p1', 'p2', 'p3']) ids.add(id);
+    }
+    return people.filter(p => ids.has(p.id) && !state.blocked.includes(p.id));
+  }
+  function unreadFor(id) {
+    const api = window.ShizhongChat?.unread;
+    if (typeof api === 'function') return Number(api(id)) || 0;
+    if (state.readChats.includes(id) || state.messages[id]?.length) return 0;
+    return id === 'support' ? 1 : id === 'p1' && SZ.session.isDemo ? 2 : 0;
+  }
+  function chatListRow(id, { avatar, name, preview, time, unread }) {
+    return act(
+      'chat',
+      id,
+      `<span class="checkout-row-avatar">${avatar}</span><span class="checkout-row-main"><span class="checkout-row-head"><span class="checkout-row-title">${html(name)}</span>${time ? `<time>${esc(fmt().stamp(time))}</time>` : ''}</span><span class="checkout-row-line"><span class="checkout-row-text">${html(preview)}</span>${unread ? `<span class="badge" role="img" aria-label="${esc(tn('catalog.chat.unread', unread))}">${unread > 99 ? '99+' : unread}</span>` : ''}</span></span>`,
+      'checkout-row'
+    );
+  }
+  function livePeople() {
+    const topic = LIVE_TOPICS[ui.liveFilter] || '';
+    return people.filter(
       p =>
         !state.blocked.includes(p.id) &&
-        (ui.liveTab === 'private' ? p.liveMode === 'private' : p.liveMode !== 'private')
-    )
-    .filter(p => ui.liveFilter === '全部' || p.topic === ui.liveFilter);
-}
-function livePage() {
-  const list = livePeople();
-  return `<section class="page"><div class="white-section"><div class="standard-header"><h1 class="page-title">此刻，有人陪你</h1>${act('start-live', '', icon('video'), 'icon-button soft', 'aria-label="我要开播"')}</div>${tabs(
-    [
-      ['public', '热闹直播'],
-      ['private', '一对一聊天'],
-    ],
-    ui.liveTab,
-    'live-tab'
-  )}<div class="subtabs">${chips(['全部', '同城聊天', '旅行分享', '语言交流'], ui.liveFilter, 'live-filter')}</div></div><div class="section-padding">${ui.liveTab === 'private' ? `<div class="warm-banner" style="margin:0 0 16px"><div><span class="mini-label">JUST YOU & ME</span><h3 style="margin-top:6px">专属于两个人的好时光</h3><p>不同的经历，总有聊得来的话题</p></div>${icon('heart')}</div>` : ''}${countNote(list.length, ui.liveTab === 'private' ? '位可预约伙伴' : '个直播间')}${pagedList('live-' + ui.liveTab + ui.liveFilter, list, ui.liveTab === 'private' ? privateCard : liveCard, ui.liveTab === 'private' ? 'call-list expanded-call-list' : 'live-grid expanded-live-grid', 20)}</div><div class="endnote">相互尊重，让陪伴更有温度</div></section>`;
-}
-function liveCard(p) {
-  return act(
-    'room',
-    p.id,
-    `<img src="${asset(p.photo)}" alt="${esc(p.name)} 直播封面" loading="lazy" decoding="async"><div class="live-card-top"><span class="live-pill">${liveBars()} 直播预览</span><span>${esc(p.watch)} 人</span></div><div class="live-card-bottom"><h3>${esc(p.room)}</h3><p>${esc(p.name)} · ${esc(p.city)}</p><span class="tag">${esc(p.topic)}</span></div>`,
-    'live-card'
-  );
-}
-function privateCard(p) {
-  return `<article class="call-card"><button class="call-photo" data-action="person" data-id="${p.id}"><img src="${asset(p.photo)}" alt="${esc(p.name)}" loading="lazy" decoding="async"><span class="live-pill">${p.online ? '● 当前在线' : '可预约'}</span></button><div class="call-body"><h3>${esc(p.name)}</h3><p>${esc(p.theme)}<br>${esc(p.language)}</p><div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div><div class="call-bottom"><span class="price"><small>RM</small>${p.price}<em>/10 分钟</em></span>${act('book-call', p.id, '预约聊聊', 'small-primary')}</div></div></article>`;
-}
-function room(id) {
-  activeRoom = id;
-  const p = people.find(p => p.id === id);
-  if (!p) return;
-  if (!currentOverlay) previousFocus = document.activeElement;
-  currentOverlay = { kind: 'room', title: p.room };
-  document.body.style.overflow = 'hidden';
-  const comments = p.roomComments || [{ author: '适中小助手', text: '欢迎一起分享城市生活。' }];
-  document.querySelector('#overlay-root').innerHTML =
-    `<section class="full-screen live-room" role="dialog" aria-modal="true" aria-label="${esc(p.name)}的直播间"><img class="live-room-bg" src="${asset(p.photo)}" alt="${esc(p.name)}的房间封面"><div class="room-top"><div class="room-person"><img class="avatar" src="${asset(p.photo)}" alt="${esc(p.name)}"><div><h3>${esc(p.name)}</h3><p>${esc(p.watch)} 人在看</p></div>${act('room-follow', id, state.follows.includes(id) ? '已关注' : '+ 关注')}</div><span class="room-viewers">${liveBars()}</span>${act('close', '', icon('close'), 'icon-button', 'aria-label="退出直播"')}</div><span class="room-tag">${esc(p.city)} · 直播画面预览</span>${act('next-room', id, `${icon('down')}下一个`, 'next-live')}<div class="room-bottom"><h2 class="room-title">${esc(p.room)}</h2><p class="room-description">${esc(p.theme)} · ${esc(p.language)}</p><div class="room-comments" id="room-comments">${comments.map(c => `<p><b>${esc(c.author)}</b>${esc(c.text)}</p>`).join('')}</div><form class="room-controls" data-form="live-comment"><input name="text" aria-label="直播评论" placeholder="说点什么，让 TA 听见…" maxlength="160" required><button type="submit" class="icon-button" aria-label="发送直播评论">${icon('plane')}</button>${act('room-like', '', icon('heart'), 'icon-button', 'aria-label="点赞直播"')}${act('gifts', '', icon('gift'), 'icon-button gift-button', 'aria-label="送礼物"')}</form></div></section>`;
-  focusOverlay();
-}
-function nextRoom() {
-  const list = people.filter(p => p.liveMode !== 'private' && !state.blocked.includes(p.id));
-  if (!list.length) {
-    closeOverlay();
-    return;
+        (ui.liveTab === 'private' ? p.liveMode === 'private' : p.liveMode !== 'private') &&
+        (!topic || p.topic === topic)
+    );
   }
-  room(list[(list.findIndex(p => p.id === activeRoom) + 1) % list.length].id);
-}
-function conversationMessages(id) {
-  const group = defaultGroups.find(g => g.id === id),
-    person = people.find(p => p.id === id);
-  const history = [...(demoData.conversations[id] || group?.messages || [])];
-  const samples = person && window.ShizhongFriends ? window.ShizhongFriends.demoMessages(id) : [];
-  if (samples.length && !history.length)
-    history.push({ self: false, text: person.friendMessage || person.bio, timeOffsetMinutes: 45 });
-  const lastOffset = Number(history.slice(-1)[0]?.timeOffsetMinutes) || 45;
-  const sampleRows = samples.map((m, i) => {
-    const record = { ...m, type: 'gift', timeOffsetMinutes: Math.max(1, lastOffset - i - 1) };
-    delete record.time;
-    return record;
-  });
-  // Demo gifts are computed, never appended to saved messages or financial state.
-  return [...history, ...sampleRows, ...(state.messages[id] || [])];
-}
-function chatInfo(id) {
-  if (id === 'support')
-    return {
-      name: '适中小助手',
-      photo: 'logo.png',
-      initial: '你好，欢迎来到适中。你可以带着服务名称、需求编号来咨询。当前会话为本地体验。',
-      support: true,
+
+  // ------------------------------------------------------------------ list computations (cached)
+  const listCache = new Map();
+  function cached(key, build) {
+    const k = key + '|' + C.dataVersion + '|' + Object.keys(state.reviews).length;
+    if (!listCache.has(k)) {
+      if (listCache.size > 24) listCache.clear();
+      listCache.set(k, build());
+    }
+    return listCache.get(k);
+  }
+  function sortServices(items, sort) {
+    const decorated = items.map(s => ({
+      s,
+      local: isLocal(s) ? 1 : 0,
+      rating: sort === 'rating' ? serviceRating(s) : 0,
+    }));
+    const compare = {
+      priceAsc: (a, b) => a.s.price - b.s.price,
+      priceDesc: (a, b) => b.s.price - a.s.price,
+      rating: (a, b) => b.rating - a.rating || b.s.salesCount - a.s.salesCount,
+      sales: (a, b) => b.s.salesCount - a.s.salesCount,
+    }[sort];
+    decorated.sort(compare || ((a, b) => b.local - a.local || a.s._rank - b.s._rank));
+    return decorated.map(d => d.s);
+  }
+  function homeServices() {
+    const filter = ui.homeFilter;
+    return cached('home:' + filter + ':' + locationKey(), () => {
+      let items = catalogueServices();
+      if (filter === 'deals') items = items.filter(s => s.type === 'goods' && s.price < 35);
+      if (filter === 'nearby') items = items.filter(s => s.type === 'service' && isLocal(s));
+      items = sortServices(items, filter === 'rating' ? 'rating' : 'recommended');
+      if (filter === 'recommended') {
+        // Lead with featured local picks that do not repeat a photo.
+        const chosen = [];
+        const usedImages = new Set();
+        const featured = (demoData.featuredIds || []).map(findService).filter(Boolean);
+        for (const s of [...featured, ...items]) {
+          if (chosen.length === 6) break;
+          if (isLocal(s) && !usedImages.has(s.image) && !chosen.includes(s)) {
+            chosen.push(s);
+            usedImages.add(s.image);
+          }
+        }
+        const ids = new Set(chosen.map(s => s.id));
+        items = [...chosen, ...items.filter(s => !ids.has(s.id))];
+      }
+      return items;
+    });
+  }
+
+  // ------------------------------------------------------------------ tab pages
+  /** Tab body that needs data chunks: draw now, or show a skeleton and re-render when ready. */
+  function loadBody(page, draw, loading) {
+    const keys = C.pageChunks(page);
+    if (C.isLoaded(keys)) return draw();
+    if (C.hasFailed(keys)) return loadError();
+    const done = () => {
+      if (ui.page === page) render();
     };
-  if (id.startsWith('merchant:')) {
-    const s = services.find(s => s.id === id.slice(9));
-    if (s)
-      return {
-        name: s.store,
-        photo: s.image,
-        initial: `你好，你正在咨询「${s.name}」。${s.includes.slice(0, 2).join('，')}。${s.pricingNote || s.notice}`,
-        serviceId: s.id,
-      };
+    C.track(C.ensure(keys)).then(done, done);
+    return loading();
   }
-  const p = people.find(p => p.id === id);
-  if (p) return { ...p, initial: p.friendMessage || p.bio };
-  const g = [...state.groups, ...defaultGroups].find(g => g.id === id);
-  if (g)
-    return {
-      ...g,
-      photo: people.find(p => (g.memberIds || []).includes(p.id))?.photo || people[0].photo,
-      initial: g.desc,
-      group: true,
-    };
-  return { name: '新朋友', photo: 'avatars/women-000.jpg', initial: '好友验证消息已记录。' };
-}
-function contactPeople() {
-  return people.filter(
-    (p, index) =>
-      !state.blocked.includes(p.id) &&
-      (demoData.conversations?.[p.id] ||
-        state.messages[p.id]?.length ||
-        state.greeted.includes(p.id) ||
-        index < 3)
-  );
-}
-function commsPage() {
-  let friends = contactPeople();
-  const moment = Date.now(),
-    lastActivity = p =>
-      state.messages[p.id]?.slice(-1)[0]?.time ||
-      moment - (conversationMessages(p.id).slice(-1)[0]?.timeOffsetMinutes || 30240) * 60000;
-  friends.sort((a, b) => lastActivity(b) - lastActivity(a));
-  let groups = [...state.groups, ...defaultGroups];
-  if (catalogUI.groupScope === '我的群聊') groups = groups.filter(g => state.joined.includes(g.id));
-  const merchants = Object.keys(state.messages)
-    .filter(id => id.startsWith('merchant:'))
-    .map(id => {
-      const who = chatInfo(id);
-      return chatRow(id, who.name, state.messages[id].slice(-1)[0].text, who.photo, '刚刚');
-    })
-    .join('');
-  return `<section class="page"><div class="standard-header"><h1 class="page-title">保持联系</h1>${act('add-friend', '', icon('plususer'), 'icon-button', 'aria-label="添加好友"')}</div>${tabs(
-    [
-      ['friends', '好友'],
-      ['groups', '群组'],
-    ],
-    ui.commsTab,
-    'comms-tab'
-  )}<div class="white-section" style="padding-top:13px">${searchForm('搜索好友、群组或聊天', 'chat-search')}<div class="inbox-tools">${ui.commsTab === 'friends' ? `${act('new-friends', '', `${icon('plususer')}新的朋友`, 'inbox-tool')}${act('contacts', '', `${icon('user')}通讯录`, 'inbox-tool')}` : `${act('create-group', '', `${icon('group')}创建群聊`, 'inbox-tool')}${act('discover-groups', '', `${icon('compass')}发现群组`, 'inbox-tool')}`}</div>${ui.commsTab === 'groups' ? `<div class="subtabs">${chips(['发现群组', '我的群聊'], catalogUI.groupScope, 'group-scope')}</div>` : ''}</div><div class="inbox-records">${
-    ui.commsTab === 'friends'
-      ? `${countNote(friends.length, '位联系人')}${chatRow('support', '适中小助手', '找服务、查订单，生活问题随时聊。', 'logo.png', '今天', 1)}${merchants}${pagedList(
-          'friends',
-          friends,
-          p => {
-            const messages = conversationMessages(p.id),
-              last = messages.slice(-1)[0];
-            return chatRow(
-              p.id,
-              p.name,
-              last?.text || p.friendMessage || p.bio,
-              avatarSource(p),
-              state.messages[p.id]?.length ? '刚刚' : relativeTime(last?.timeOffsetMinutes || 30240),
-              p.id === 'p1' ? 2 : 0
-            );
-          },
-          'chat-records'
-        )}`
-      : `${countNote(groups.length, '个群组')}${pagedList('groups-' + catalogUI.groupScope, groups, g => groupRow(g, !state.joined.includes(g.id)), 'group-records')}`
-  }</div><div class="endnote">每一句问候，都值得被好好回应</div></section>`;
-}
-function groupRow(g, discover = false) {
-  const last = conversationMessages(g.id).slice(-1)[0];
-  return act(
-    discover ? 'group-detail' : 'chat',
-    g.id,
-    `${groupAvatar(g)}<div class="chat-row-content"><div class="chat-row-head"><h3>${esc(g.name)}</h3><time>${g.count} 人</time></div><p>${esc(last?.text || g.desc)}</p></div>${discover ? icon('chevron') : ''}`,
-    'chat-row'
-  );
-}
-function openChat(id) {
-  if (window.ShizhongGifts) return window.ShizhongGifts.openChat(id);
-  if (!state.readChats.includes(id)) {
-    state.readChats.push(id);
-    save();
-    render();
-  }
-  const who = chatInfo(id),
-    messages = conversationMessages(id);
-  showScreen(
-    who.name,
-    `<div class="chat-log" id="chat-log"><p class="chat-time">本地体验会话 · 不会发送真实消息</p>${messages.length ? '' : messageBubble({ text: who.initial, self: false }, who)}${messages.map(m => messageBubble(m, who)).join('')}</div><form class="chat-composer" data-form="chat" data-chat="${id}">${act('chat-emoji', '', icon('heart'), 'icon-button', 'aria-label="添加爱心表情"')}<input class="field" name="text" aria-label="聊天消息" placeholder="聊点什么…" autocomplete="off" maxlength="1000" required><button type="submit" class="small-primary">发送</button></form>`,
-    'chat-screen',
-    act(
-      who.group ? 'group-detail' : 'chat-options',
-      id,
-      icon(who.group ? 'group' : 'settings'),
-      'icon-button',
-      'aria-label="会话设置"'
-    )
-  );
-  requestAnimationFrame(() => {
-    const el = document.querySelector('#chat-log');
-    if (el) el.scrollTop = el.scrollHeight;
-  });
-}
-function messageBubble(m, who) {
-  if (m.type === 'gift' && window.ShizhongGifts) return window.ShizhongGifts.messageBubble(m, who);
-  const author = m.person ? people.find(p => p.id === m.person) : null;
-  const photo = m.self ? state.profile.photo : author?.photo || who.photo;
-  return `<div class="message-line ${m.self ? 'self' : ''}">${window.ShizhongGifts ? window.ShizhongGifts.avatar(m, who) : `<img class="avatar" src="${asset(photo)}" alt="${m.self ? '我' : esc(m.author || who.name)}">`}<div class="message-content">${!m.self && who.group ? `<span class="message-author">${esc(m.author || author?.name || who.name)}</span>` : ''}<div class="message-bubble">${esc(m.text)}${window.ShizhongGifts ? window.ShizhongGifts.messageTime(m) : ''}</div></div></div>`;
-}
-function comments(id) {
-  const items = postComments(id);
-  showSheet(
-    '评论 · ' + items.length,
-    `${items.length ? items.map(c => `<div class="comment-row"><img class="avatar" src="${asset(c.person ? people.find(p => p.id === c.person)?.photo || 'avatars/women-000.jpg' : state.profile.photo)}" alt="${esc(c.name || c.author || state.profile.name)}" width="36" height="36" loading="lazy" decoding="async"><div><h4>${esc(c.name || c.author || state.profile.name)}</h4><p>${esc(c.text)}</p></div></div>`).join('') : empty('第一句话，由你来分享', '友善的评论，会让这次相遇更温暖。')}<form class="inline-form" data-form="comment" data-post="${id}"><input class="field" name="text" placeholder="说点友善的话…" aria-label="评论内容" required maxlength="300"><button type="submit" class="small-primary">发送</button></form>`
-  );
-}
-function groupDetail(id) {
-  const g = [...state.groups, ...defaultGroups].find(g => g.id === id);
-  if (!g) return;
-  const joined = state.joined.includes(id);
-  const members = (g.memberIds || people.slice(0, 3).map(p => p.id))
-    .map(id => people.find(p => p.id === id))
-    .filter(Boolean);
-  showScreen(
-    g.name,
-    `<div class="detail-content"><div class="form-summary">${groupAvatar(g)}<div><h3>${esc(g.name)}</h3><p>${g.count} 位成员 · ${esc(g.city)} · ${esc(g.area || '')}</p></div></div><p class="detail-description">${esc(g.desc)}</p><div class="panel"><h3 class="subsection-title">平时聊什么</h3><p class="detail-description">${esc(g.meetup || '在群里约定活动时间与地点。')}</p><h3 class="subsection-title">一起遵守的小约定</h3>${bulletItems(g.rules || ['友善交流，尊重每个人的生活方式。'])}</div><h3 class="subsection-title">群里的朋友</h3><div class="member-strip">${members
-      .slice(0, 12)
-      .map(p =>
+  function categoryGrid(items) {
+    return `<nav class="checkout-cats" aria-label="${esc(t('catalog.home.categories'))}">${items
+      .map(c =>
         act(
-          'person',
-          p.id,
-          `<img class="avatar" src="${asset(p.photo)}" alt="${esc(p.name)}"><span>${esc(p.name)}</span>`
+          'category',
+          c.id,
+          `<span class="checkout-cat-icon" style="--cat:${esc(c.color)}">${icon(c.icon)}${c.badge ? `<span class="checkout-cat-badge">${esc(c.badge)}</span>` : ''}</span><span class="checkout-cat-label">${esc(catName(c.id))}</span>`,
+          'checkout-cat'
         )
       )
-      .join('')}</div><h3 class="subsection-title">最近在聊</h3><div class="group-preview">${
-      (g.messages || [])
-        .slice(-4)
-        .map(m => `<p><b>${esc(m.author || '群成员')}</b>${esc(m.text)}</p>`)
-        .join('') || '<p>一起开启第一句问候。</p>'
-    }</div>${act(joined ? 'chat' : 'join-group', id, joined ? '进入群聊' : '加入群组', 'primary-button')}${joined ? `<div style="margin-top:12px">${act('leave-group', id, '退出群组', 'secondary-button')}</div>` : ''}</div>`
-  );
-}
-function orders(filter = '全部') {
-  ui.orderFilter = filter || '全部';
-  const list = state.orders.filter(o => ui.orderFilter === '全部' || o.status === ui.orderFilter);
-  showScreen(
-    '我的订单',
-    `<div class="detail-content"><div class="filter-row">${chips(['全部', '待确认', '待服务', '已完成', '已取消'], ui.orderFilter, 'orders')}</div>${countNote(list.length, '笔订单')}${list.length ? pagedList('orders-' + ui.orderFilter, list, orderCard, 'order-records') : empty('这里还没有订单', '找一个喜欢的服务，开启你的适中生活。', 'go-home', '去逛逛')}</div>`
-  );
-}
-function orderCard(o) {
-  const s = services.find(s => s.id === o.serviceId);
-  return `<article class="order-card"><div class="order-head"><span>${esc(o.id)}</span><span class="order-status">${o.status}</span></div><div class="order-product">${s ? `<img src="${asset(s.image)}" alt="${esc(o.title)}" loading="lazy" decoding="async">` : ''}<div><h3>${esc(o.title)}</h3><p>${esc(o.created)}<br>${esc(catalogOrderCity(o, s))} · ${esc(o.data.date || '时间待确认')}</p></div></div>${o.total ? `<div class="price" style="font-size:18px;margin-top:10px"><small>RM</small>${o.total.toFixed(2)}</div>` : ''}<div class="order-actions">${act('order-detail', o.id, '查看详情')}${o.status === '待确认' ? act('confirm-order', o.id, '模拟商家确认') : o.status === '待服务' ? act(o.category === 'call' ? 'connect-order' : 'complete-order', o.id, o.category === 'call' ? '体验连线' : '确认完成') : ''}</div></article>`;
-}
-function orderDetail(id) {
-  const o = state.orders.find(o => o.id === id);
-  if (!o) return;
-  const s = services.find(s => s.id === o.serviceId);
-  showScreen(
-    '订单详情',
-    `<div class="detail-content"><div class="info-highlight"><b>${o.status}</b> · ${o.status === '待确认' ? '服务需求已记录，等待确认。' : o.status === '待服务' ? '预约已确认，请按时准备。' : o.status === '已完成' ? '这次体验已完成。' : '这条需求已取消。'}</div><h2>${esc(o.title)}</h2>${s ? act('service', s.id, `<img src="${asset(s.image)}" alt="${esc(s.name)}"><span><b>${esc(s.store)}</b><small>查看这项服务的完整详情 ›</small></span>`, 'order-service-link') : ''}<div class="panel">${summary(
+      .join('')}</nav>`;
+  }
+  function homeBanner() {
+    return `<div class="checkout-banner-wrap">${act(
+      'campaign',
+      '',
+      `<img src="${esc(asset('hero.png'))}" alt="" fetchpriority="high" decoding="async"><span class="checkout-banner-copy"><span class="checkout-banner-kicker">${esc(t('catalog.home.bannerKicker'))}</span><span class="checkout-banner-title">${esc(t('catalog.home.bannerTitle'))}</span><span class="checkout-banner-sub">${esc(abroad() ? t('catalog.home.bannerSubAbroad') : t('catalog.home.bannerSub'))}</span><span class="checkout-banner-cta">${esc(t('catalog.home.bannerCta'))}${icon('chevron')}</span></span>`,
+      'checkout-banner'
+    )}</div>`;
+  }
+  function homePage() {
+    ensureState();
+    normalizeUi();
+    const items = homeServices();
+    const unread = Number(window.ShizhongNotices?.unread?.() || 0);
+    const bell = act(
+      'notifications',
+      '',
+      `${icon('bell')}${unread ? '<span class="checkout-bell-dot" aria-hidden="true"></span>' : ''}`,
+      'icon-button checkout-bell',
+      `aria-label="${esc(unread ? tn('catalog.home.noticesUnread', unread) : t('catalog.home.notices'))}"`
+    );
+    const filters = HOME_FILTERS.map(id => [id, t(`catalog.home.filter.${id}`)]);
+    const nearby = ui.homeFilter === 'nearby';
+    return `<section class="page checkout-ui checkout-page checkout-home">${appBar({ logo: true, city: true, actions: [C.cartButton?.('home') || '', bell] })}<div class="checkout-home-top">${searchLauncher('all', t('catalog.search.placeholder'))}${categoryGrid(categories)}</div>${homeBanner()}<section class="section checkout-section" aria-labelledby="checkout-home-picked">${sectionHeader(abroad() ? t('catalog.home.pickedMalaysia') : t('catalog.home.picked'), 'all-services', '', 'checkout-home-picked')}${abroad() ? `<p class="checkout-note">${esc(t('catalog.home.abroadNote'))}</p>` : ''}${chipGroup(filters, ui.homeFilter, 'home-filter', t('catalog.home.filterLabel'))}${countLine(tn('catalog.count.services', items.length))}${
+      items.length
+        ? pagedList('home:' + ui.homeFilter + ':' + locationKey(), items, productCard)
+        : nearby
+          ? emptyState(
+              'pin',
+              t('catalog.home.nearbyEmpty'),
+              t('catalog.home.nearbyEmptyText'),
+              'city',
+              t('catalog.home.changeCity')
+            )
+          : emptyState(
+              'search',
+              t('catalog.home.empty'),
+              t('catalog.home.emptyText'),
+              'all-services',
+              t('catalog.home.browseAll')
+            )
+    }</section><p class="checkout-footnote">${esc(t('catalog.demoFootnote'))}</p></section>`;
+  }
+
+  const visiblePeople = () => people.filter(p => !state.blocked.includes(p.id));
+  function filteredPeople() {
+    let items = visiblePeople();
+    if (ui.socialFilter === 'nearby')
+      items = items.filter(isLocal).sort((a, b) => a.distanceKm - b.distanceKm);
+    if (ui.cityFilter !== 'all') items = items.filter(p => p.city === ui.cityFilter);
+    if (ui.interestFilter !== 'all') items = items.filter(p => p.tags.includes(ui.interestFilter));
+    return items;
+  }
+  function tagLabel(source) {
+    for (const p of people) {
+      const i = p.tags.indexOf(source);
+      if (i >= 0) return contentList('people', p, 'tags')[i] || source;
+    }
+    return source;
+  }
+  function activeFilters() {
+    const parts = [];
+    if (ui.cityFilter !== 'all') parts.push(cityName(ui.cityFilter));
+    if (ui.interestFilter !== 'all') parts.push(tagLabel(ui.interestFilter));
+    if (!parts.length) return '';
+    return `<div class="checkout-active-filters"><span>${html(t('catalog.discover.filteredBy', { filters: fmt().list(parts) }))}</span>${act('catalog-clear-filters', '', esc(t('common.clear')), 'btn btn-ghost btn-sm')}</div>`;
+  }
+  function peopleBody() {
+    const chips = chipGroup(
       [
-        ['需求编号', o.id],
-        ['创建时间', o.created],
-        ...(o.data.location?.countryName ? [['国家 / 地区', o.data.location.countryName]] : []),
-        ...Object.entries(o.data)
-          .filter(([k, v]) => v && fieldNames[k])
-          .map(([k, v]) => [fieldNames[k], v]),
-        ...(o.quantity ? [['数量', o.quantity]] : []),
-        ...(o.total ? [['参考合计', 'RM ' + o.total.toFixed(2)]] : []),
-      ]
-    )}</div><div class="button-row">${act(s ? 'service-chat' : 'chat', s ? s.id : 'support', '联系服务方', 'secondary-button')}${['待确认', '待服务'].includes(o.status) ? act('cancel-order', id, '取消需求', 'secondary-button') : ''}</div>${o.status === '待确认' ? `<div style="margin-top:12px">${act('confirm-order', id, '模拟商家确认', 'primary-button')}</div>` : ''}${o.status === '待服务' ? `<div style="margin-top:12px">${act(o.category === 'call' ? 'connect-order' : 'complete-order', id, o.category === 'call' ? '进入一对一聊天' : '确认服务完成', 'primary-button')}</div>` : ''}<p class="form-note">${o.demoSeed ? '历史样例订单，仅供设计体验。' : '本地演示订单，无真实交易。'}</p></div>`
-  );
-}
-function search(query, chat = false) {
-  const q = query.trim().toLowerCase();
-  if (!q) return toast('先输入想找的内容');
-  if (chat) {
-    const ps = people.filter(
-      p =>
-        (p.name + p.city + p.area + p.bio + p.tags.join('')).toLowerCase().includes(q) &&
-        !state.blocked.includes(p.id)
+        ['recommended', t('catalog.discover.forYou')],
+        ['nearby', t('catalog.discover.nearby')],
+      ],
+      ui.socialFilter,
+      'social-filter',
+      t('catalog.discover.peopleFilter')
     );
-    const gs = [...state.groups, ...defaultGroups].filter(g =>
-      (g.name + g.desc + g.city).toLowerCase().includes(q)
+    if (ui.socialFilter === 'nearby' && state.settings.nearby === false)
+      return `<div class="checkout-tab-tools">${chips}</div>${emptyState('pin', t('catalog.discover.nearbyOff'), t('catalog.discover.nearbyOffText'), 'settings', t('catalog.discover.openSettings'))}`;
+    const items = filteredPeople();
+    const empty =
+      ui.socialFilter === 'nearby'
+        ? emptyState(
+            'pin',
+            t('catalog.discover.nearbyEmpty'),
+            t('catalog.discover.nearbyEmptyText'),
+            'city',
+            t('catalog.home.changeCity')
+          )
+        : emptyState(
+            'compass',
+            t('catalog.discover.peopleEmpty'),
+            t('catalog.discover.peopleEmptyText'),
+            'social-filters',
+            t('catalog.discover.adjustFilters')
+          );
+    return `<div class="checkout-tab-tools">${chips}${activeFilters()}${countLine(tn('catalog.count.people', items.length))}</div>${
+      items.length
+        ? pagedList(
+            'people:' + ui.socialFilter + locationKey() + ui.cityFilter + ui.interestFilter,
+            items,
+            personRow,
+            'checkout-people'
+          )
+        : empty
+    }`;
+  }
+  function feedPosts() {
+    let posts = [...state.posts, ...basePosts].filter(p => !state.blocked.includes(p.person));
+    if (ui.socialFilter === 'following')
+      posts = posts.filter(p => p.person === 'self' || state.follows.includes(p.person));
+    if (ui.cityFilter !== 'all') posts = posts.filter(p => p.person === 'self' || p.city === ui.cityFilter);
+    return posts;
+  }
+  function feedBody() {
+    const posts = feedPosts();
+    const chips = chipGroup(
+      [
+        ['recommended', t('catalog.discover.forYou')],
+        ['following', t('catalog.discover.following')],
+      ],
+      ui.socialFilter,
+      'social-filter',
+      t('catalog.discover.feedFilter')
     );
-    showScreen(
-      '搜索结果',
-      `<div class="detail-content"><p class="detail-description">搜索「${esc(query)}」</p>${countNote(ps.length, '位朋友')}${pagedList('search-people-' + q, ps, personRow, 'people-records')}${countNote(gs.length, '个群组')}${pagedList('search-groups-' + q, gs, g => groupRow(g, true), 'group-records')}${!ps.length && !gs.length ? empty('暂时没找到', '试试昵称、群名称、城市或兴趣词。') : ''}</div>`
+    return `<div class="checkout-tab-tools">${chips}${activeFilters()}${countLine(tn('catalog.count.posts', posts.length))}</div>${
+      posts.length
+        ? pagedList(
+            'posts:' + ui.socialFilter + ui.cityFilter + state.posts.length,
+            posts,
+            feedCard,
+            'checkout-posts',
+            12
+          )
+        : emptyState(
+            'heart',
+            t('catalog.discover.feedEmpty'),
+            t('catalog.discover.feedEmptyText'),
+            'social-filter',
+            t('catalog.discover.findPeople'),
+            'recommended'
+          )
+    }`;
+  }
+  function socialPage() {
+    ensureState();
+    normalizeUi();
+    const filtered = ui.cityFilter !== 'all' || ui.interestFilter !== 'all';
+    const filter = act(
+      'social-filters',
+      '',
+      `${icon('filter')}${filtered ? '<span class="checkout-bell-dot" aria-hidden="true"></span>' : ''}`,
+      'icon-button checkout-bell',
+      `aria-label="${esc(filtered ? t('catalog.discover.filtersOn') : t('catalog.discover.filters'))}"`
     );
-    return;
+    const feed = ui.socialTab === 'feed';
+    const body = loadBody('social', feed ? feedBody : peopleBody, () => skeleton(feed ? 'post' : 'row'));
+    return `<section class="page checkout-ui checkout-page">${appBar({ title: t('catalog.discover.title'), city: true, actions: [filter] })}<div class="checkout-tabbar">${tabBar(
+      [
+        ['friends', t('catalog.discover.people')],
+        ['feed', t('catalog.discover.moments')],
+      ],
+      ui.socialTab,
+      'social-tab',
+      t('catalog.discover.title')
+    )}</div><div class="checkout-tab-body">${body}</div>${feed ? act('compose', '', `${icon('edit')}<span>${esc(t('catalog.discover.compose'))}</span>`, 'checkout-fab') : ''}</section>`;
   }
-  const found = catalogueServices().filter(s =>
-    (
-      s.name +
-      s.sub +
-      s.description +
-      s.store +
-      s.area +
-      s.city +
-      ([...categories, ...moreCategories].find(c => c.id === s.cat)?.name || '')
-    )
-      .toLowerCase()
-      .includes(q)
-  );
-  showScreen(
-    '搜索结果',
-    `<div class="detail-content"><p class="detail-description">搜索「${esc(query)}」</p>${countNote(found.length)}${found.length ? pagedList('search-service-' + q, found, productCard) : empty('换个关键词试试', '可以搜索保洁、地陪、咖啡、接机或职位。')}</div>`
-  );
-}
-function filterPeople() {
-  const interests = [...new Set(people.flatMap(p => p.tags))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
-  const cityOptions = [
-    ...new Set(['全部', ...cities, ...people.map(p => p.city), ui.cityFilter].filter(Boolean)),
-  ];
-  const cityField = `<label class="form-group"><span class="form-label">朋友所在城市（马来西亚样例）</span><select class="field" name="city">${cityOptions.map(city => `<option value="${esc(city)}" ${city === ui.cityFilter ? 'selected' : ''}>${esc(city)}</option>`).join('')}</select></label>`;
-  showSheet(
-    '发现更合拍的人',
-    `<form data-form="social-filter">${cityField}${selectField('兴趣', 'interest', ['全部', ...interests], ui.interestFilter)}${submitButton('看看合拍的人')}</form>`
-  );
-}
-function syncOverlaySocial(action, id) {
-  if (action === 'like') {
-    const post = [...state.posts, ...basePosts].find(p => p.id === id);
-    if (!post) return;
-    for (const card of document.querySelectorAll('#overlay-root .feed-card[data-post]'))
-      if (card.dataset.post === id) card.outerHTML = feedCard(post);
-    return;
+
+  function publicLive() {
+    const items = livePeople();
+    const chips = chipGroup(
+      Object.keys(LIVE_TOPICS).map(id => [id, t(`catalog.live.topic.${id}`)]),
+      ui.liveFilter,
+      'live-filter',
+      t('catalog.live.topicLabel')
+    );
+    return `<div class="checkout-tab-tools">${chips}${countLine(tn('catalog.count.rooms', items.length))}</div>${
+      items.length
+        ? pagedList('live:' + ui.liveFilter, items, liveCard, 'checkout-live-grid', 20)
+        : emptyState(
+            'live',
+            t('catalog.live.empty'),
+            t('catalog.live.emptyText'),
+            'live-filter',
+            t('catalog.live.showAll'),
+            'all'
+          )
+    }<p class="checkout-footnote">${esc(t('catalog.live.footnote'))}</p>`;
   }
-  const followed = state.follows.includes(id);
-  for (const target of document.querySelectorAll('#overlay-root [data-action]')) {
-    if (
-      target.dataset.id === id &&
-      ['follow', 'person-follow', 'room-follow'].includes(target.dataset.action)
-    ) {
-      target.textContent = followed ? '已关注' : '+ 关注';
-      target.setAttribute('aria-pressed', String(followed));
-    }
+  function privateFallback() {
+    const items = livePeople();
+    return `<div class="checkout-tab-tools">${countLine(tn('catalog.count.hosts', items.length))}</div>${items.length ? pagedList('live-private', items, privateCard, 'checkout-private-list', 20) : emptyState('video', t('catalog.live.privateEmpty'), '')}`;
   }
-}
-function expandedAction(action, id, button) {
-  switch (action) {
-    case 'load-more':
-      loadMore(id);
-      return true;
-    case 'group-scope':
-      catalogUI.groupScope = id;
-      render();
-      return true;
-    case 'all-services':
-      showScreen(
-        '发现好生活',
-        `<div class="detail-content">${countNote(catalogueServices().length)}${pagedList('all-services', catalogueServices(), productCard)}</div>`
-      );
-      return true;
-    case 'contacts': {
-      const ps = contactPeople();
-      showScreen(
-        '通讯录',
-        `<div class="people-list">${countNote(ps.length, '位联系人')}${pagedList('contacts', ps, personRow, 'people-records')}</div>`
-      );
-      return true;
-    }
-    case 'saved': {
-      const list = state.saved.map(id => services.find(s => s.id === id)).filter(Boolean);
-      showScreen(
-        '心动收藏',
-        `<div class="detail-content">${countNote(list.length, '项收藏')}${list.length ? pagedList('saved-services', list, productCard) : empty('把喜欢的生活先收好', '在服务详情点亮爱心，下次就能轻松找到。', 'go-home', '发现好生活')}</div>`
-      );
-      return true;
-    }
-    case 'like': {
-      const at = state.likes.indexOf(id);
-      at < 0 ? state.likes.push(id) : state.likes.splice(at, 1);
-      save();
-      render();
-      syncOverlaySocial('like', id);
-      return true;
-    }
-    case 'follow':
-    case 'person-follow':
-    case 'room-follow': {
-      const at = state.follows.indexOf(id);
-      at < 0 ? state.follows.push(id) : state.follows.splice(at, 1);
-      save();
-      render();
-      syncOverlaySocial(action, id);
-      toast(at < 0 ? '已关注，去动态看看 TA 的生活吧' : '已取消关注');
-      return true;
-    }
-    case 'discover-groups':
-      showScreen(
-        '发现群组',
-        `<div class="detail-content">${countNote(defaultGroups.length, '个城市兴趣群')}${pagedList('discover-groups', defaultGroups, g => groupRow(g, true), 'group-records')}</div>`
-      );
-      return true;
-    case 'service-chat':
-      openChat('merchant:' + id);
-      return true;
-    case 'chat-options': {
+  function livePage() {
+    ensureState();
+    normalizeUi();
+    const goLive = act(
+      'start-live',
+      '',
+      icon('video'),
+      'icon-button',
+      `aria-label="${esc(t('catalog.live.goLive'))}"`
+    );
+    const body =
+      ui.liveTab === 'private'
+        ? loadBody(
+            'live',
+            () => window.ShizhongPrivate?.lobby?.() ?? privateFallback(),
+            () => skeleton('card')
+          )
+        : loadBody('live', publicLive, () => skeleton('card'));
+    return `<section class="page checkout-ui checkout-page">${appBar({ title: t('catalog.live.title'), city: true, actions: [goLive] })}<div class="checkout-tabbar">${tabBar(
+      [
+        ['public', t('catalog.live.public')],
+        ['private', t('catalog.live.private')],
+      ],
+      ui.liveTab,
+      'live-tab',
+      t('catalog.live.title')
+    )}</div><div class="checkout-tab-body">${body}</div></section>`;
+  }
+
+  function chatRows() {
+    const support = chatInfo('support');
+    const supportLast = lastMessage('support');
+    const pinned = chatListRow('support', {
+      avatar: img('logo.png', '', 'avatar avatar-48 checkout-logo-avatar'),
+      name: support.name,
+      preview: supportLast ? messagePreview(supportLast) : t('catalog.chat.supportPreview'),
+      time: supportLast?.time || null,
+      unread: unreadFor('support'),
+    });
+    const rows = [];
+    for (const id of Object.keys(state.messages).filter(id => id.startsWith('merchant:'))) {
       const who = chatInfo(id);
-      if (who.serviceId) {
-        showSheet(
-          '与商家沟通',
-          `<div class="panel list-panel">${listRow('bag', '查看服务详情', 'service', '', who.serviceId)}</div><p class="form-note">当前为本地咨询演示。</p>${act('chat', id, '返回会话', 'primary-button')}`
+      const last = lastMessage(id);
+      if (!last) continue;
+      rows.push({
+        time: last.time,
+        html: chatListRow(id, {
+          avatar: img(who.photo, '', 'avatar avatar-48'),
+          name: who.name,
+          preview: messagePreview(last),
+          time: last.time,
+          unread: unreadFor(id),
+        }),
+      });
+    }
+    for (const p of contactPeople()) {
+      const last = lastMessage(p.id);
+      rows.push({
+        time: last?.time || 0,
+        html: chatListRow(p.id, {
+          avatar: avatarHTML(p, 48),
+          name: personName(p),
+          preview: last
+            ? messagePreview(last)
+            : txt('profiles', p, 'friendMessage') || txt('people', p, 'bio'),
+          time: last?.time || null,
+          unread: unreadFor(p.id),
+        }),
+      });
+    }
+    for (const id of state.joined) {
+      const g = findGroup(id);
+      if (!g || !state.messages[id]?.length) continue;
+      rows.push({ time: lastMessage(id)?.time || 0, html: groupRow(g) });
+    }
+    rows.sort((a, b) => b.time - a.time);
+    return [{ html: pinned }, ...rows];
+  }
+  function chatsBody() {
+    const rows = chatRows();
+    return `<div class="checkout-tab-tools">${searchLauncher('chats', t('catalog.comms.searchPlaceholder'))}</div>${pagedList('chats:' + rows.length, rows, r => r.html, 'checkout-list', 30)}${
+      rows.length > 1
+        ? ''
+        : `<p class="checkout-note checkout-note-inset">${esc(t('catalog.comms.chatsEmpty'))}</p>`
+    }`;
+  }
+  function groupsBody() {
+    let groups = [...state.groups, ...defaultGroups];
+    if (catalogUI.groupScope === 'mine') groups = groups.filter(g => state.joined.includes(g.id));
+    const chips = chipGroup(
+      [
+        ['mine', t('catalog.comms.myGroups')],
+        ['discover', t('catalog.comms.discoverGroups')],
+      ],
+      catalogUI.groupScope,
+      'group-scope',
+      t('catalog.comms.groupScope'),
+      act(
+        'create-group',
+        '',
+        `${icon('add')}<span>${esc(t('catalog.comms.createGroup'))}</span>`,
+        'chip checkout-chip-action'
+      )
+    );
+    return `<div class="checkout-tab-tools">${chips}${countLine(tn('catalog.count.groups', groups.length))}</div>${
+      groups.length
+        ? pagedList(
+            'groups:' + catalogUI.groupScope + state.groups.length + state.joined.length,
+            groups,
+            g => groupRow(g, catalogUI.groupScope === 'discover'),
+            'checkout-list'
+          )
+        : emptyState(
+            'group',
+            t('catalog.comms.noGroups'),
+            t('catalog.comms.noGroupsText'),
+            'group-scope',
+            t('catalog.comms.discoverGroups'),
+            'discover'
+          )
+    }`;
+  }
+  function contactsBody() {
+    const items = contactPeople().sort((a, b) => personName(a).localeCompare(personName(b), SZ_I18N.intl));
+    const shortcuts = `<div class="list checkout-list checkout-shortcuts">${act('new-friends', '', `${icon('plususer')}<span>${esc(t('catalog.comms.newFriends'))}</span>${icon('chevron', 'chevron')}`, 'list-row')}${act('add-friend', '', `${icon('search')}<span>${esc(t('catalog.comms.addFriend'))}</span>${icon('chevron', 'chevron')}`, 'list-row')}</div>`;
+    return `<div class="checkout-tab-tools">${shortcuts}${countLine(tn('catalog.count.contacts', items.length))}</div>${
+      items.length
+        ? pagedList('contacts:' + items.length, items, personRow, 'checkout-people')
+        : emptyState(
+            'user',
+            t('catalog.comms.noContacts'),
+            t('catalog.comms.noContactsText'),
+            'catalog-discover',
+            t('catalog.comms.findPeople')
+          )
+    }`;
+  }
+  function commsPage() {
+    ensureState();
+    normalizeUi();
+    const add = act(
+      'add-friend',
+      '',
+      icon('plususer'),
+      'icon-button',
+      `aria-label="${esc(t('catalog.comms.addFriend'))}"`
+    );
+    const draw = { chats: chatsBody, groups: groupsBody, contacts: contactsBody }[ui.commsTab];
+    return `<section class="page checkout-ui checkout-page">${appBar({ title: t('catalog.comms.title'), actions: [add] })}<div class="checkout-tabbar">${tabBar(
+      [
+        ['chats', t('catalog.comms.chats')],
+        ['groups', t('catalog.comms.groups')],
+        ['contacts', t('catalog.comms.contacts')],
+      ],
+      ui.commsTab,
+      'comms-tab',
+      t('catalog.comms.title')
+    )}</div><div class="checkout-tab-body">${loadBody('comms', draw, () => skeleton('row', 6))}</div></section>`;
+  }
+
+  // ------------------------------------------------------------------ option sheets (pickers)
+  /** Radio list in a pushed sheet; onPick(id) runs after the sheet closes. */
+  function optionSheet({ title, options, current, onPick }) {
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title,
+      className: 'checkout-ui checkout-option-sheet',
+      html: `<div class="list checkout-options" role="radiogroup" aria-label="${esc(title)}">${options
+        .map(
+          ([id, label]) =>
+            `<button type="button" class="list-row checkout-option" role="radio" aria-checked="${id === current}" data-option="${esc(id)}"><span>${html(label)}</span>${id === current ? icon('check', 'checkout-option-check') : ''}</button>`
+        )
+        .join('')}</div>`,
+    });
+    layer.el.addEventListener('click', event => {
+      const option = event.target.closest('[data-option]');
+      if (!option) return;
+      SZ.overlay.close({ layer, force: true }).then(() => onPick(option.dataset.option));
+    });
+    return layer;
+  }
+
+  // ------------------------------------------------------------------ category screens
+  const cityOptions = () => [
+    ...new Set([...(typeof cities !== 'undefined' ? cities : []), ...catalogueServices().map(s => s.city)]),
+  ];
+  function categoryItems(id) {
+    let items = catalogueServices().filter(s => s.cat === id);
+    if (catalogUI.city !== 'all') items = items.filter(s => s.city === catalogUI.city);
+    const tokens = tokenize(catalogUI.query);
+    if (tokens.length) items = items.filter(s => matchAll(searchText(s), tokens));
+    let sorted = sortServices(items, catalogUI.sort);
+    if (id === 'phone' && catalogUI.sort === 'recommended')
+      sorted = [
+        ...sorted.filter(s => s.phoneKind === 'topup'),
+        ...sorted.filter(s => s.phoneKind !== 'topup'),
+      ];
+    return sorted;
+  }
+  function categoryResults(id) {
+    const items = categoryItems(id);
+    return `${countLine(tn('catalog.count.services', items.length))}${
+      items.length
+        ? pagedList(
+            `category:${id}:${catalogUI.city}:${catalogUI.sort}:${catalogUI.query}`,
+            items,
+            productCard
+          )
+        : emptyState(
+            'search',
+            t('catalog.category.empty'),
+            t('catalog.category.emptyText'),
+            'catalog-category-reset',
+            t('catalog.category.reset')
+          )
+    }`;
+  }
+  function categoryToolbar() {
+    const city = catalogUI.city === 'all' ? t('catalog.category.allCities') : cityName(catalogUI.city);
+    const sort = t(`catalog.sort.${catalogUI.sort}`);
+    return `<div class="checkout-toolbar">${act('catalog-category-city', '', `${icon('pin')}<span>${html(city)}</span>${icon('down')}`, 'chip checkout-select-chip', `aria-label="${esc(t('catalog.category.cityLabel', { city }))}"`)}${act('catalog-category-sort', '', `<span>${esc(sort)}</span>${icon('down')}`, 'chip checkout-select-chip', `aria-label="${esc(t('catalog.category.sortLabel', { sort }))}"`)}</div>`;
+  }
+  function refreshCategory(
+    layer = SZ.overlay
+      .layers()
+      .reverse()
+      .find(l => l.meta.category)
+  ) {
+    if (!layer) return;
+    const toolbar = layer.el.querySelector('[data-part="toolbar"]');
+    if (toolbar) toolbar.innerHTML = categoryToolbar();
+    const results = layer.el.querySelector('[data-part="results"]');
+    if (results) results.innerHTML = categoryResults(layer.meta.category);
+  }
+  function allCategoriesScreen() {
+    const counts = new Map();
+    for (const s of catalogueServices()) counts.set(s.cat, (counts.get(s.cat) || 0) + 1);
+    const items = allCategories().filter(c => c.id !== 'all');
+    return SZ.overlay.open({
+      kind: 'screen',
+      title: t('catalog.category.allTitle'),
+      className: 'checkout-ui checkout-screen',
+      html: `<div class="checkout-screen-body"><p class="checkout-lead">${esc(t('catalog.category.allLead'))}</p><div class="list checkout-list">${items
+        .map(c =>
+          act(
+            'category',
+            c.id,
+            `<span class="checkout-cat-icon checkout-cat-icon-sm" style="--cat:${esc(c.color)}">${icon(c.icon)}</span><span class="list-row-main"><span class="checkout-row-title">${esc(catName(c.id))}</span><span class="checkout-row-sub">${esc(catHint(c.id))}</span></span><span class="row-value">${esc(number(counts.get(c.id) || 0))}</span>${icon('chevron', 'chevron')}`,
+            'list-row checkout-cat-row'
+          )
+        )
+        .join('')}</div></div>`,
+    });
+  }
+  function categoryPage(id, keepFilters = false) {
+    if (id === 'all') return allCategoriesScreen();
+    const c = findCategory(id);
+    if (!c) return;
+    if (!keepFilters || catalogUI.category !== id) {
+      const local = catalogueServices().some(s => s.cat === id && s.city === catalogCity());
+      catalogUI.city = local && !abroad() ? catalogCity() : 'all';
+      catalogUI.sort = 'recommended';
+      catalogUI.query = '';
+    }
+    catalogUI.category = id;
+    const right = C.cartButton?.(id) || '<span class="detail-header-spacer" aria-hidden="true"></span>';
+    const layer = SZ.overlay.open({
+      kind: 'screen',
+      title: catName(id),
+      className: 'checkout-ui checkout-screen',
+      right,
+      meta: { category: id },
+      html: `<div class="checkout-screen-body"><div class="checkout-cat-hero" style="--cat:${esc(c.color)}"><span class="checkout-cat-icon">${icon(c.icon)}</span><div class="checkout-cat-hero-main"><p class="checkout-cat-hint">${esc(catHint(id))}</p>${act('request', id, `${icon('edit')}<span>${esc(t('catalog.category.postRequest'))}</span>`, 'btn btn-sm btn-outline')}</div></div><form class="checkout-inline-search" role="search" data-catalog-form="category-search">${icon('search')}<input class="field" type="search" name="q" value="${esc(catalogUI.query)}" enterkeyhint="search" autocomplete="off" aria-label="${esc(t('catalog.category.searchLabel', { name: catName(id) }))}" placeholder="${esc(t('catalog.category.searchPlaceholder'))}"><button type="submit" class="btn btn-sm btn-primary">${esc(t('common.search'))}</button></form><div data-part="toolbar">${categoryToolbar()}</div><div data-part="results">${categoryResults(id)}</div></div>`,
+    });
+    layer.el.addEventListener('submit', event => {
+      if (!event.target.matches('[data-catalog-form="category-search"]')) return;
+      event.preventDefault();
+      catalogUI.query = String(new FormData(event.target).get('q') || '').trim();
+      refreshCategory(layer);
+      // Descriptions live in the category chunk; search them too once it arrives.
+      if (catalogUI.query)
+        C.ensure(['services-' + id]).then(
+          () => layer.el.isConnected && refreshCategory(layer),
+          () => {}
         );
-        return true;
+    });
+    // Warm the category details in the background so detail pages open instantly.
+    C.ensure(['services-' + id]).catch(() => {});
+    return layer;
+  }
+
+  // ------------------------------------------------------------------ service detail
+  function detailRows(s) {
+    const rows = [
+      [
+        t('catalog.detail.area'),
+        `${cityName(s.city)} · ${txt('services', s, 'area') || t('catalog.detail.cityCentre')}`,
+      ],
+      [
+        t('catalog.detail.languages'),
+        (s.languages || ['中文', 'English']).map(v => td('catalog.language', v)).join(' · '),
+      ],
+      [t('catalog.detail.duration'), s.duration || t('catalog.detail.durationTbc')],
+      [t('catalog.detail.availability'), s.availability || t('catalog.detail.availabilityTbc')],
+      ...(s.details || []).map(d => [d.label, d.value]),
+    ];
+    return `<dl class="checkout-facts">${rows.map(([k, v]) => `<div><dt>${html(k)}</dt><dd>${html(v)}</dd></div>`).join('')}</dl>`;
+  }
+  function bulletList(items, iconName = '') {
+    if (!items?.length) return '';
+    return `<ul class="checkout-bullets${iconName ? ' checkout-bullets-' + iconName : ''}">${items.map(i => `<li>${iconName ? icon(iconName) : ''}<span>${html(i)}</span></li>`).join('')}</ul>`;
+  }
+  function allReviews(s) {
+    return [...userReviews(s.id).map(r => ({ ...r, own: true })), ...(s.reviews || [])];
+  }
+  function reviewItem(r) {
+    const author = r.own ? r.name || state.profile.name : r.author;
+    const when = r.at ? fmt().date(r.at, 'medium') : r.date ? fmt().date(r.date, 'medium') : '';
+    const tags = (r.tags || [])
+      .map(id => `<span class="tag">${esc(t(`catalog.review.tag.${id}`))}</span>`)
+      .join('');
+    return `<article class="checkout-review"><header><span class="checkout-review-author">${html(author || t('catalog.review.anonymous'))}${r.own ? ` <span class="tag tag-brand">${esc(t('catalog.review.yours'))}</span>` : ''}</span>${stars(r.stars)}</header>${tags ? `<div class="checkout-tags">${tags}</div>` : ''}${r.text ? `<p>${html(r.text)}</p>` : ''}${when ? `<time class="caption">${esc(when)}</time>` : ''}</article>`;
+  }
+  function reviewsSection(s) {
+    const items = allReviews(s);
+    const value = serviceRating(s);
+    return `<section class="checkout-block" aria-labelledby="checkout-reviews-${esc(s.id)}"><div class="section-header"><h3 class="checkout-block-title" id="checkout-reviews-${esc(s.id)}">${esc(s.type === 'job' ? t('catalog.detail.feedback') : t('catalog.detail.reviews'))}</h3>${items.length > 3 ? act('catalog-reviews', s.id, `${esc(t('common.viewAll'))}${icon('chevron')}`, 'btn btn-ghost btn-sm checkout-view-all') : ''}</div><div class="checkout-rating-summary"><span class="checkout-rating-big">${esc(rating1(value))}</span>${stars(value)}<span class="caption">${esc(tn('catalog.review.count', items.length))}</span></div>${items.length ? items.slice(0, 3).map(reviewItem).join('') : `<p class="checkout-muted">${esc(t('catalog.review.none'))}</p>`}</section>`;
+  }
+  function saveButton(id) {
+    const on = state.saved.includes(id);
+    return act(
+      'save-service',
+      id,
+      icon('heart'),
+      'icon-button checkout-save',
+      `data-toggle="save" aria-pressed="${on}" aria-label="${esc(on ? t('catalog.detail.unsave') : t('catalog.detail.save'))}"`
+    );
+  }
+  function drawServiceDetail(id) {
+    const s = findService(id);
+    if (!s) return toast(t('catalog.detail.missing'), { type: 'error' });
+    const top = SZ.overlay.top();
+    if (top?.meta.serviceId === id && top.meta.view === 'service') return top;
+    const flow = C.flowOf?.(s) || 'service';
+    const job = s.type === 'job';
+    const description = s.description || '';
+    const untranslated = !SZ_I18N.isSource && CJK.test(description + (s.includes || []).join(''));
+    const includes = s.includes || [];
+    const right = `<span class="checkout-header-actions">${act('catalog-share', 'service:' + id, icon('share'), 'icon-button', `aria-label="${esc(t('catalog.detail.share'))}"`)}${saveButton(id)}</span>`;
+    const facts = job
+      ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.requirements'))}</h3>${bulletList(s.requirements || includes, 'check')}${s.benefits?.length ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.benefits'))}</h3>${bulletList(s.benefits, 'check')}` : ''}`
+      : `<h3 class="checkout-block-title">${esc(t('catalog.detail.included'))}</h3>${includes.length ? bulletList(includes, 'check') : `<p class="checkout-muted">${esc(t('catalog.detail.includedDefault'))}</p>`}<h3 class="checkout-block-title">${esc(t('catalog.detail.excluded'))}</h3>${s.excludes?.length ? bulletList(s.excludes, 'close') : `<p class="checkout-muted">${esc(t('catalog.detail.excludedDefault'))}</p>`}${s.pricingNote ? `<p class="checkout-note">${html(s.pricingNote)}</p>` : ''}`;
+    const cart =
+      flow === 'goods'
+        ? act(
+            'catalog-add-cart',
+            id,
+            `${icon('cart')}<span>${esc(t('catalog.cart.add'))}</span>`,
+            'btn btn-lg btn-secondary checkout-cta-secondary'
+          )
+        : '';
+    return SZ.overlay.open({
+      kind: 'screen',
+      title: t(`catalog.detail.title.${job ? 'job' : s.type === 'goods' ? 'goods' : 'service'}`),
+      className: 'checkout-ui checkout-screen checkout-detail',
+      right,
+      meta: { serviceId: id, view: 'service' },
+      html: `<div class="checkout-detail-media">${img(s.image, serviceName(s), '', 'fetchpriority="high"')}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</div><div class="checkout-screen-body checkout-detail-body"><div class="checkout-detail-head"><div class="checkout-detail-price">${priceHTML(s, 'checkout-price-lg')}</div><h2 class="checkout-detail-title">${html(serviceName(s))}</h2><p class="checkout-detail-sub">${html(txt('services', s, 'sub'))}</p><p class="checkout-detail-meta">${job ? `<span>${html(s.employment ? td('catalog.employment', s.employment) : t('catalog.card.hiring'))}</span>` : `<span class="checkout-rating">★ ${esc(rating1(serviceRating(s)))}</span>`}<span>${html(salesText(s))}</span><span>${icon('pin')}${html(cityName(s.city))} · ${html(txt('services', s, 'area'))}</span></p></div>${
+        includes.length && !job
+          ? `<ul class="checkout-highlights">${includes
+              .slice(0, 3)
+              .map(i => `<li>${icon('check')}<span>${html(i)}</span></li>`)
+              .join('')}</ul>`
+          : ''
+      }<div class="checkout-store">${img(s.image, '', 'checkout-store-thumb')}<div class="checkout-store-main"><p class="checkout-store-name">${html(storeName(s))}</p><p class="caption">${esc(t('catalog.detail.demoMerchant'))}</p></div></div>${
+        description
+          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(job ? t('catalog.detail.aboutJob') : t('catalog.detail.about'))}</h3><p class="checkout-description" data-clamp="true">${html(description)}</p>${description.length > 90 ? act('catalog-expand', '', esc(t('catalog.detail.showMore')), 'btn btn-ghost btn-sm checkout-expand', 'aria-expanded="false"') : ''}${untranslated ? `<p class="checkout-note">${esc(t('catalog.detail.originalLanguage'))}</p>` : ''}</section>`
+          : ''
+      }<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.facts'))}</h3>${detailRows(s)}</section><section class="checkout-block">${facts}</section>${
+        s.notice || s.faq?.length
+          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(s.notice)}</p>` : ''}${(s.faq || []).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
+          : ''
+      }<div data-part="reviews">${reviewsSection(s)}</div><p class="checkout-footnote">${esc(t('catalog.detail.demoNote'))}</p></div><div class="checkout-bottom-bar">${act('service-chat', id, `${icon('chat')}<span>${esc(t('catalog.detail.askShort'))}</span>`, 'checkout-bar-icon')}${cart}${act('book-service', id, esc(t(`catalog.detail.cta.${flow}`)), 'btn btn-lg btn-primary checkout-cta')}</div>`,
+    });
+  }
+  function serviceDetail(id) {
+    return demand(serviceChunks(id), () => drawServiceDetail(id));
+  }
+  function reviewsSheet(id) {
+    const s = findService(id);
+    if (!s) return;
+    const items = allReviews(s);
+    SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: tn('catalog.review.count', items.length),
+      className: 'checkout-ui checkout-sheet checkout-reviews-sheet',
+      html: `<div class="checkout-rating-summary"><span class="checkout-rating-big">${esc(rating1(serviceRating(s)))}</span>${stars(serviceRating(s))}</div>${items.map(reviewItem).join('')}`,
+    });
+  }
+  C.refreshReviews = serviceId => {
+    const s = findService(serviceId);
+    for (const layer of SZ.overlay.layers()) {
+      if (layer.meta.serviceId !== serviceId || layer.meta.view !== 'service') continue;
+      const box = layer.el.querySelector('[data-part="reviews"]');
+      if (box && s) box.innerHTML = reviewsSection(s);
+    }
+  };
+
+  // ------------------------------------------------------------------ campaign / all services / saved
+  function listScreen(title, key, items, empty = '') {
+    return SZ.overlay.open({
+      kind: 'screen',
+      title,
+      className: 'checkout-ui checkout-screen',
+      html: `<div class="checkout-screen-body">${countLine(tn('catalog.count.services', items.length))}${items.length ? pagedList(key, items, productCard) : empty}</div>`,
+    });
+  }
+  function campaign() {
+    const picks = catalogueServices().filter(
+      s =>
+        ['guide', 'food', 'car', 'travel'].includes(s.cat) && (abroad() ? s.countryCode === 'MY' : isLocal(s))
+    );
+    return SZ.overlay.open({
+      kind: 'screen',
+      title: t('catalog.campaign.title'),
+      className: 'checkout-ui checkout-screen',
+      html: `<div class="checkout-campaign-hero">${img('hero.png', t('catalog.campaign.imageAlt'))}</div><div class="checkout-screen-body"><h2 class="checkout-detail-title">${esc(t('catalog.home.bannerTitle'))}</h2><p class="checkout-lead">${esc(abroad() ? t('catalog.campaign.leadAbroad') : t('catalog.campaign.lead', { city: cityName(catalogCity()) }))}</p>${countLine(tn('catalog.count.services', picks.length))}${picks.length ? pagedList('campaign:' + locationKey(), picks, productCard) : emptyState('pin', t('catalog.campaign.empty'), t('catalog.campaign.emptyText'), 'city', t('catalog.home.changeCity'))}</div>`,
+    });
+  }
+  const allServices = () =>
+    listScreen(t('catalog.all.title'), 'all-services', sortServices(catalogueServices(), 'recommended'));
+  function savedServices() {
+    const items = state.saved.map(findService).filter(Boolean);
+    return listScreen(
+      t('catalog.saved.title'),
+      'saved:' + items.length,
+      items,
+      emptyState(
+        'heart',
+        t('catalog.saved.empty'),
+        t('catalog.saved.emptyText'),
+        'catalog-home',
+        t('catalog.saved.browse')
+      )
+    );
+  }
+
+  // ------------------------------------------------------------------ search
+  const searchCache = new Map();
+  function tokenize(query) {
+    return String(query || '')
+      .toLowerCase()
+      .split(/[\s,，、]+/)
+      .filter(Boolean);
+  }
+  const matchAll = (text, tokens) => tokens.every(tok => text.includes(tok));
+  function searchText(s) {
+    const hit = searchCache.get(s.id);
+    if (hit && hit.v === C.dataVersion) return hit.text;
+    const text = [
+      s.name,
+      s.sub,
+      s.store,
+      s.area,
+      s.city,
+      cityName(s.city),
+      catName(s.cat),
+      catHint(s.cat),
+      findCategory(s.cat)?.name,
+      serviceName(s),
+      txt('services', s, 'sub'),
+      storeName(s),
+      txt('services', s, 'area'),
+      s.description,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    searchCache.set(s.id, { v: C.dataVersion, text });
+    return text;
+  }
+  const personText = p =>
+    [
+      p.name,
+      personName(p),
+      p.city,
+      cityName(p.city),
+      p.area,
+      txt('people', p, 'area'),
+      p.bio,
+      txt('people', p, 'bio'),
+      ...p.tags,
+      ...contentList('people', p, 'tags'),
+      p.occupation,
+      txt('people', p, 'occupation'),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  const groupText = g =>
+    [
+      g.name,
+      groupName(g),
+      g.desc,
+      txt('groups', g, 'desc'),
+      g.city,
+      cityName(g.city),
+      g.topic,
+      txt('groups', g, 'topic'),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  const postText = p =>
+    [
+      p.text,
+      txt('posts', p, 'text'),
+      p.topic,
+      txt('posts', p, 'topic'),
+      p.place,
+      txt('posts', p, 'place'),
+      p.city,
+      cityName(p.city),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  function rankServices(items, tokens) {
+    return items
+      .map(s => ({
+        s,
+        score:
+          tokens.filter(tok => (serviceName(s) + ' ' + s.name).toLowerCase().includes(tok)).length * 2 +
+          (isLocal(s) ? 1 : 0),
+      }))
+      .sort((a, b) => b.score - a.score || a.s._rank - b.s._rank)
+      .map(r => r.s);
+  }
+  function searchResults(query, scope) {
+    const tokens = tokenize(query);
+    const r = { services: [], people: [], groups: [], posts: [], messages: [] };
+    if (!tokens.length) return r;
+    if (scope !== 'chats')
+      r.services = rankServices(
+        catalogueServices().filter(s => matchAll(searchText(s), tokens)),
+        tokens
+      );
+    if (C.isLoaded(['people']))
+      r.people = (scope === 'chats' ? contactPeople() : visiblePeople()).filter(p =>
+        matchAll(personText(p), tokens)
+      );
+    if (C.isLoaded(['groups']))
+      r.groups = [...state.groups, ...defaultGroups].filter(g => matchAll(groupText(g), tokens));
+    if (scope !== 'chats' && C.isLoaded(['posts']))
+      r.posts = [...state.posts, ...basePosts].filter(
+        p => !state.blocked.includes(p.person) && matchAll(postText(p), tokens)
+      );
+    if (scope === 'chats' && C.isLoaded(['conversations'])) {
+      const ids = new Set(['support', ...contactPeople().map(p => p.id), ...Object.keys(state.messages)]);
+      for (const id of ids) {
+        const hit = conversationMessages(id)
+          .filter(m => typeof m.text === 'string' && matchAll(m.text.toLowerCase(), tokens))
+          .pop();
+        if (hit) r.messages.push({ id, message: hit });
       }
-      return false;
     }
-    case 'campaign': {
-      const foreign = catalogCountryCode() !== 'MY',
-        picks = catalogueServices().filter(
-          s =>
-            ['guide', 'food', 'car', 'travel'].includes(s.cat) &&
-            (foreign ? s.countryCode === 'MY' : catalogMatchesLocation(s))
+    return r;
+  }
+  function resultSection(key, title, items, draw, layout, limit, loading) {
+    if (loading)
+      return `<section class="checkout-result-group"><h3 class="checkout-block-title">${esc(title)}</h3>${skeleton('row', 2)}</section>`;
+    if (!items.length) return '';
+    return `<section class="checkout-result-group" aria-label="${esc(title)}"><h3 class="checkout-block-title">${esc(title)} <span class="checkout-muted">${esc(number(items.length))}</span></h3>${pagedList(key, items, draw, layout, limit)}</section>`;
+  }
+  function searchBody(query, scope) {
+    const tokens = tokenize(query);
+    if (!tokens.length) {
+      const history = state.searchHistory.slice(0, 10);
+      const hot = t('catalog.search.hotWords').split('|').filter(Boolean);
+      return `${history.length ? `<section class="checkout-result-group"><div class="section-header"><h3 class="checkout-block-title">${esc(t('catalog.search.recent'))}</h3>${act('catalog-search-clear', '', esc(t('catalog.search.clearHistory')), 'btn btn-ghost btn-sm')}</div><div class="checkout-word-list">${history.map(q => act('catalog-search-word', q, html(q), 'chip')).join('')}</div></section>` : ''}${scope === 'chats' ? '' : `<section class="checkout-result-group"><h3 class="checkout-block-title">${esc(t('catalog.search.popular'))}</h3><div class="checkout-word-list">${hot.map(q => act('catalog-search-word', q, esc(q), 'chip')).join('')}</div></section>`}`;
+    }
+    const r = searchResults(query, scope);
+    const k = scope + ':' + tokens.join(' ');
+    const wait = keys => !C.isLoaded(keys) && !C.hasFailed(keys);
+    const total = r.services.length + r.people.length + r.groups.length + r.posts.length + r.messages.length;
+    const pending =
+      scope === 'chats' ? wait(['people', 'groups', 'conversations']) : wait(['people', 'groups', 'posts']);
+    const messageRow = ({ id, message }) => {
+      const who = chatInfo(id);
+      return chatListRow(id, {
+        avatar: who.group ? groupAvatar(who) : img(who.avatar || who.photo, '', 'avatar avatar-48'),
+        name: who.name,
+        preview: messagePreview(message, who),
+        time: message.time,
+        unread: 0,
+      });
+    };
+    // The query is the visitor's own text: escape it and mark its language separately from the UI sentence.
+    const summary = (
+      total || pending
+        ? tn('catalog.search.found', total, { q: '\u0000' })
+        : t('catalog.search.none', { q: '\u0000' })
+    )
+      .split('\u0000')
+      .map(esc)
+      .join(html(query));
+    return `<p class="checkout-count" role="status">${summary}</p>${
+      !total && !pending
+        ? emptyState(
+            'search',
+            t('catalog.search.noneTitle'),
+            scope === 'chats' ? t('catalog.search.noneChats') : t('catalog.search.noneText')
+          )
+        : ''
+    }${resultSection('s-srv:' + k, t('catalog.search.services'), r.services, productCard, 'checkout-grid', 6)}${
+      scope !== 'chats' && !C.isLoaded(['search']) && !C.hasFailed(['search'])
+        ? `<p class="checkout-note">${esc(t('catalog.search.deeper'))}</p>`
+        : ''
+    }${resultSection('s-msg:' + k, t('catalog.search.messages'), r.messages, messageRow, 'checkout-list', 5, scope === 'chats' && wait(['conversations']))}${resultSection('s-ppl:' + k, t('catalog.search.people'), r.people, personRow, 'checkout-people', 5, wait(['people']))}${resultSection('s-grp:' + k, t('catalog.search.groups'), r.groups, g => groupRow(g, true), 'checkout-list', 5, wait(['groups']))}${
+      scope !== 'chats'
+        ? resultSection(
+            's-post:' + k,
+            t('catalog.search.posts'),
+            r.posts,
+            feedCard,
+            'checkout-posts',
+            3,
+            wait(['posts'])
+          )
+        : ''
+    }`;
+  }
+  function rememberSearch(query) {
+    const q = String(query || '').trim();
+    if (!q) return;
+    state.searchHistory = [q, ...state.searchHistory.filter(x => x !== q)].slice(0, 10);
+    SZ.store.saveSoon();
+  }
+  function openSearch(query = '', scope = 'all') {
+    const top = SZ.overlay.top();
+    if (top?.meta.view === 'search' && top.meta.scope === scope) {
+      top.meta.run(query, true);
+      return top;
+    }
+    const layer = SZ.overlay.open({
+      kind: 'screen',
+      title: scope === 'chats' ? t('catalog.search.chatsTitle') : t('catalog.search.title'),
+      className: 'checkout-ui checkout-screen checkout-search-screen',
+      meta: { view: 'search', scope },
+      html: `<div class="checkout-screen-body"><form class="checkout-inline-search" role="search" data-catalog-form="search">${icon('search')}<input class="field" type="search" name="q" value="${esc(query)}" enterkeyhint="search" autocomplete="off" aria-label="${esc(t('catalog.search.label'))}" placeholder="${esc(scope === 'chats' ? t('catalog.comms.searchPlaceholder') : t('catalog.search.placeholder'))}"><button type="submit" class="btn btn-sm btn-primary">${esc(t('common.search'))}</button></form><div data-part="results" aria-live="polite">${searchBody(query, scope)}</div></div>`,
+    });
+    const input = layer.el.querySelector('input[name="q"]');
+    const results = layer.el.querySelector('[data-part="results"]');
+    let current = query;
+    const run = (q, remember = false) => {
+      current = q;
+      if (input.value.trim() !== q) input.value = q;
+      results.innerHTML = searchBody(q, scope);
+      if (!tokenize(q).length) return;
+      if (remember) rememberSearch(q);
+      const keys = scope === 'chats' ? ['people', 'groups', 'conversations'] : ['people', 'groups', 'posts'];
+      if (remember && scope !== 'chats') keys.push('search');
+      // Index results show at once; people, groups, posts and descriptions join as they load.
+      for (const key of keys)
+        C.ensure([key]).then(
+          () => {
+            if (layer.el.isConnected && current === q) results.innerHTML = searchBody(q, scope);
+          },
+          () => {}
         );
-      showScreen(
-        '你好，马来西亚',
-        `<div class="detail-hero"><img src="${asset('hero.png')}" alt="马来西亚城市生活"></div><div class="detail-content"><h2>在大马，把日子过成喜欢。</h2><p class="detail-description">${foreign ? '这里精选马来西亚的城市漫游、出行与好味道，实际服务城市以详情为准。' : '为你整理马来西亚 ' + esc(catalogCity()) + ' 的城市漫游、出行与好味道。'}</p>${countNote(picks.length)}${picks.length ? pagedList('campaign-' + catalogLocationKey(), picks, productCard) : empty('当前城市暂无体验样例', '可以切换至其他城市，看看当地的城市生活。', 'city', '切换国家 / 城市')}</div>`
-      );
-      return true;
+    };
+    layer.meta.run = run;
+    const live = SZ.debounce(() => {
+      if (input.value.trim() !== current) run(input.value.trim());
+    }, 250);
+    input.addEventListener('input', live);
+    layer.el.addEventListener('submit', event => {
+      if (!event.target.matches('[data-catalog-form="search"]')) return;
+      event.preventDefault();
+      run(input.value.trim(), true);
+      input.blur();
+    });
+    if (query) run(query, true);
+    else requestAnimationFrame(() => input.focus({ preventScroll: true }));
+    return layer;
+  }
+  function search(query = '', chat = false) {
+    return openSearch(String(query || '').trim(), chat ? 'chats' : 'all');
+  }
+
+  // ------------------------------------------------------------------ person detail
+  function drawPersonDetail(id) {
+    const p = findPerson(id);
+    if (!p) return toast(t('catalog.person.missing'), { type: 'error' });
+    const top = SZ.overlay.top();
+    if (top?.meta.personId === id && top.meta.view === 'person') return top;
+    const name = personName(p);
+    const posts = [...state.posts, ...basePosts].filter(f => f.person === id);
+    const tags = contentList('people', p, 'tags');
+    const about = txt('profiles', p, 'about') || txt('people', p, 'bio');
+    const topics = contentList('profiles', p, 'callTopics');
+    const hero =
+      window.ShizhongFriends?.profileHero?.(p) ||
+      `<div class="checkout-profile-hero">${img(p.photo, name)}<div class="checkout-profile-title"><h2>${html(name)}</h2><p>${html([p.age ? t('catalog.person.age', { n: p.age }) : '', cityName(p.city), onlineLabel(p)].filter(Boolean).join(' · '))}</p></div></div>`;
+    const rows = [
+      [t('catalog.person.city'), `${cityName(p.city)}${p.area ? ' · ' + txt('people', p, 'area') : ''}`],
+      [t('catalog.person.work'), txt('people', p, 'occupation') || t('catalog.person.workDefault')],
+      [t('catalog.person.status'), onlineLabel(p)],
+      [t('catalog.person.schedule'), txt('profiles', p, 'schedule') || t('catalog.person.scheduleDefault')],
+      [t('catalog.person.language'), txt('people', p, 'language') || t('catalog.person.languageDefault')],
+    ];
+    return SZ.overlay.open({
+      kind: 'screen',
+      title: t('catalog.person.title'),
+      className: 'checkout-ui checkout-screen checkout-person-screen friend-profile-screen',
+      meta: { personId: id, view: 'person' },
+      html: `${hero}<div class="checkout-screen-body">${tags.length ? `<div class="checkout-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}<p class="checkout-description">${html(about)}</p><section class="checkout-block"><dl class="checkout-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${html(v)}</dd></div>`).join('')}</dl></section>${window.ShizhongFriends?.collection?.(p) || ''}${
+        topics.length
+          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.person.topics'))}</h3>${bulletList(topics, 'chat')}</section>`
+          : ''
+      }<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.person.posts', { n: number(posts.length) }))}</h3>${posts.length ? pagedList('person-posts:' + id, posts, feedCard, 'checkout-posts', 6) : `<p class="checkout-muted">${esc(t('catalog.person.noPosts'))}</p>`}</section><div class="checkout-person-secondary">${act('report', id, esc(t('catalog.person.report')), 'btn btn-sm btn-ghost')}${act('block', id, esc(t('catalog.person.block')), 'btn btn-sm btn-ghost')}</div><p class="checkout-footnote">${esc(t('catalog.person.demoNote'))}</p></div><div class="checkout-bottom-bar">${followButton(id).replace('btn btn-sm', 'btn btn-lg')}${act('greet', id, `${icon('chat')}<span>${esc(t('catalog.person.greetLong'))}</span>`, 'btn btn-lg btn-primary checkout-cta')}</div>`,
+    });
+  }
+  function personDetail(id) {
+    return demand(profileChunks(id, true), () => drawPersonDetail(id));
+  }
+
+  // ------------------------------------------------------------------ group detail & creation
+  function drawGroupDetail(id) {
+    const g = findGroup(id);
+    if (!g) return toast(t('catalog.group.missing'), { type: 'error' });
+    const joined = state.joined.includes(id);
+    const members = (g.memberIds || []).map(findPerson).filter(Boolean);
+    const self = joined
+      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${html(state.profile.name)}</span></span>`
+      : '';
+    const rules = contentList('groups', g, 'rules');
+    const recent = conversationMessages(id).slice(-4);
+    const meta = [
+      tn('catalog.group.members', Number(g.count) || 1),
+      cityName(g.city),
+      txt('groups', g, 'area'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return SZ.overlay.open({
+      kind: 'screen',
+      title: t('catalog.group.title'),
+      className: 'checkout-ui checkout-screen',
+      meta: { groupId: id, view: 'group' },
+      html: `<div class="checkout-screen-body"><div class="checkout-group-head">${groupAvatar(g, 64)}<div><h2 class="checkout-detail-title">${html(groupName(g))}</h2><p class="checkout-muted">${html(meta)}</p></div></div><p class="checkout-description">${html(txt('groups', g, 'desc'))}</p><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.meetup'))}</h3><p class="checkout-muted">${html(txt('groups', g, 'meetup') || t('catalog.group.meetupDefault'))}</p><h3 class="checkout-block-title">${esc(t('catalog.group.rules'))}</h3>${bulletList(rules.length ? rules : [t('catalog.group.ruleDefault')], 'check')}</section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.people'))}</h3><div class="checkout-member-strip">${self}${members
+        .slice(0, 12)
+        .map(p =>
+          act('person', p.id, `${avatarHTML(p, 48)}<span>${html(personName(p))}</span>`, 'checkout-member')
+        )
+        .join(
+          ''
+        )}</div></section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.recent'))}</h3>${
+        recent.length
+          ? `<div class="checkout-group-preview">${recent.map(m => `<p><b>${html(m.self ? state.profile.name : m.author || t('catalog.group.member'))}</b>${html(messagePreview(m))}</p>`).join('')}</div>`
+          : `<p class="checkout-muted">${esc(t('catalog.group.quiet'))}</p>`
+      }</section>${joined ? act('leave-group', id, esc(t('catalog.group.leave')), 'btn btn-ghost btn-block checkout-danger-text') : ''}</div><div class="checkout-bottom-bar">${act(joined ? 'chat' : 'join-group', id, esc(joined ? t('catalog.group.open') : t('catalog.group.join')), 'btn btn-lg btn-primary checkout-cta')}</div>`,
+    });
+  }
+  function groupDetail(id) {
+    return demand(['people', 'groups'], () => drawGroupDetail(id));
+  }
+  function createGroup() {
+    if (!SZ.requireLogin(t('catalog.login.group'))) return;
+    const city = window.ShizhongRegions?.field
+      ? window.ShizhongRegions.field(t('catalog.group.city'), 'city', state.location || state.city)
+      : `<label class="form-group"><span class="form-label">${esc(t('catalog.group.city'))}</span><select class="field" name="city">${cityOptions()
+          .map(
+            c =>
+              `<option value="${esc(c)}" ${c === state.city ? 'selected' : ''}>${esc(cityName(c))}</option>`
+          )
+          .join('')}</select></label>`;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: t('catalog.group.createTitle'),
+      className: 'checkout-ui checkout-sheet checkout-form-sheet',
+      html: `<form data-catalog-form="group" novalidate><label class="form-group"><span class="form-label">${esc(t('catalog.group.name'))}<span class="required" aria-hidden="true">*</span></span><input class="field" name="name" maxlength="40" required placeholder="${esc(t('catalog.group.namePlaceholder'))}"></label>${city}<label class="form-group"><span class="form-label">${esc(t('catalog.group.desc'))}<span class="required" aria-hidden="true">*</span></span><textarea class="field" name="desc" maxlength="300" required placeholder="${esc(t('catalog.group.descPlaceholder'))}"></textarea></label><button type="submit" class="btn btn-lg btn-primary btn-block">${esc(t('catalog.group.create'))}</button></form>`,
+    });
+    layer.el.addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.target;
+      const data = Object.fromEntries(new FormData(form));
+      const name = String(data.name || '').trim();
+      const desc = String(data.desc || '').trim();
+      const missing = !name ? form.elements.name : !desc ? form.elements.desc : null;
+      if (missing) {
+        missing.setAttribute('aria-invalid', 'true');
+        missing.focus();
+        return toast(t('catalog.form.required'), { type: 'error' });
+      }
+      const location = window.ShizhongRegions?.readForm?.(form);
+      const id = 'g' + Date.now().toString(36);
+      const group = {
+        id,
+        name,
+        desc,
+        city: location?.cityName || data.city || state.city,
+        location,
+        count: 1,
+        icon: 'group',
+        memberIds: [],
+        createdAt: Date.now(),
+      };
+      if (
+        !SZ.store.commit(s => {
+          s.groups.unshift(group);
+          s.joined.push(id);
+        })
+      )
+        return;
+      SZ.overlay.close({ layer, force: true });
+      if (ui.page === 'comms') render();
+      toast(t('catalog.group.created'), { type: 'success' });
+      openChat(id);
+    });
+  }
+
+  // ------------------------------------------------------------------ comments & photo
+  function commentRow(c) {
+    const person = c.person ? findPerson(c.person) : null;
+    const name = c.self || !person ? c.name || c.author || state.profile.name : personName(person);
+    const photo = person ? avatarHTML(person, 32) : img(selfPhoto(), '', 'avatar avatar-32');
+    return `<div class="checkout-comment">${photo}<div><p class="checkout-comment-name">${html(name)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}</p><p>${html(c.text)}</p></div></div>`;
+  }
+  function commentsList(id) {
+    const items = postComments(id);
+    return items.length
+      ? items.map(commentRow).join('')
+      : emptyState('chat', t('catalog.comments.empty'), t('catalog.comments.emptyText'));
+  }
+  function syncComments(id) {
+    const n = postComments(id).length;
+    for (const btn of document.querySelectorAll(`[data-comments="${CSS.escape(id)}"]`)) {
+      btn.querySelector('span').textContent = n ? number(n) : t('catalog.post.comment');
+      btn.setAttribute('aria-label', t('catalog.post.commentsLabel', { n: number(n) }));
     }
-    case 'stat': {
-      if (id === 'saved') return false;
-      const ps =
+  }
+  function drawComments(id) {
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: tn('catalog.comments.title', postComments(id).length),
+      className: 'checkout-ui checkout-sheet checkout-comments-sheet',
+      meta: { postId: id, view: 'comments' },
+      html: `<div data-part="comments" class="checkout-comments">${commentsList(id)}</div><form class="checkout-comment-form" data-catalog-form="comment"><input class="field" name="text" maxlength="300" autocomplete="off" aria-label="${esc(t('catalog.comments.label'))}" placeholder="${esc(t('catalog.comments.placeholder'))}"><button type="submit" class="btn btn-primary btn-sm">${esc(t('common.send'))}</button></form>`,
+    });
+    layer.el.addEventListener('submit', event => {
+      event.preventDefault();
+      if (!SZ.requireLogin(t('catalog.login.comment'))) return;
+      const input = event.target.elements.text;
+      const text = input.value.trim();
+      if (!text) return input.focus();
+      const entry = { name: state.profile.name, text, at: Date.now(), self: true };
+      if (
+        !SZ.store.commit(s => {
+          s.comments[id] = [...(Array.isArray(s.comments[id]) ? s.comments[id] : []), entry];
+        })
+      )
+        return;
+      input.value = '';
+      layer.el.querySelector('[data-part="comments"]').innerHTML = commentsList(id);
+      SZ.overlay.setTitle(tn('catalog.comments.title', postComments(id).length), layer);
+      syncComments(id);
+    });
+    return layer;
+  }
+  function comments(id) {
+    return demand(['people', 'posts'], () => drawComments(id));
+  }
+  function photoViewer(id) {
+    const post = findPost(id);
+    const src = post ? postImage(post) : id;
+    if (!src) return;
+    const alt = post ? txt('posts', post, 'topic') || t('catalog.post.photo') : t('catalog.post.photo');
+    SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('catalog.post.photoTitle'),
+      className: 'checkout-ui checkout-sheet checkout-photo-sheet',
+      html: `<div class="checkout-photo-view">${img(src, alt)}</div>`,
+    });
+  }
+
+  // ------------------------------------------------------------------ toggles with partial updates
+  function syncToggle(kind, id) {
+    for (const el of document.querySelectorAll(`[data-toggle="${kind}"][data-id="${CSS.escape(id)}"]`)) {
+      if (kind === 'follow') {
+        const on = state.follows.includes(id);
+        el.setAttribute('aria-pressed', String(on));
+        el.textContent = on ? t('catalog.person.following') : t('catalog.person.follow');
+        el.classList.toggle('btn-secondary', on);
+        el.classList.toggle('btn-tonal', !on);
+      } else if (kind === 'like') {
+        const post = findPost(id);
+        if (post) el.outerHTML = likeButton(post);
+      } else if (kind === 'save') {
+        const on = state.saved.includes(id);
+        el.setAttribute('aria-pressed', String(on));
+        el.setAttribute('aria-label', on ? t('catalog.detail.unsave') : t('catalog.detail.save'));
+      }
+    }
+  }
+  // The Me page shows follow/saved counts; refresh it once the covering layers close.
+  let staleTab = false;
+  function markTabStale() {
+    if (ui.page !== 'me') return;
+    if (SZ.overlay.depth()) staleTab = true;
+    else render();
+  }
+  SZ.on('overlay:empty', () => {
+    if (!staleTab) return;
+    staleTab = false;
+    if (ui.page === 'me') render();
+  });
+  function toggleIn(list, id, reason) {
+    if (!SZ.requireLogin(reason)) return null;
+    let on = false;
+    const ok = SZ.store.commit(s => {
+      const at = s[list].indexOf(id);
+      on = at < 0;
+      if (on) s[list].push(id);
+      else s[list].splice(at, 1);
+    });
+    return ok ? on : null;
+  }
+  function toggleFollow(id) {
+    const on = toggleIn('follows', id, t('catalog.login.follow'));
+    if (on === null) return;
+    syncToggle('follow', id);
+    markTabStale();
+    toast(on ? t('catalog.person.followed') : t('catalog.person.unfollowed'), {
+      type: on ? 'success' : 'info',
+      action: on ? null : { label: t('common.undo'), run: () => toggleFollow(id) },
+    });
+  }
+  function toggleLike(id) {
+    if (toggleIn('likes', id, t('catalog.login.like')) === null) return;
+    syncToggle('like', id);
+  }
+  function toggleSave(id) {
+    const on = toggleIn('saved', id, t('catalog.login.save'));
+    if (on === null) return;
+    syncToggle('save', id);
+    markTabStale();
+    toast(on ? t('catalog.detail.saved') : t('catalog.detail.unsaved'), {
+      type: on ? 'success' : 'info',
+      action: on
+        ? { label: t('catalog.detail.viewSaved'), run: savedServices }
+        : { label: t('common.undo'), run: () => toggleSave(id) },
+    });
+  }
+  async function blockPerson(id) {
+    const p = findPerson(id);
+    if (!p || !SZ.requireLogin(t('catalog.login.block'))) return;
+    const ok = await SZ.confirm({
+      title: t('catalog.person.blockTitle', { name: personName(p) }),
+      message: t('catalog.person.blockText'),
+      confirmText: t('catalog.person.blockConfirm'),
+      danger: true,
+    });
+    if (!ok) return;
+    if (
+      !SZ.store.commit(s => {
+        if (!s.blocked.includes(id)) s.blocked.push(id);
+      })
+    )
+      return;
+    const layer = SZ.overlay.layers().find(l => l.meta.personId === id);
+    if (layer) await SZ.overlay.close({ layer, force: true });
+    render();
+    toast(t('catalog.person.blocked'), {
+      action: {
+        label: t('common.undo'),
+        run: () => {
+          SZ.store.commit(s => {
+            s.blocked = s.blocked.filter(x => x !== id);
+          });
+          render();
+        },
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------ discover filter sheet
+  function filterSheet() {
+    const interests = [...new Set(visiblePeople().flatMap(p => p.tags))].slice(0, 40);
+    let city = ui.cityFilter;
+    let interest = ui.interestFilter;
+    const chipsFor = (items, current, name) =>
+      items
+        .map(
+          ([id, label]) =>
+            `<button type="button" class="chip" data-filter="${name}" data-value="${esc(id)}" aria-pressed="${id === current}">${html(label)}</button>`
+        )
+        .join('');
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: t('catalog.discover.filterTitle'),
+      className: 'checkout-ui checkout-sheet checkout-filter-sheet',
+      html: `<h3 class="checkout-block-title" id="checkout-filter-city">${esc(t('catalog.discover.filterCity'))}</h3><div class="checkout-word-list" role="group" aria-labelledby="checkout-filter-city">${chipsFor([['all', t('common.all')], ...cityOptions().map(c => [c, cityName(c)])], city, 'city')}</div><h3 class="checkout-block-title" id="checkout-filter-interest">${esc(t('catalog.discover.filterInterest'))}</h3><div class="checkout-word-list" role="group" aria-labelledby="checkout-filter-interest">${chipsFor([['all', t('common.all')], ...interests.map(i => [i, tagLabel(i)])], interest, 'interest')}</div><div class="button-row checkout-sheet-actions"><button type="button" class="btn btn-secondary" data-filter-reset>${esc(t('catalog.discover.reset'))}</button><button type="button" class="btn btn-primary" data-filter-apply>${esc(t('catalog.discover.apply'))}</button></div>`,
+    });
+    layer.el.addEventListener('click', event => {
+      const chip = event.target.closest('[data-filter]');
+      if (chip) {
+        const group = chip.dataset.filter;
+        if (group === 'city') city = chip.dataset.value;
+        else interest = chip.dataset.value;
+        for (const c of layer.el.querySelectorAll(`[data-filter="${group}"]`))
+          c.setAttribute('aria-pressed', String(c === chip));
+        return;
+      }
+      if (event.target.closest('[data-filter-reset]')) {
+        city = interest = 'all';
+        for (const c of layer.el.querySelectorAll('[data-filter]'))
+          c.setAttribute('aria-pressed', String(c.dataset.value === 'all'));
+        return;
+      }
+      if (event.target.closest('[data-filter-apply]')) {
+        ui.cityFilter = city;
+        ui.interestFilter = interest;
+        SZ.overlay.close({ layer, force: true });
+        render();
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------ people lists (Me page stats)
+  function statList(id) {
+    if (id === 'saved') return savedServices();
+    if (!['follows', 'fans', 'visitors'].includes(id)) return false;
+    demand(['people'], () => {
+      const items =
         id === 'follows'
-          ? people.filter(p => state.follows.includes(p.id))
-          : demoData.people.filter((_, i) => (id === 'fans' ? i % 4 === 1 : i % 6 === 2));
-      showScreen(
-        { follows: '我关注的人', fans: '我的粉丝', visitors: '最近访客' }[id],
-        `<div class="people-list">${countNote(ps.length, '位朋友')}${pagedList('stat-' + id, ps, personRow, 'people-records')}</div>`
-      );
-      return true;
+          ? state.follows.map(findPerson).filter(p => p && !state.blocked.includes(p.id))
+          : SZ.session.isDemo
+            ? (demoData.people || people).filter((_, i) => (id === 'fans' ? i % 4 === 1 : i % 6 === 2))
+            : [];
+      SZ.overlay.open({
+        kind: 'screen',
+        title: t(`catalog.stat.${id}`),
+        className: 'checkout-ui checkout-screen',
+        html: `<div class="checkout-screen-body">${countLine(tn('catalog.count.people', items.length))}${
+          items.length
+            ? pagedList('stat:' + id + items.length, items, personRow, 'checkout-people')
+            : emptyState(
+                'user',
+                t(`catalog.stat.empty.${id}`),
+                t('catalog.stat.emptyText'),
+                'catalog-discover',
+                t('catalog.comms.findPeople')
+              )
+        }</div>`,
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ delegates (live, chat)
+  function room(id, opts = {}) {
+    if (!window.ShizhongLive?.open) return toast(t('catalog.live.unavailable'));
+    return demand(profileChunks(id), () => window.ShizhongLive.open(id, opts));
+  }
+  function nextRoom() {
+    return window.ShizhongLive?.next?.();
+  }
+  let openingChat = false;
+  function openChat(id) {
+    id = String(id || '');
+    if (!id) return;
+    return demand(chatChunks(id), () => {
+      // Guard against a chat module that calls back into openChat().
+      if (openingChat) return fallbackChat(id);
+      openingChat = true;
+      try {
+        if (window.ShizhongChat?.open) return window.ShizhongChat.open(id);
+        if (window.ShizhongGifts?.openChat) return window.ShizhongGifts.openChat(id); // pre-v2 chat screen
+        return fallbackChat(id);
+      } finally {
+        openingChat = false;
+      }
+    });
+  }
+  let renderingBubble = false;
+  function messageBubble(m, who) {
+    if (window.ShizhongChat?.renderMessage && !renderingBubble) {
+      renderingBubble = true;
+      try {
+        return window.ShizhongChat.renderMessage(m, who);
+      } finally {
+        renderingBubble = false;
+      }
     }
-    default:
-      return false;
+    if (m.type === 'gift' && window.ShizhongGifts?.messageBubble)
+      return window.ShizhongGifts.messageBubble(m, who);
+    const author = m.person ? findPerson(m.person) : null;
+    const photo = m.self ? selfPhoto() : author?.photo || who?.photo || 'logo.png';
+    const name = m.self ? state.profile.name : m.author || (author ? personName(author) : who?.name);
+    return `<div class="checkout-bubble-line${m.self ? ' is-self' : ''}">${img(photo, '', 'avatar avatar-32')}<div class="checkout-bubble-main">${!m.self && who?.group ? `<span class="caption">${html(name)}</span>` : ''}<p class="checkout-bubble">${html(m.type && m.type !== 'text' ? messagePreview(m) : m.text)}</p>${m.time ? `<time class="caption">${esc(fmt().time(m.time))}</time>` : ''}</div></div>`;
   }
-}
-document.addEventListener('submit', event => {
-  const form = event.target.closest('form[data-form="catalog-search"]');
-  if (!form) return;
-  event.preventDefault();
-  catalogUI.query = new FormData(form).get('q').trim();
-  categoryPage(catalogUI.category, true);
-});
-document.addEventListener('change', event => {
-  if (event.target.name === 'catalogCity') {
-    catalogUI.city = event.target.value;
-    categoryPage(catalogUI.category, true);
+  /** Minimal chat screen, used only when the chat module is missing. */
+  function fallbackChat(id) {
+    const who = chatInfo(id);
+    const log = () => {
+      const items = conversationMessages(id);
+      return (
+        (items.length ? '' : messageBubble({ text: who.initial, self: false }, who)) +
+        items.map(m => messageBubble(m, who)).join('')
+      );
+    };
+    const layer = SZ.overlay.open({
+      kind: 'screen',
+      title: who.name,
+      className: 'checkout-ui checkout-screen checkout-fallback-chat',
+      meta: { chatId: id, view: 'chat' },
+      html: `<div class="checkout-screen-body checkout-chat-log" data-part="log">${log()}</div><form class="checkout-bottom-bar checkout-chat-composer" data-catalog-form="chat"><input class="field" name="text" maxlength="1000" autocomplete="off" aria-label="${esc(t('catalog.chat.inputLabel'))}" placeholder="${esc(t('catalog.chat.placeholder'))}"><button type="submit" class="btn btn-primary">${esc(t('common.send'))}</button></form>`,
+    });
+    const scroll = () => (layer.el.scrollTop = layer.el.scrollHeight);
+    requestAnimationFrame(scroll);
+    layer.el.addEventListener('submit', event => {
+      event.preventDefault();
+      if (!SZ.requireLogin(t('catalog.login.message'))) return;
+      const input = event.target.elements.text;
+      const text = input.value.trim();
+      if (!text) return;
+      const message = { id: SZ.uid('m'), self: true, type: 'text', text, time: Date.now() };
+      if (
+        !SZ.store.commit(s => {
+          s.messages[id] = [...(Array.isArray(s.messages[id]) ? s.messages[id] : []), message];
+        })
+      )
+        return;
+      input.value = '';
+      layer.el.querySelector('[data-part="log"]').innerHTML = log();
+      scroll();
+    });
+    return layer;
   }
-  if (event.target.name === 'catalogSort') {
-    catalogUI.sort = event.target.value;
-    categoryPage(catalogUI.category, true);
+
+  // ------------------------------------------------------------------ share
+  async function share(ref) {
+    const [kind, id] = String(ref).split(':');
+    const url = SZ.routes.link(kind, id);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast(t('catalog.share.copied'), { type: 'success' });
+    } catch (_) {
+      SZ.overlay.open({
+        kind: 'sheet',
+        mode: 'push',
+        title: t('catalog.share.title'),
+        className: 'checkout-ui',
+        html: `<label class="form-group"><span class="form-label">${esc(t('catalog.share.label'))}</span><input class="field" readonly value="${esc(url)}"></label><p class="form-hint">${esc(t('catalog.share.hint'))}</p>`,
+      });
+    }
   }
-});
-Object.assign(fieldNames, {
-  serviceName: '预约项目',
-  operator: '运营商',
-  faceValue: '充值面额',
-  serviceFee: '服务费',
-  phoneKind: '话费服务类型',
-});
-prepareCatalogue();
-installDemoState();
-// lazy.js starts the requested page after its datasets are ready.
+
+  // ------------------------------------------------------------------ actions
+  function showTab() {
+    render();
+    document.querySelector('#app')?.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function toCommsTab(tab) {
+    SZ.overlay.closeAll();
+    ui.commsTab = tab;
+    if (ui.page === 'comms') return showTab();
+    navigate('comms');
+  }
+  const handlers = {
+    'home-filter': id => {
+      ui.homeFilter = id;
+      render();
+    },
+    'social-tab': id => {
+      ui.socialTab = id === 'feed' ? 'feed' : 'friends';
+      ui.socialFilter = 'recommended';
+      showTab();
+    },
+    'social-filter': id => {
+      ui.socialFilter = id;
+      render();
+    },
+    'live-tab': id => {
+      ui.liveTab = id === 'private' ? 'private' : 'public';
+      ui.liveFilter = 'all';
+      showTab();
+    },
+    'live-filter': id => {
+      ui.liveFilter = id;
+      render();
+    },
+    'comms-tab': id => {
+      ui.commsTab = id;
+      showTab();
+    },
+    'group-scope': id => {
+      catalogUI.groupScope = id === 'discover' ? 'discover' : 'mine';
+      toCommsTab('groups');
+    },
+    category: id => categoryPage(id),
+    service: id => serviceDetail(id),
+    'all-services': () => allServices(),
+    campaign: () => campaign(),
+    'save-service': id => toggleSave(id),
+    saved: () => savedServices(),
+    person: id => personDetail(id),
+    follow: id => toggleFollow(id),
+    'person-follow': id => toggleFollow(id),
+    'room-follow': id => toggleFollow(id),
+    like: id => toggleLike(id),
+    comments: id => comments(id),
+    photo: id => photoViewer(id),
+    block: id => blockPerson(id),
+    'social-filters': () => filterSheet(),
+    'social-recommend': () => {
+      SZ.overlay.closeAll();
+      ui.socialTab = 'friends';
+      ui.socialFilter = 'recommended';
+      navigate('social');
+    },
+    room: id => room(id),
+    'next-room': () => nextRoom(),
+    chat: id => openChat(id),
+    'service-chat': id => {
+      if (SZ.requireLogin(t('catalog.login.message'))) openChat('merchant:' + id);
+    },
+    'group-detail': id => groupDetail(id),
+    'discover-groups': () => {
+      catalogUI.groupScope = 'discover';
+      toCommsTab('groups');
+    },
+    contacts: () => toCommsTab('contacts'),
+    'join-group': async id => {
+      if (!SZ.requireLogin(t('catalog.login.group'))) return;
+      if (
+        !SZ.store.commit(s => {
+          if (!s.joined.includes(id)) s.joined.push(id);
+        })
+      )
+        return;
+      const layer = SZ.overlay.layers().find(l => l.meta.groupId === id);
+      if (layer) await SZ.overlay.close({ layer, force: true });
+      if (ui.page === 'comms') render();
+      toast(t('catalog.group.joinedToast'), { type: 'success' });
+      openChat(id);
+    },
+    'leave-group': async id => {
+      const g = findGroup(id);
+      const ok = await SZ.confirm({
+        title: t('catalog.group.leaveTitle', { name: g ? groupName(g) : '' }),
+        message: t('catalog.group.leaveText'),
+        confirmText: t('catalog.group.leaveConfirm'),
+        danger: true,
+      });
+      if (
+        !ok ||
+        !SZ.store.commit(s => {
+          s.joined = s.joined.filter(x => x !== id);
+        })
+      )
+        return;
+      const layers = SZ.overlay.layers().filter(l => l.meta.groupId === id || l.meta.chatId === id);
+      for (const layer of layers.reverse()) await SZ.overlay.close({ layer, force: true });
+      render();
+      toast(t('catalog.group.left'));
+    },
+    'create-group': () => createGroup(),
+    'load-more': (id, el) => loadMore(id, el),
+    'load-retry': () => {
+      C.clearFailures();
+      render();
+    },
+    'catalog-search': id => openSearch('', id === 'chats' ? 'chats' : 'all'),
+    'catalog-search-word': (id, el) => SZ.overlay.of(el)?.meta.run?.(id, true),
+    'catalog-search-clear': (id, el) => {
+      state.searchHistory = [];
+      SZ.store.saveSoon();
+      SZ.overlay.of(el)?.meta.run?.('');
+    },
+    'catalog-home': () => {
+      SZ.overlay.closeAll();
+      navigate('home');
+    },
+    'catalog-discover': () => {
+      SZ.overlay.closeAll();
+      ui.socialTab = 'friends';
+      navigate('social');
+    },
+    'catalog-clear-filters': () => {
+      ui.cityFilter = 'all';
+      ui.interestFilter = 'all';
+      render();
+    },
+    'catalog-category-city': (id, el) => {
+      const layer = SZ.overlay.of(el);
+      optionSheet({
+        title: t('catalog.category.cityTitle'),
+        options: [['all', t('catalog.category.allCities')], ...cityOptions().map(c => [c, cityName(c)])],
+        current: catalogUI.city,
+        onPick: value => {
+          catalogUI.city = value;
+          refreshCategory(layer);
+        },
+      });
+    },
+    'catalog-category-sort': (id, el) => {
+      const layer = SZ.overlay.of(el);
+      optionSheet({
+        title: t('catalog.category.sortTitle'),
+        options: SORTS.map(s => [s, t(`catalog.sort.${s}`)]),
+        current: catalogUI.sort,
+        onPick: value => {
+          catalogUI.sort = value;
+          refreshCategory(layer);
+        },
+      });
+    },
+    'catalog-category-reset': (id, el) => {
+      catalogUI.city = 'all';
+      catalogUI.query = '';
+      const layer = SZ.overlay.of(el);
+      const input = layer?.el.querySelector('input[name="q"]');
+      if (input) input.value = '';
+      refreshCategory(layer);
+    },
+    'catalog-reviews': id => reviewsSheet(id),
+    'catalog-share': id => share(id),
+    'catalog-expand': (id, el) => {
+      const text = el.parentElement.querySelector('[data-clamp]');
+      const open = el.getAttribute('aria-expanded') !== 'true';
+      text?.setAttribute('data-clamp', String(!open));
+      el.setAttribute('aria-expanded', String(open));
+      el.textContent = open ? t('catalog.detail.showLess') : t('catalog.detail.showMore');
+    },
+  };
+  for (const [name, fn] of Object.entries(handlers))
+    SZ.actions.register(name, (action, id, el) => {
+      fn(id, el, action);
+      return true;
+    });
+  // Only saved/follows/fans/visitors are catalog lists; other stats fall through (return false).
+  SZ.actions.register('stat', (action, id) => statList(id) !== false);
+  // Greeting, posting and going live are other modules' screens; guests are stopped here first
+  // (returning false passes the action on to its owner).
+  for (const [action, reason] of [
+    ['greet', 'catalog.login.message'],
+    ['compose', 'catalog.login.post'],
+    ['start-live', 'catalog.login.live'],
+  ])
+    SZ.actions.register(action, () => !SZ.requireLogin(t(reason)));
+
+  SZ.routes.register('service', id => serviceDetail(id));
+  SZ.routes.register('person', id => personDetail(id));
+  SZ.routes.register('group', id => groupDetail(id));
+  SZ.on('boot:ready', () => {
+    ensureState();
+    installDemoState();
+  });
+  // A deep-linked tab (#social, #comms…) draws its real content on the first paint.
+  (SZ.bootTasks = SZ.bootTasks || []).push(() => C.ensure(C.pageChunks(ui.page)).catch(() => {}));
+
+  // ------------------------------------------------------------------ exports
+  Object.assign(C, {
+    html,
+    txt,
+    contentList,
+    img,
+    avatarHTML,
+    stableHash,
+    cityName,
+    catName,
+    unitName,
+    isFromPrice,
+    priceHTML,
+    priceText,
+    serviceName,
+    storeName,
+    salesText,
+    serviceRating,
+    stars,
+    rating1,
+    findService,
+    findPerson,
+    findGroup,
+    findPost,
+    emptyState,
+    chipGroup,
+    countLine,
+    optionSheet,
+    catalogCity,
+    isLocal,
+    ensureState,
+    markTabStale,
+    DEMO_NOW,
+  });
+  Object.assign(window, {
+    homePage,
+    socialPage,
+    livePage,
+    commsPage,
+    categoryPage,
+    serviceDetail,
+    personDetail,
+    personRow,
+    groupDetail,
+    groupRow,
+    search,
+    productCard,
+    amount: value => number(value, { maximumFractionDigits: 2 }),
+    chatInfo,
+    conversationMessages,
+    contactPeople,
+    livePeople,
+    pagedList,
+    catalogUI,
+    demoData,
+    prepareServices,
+    preparePeople,
+    preparePosts,
+    comments,
+    room,
+    nextRoom,
+    openChat,
+    messageBubble,
+    // Transitional: unmigrated flows.js calls expandedAction() before its switch and
+    // private-room.js reassigns privateCard at load. Remove once both use SZ.actions.
+    privateCard,
+    expandedAction: () => false,
+  });
+})();
