@@ -63,7 +63,7 @@ SKIP_PREFIXES = ("docs/", "server/db/migrations/", "assets/gift-art/_review/", "
 TOKEN = re.compile(r"(?<![\w\-./@%])([\w\-./@]*[\w\-@]\.(?:jpe?g|png))(?![\w\-])", re.I)
 # JS: 'flags/' + code + '.png', 'animated-avatars/' + id + '.png', 'avatars/' + g + '-000.jpg'
 DYN_LINE = re.compile(r"""['"`](?:assets/)?([\w\-]+(?:/[\w\-]+)*)/['"`]\s*\+""")
-DYN_LIT = re.compile(r"""(['"`])([\w\-]*)\.(?:jpe?g|png)\1""", re.I)
+DYN_LIT = re.compile(r"""(['"`])((?:[\-_][\w\-]*)?)\.(?:jpe?g|png)\1""", re.I)  # '.png', '-000.jpg': name tails only
 WARN = re.compile(r"""["']\*\.(?:jpe?g|png)["']""", re.I)
 
 
@@ -190,6 +190,19 @@ class Resolver:
         return any(self.converted(c) for c in cands if not c.startswith(".."))
 
 
+# 'dir/name.webp' tokens under a folder of assets/ (checked to exist; bare aliases are resolved through SHIZHONG_ASSETS)
+WEBP_TOKEN = re.compile(r"(?<![\w\-./@%])((?:/?assets/)?(?:[\w\-]+/)+[\w\-.@]+\.webp)(?![\w\-])")
+
+
+def asset_exists(tok, file_rel):
+    t = tok.lstrip("/")
+    top = t.split("/")[1] if t.startswith(ASSETS + "/") else t.split("/")[0]
+    if re.search(r"/(x+|y|name|example)\.webp$", t) or not os.path.isdir(absp(ASSETS + "/" + top)):
+        return True  # not an asset path (a URL segment, a doc example …)
+    cands = [os.path.normpath(os.path.join(os.path.dirname(file_rel), t)).replace("\\", "/"), t, ASSETS + "/" + t]
+    return any(os.path.exists(absp(c)) for c in cands if not c.startswith(".."))
+
+
 def rewrite_text(text, file_rel, res):
     changes = 0
 
@@ -277,7 +290,7 @@ def main():
     # references
     replaced = set(aliases) | set(convert)
     res = Resolver(replaced)
-    touched, total, warnings = [], 0, []
+    touched, total, warnings, missing = [], 0, [], []
     for r in text_files():
         try:
             text = open(absp(r), encoding="utf-8").read()
@@ -290,6 +303,9 @@ def main():
             if not dry:
                 with open(absp(r), "w", encoding="utf-8", newline="") as fh:
                     fh.write(out)
+        for tok in WEBP_TOKEN.findall(out):
+            if not asset_exists(tok, r):
+                missing.append("%s: %s" % (r, tok))
         for i, line in enumerate(out.split("\n"), 1):
             if WARN.search(line) and re.search(r"avatars|photos|flags|gift|assets", "\n".join(out.split("\n")[max(0, i - 4):i])):
                 warnings.append("%s:%d: %s" % (r, i, line.strip()[:140]))
@@ -314,9 +330,11 @@ def main():
         print("assets/: %.1f MB → %.1f MB" % (before_bytes / 1048576, after_bytes / 1048576))
     if left:
         print("JPEG/PNG still under assets/ (%d):" % len(left), *left[:20], sep="\n  ")
+    if missing:
+        print("References to images that do not exist (%d):" % len(missing), *missing[:40], sep="\n  ")
     if warnings:
         print("Check by hand (image names built at run time):", *warnings, sep="\n  ")
-    if args.check and (todo or vtodo or touched or (left and not args.keep_originals)):
+    if args.check and (todo or vtodo or touched or missing or (left and not args.keep_originals)):
         sys.exit(1)
 
 
