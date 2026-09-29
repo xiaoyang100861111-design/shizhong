@@ -146,7 +146,7 @@
     return `<article class="oo-card${p.online ? ' is-online' : ''}">${act(
       'oo-host',
       p.id,
-      `<span class="oo-card-media"><img src="${esc(photoOf(p))}" alt="" loading="lazy" decoding="async"><span class="oo-card-status"><i aria-hidden="true"></i>${html(statusOf(p))}</span><span class="oo-card-topic">${esc(topicName(p))}</span></span><span class="oo-card-body"><span class="oo-card-name">${html(name)}</span><span class="oo-card-meta">${html(meta)}</span><span class="oo-card-lang">${html(languagesOf(p))}</span><span class="oo-card-rate">${esc(rate)}</span></span>`,
+      `<span class="oo-card-media"><img src="${esc(photoOf(p))}" alt="" loading="lazy" decoding="async"><span class="oo-card-status"><i aria-hidden="true"></i>${html(statusOf(p))}</span><span class="oo-card-topic">${esc(topicName(p))}</span></span><span class="oo-card-body"><span class="oo-card-name">${SZ.vname(html(name), p, 13)}</span><span class="oo-card-meta">${html(meta)}</span><span class="oo-card-lang">${html(languagesOf(p))}</span><span class="oo-card-rate">${esc(rate)}</span></span>`,
       'oo-card-main'
     )}${act(
       'oo-call',
@@ -226,7 +226,7 @@
         title: t('private.host.title'),
         className: 'oo-host-sheet',
         meta: { view: 'private-host', personId: id },
-        html: `<div class="oo-host-head"><img class="avatar avatar-72" src="${esc(photoOf(p))}" alt=""><div class="oo-host-id"><h3>${html(name)}</h3><p>${html(meta.join(' · '))}</p><p class="oo-host-status${p.online ? ' is-online' : ''}"><i aria-hidden="true"></i>${html(statusOf(p))}</p></div></div><div class="oo-host-actions">${inCall ? '' : act('oo-follow', id, esc(followLabel(id)), 'btn btn-outline btn-sm oo-follow-btn', `aria-pressed="${followed}"`)}${act('person', id, esc(t('private.host.fullProfile')), 'btn btn-ghost btn-sm')}</div><dl class="oo-facts"><div><dt>${esc(t('private.host.rate'))}</dt><dd class="price">${esc(rateText(rateOf(p)))}</dd></div><div><dt>${esc(t('private.host.languages'))}</dt><dd>${html(languagesOf(p) || '—')}</dd></div></dl>${tags.length ? `<div class="oo-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}${about ? `<p class="oo-about">${html(about)}</p>` : ''}${
+        html: `<div class="oo-host-head"><img class="avatar avatar-72" src="${esc(photoOf(p))}" alt=""><div class="oo-host-id"><h3>${SZ.vname(html(name), p, 15)}</h3><p>${html(meta.join(' · '))}</p><p class="oo-host-status${p.online ? ' is-online' : ''}"><i aria-hidden="true"></i>${html(statusOf(p))}</p></div></div><div class="oo-host-actions">${inCall ? '' : act('oo-follow', id, esc(followLabel(id)), 'btn btn-outline btn-sm oo-follow-btn', `aria-pressed="${followed}"`)}${act('person', id, esc(t('private.host.fullProfile')), 'btn btn-ghost btn-sm')}</div><dl class="oo-facts"><div><dt>${esc(t('private.host.rate'))}</dt><dd class="price">${esc(rateText(rateOf(p)))}</dd></div><div><dt>${esc(t('private.host.languages'))}</dt><dd>${html(languagesOf(p) || '—')}</dd></div></dl>${tags.length ? `<div class="oo-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}${about ? `<p class="oo-about">${html(about)}</p>` : ''}${
           topics.length
             ? `<h4 class="oo-sheet-sub">${esc(t('private.host.topics'))}</h4><ul class="oo-topic-list">${topics.map(x => `<li>${icon('chat')}<span>${html(x)}</span></li>`).join('')}</ul>`
             : ''
@@ -543,14 +543,14 @@
 <header class="oo-top">${act('close', '', icon('back'), 'oo-round', `aria-label="${esc(t('common.back'))}"`)}${act(
       'oo-profile',
       p.id,
-      `<img class="avatar avatar-32" src="${esc(photoOf(p))}" alt=""><span class="oo-who"><strong id="${titleId}">${html(name)}</strong><small class="oo-status"></small></span>`,
+      `<img class="avatar avatar-32" src="${esc(photoOf(p))}" alt=""><span class="oo-who"><strong id="${titleId}">${SZ.vname(html(name), p, 13)}</strong><small class="oo-status"></small></span>`,
       'oo-host-pill',
       `aria-label="${esc(t('private.room.profileAria', { name }))}"`
     )}${act('oo-follow', p.id, esc(followed ? t('private.host.following') : t('private.host.follow')), 'oo-follow-pill oo-follow-btn', `aria-pressed="${followed}"`)}${act('oo-more', '', icon('settings'), 'oo-round', `aria-label="${esc(t('private.more.title'))}"`)}</header>
 <div class="oo-meter"><span class="oo-live-dot" aria-hidden="true"></span><b class="oo-time num" role="timer" aria-label="${esc(t('private.room.timerLabel'))}">00:00</b><span class="oo-meter-rate">${esc(rateText(s.rate))}</span><span class="oo-runway" hidden></span></div>
 <div class="oo-self" data-camera="on" data-mic="on"><img ${imageAttrs(state.profile.photo)} alt=""><span class="oo-self-off">${icon('video')}<small>${esc(t('private.room.cameraOff'))}</small></span><span class="oo-self-mute" role="img" aria-label="${esc(t('private.room.muted'))}">${icon('mic')}</span><span class="oo-self-label">${esc(t('private.room.you'))}</span></div>
 <p class="oo-banner" role="status" hidden></p>
-<div class="oo-ring"><div class="oo-ring-avatar"><img class="avatar avatar-96" src="${esc(photoOf(p))}" alt=""><i></i><i></i></div><h2>${html(name)}</h2><p class="oo-ring-status" role="status">${esc(p.online ? t('private.room.waiting', { name }) : t('private.room.calling'))}</p><p class="oo-ring-note">${esc(t('private.room.rateNote', { rate: rateText(s.rate) }))}</p></div>
+<div class="oo-ring"><div class="oo-ring-avatar"><img class="avatar avatar-96" src="${esc(photoOf(p))}" alt=""><i></i><i></i></div><h2>${SZ.vname(html(name), p, 18)}</h2><p class="oo-ring-status" role="status">${esc(p.online ? t('private.room.waiting', { name }) : t('private.room.calling'))}</p><p class="oo-ring-note">${esc(t('private.room.rateNote', { rate: rateText(s.rate) }))}</p></div>
 <div class="oo-low" role="alert" hidden><div class="oo-low-text"><strong class="oo-low-title"></strong><small>${esc(t('private.low.text'))}</small></div>${act('oo-topup', '', esc(t('private.low.action')), 'btn btn-accent btn-sm')}</div>
 <div class="oo-ended" hidden></div>
 <div class="oo-dock">

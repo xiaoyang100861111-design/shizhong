@@ -344,6 +344,10 @@
     if (info.group) return lc('groups', info.group, 'desc') || info.who.initial || '';
     return info.who.initial || '';
   }
+  /** Header title: the name, plus the Blue V badge for a verified person (server mode). */
+  function titleHTML(info) {
+    return info.person ? SZ.vname(esc(info.name), info.person, 15) : esc(info.name);
+  }
   function authorName(m, ctx) {
     if (m.self) return t('chat.msg.you');
     const p = m.person ? personById(m.person) : null;
@@ -486,7 +490,25 @@
         ? t('server.chat.sys.transferReturned', { name, amount })
         : t('server.chat.sys.youReturned', { amount });
     }
+    if (m.sys.key === 'server.chat.sys.invited') return invitedText(m.sys, name);
     return t(m.sys.key, { name, amount });
+  }
+  /** "A invited B, C and D": the server joins up to 10 names with '、' (and adds ' 等 N 人' beyond that). */
+  function invitedText(sys, name) {
+    const count = Number(sys.count) || 0;
+    const list = String(sys.names || '')
+      .replace(/\s*等\s*\d+\s*人$/, '')
+      .split('、')
+      .map(s => s.trim())
+      .filter(Boolean);
+    let names = list.join(t('server.chat.sys.nameSep'));
+    try {
+      if (list.length > 1 && typeof Intl.ListFormat === 'function' && !SZ_I18N.isSource)
+        names = new Intl.ListFormat(SZ_I18N.intl, { type: 'conjunction' }).format(list);
+    } catch (_) {}
+    return count > list.length
+      ? t('server.chat.sys.invitedMore', { name, names, count })
+      : t('server.chat.sys.invited', { name, names, count });
   }
   function cardName(m) {
     const p = m.personId ? personById(m.personId) : null;
@@ -657,7 +679,7 @@
     } else bubble = bubbleHTML(m, item.key, ctx);
     const author =
       !self && ctx.info.kind === 'group' && !cont
-        ? `<span class="cx-author">${esc(authorName(m, ctx))}</span>`
+        ? `<span class="cx-author">${SZ.vname(esc(authorName(m, ctx)), m.person || null, 12)}</span>`
         : '';
     const avatar = self ? '' : `<span class="cx-av">${cont ? '' : avatarHTML(m, ctx)}</span>`;
     const mid = item.key ? ` data-mid="${esc(item.key)}"` : ' data-initial="true"';
@@ -780,7 +802,7 @@
       <header class="cx-header">
         ${act('close', '', icon('back'), 'icon-button cx-back', `aria-label="${esc(t('common.back'))}"`)}
         ${headerAvatar(info)}
-        <div class="cx-peer"><h2 class="cx-title" id="${titleId}">${esc(info.name)}</h2><p class="cx-status${info.person?.online ? ' is-online' : ''}">${esc(statusText(info))}</p></div>
+        <div class="cx-peer"><h2 class="cx-title" id="${titleId}">${titleHTML(info)}</h2><p class="cx-status${info.person?.online ? ' is-online' : ''}">${esc(statusText(info))}</p></div>
         ${window.ShizhongGifts?.openWallpaperPicker ? act('cx-wallpaper', info.id, ico('wallpaper'), 'icon-button', `aria-label="${esc(t('chat.menu.wallpaper'))}" aria-haspopup="dialog"`) : ''}
         ${act('cx-menu', info.id, ico('more'), 'icon-button cx-menu-btn', `aria-label="${esc(t('chat.header.menu'))}" aria-haspopup="dialog"`)}
       </header>
@@ -920,7 +942,7 @@
   function syncHeader(view) {
     view.info = peer(view.chatId);
     if (view.ctx) view.ctx.info = view.info;
-    view.titleEl.textContent = view.info.name;
+    view.titleEl.innerHTML = titleHTML(view.info);
     setTypingUI(view, !!replyJobs.get(view.chatId)?.typing);
   }
   function setTypingUI(view, on) {
@@ -1690,6 +1712,9 @@
       row('search', t('chat.menu.search'), 'cx-search'),
       info.person ? row('user', t('chat.menu.profile'), 'person', info.id) : '',
       info.kind === 'group' ? row('group', t('chat.menu.groupInfo'), 'group-detail', info.id) : '',
+      SERVER && info.kind === 'group' && (state.joined || []).includes(info.id)
+        ? row('plususer', t('server.invite.action'), 'catalog-group-invite', info.id)
+        : '',
       info.service ? row('bag', t('chat.menu.service'), 'service', info.service.id) : '',
       info.kind === 'friend' || info.kind === 'support'
         ? row('settings', t('chat.menu.settings'), 'chat-options', info.id)

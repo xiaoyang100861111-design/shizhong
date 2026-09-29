@@ -240,7 +240,7 @@
       ${coverHtml}
       <div class="fs-identity">
         <div class="fs-avatar">${avatar}</div>
-        <h2 class="fs-name">${esc(name)}</h2>
+        <h2 class="fs-name">${SZ.vname(esc(name), person, 18)}</h2>
         <p class="fs-meta">${[age, region(person)].filter(Boolean).map(esc).join(' · ')}</p>
         <p class="fs-meta">${status(person)}</p>
       </div>

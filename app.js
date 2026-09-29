@@ -789,7 +789,7 @@ function meHero() {
     `<img class="avatar avatar-72" ${imageAttrs(state.profile.photo)} alt="">`,
     'me-avatar',
     `aria-label="${esc(guest ? t('shell.me.guest.action') : t('shell.me.editProfile'))}"`
-  )}<div class="me-hero-text"><h2 class="me-name">${esc(profileName())}</h2><p class="me-meta">${idLine}</p><p class="me-city">${icon('pin')}<span>${esc(city)}</span></p></div>${
+  )}<div class="me-hero-text"><h2 class="me-name">${guest ? esc(profileName()) : SZ.vname(esc(profileName()), 'self', 18)}</h2><p class="me-meta">${idLine}</p><p class="me-city">${icon('pin')}<span>${esc(city)}</span></p></div>${
     guest ? '' : act('edit-profile', '', esc(t('shell.me.edit')), 'btn btn-secondary btn-sm me-edit')
   }</div>`;
   // Guests have no profile numbers yet: the card explains what signing in unlocks instead.

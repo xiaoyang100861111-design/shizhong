@@ -87,6 +87,12 @@ public sealed class CommerceModule : IModule {
   }
   // offline demo path unchanged
   ```
+- Risk control (风控): every request sends `X-SZ-Device`. A `403 risk.captcha` answer opens the slider (`SZ.captcha.solve(scene)`,
+  core/captcha.js) and `SZ.api` retries the same request with `X-SZ-Captcha` — feature code needs nothing. Closing the slider throws
+  code `risk.captchaCancelled`; `SZ.api.fail` shows only a short neutral note for it. `risk.limited` / `risk.newAccount` texts pick
+  `server.error.risk.limited.<scene>.<window>` / `server.error.risk.newAccount.<scene>` when present (locales/server.js).
+- Blue V (蓝V): `SZ.vname(escapedNameHtml, personOrId, size)` / `SZ.vbadge(personOrId, size)` (core/verified.js) — HTML only, never in
+  titles, toasts or notifications. `'self'` means the signed-in account. The map follows `verified:changed` live.
 - Realtime: `SZ.realtime.on('chat:message', fn)`, `SZ.realtime.join('conv:42')`, `SZ.realtime.command('chat.typing', {...})`.
 - Settings: `SZ.config('checkout.fees', FEES)` — always pass the prototype constant as fallback.
 - Strings: add a file `locales/server-<area>.js` with `SZ_I18N.extend('zh-CN', {...}); SZ_I18N.extend('en', {...});`

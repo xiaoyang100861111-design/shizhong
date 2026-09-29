@@ -484,6 +484,28 @@
       this.extra = extra || null;
     }
   }
+  /** A stable random id for this browser / app install (X-SZ-Device: per-device limits, new-device checks). */
+  const DEVICE_KEY = 'sz:v3:device';
+  let deviceId = '';
+  function device() {
+    if (deviceId) return deviceId;
+    try {
+      deviceId = localStorage.getItem(DEVICE_KEY) || '';
+    } catch (_) {}
+    if (!/^[a-z0-9-]{8,64}$/i.test(deviceId)) {
+      const bytes = new Uint8Array(16);
+      try {
+        crypto.getRandomValues(bytes);
+      } catch (_) {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+      }
+      deviceId = 'd' + [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+      try {
+        localStorage.setItem(DEVICE_KEY, deviceId);
+      } catch (_) {}
+    }
+    return deviceId;
+  }
   function appPlatform() {
     const p = window.Capacitor?.getPlatform?.();
     return p === 'android' || p === 'ios' ? p : 'web';
@@ -511,10 +533,18 @@
       for (const [k, v] of Object.entries(query || {})) if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
       return url.href;
     },
-    /** fetch JSON; throws ApiError { status, code, detail, extra } on failure (code 'common.network' when offline). */
-    async request(method, path, body, { query, form, keepalive = false, signal } = {}) {
+    device,
+    /**
+     * fetch JSON; throws ApiError { status, code, detail, extra } on failure (code 'common.network' when offline).
+     * Risk control: when the server answers 403 risk.captcha, the slider check (core/captcha.js) opens and the same
+     * request is sent again with the pass token in X-SZ-Captcha. Closing the slider throws code
+     * 'risk.captchaCancelled' (SZ.api.fail shows only a short note for it).
+     */
+    async request(method, path, body, opts = {}) {
+      const { query, form, keepalive = false, signal, captcha = '', captchaRound = 0 } = opts;
       if (!api.enabled) throw new ApiError(0, 'common.offline');
-      const headers = { 'X-SZ-Platform': api.platform, Accept: 'application/json' };
+      const headers = { 'X-SZ-Platform': api.platform, 'X-SZ-Device': device(), Accept: 'application/json' };
+      if (captcha) headers['X-SZ-Captcha'] = captcha;
       const token = api.token();
       if (token) headers.Authorization = 'Bearer ' + token;
       let payload;
@@ -537,6 +567,10 @@
       } catch (_) {}
       if (!res.ok) {
         const err = new ApiError(res.status, data?.code || (res.status === 401 ? 'auth.required' : 'common.server'), data?.detail, data?.extra);
+        if (res.status === 403 && err.code === 'risk.captcha' && captchaRound < 2 && window.SZ?.captcha && !keepalive) {
+          const pass = await window.SZ.captcha.solve(err.extra?.scene || 'login'); // throws risk.captchaCancelled
+          return api.request(method, path, body, { ...opts, captcha: pass, captchaRound: captchaRound + 1 });
+        }
         if (res.status === 401 && session.isLoggedIn && !String(path).startsWith('auth/')) {
           // A revoked bearer token wins over a valid cookie on the server: drop it, or every reload fails again.
           if (token) api.setToken('');
@@ -544,6 +578,7 @@
         }
         throw err;
       }
+      if (data && typeof data === 'object' && (data.me?.id || (method === 'GET' && path === 'me' && data.id))) emit('server:me', data.me || data);
       return data;
     },
     get: (path, query, opts) => api.request('GET', path, undefined, { ...opts, query }),
@@ -579,13 +614,29 @@
     },
     /** A translated message for an ApiError (server.error.<code>), or a generic one. */
     errorText(e, params) {
-      const code = e?.code || 'common.server';
-      const key = 'server.error.' + code;
-      return t.has?.(key) ? t(key, { ...(e?.extra || {}), ...(params || {}) }) : t('server.error.generic');
+      let code = e?.code || 'common.server';
+      const extra = { ...(e?.extra || {}) };
+      // More specific texts first: risk.limited.<scene>.<window>, risk.limited.<window>, risk.newAccount.<scene>.
+      const keys = [];
+      if (code === 'auth.wrongPassword' && (extra.left === null || extra.left === undefined)) code = 'auth.wrongPasswordPlain';
+      if (code === 'risk.limited') keys.push(`${code}.${extra.scene}.${extra.window}`, `${code}.${extra.window}`);
+      if (code === 'risk.newAccount') keys.push(`${code}.${extra.scene}`);
+      if (extra.hours != null) {
+        const h = Number(extra.hours) || 0;
+        extra.span = h >= 24 && h % 24 === 0 ? t('server.risk.days', { n: h / 24, count: h / 24 }) : t('server.risk.hours', { n: h, count: h });
+      }
+      if (code === 'auth.locked' && extra.minutes == null && extra.seconds != null) extra.minutes = Math.max(1, Math.ceil(Number(extra.seconds) / 60));
+      keys.push(code);
+      const key = keys.map(k => 'server.error.' + k).find(k => t.has?.(k));
+      return key ? t(key, { ...extra, ...(params || {}) }) : t('server.error.generic');
     },
     /** Show the error as a toast; returns false so handlers can `return SZ.api.fail(e)`. */
     fail(e, params) {
       if (e?.name === 'AbortError') return false;
+      if (e?.code === 'risk.captchaCancelled') {
+        toast(api.errorText(e), { duration: 1800 });
+        return false;
+      }
       toast(api.errorText(e, params), { type: 'error' });
       return false;
     },
