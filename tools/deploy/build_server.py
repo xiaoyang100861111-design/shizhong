@@ -53,6 +53,20 @@ WEB_CONFIG = """<?xml version="1.0" encoding="utf-8"?>
           <remove name="X-Powered-By" />
         </customHeaders>
       </httpProtocol>
+      <!-- Every request goes to the app (handler path="*"), which sets the image types itself (Site.cs: .webp, .avif,
+           .svg) and compresses text with Brotli / gzip. These entries cover IIS answering on its own (errors,
+           app offline) and stop IIS from compressing a second time; images are already compressed. -->
+      <staticContent>
+        <remove fileExtension=".webp" />
+        <mimeMap fileExtension=".webp" mimeType="image/webp" />
+        <remove fileExtension=".avif" />
+        <mimeMap fileExtension=".avif" mimeType="image/avif" />
+        <remove fileExtension=".svg" />
+        <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
+        <remove fileExtension=".webmanifest" />
+        <mimeMap fileExtension=".webmanifest" mimeType="application/manifest+json" />
+      </staticContent>
+      <urlCompression doStaticCompression="false" doDynamicCompression="false" />
     </system.webServer>
   </location>
 </configuration>
