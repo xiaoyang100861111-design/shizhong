@@ -188,7 +188,7 @@ const PROBE = `(() => {
           : await fetch('/api/auth/register', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phone: '+60 1' + String(Math.floor(1e7 + Math.random() * 8e7)), password: 'qa123456a', name: 'QA 新人', ageConfirmed: true, terms: true, city: '吉隆坡' }),
+              body: JSON.stringify({ phone: '+60 1' + String(Math.floor(1e7 + Math.random() * 8e7)), password: 'qa123456a', name: 'QA Member', ageConfirmed: true, terms: true, city: '吉隆坡' }),
             });
       return res.status;
     }, ACCOUNT);
