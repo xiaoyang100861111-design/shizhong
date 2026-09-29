@@ -57,8 +57,29 @@ public static class PostsApi
     }
 
     /// <summary>Public, visible posts for a viewer (not their own, not hidden people).</summary>
+    // The public feed is the same for everyone apart from the viewer's own posts, blocks and likes, and the app opens it all
+    // the time (feed tab, data/posts.js at start). One query costs ~20-30 ms of SQL CPU, so it is read at most every few
+    // seconds and the viewer's likes are added from one small query (see docs/压力测试报告.md). Likes / new posts show up within 5 s.
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<int, (DateTime At, List<PostRow> Rows)> feedCache = new();
+
     public static async Task<List<PostRow>> FeedAsync(SqlConnection c, long viewer, HashSet<long> hidden, string? person = null, DateTime? since = null, int take = 2000)
     {
+        if (person is null && since is null)
+        {
+            if (!feedCache.TryGetValue(take, out var hit) || hit.At < DateTime.UtcNow.AddSeconds(-5))
+            {
+                var fresh = (await c.QueryAsync<PostRow>($"""
+                    {Select.Replace("SELECT p.Id", $"SELECT TOP ({take + 100}) p.Id")}
+                    WHERE p.Status = 0 AND p.Visibility = 0 AND u.Status = 0 AND u.Hidden = 0 AND u.DeletedAt IS NULL
+                    ORDER BY p.CreatedAt DESC
+                    """, new { viewer = 0L })).ToList();
+                hit = (DateTime.UtcNow, fresh);
+                feedCache[take] = hit;
+            }
+            var liked = viewer == 0 ? [] : (await c.QueryAsync<long>("SELECT PostId FROM dbo.PostLikes WHERE UserId = @viewer", new { viewer })).ToHashSet();
+            return hit.Rows.Where(r => r.UserId != viewer && !hidden.Contains(r.UserId)).Take(take)
+                .Select(r => liked.Contains(r.Id) ? r with { Mine = 1 } : r).ToList();
+        }
         var rows = await c.QueryAsync<PostRow>($"""
             {Select.Replace("SELECT p.Id", $"SELECT TOP ({take}) p.Id")}
             WHERE p.Status = 0 AND p.Visibility = 0 AND u.Status = 0 AND u.Hidden = 0 AND u.DeletedAt IS NULL AND p.UserId <> @viewer
@@ -111,7 +132,7 @@ public static class PostsApi
                 """, new { user.Id, text, image, topicLabel, topicId, place, city, vis = body.Visibility == "private" ? 1 : 0, status });
             await c.ExecuteAsync("UPDATE dbo.Posts SET PublicId = CONCAT('f', Id) WHERE Id = @id", new { id });
             var row = (await c.QueryAsync<PostRow>(Select + " WHERE p.Id = @id", new { id, viewer = user.Id })).First();
-            return Results.Ok(new { post = View(row, true), pending = status == 1, state = await states.ProjectKeysAsync(user, "posts") });
+            return Results.Ok(new { post = View(row, true), pending = status == 1, state = await states.ProjectKeysAsync(user, c, "posts") });
         }).RequireRateLimiting("write");
 
         u.MapDelete("/posts/{id}", async (string id, HttpContext ctx, Db db, StateService states) =>
@@ -160,7 +181,7 @@ public static class PostsApi
                 _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
             if (post.UserId != user.Id && status == 0)
                 await notices.PushAsync(post.UserId, new NoticeInput("social", TitleKey: "server.social.notice.commentTitle", BodyKey: "server.social.notice.commentBody",
-                    Params: new { name = user.Name, text = text.Length > 40 ? text[..40] + "…" : text }, ActionName: "comments", ActionId: post.PublicId, Silent: true));
+                    Params: new { name = user.Name, text = text.Length > 40 ? text[..40] + "…" : text }, ActionName: "comments", ActionId: post.PublicId, Silent: true), c);
             var row = await c.QueryFirstAsync<CommentRow>("""
                 SELECT k.Id, k.UserId, k.Text, k.TextEn, k.Status, k.CreatedAt, u.PublicId, u.Name, u.Avatar, u.Kind
                 FROM dbo.Comments k JOIN dbo.Users u ON u.Id = k.UserId WHERE k.Id = @cid
@@ -229,9 +250,9 @@ public static class PostsApi
             _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
         if (on && changed > 0 && post.UserId != user.Id)
             await notices.PushAsync(post.UserId, new NoticeInput("social", TitleKey: "server.social.notice.likeTitle", BodyKey: "server.social.notice.likeBody",
-                Params: new { name = user.Name }, ActionName: "comments", ActionId: post.PublicId, Silent: true));
+                Params: new { name = user.Name }, ActionName: "comments", ActionId: post.PublicId, Silent: true), c);
         var likes = await c.ExecuteScalarAsync<int>("SELECT BaseLikes + LikeCount FROM dbo.Posts WHERE Id = @Id", new { post.Id });
-        return Results.Ok(new { liked = on, likes, state = await states.ProjectKeysAsync(user, "likes") });
+        return Results.Ok(new { liked = on, likes, state = await states.ProjectKeysAsync(user, c, "likes") });
     }
 
     public sealed record PostBody(string? Text, string? Image, string? TopicId, string? Place, string? Visibility);

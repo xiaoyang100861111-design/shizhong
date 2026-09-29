@@ -236,6 +236,21 @@ public sealed class PeopleChunks(Db db, PersonaCache personas) : IChunkProvider
         return u.Id == 0 ? null : new CurrentUser(u.Id, u.PublicId, u.DisplayId, u.Kind, u.Name, u.MutedUntil);
     }
 
+    // Every app start loads people.js: the member list (up to 5,000 rows) is shared for a few seconds instead of being read
+    // for each request (viewer-specific parts — blocks, distance, online — are still applied per request).
+    (DateTime At, List<PersonShape.MemberRow> Rows)? members;
+
+    async Task<List<PersonShape.MemberRow>> MembersAsync(SqlConnection c)
+    {
+        if (members is { } m && m.At > DateTime.UtcNow.AddSeconds(-20)) return m.Rows;
+        var rows = (await c.QueryAsync<PersonShape.MemberRow>($"""
+            SELECT TOP 5000 {PersonShape.MemberCols} FROM dbo.Users
+            WHERE Kind IN (0, 2) AND Status = 0 AND Hidden = 0 AND DeletedAt IS NULL ORDER BY LastSeenAt DESC
+            """)).ToList();
+        members = (DateTime.UtcNow, rows);
+        return rows;
+    }
+
     async Task<string> PeopleAsync(SqlConnection c, bool english, CurrentUser? viewer, HashSet<long> hidden)
     {
         var rows = new List<object?[]>();
@@ -248,11 +263,7 @@ public sealed class PeopleChunks(Db db, PersonaCache personas) : IChunkProvider
         }
         (double? Lat, double? Lng) me = viewer is null ? (null, null)
             : await c.QueryFirstOrDefaultAsync<(double?, double?)>("SELECT Lat, Lng FROM dbo.Users WHERE Id = @Id", new { viewer.Id });
-        var members = await c.QueryAsync<PersonShape.MemberRow>($"""
-            SELECT TOP 5000 {PersonShape.MemberCols} FROM dbo.Users
-            WHERE Kind IN (0, 2) AND Status = 0 AND Hidden = 0 AND DeletedAt IS NULL ORDER BY LastSeenAt DESC
-            """);
-        foreach (var m in members)
+        foreach (var m in await MembersAsync(c))
         {
             if (hidden.Contains(m.Id) || m.Id == viewer?.Id) continue;
             var (row, menEn) = PersonShape.Member(m, me.Lat, me.Lng);

@@ -126,7 +126,7 @@ public sealed class PersonaReplies(Db db, ChatService chat, ConfigService cfg, R
             body = new JsonObject { ["i18n"] = new JsonObject { ["key"] = key, ["params"] = prms } };
         }
         var id = await chat.InsertAsync(c, null, conv, who, null, emoji != null ? "emoji" : "text", text, body, null, null);
-        await chat.DeliverAsync(id);
+        await chat.DeliverAsync(id, conn: c);
     }
 
     static readonly string[] General = ["chat.reply.g1", "chat.reply.g2", "chat.reply.g3", "chat.reply.g4", "chat.reply.g5", "chat.reply.g6"];

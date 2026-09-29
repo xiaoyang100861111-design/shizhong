@@ -106,10 +106,10 @@ public static class SocialApi
             if (added > 0 && !u.IsPersona)
             {
                 await notices.PushAsync(u.Id, new NoticeInput("social", TitleKey: "flows.seed.followerTitle", BodyKey: "flows.seed.followerBody",
-                    Params: new { personId = user.PublicId, name = user.Name }, ActionName: "person", ActionId: user.PublicId));
+                    Params: new { personId = user.PublicId, name = user.Name }, ActionName: "person", ActionId: user.PublicId), c);
                 _ = realtime.ToUser(u.Id, "state:refresh", new { keys = new[] { "social", "socialPeople" } });
             }
-            return Results.Ok(new { following = true, state = await states.ProjectKeysAsync(user, "follows", "social") });
+            return Results.Ok(new { following = true, state = await states.ProjectKeysAsync(user, c, "follows", "social") });
         });
 
         g.MapDelete("/follows/{id}", async (string id, HttpContext ctx, Db db, Realtime realtime, StateService states) =>
@@ -119,7 +119,7 @@ public static class SocialApi
             var u = await SocialData.UserByPublicIdAsync(c, id) ?? throw ApiError.NotFound("social.personNotFound");
             var n = await c.ExecuteAsync("DELETE FROM dbo.Follows WHERE UserId = @a AND TargetId = @b", new { a = user.Id, b = u.Id });
             if (n > 0) _ = realtime.ToUser(u.Id, "state:refresh", new { keys = new[] { "social" } });
-            return Results.Ok(new { following = false, state = await states.ProjectKeysAsync(user, "follows", "social") });
+            return Results.Ok(new { following = false, state = await states.ProjectKeysAsync(user, c, "follows", "social") });
         });
 
         // ------------------------------------------------------------ blocks
@@ -131,7 +131,7 @@ public static class SocialApi
             if (u.Id == user.Id) throw ApiError.BadRequest("social.self");
             await BlockAsync(c, user.Id, u.Id);
             _ = realtime.ToUser(u.Id, "state:refresh", new { keys = new[] { "follows", "social" } });
-            return Results.Ok(new { blocked = true, state = await states.ProjectKeysAsync(user, "blocked", "follows", "social", "socialPeople") });
+            return Results.Ok(new { blocked = true, state = await states.ProjectKeysAsync(user, c, "blocked", "follows", "social", "socialPeople") });
         });
 
         g.MapDelete("/blocks/{id}", async (string id, HttpContext ctx, Db db, StateService states) =>
@@ -140,7 +140,7 @@ public static class SocialApi
             await using var c = await db.OpenAsync();
             var u = await SocialData.UserByPublicIdAsync(c, id) ?? throw ApiError.NotFound("social.personNotFound");
             await c.ExecuteAsync("DELETE FROM dbo.Blocks WHERE UserId = @a AND TargetId = @b", new { a = user.Id, b = u.Id });
-            return Results.Ok(new { blocked = false, state = await states.ProjectKeysAsync(user, "blocked") });
+            return Results.Ok(new { blocked = false, state = await states.ProjectKeysAsync(user, c, "blocked") });
         });
 
         // ------------------------------------------------------------ reports
@@ -186,8 +186,8 @@ public static class SocialApi
             var id = await tickets.CreateAsync(new TicketInput(user.Id, "report", type, targetId, reason, SocialData.Clip(body.Details, 1000),
                 new { subjectId = subject, subject = subjectPublic, snapshot = snapshot is { Length: > 300 } s ? s[..300] : snapshot }));
             if (body.Block && subject is { } bid && bid != user.Id) await BlockAsync(c, user.Id, bid);
-            await notices.PushAsync(user.Id, new NoticeInput("system", TitleKey: "flows.notice.report", BodyKey: "flows.notice.reportBody", Silent: true));
-            return Results.Ok(new { ok = true, id = "t" + id, state = await states.ProjectKeysAsync(user, "feedback", "blocked", "follows") });
+            await notices.PushAsync(user.Id, new NoticeInput("system", TitleKey: "flows.notice.report", BodyKey: "flows.notice.reportBody", Silent: true), c);
+            return Results.Ok(new { ok = true, id = "t" + id, state = await states.ProjectKeysAsync(user, c, "feedback", "blocked", "follows") });
         }).RequireRateLimiting("write");
 
         // ------------------------------------------------------------ greet
@@ -207,13 +207,13 @@ public static class SocialApi
             await MessagingApi.EnsureCanWriteAsync(c, conv, user);
             var mid = await chat.InsertAsync(c, null, conv, user.Id, null, "text", text, new JsonObject { ["greeting"] = true }, null, body.ClientId);
             await AddContactAsync(c, user.Id, u.Id, "greet");
-            await chat.DeliverAsync(mid);
+            await chat.DeliverAsync(mid, conn: c);
             replies.OnMemberMessage(conv, user.Id, mid, "text", text, null);
             return Results.Ok(new
             {
                 chatId = u.PublicId,
                 message = await MessagingApi.OneViewAsync(c, mid, user),
-                state = await states.ProjectKeysAsync(user, "greeted"),
+                state = await states.ProjectKeysAsync(user, c, "greeted"),
             });
         }).RequireRateLimiting("write");
 
@@ -237,7 +237,7 @@ public static class SocialApi
             if (reverse is { } rid)
             {
                 await AcceptAsync(c, chat, notices, realtime, rid, user);
-                return Results.Ok(new { ok = true, accepted = true, state = await states.ProjectKeysAsync(user, "friendRequests", "greeted", "socialPeople") });
+                return Results.Ok(new { ok = true, accepted = true, state = await states.ProjectKeysAsync(user, c, "friendRequests", "greeted", "socialPeople") });
             }
             var reqId = await c.ExecuteScalarAsync<long>("""
                 INSERT INTO dbo.FriendRequests(FromId, ToId, Account, Message) OUTPUT inserted.Id VALUES (@a, @b, @account, @message)
@@ -253,10 +253,10 @@ public static class SocialApi
             else
             {
                 await notices.PushAsync(u.Id, new NoticeInput("social", TitleKey: "server.social.notice.requestTitle", BodyKey: "server.social.notice.requestBody",
-                    Params: new { personId = user.PublicId, name = user.Name, text = message }, ActionName: "new-friends"));
+                    Params: new { personId = user.PublicId, name = user.Name, text = message }, ActionName: "new-friends"), c);
                 _ = realtime.ToUser(u.Id, "state:refresh", new { keys = new[] { "friendRequests", "socialPeople" } });
             }
-            return Results.Ok(new { ok = true, accepted, state = await states.ProjectKeysAsync(user, "friendRequests", "greeted", "socialPeople") });
+            return Results.Ok(new { ok = true, accepted, state = await states.ProjectKeysAsync(user, c, "friendRequests", "greeted", "socialPeople") });
         }).RequireRateLimiting("write");
 
         g.MapPost("/friends/requests/{id}/accept", async (string id, HttpContext ctx, Db db, ChatService chat, Notices notices, Realtime realtime, StateService states) =>
@@ -265,7 +265,7 @@ public static class SocialApi
             await using var c = await db.OpenAsync();
             var rid = await RequestIdAsync(c, id, user.Id);
             var peer = await AcceptAsync(c, chat, notices, realtime, rid, user);
-            return Results.Ok(new { ok = true, personId = peer, state = await states.ProjectKeysAsync(user, "friendRequests", "greeted", "socialPeople") });
+            return Results.Ok(new { ok = true, personId = peer, state = await states.ProjectKeysAsync(user, c, "friendRequests", "greeted", "socialPeople") });
         });
 
         g.MapPost("/friends/requests/{id}/ignore", async (string id, HttpContext ctx, Db db, StateService states) =>
@@ -274,7 +274,7 @@ public static class SocialApi
             await using var c = await db.OpenAsync();
             var rid = await RequestIdAsync(c, id, user.Id);
             await c.ExecuteAsync("UPDATE dbo.FriendRequests SET Status = 2, HandledAt = SYSUTCDATETIME() WHERE Id = @rid AND Status = 0", new { rid });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "friendRequests") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "friendRequests") });
         });
 
         g.MapPost("/friends/requests/{id}/restore", async (string id, HttpContext ctx, Db db, StateService states) =>

@@ -143,7 +143,7 @@ public static class SupportDesk
             if (conv.Kind == ConvKinds.Group) throw ApiError.BadRequest("support.notDesk");
             var mid = await chat.InsertAsync(c, null, conv, sender, a.Id, type, text, msg, mediaRef, null);
             await c.ExecuteAsync("UPDATE dbo.Conversations SET DeskReadAt = SYSUTCDATETIME(), AssignedTo = ISNULL(AssignedTo, @aid) WHERE Id = @id", new { id, aid = a.Id });
-            await chat.DeliverAsync(mid);
+            await chat.DeliverAsync(mid, conn: c);
             await audit.WriteAsync(ctx, "support.reply", "conversation:" + id, new { type, length = text.Length });
             return Results.Ok(new { ok = true, id = "m" + mid });
         });

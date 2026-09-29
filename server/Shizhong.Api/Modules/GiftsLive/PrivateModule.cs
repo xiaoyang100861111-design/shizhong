@@ -123,7 +123,7 @@ public sealed class PrivateModule : IModule
             await using var c = await db.OpenAsync();
             var host = await People.ByPublicIdAsync(c, body.HostId) ?? throw ApiError.NotFound("private.hostNotFound");
             if (host.Id == user.Id) throw ApiError.BadRequest("private.self");
-            if (await social.BlockedAsync(user.Id, host.Id)) throw ApiError.Forbidden("private.blocked");
+            if (await social.BlockedAsync(user.Id, host.Id, c)) throw ApiError.Forbidden("private.blocked");
             bool demo;
             long rate;
             decimal share;
@@ -200,7 +200,7 @@ public sealed class PrivateModule : IModule
                 : body.Reason is "blocked" ? "blocked" : "self";
             await billing.EndAsync(id, reason, body.Transcript);
             await using var c = await db.OpenAsync();
-            return Results.Ok(new { call = await CallViewAsync(c, id, user.Id), state = await states.ProjectKeysAsync(user, "oneToOne", "wallet", "bills") });
+            return Results.Ok(new { call = await CallViewAsync(c, id, user.Id), state = await states.ProjectKeysAsync(user, c, "oneToOne", "wallet", "bills") });
         });
 
         g.MapGet("/calls/{id:long}", async (long id, HttpContext ctx, Db db) =>
@@ -236,6 +236,7 @@ public sealed class PrivateModule : IModule
             if (!catalog.Quantities.Contains(qty)) throw ApiError.BadRequest("gifts.badQuantity");
             await using var lookup = await db.OpenAsync();
             var host = await People.ByIdAsync(lookup, call.HostId) ?? throw ApiError.NotFound("private.hostNotFound");
+            await lookup.CloseAsync(); // no pooled connection held while the transaction waits for the host's row
             var total = gift.Beans * qty;
             var share = call.Demo ? 0 : call.Share;
             var txId = await db.TxAsync(async (c, t) =>
