@@ -64,7 +64,7 @@
   /** <img> for any image reference, including IndexedDB photos ('media:…', hydrated by core). */
   function img(ref, alt = '', cls = '') {
     const media = SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : '';
-    return `<img class="${cls}" src="${esc(asset(ref))}"${media} alt="${esc(alt)}" decoding="async">`;
+    return `<img class="${cls}" src="${esc(asset(ref))}"${media} alt="${esc(alt)}" loading="lazy" decoding="async">`;
   }
   const avatarOf = p => (p?.self ? state.profile?.photo : avatarSource(p));
   const selfLevel = () => Math.max(1, Number(window.ShizhongVIP?.level?.('self')) || 1);
@@ -1115,7 +1115,7 @@
       .map(h => {
         const host = findPerson(h.hostId);
         const hostName = host ? nameOf(host) : h.hostName || '';
-        return `<li class="lr-history-row"><img src="${esc(giftArt(h.giftId))}" alt=""><div><strong>${esc(t('live.gift.historyItem', { gift: giftName(h.giftId) || h.name || '', qty: fmt().number(h.quantity) }))}</strong><span>${esc(t('live.gift.historyRow', { name: hostName, time: fmt().dateTime(h.time) }))}</span></div><b class="num">${esc(beans(h.total))}</b></li>`;
+        return `<li class="lr-history-row"><img src="${esc(giftArt(h.giftId))}" alt="" loading="lazy" decoding="async"><div><strong>${esc(t('live.gift.historyItem', { gift: giftName(h.giftId) || h.name || '', qty: fmt().number(h.quantity) }))}</strong><span>${esc(t('live.gift.historyRow', { name: hostName, time: fmt().dateTime(h.time) }))}</span></div><b class="num">${esc(beans(h.total))}</b></li>`;
       })
       .join('')}</ul>`;
   }

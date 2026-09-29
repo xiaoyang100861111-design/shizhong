@@ -1304,7 +1304,7 @@
         return act(
           'oo-call-detail',
           r.id,
-          `<img class="avatar avatar-48" src="${esc(callPhoto(r))}" alt=""><span class="list-row-main"><span class="oo-row-top"><strong>${html(callName(r))}</strong><time>${esc(SZ.fmt.stamp(r.time))}</time></span><span class="oo-row-sub${missed ? ' is-missed' : ''}">${icon(missed ? 'phone' : 'video')}<span>${esc(parts.filter(Boolean).join(' · '))}</span></span></span>${icon('chevron', 'chevron')}`,
+          `<img class="avatar avatar-48" src="${esc(callPhoto(r))}" alt="" loading="lazy" decoding="async"><span class="list-row-main"><span class="oo-row-top"><strong>${html(callName(r))}</strong><time>${esc(SZ.fmt.stamp(r.time))}</time></span><span class="oo-row-sub${missed ? ' is-missed' : ''}">${icon(missed ? 'phone' : 'video')}<span>${esc(parts.filter(Boolean).join(' · '))}</span></span></span>${icon('chevron', 'chevron')}`,
           'list-row oo-history-row'
         );
       })
@@ -1352,7 +1352,7 @@
       const giftRows = (r.gifts || [])
         .map(g => {
           const gift = findGift(g.giftId);
-          return `<li class="list-row"><img class="oo-gift-thumb" src="${esc(gift ? giftArt(gift) : asset(''))}" alt=""><span class="list-row-main">${html(gift ? giftName(gift) : td('private.gift', g.name))} ×${esc(g.quantity)}</span><span class="row-value num">${esc(tn('private.gift.each', g.total))}</span></li>`;
+          return `<li class="list-row"><img class="oo-gift-thumb" src="${esc(gift ? giftArt(gift) : asset(''))}" alt="" loading="lazy" decoding="async"><span class="list-row-main">${html(gift ? giftName(gift) : td('private.gift', g.name))} ×${esc(g.quantity)}</span><span class="row-value num">${esc(tn('private.gift.each', g.total))}</span></li>`;
         })
         .join('');
       const reasonKey = 'private.end.reason.' + (r.reason || 'self');
