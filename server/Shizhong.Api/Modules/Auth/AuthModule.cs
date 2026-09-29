@@ -54,6 +54,8 @@ public sealed partial class AuthModule : IModule
         ConfigDef.GroupOf("newUser", "新用户", "New accounts"),
         new("newUser.balance", "newUser", 100m, "money", "新用户赠送余额（RM）", "Sign-up balance (RM)", Min: 0, Max: 100000),
         new("newUser.beans", "newUser", 1000, "int", "新用户赠送金豆", "Sign-up gold beans", Min: 0, Max: 10000000),
+        new("newUser.demoBalance", "newUser", 5000m, "money", "体验账号初始余额（RM，首次启动时发放）", "Demo account starting balance (RM, granted once)", Min: 0, Max: 10000000),
+        new("newUser.demoBeans", "newUser", 100000, "int", "体验账号初始金豆（首次启动时发放）", "Demo account starting gold beans (granted once)", Min: 0, Max: 1000000000),
         ConfigDef.GroupOf("legal", "条款与隐私", "Terms & privacy"),
         new("legal.terms", "legal", new { zh = "", en = "" }, "i18n", "用户协议正文（留空使用内置文本）", "Terms of service (empty = built-in)", Public: true),
         new("legal.privacy", "legal", new { zh = "", en = "" }, "i18n", "隐私政策正文（留空使用内置文本）", "Privacy policy (empty = built-in)", Public: true),
@@ -74,7 +76,7 @@ public sealed partial class AuthModule : IModule
             return Results.Ok(new { exists = row.Id > 0, hasPassword = row.HasPassword == 1 });
         });
 
-        auth.MapPost("/register", async (HttpContext ctx, RegisterBody body, Db db, ConfigService cfg, Notices notices, IEnumerable<IUserLifecycle> hooks) =>
+        auth.MapPost("/register", async (HttpContext ctx, RegisterBody body, Db db, ConfigService cfg, Notices notices, IEnumerable<IUserLifecycle> hooks, MediaStore media) =>
         {
             if (!cfg.Bool("auth.allowRegister", true)) throw ApiError.Forbidden("auth.registerClosed");
             var (phone, email) = Normalize(body.Phone, body.Email);
@@ -110,7 +112,7 @@ public sealed partial class AuthModule : IModule
             var hash = BCrypt.Net.BCrypt.HashPassword(body.Password, 11);
             var method = phone != null ? "phone" : "email";
             var platform = ctx.Platform();
-            var avatar = SafeAvatar(body.Avatar);
+            var avatar = await AvatarAsync(body.Avatar, media, null);
             long userId = 0;
             for (var attempt = 0; attempt < 8 && userId == 0; attempt++)
             {
@@ -222,7 +224,7 @@ public sealed partial class AuthModule : IModule
 
         me.MapGet("", async (HttpContext ctx, Db db) => Results.Ok(await PlatformModule.MeAsync(db, ctx.RequireUser().Id)));
 
-        me.MapPatch("", async (HttpContext ctx, ProfilePatch body, Db db, ConfigService cfg, StateService states) =>
+        me.MapPatch("", async (HttpContext ctx, ProfilePatch body, Db db, ConfigService cfg, StateService states, MediaStore media) =>
         {
             var user = ctx.RequireUser();
             var sets = new List<string>();
@@ -234,13 +236,22 @@ public sealed partial class AuthModule : IModule
                 if (name.Length > Math.Max(cfg.Int("auth.nameMax", 20), 24)) throw ApiError.BadRequest("auth.nameTooLong");
                 sets.Add("Name = @name"); args.Add("name", name);
             }
-            if (body.Avatar != null) { sets.Add("Avatar = @avatar"); args.Add("avatar", SafeAvatar(body.Avatar)); }
+            if (body.Avatar != null) { sets.Add("Avatar = @avatar"); args.Add("avatar", await AvatarAsync(body.Avatar, media, user.Id)); }
             if (body.Bio != null) { sets.Add("Bio = @bio"); args.Add("bio", Clip(body.Bio, 120)); }
             if (body.City != null) { sets.Add("City = @city"); args.Add("city", Clip(body.City, 60)); }
             if (body.Language != null) { sets.Add("Language = @language"); args.Add("language", Clip(body.Language, 16)); }
             if (body.Interests != null) { sets.Add("Interests = @interests"); args.Add("interests", Json.Serialize(body.Interests.Take(20).Select(i => Clip(i, 30)))); }
             if (body.Location != null) { sets.Add("Location = @location"); args.Add("location", body.Location.ToJsonString(Json.Options)); }
             if (body.Marketing != null) { sets.Add("Marketing = @marketing"); args.Add("marketing", body.Marketing.Value); }
+            if (user.IsDemo && (body.Phone != null || body.Email != null))
+            {
+                // The shared demo account signs in with its published phone / e-mail: nobody may change them.
+                var current = await db.QueryFirstAsync<(string? Phone, string? Email)>("SELECT Phone, Email FROM dbo.Users WHERE Id = @Id", new { user.Id });
+                var (p, _) = Normalize(body.Phone, null);
+                var (_, e) = Normalize(null, body.Email);
+                if ((body.Phone != null && p != current.Phone) || (body.Email != null && e != current.Email)) throw ApiError.Forbidden("auth.demoContactLocked");
+                body = body with { Phone = null, Email = null };
+            }
             if (body.Phone != null)
             {
                 var (phone, _) = Normalize(body.Phone, null);
@@ -378,10 +389,31 @@ public sealed partial class AuthModule : IModule
     {
         if (string.IsNullOrWhiteSpace(avatar)) return null;
         var a = avatar.Trim();
-        // media refs, app assets, or small data URLs (the prototype stores ≤40 KB avatars inline)
-        if (a.StartsWith("media:") || (!a.Contains("://") && !a.StartsWith("data:") && !a.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) && a.Length <= 400)) return a;
-        if (a.StartsWith("data:image/") && a.Length <= 60_000) return a;
+        // media refs or app assets (Users.Avatar is NVARCHAR(400); data URLs go through AvatarAsync)
+        if ((a.StartsWith("media:") || (!a.Contains("://") && !a.StartsWith("data:") && !a.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))) && a.Length <= 400) return a;
         throw ApiError.BadRequest("auth.avatarInvalid");
+    }
+
+    static readonly string[] AvatarTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+    /// <summary>
+    /// The avatar to store. The app keeps small photos inline as data URLs (≤ 40 KB, as the prototype did): they
+    /// become media rows here, so the Users column and the people chunks only carry a 'media:' reference.
+    /// </summary>
+    static async Task<string?> AvatarAsync(string? avatar, MediaStore media, long? userId)
+    {
+        var a = avatar?.Trim() ?? "";
+        if (!a.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return SafeAvatar(a);
+        var comma = a.IndexOf(',');
+        var head = comma > 5 ? a[5..comma].ToLowerInvariant() : "";
+        var mime = head.Split(';')[0];
+        if (a.Length > 60_000 || !head.EndsWith(";base64") || !AvatarTypes.Contains(mime)) throw ApiError.BadRequest("auth.avatarInvalid");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(a[(comma + 1)..]); }
+        catch (FormatException) { throw ApiError.BadRequest("auth.avatarInvalid"); }
+        if (bytes.Length == 0) throw ApiError.BadRequest("auth.avatarInvalid");
+        var saved = await media.SaveBytesAsync(bytes, mime, "avatar", userId, null, "avatar");
+        return (string)saved.GetType().GetProperty("ref")!.GetValue(saved)!;
     }
 
     static string? Clip(string? s, int max) => s is null ? null : (s.Length > max ? s[..max] : s).Trim();

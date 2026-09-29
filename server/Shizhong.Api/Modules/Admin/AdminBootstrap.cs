@@ -7,7 +7,7 @@ namespace Shizhong.Api.Modules.Admin;
 /// First-run rows: built-in roles, the initial super admin (admin / 123123 as requested) and the demo account.
 /// Existing rows are never overwritten, so edits made in the console survive restarts.
 /// </summary>
-public sealed class AdminBootstrap(Db db, ILogger<AdminBootstrap> log) : IBootstrap
+public sealed class AdminBootstrap(Db db, ConfigService cfg, ILogger<AdminBootstrap> log) : IBootstrap
 {
     public static readonly (string Code, string Name, string Description, string[] Permissions, string Scope)[] BuiltInRoles =
     [
@@ -55,6 +55,19 @@ public sealed class AdminBootstrap(Db db, ILogger<AdminBootstrap> log) : IBootst
                 """, new { h = BCrypt.Net.BCrypt.HashPassword("shizhong2026", 11) });
             await c.ExecuteAsync("INSERT INTO dbo.Wallets(UserId, BalanceCents, Beans) VALUES (@id, 0, 0)", new { id });
             log.LogInformation("Created the demo account (+60 12-345 6789 / demo@shizhong.my)");
+        }
+
+        // The demo account needs money to try checkout, gifts and red packets: a one-off grant while its ledger is empty.
+        var demoId = await c.ExecuteScalarAsync<long?>("SELECT TOP 1 Id FROM dbo.Users WHERE Kind = 2 ORDER BY Id");
+        if (demoId is { } did && await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.WalletTransactions WHERE UserId = @did", new { did }) == 0)
+        {
+            var cents = cfg.Cents("newUser.demoBalance", 5000);
+            var beans = cfg.Long("newUser.demoBeans", 100000);
+            await db.TxAsync(async (tc, t) =>
+            {
+                if (cents > 0) await Ledger.ApplyAsync(tc, t, new LedgerEntry(did, Currencies.Rm, cents, "grant", "体验账号余额", "server.bill.demoGrant"));
+                if (beans > 0) await Ledger.ApplyAsync(tc, t, new LedgerEntry(did, Currencies.Bean, beans, "grant", "体验账号金豆", "server.bill.demoBeans"));
+            });
         }
     }
 }

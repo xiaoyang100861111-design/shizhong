@@ -677,6 +677,10 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* amounts such as "RM 3,500" must fit a third of a 320 px card */
+.me-wallet-cell strong.num {
+  font-size: clamp(var(--fs-14), 4.8vw, var(--fs-20));
+}
 .me-stat span,
 .me-wallet-cell span {
   color: var(--c-text-3);

@@ -410,7 +410,9 @@
         "expect": "!!document.querySelector('.cx-call.is-connected')",
         "msg": "demo call connects"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "server mode: real calls need Cloudflare Realtime (tools/qa/realtime_check.js covers signalling)"
   },
   {
     "name": "chat-call-end",
@@ -547,6 +549,53 @@
       {
         "expect": "!!document.querySelector('.cx-row[data-type=envelope] .is-settled') && !!document.querySelector('.cx-sys')",
         "msg": "friend opens the packet"
+      }
+    ],
+    "serverSteps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__wallet = state.wallet, true"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "8.88"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "Math.round((window.__wallet - state.wallet) * 100) === 888",
+        "msg": "wallet debited exactly once"
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=envelope]') && SZ.overlay.depth() === 1",
+        "msg": "packet bubble shown, sheet closed"
       }
     ]
   },
@@ -700,6 +749,50 @@
       {
         "expect": "document.querySelectorAll('.cx-sys').length >= 1",
         "msg": "group members open the packet"
+      }
+    ],
+    "serverSteps": [
+      {
+        "eval": "(ShizhongChat.open('g1'), true)"
+      },
+      {
+        "wait": 900
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=count]",
+        "value": "3"
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "30"
+      },
+      {
+        "shot": "form"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 800
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=envelope]') && SZ.overlay.depth()===1",
+        "msg": "group red packet sent (members claim it for real in server mode)"
       }
     ]
   },
@@ -907,6 +1000,43 @@
         "expect": "!!document.querySelector('.cx-b-voice.is-playing')",
         "msg": "inline playback state"
       }
+    ],
+    "serverSteps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "click": "[data-action=cx-voice]"
+      },
+      {
+        "expect": "!document.querySelector('.cx-hold').hidden",
+        "msg": "hold-to-talk visible"
+      },
+      {
+        "shot": "hold"
+      },
+      {
+        "click": ".cx-hold"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "shot": "sheet"
+      },
+      {
+        "click": "[data-cx-voice=sample]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!document.querySelector('.cx-row[data-type=voice] .cx-b-voice')",
+        "msg": "voice bubble"
+      }
     ]
   },
   {
@@ -1038,7 +1168,9 @@
         "expect": "!!document.querySelector('.cx-row[data-mid=mOldPacket] .is-settled') && !!document.querySelector('.cx-sys')",
         "msg": "refund notice shown"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "refunds run on the server (PacketExpiryWorker), not when the chat opens"
   },
   {
     "name": "chat-clear",
@@ -1107,7 +1239,9 @@
         "expect": "!!SZ.overlay.$('.cx-file-preview')",
         "msg": "migrated file opens"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "IndexedDB migration is offline-only"
   },
   {
     "name": "chat-hold-to-talk",
@@ -1303,6 +1437,66 @@
       },
       {
         "expect": "!!SZ.overlay.top().el.querySelector('.cx-log') && ShizhongChat.isOpen('p1')",
+        "msg": "the bill leads back to the chat"
+      }
+    ],
+    "serverSteps": [
+      {
+        "click": "[data-action=chat][data-id=p1]"
+      },
+      {
+        "wait": 500
+      },
+      {
+        "eval": "window.__w = state.wallet, window.__b = state.bills.length, true"
+      },
+      {
+        "click": "[data-action=cx-more]"
+      },
+      {
+        "click": "[data-tool=envelope]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "type": ".cx-sheet input[name=amount]",
+        "value": "8.88"
+      },
+      {
+        "submit": ".cx-sheet form"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": "[data-action=cx-pay]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "state.bills[0].kind==='envelope' && state.bills[0].chatId==='u0040' && state.bills[0].i18n?.key==='chat.money.packetBill' && typeof state.bills[0].time==='number' && Math.round((window.__w-state.wallet)*100)===888",
+        "msg": "red packet writes one bill (kind, chat, i18n, epoch time) with the wallet change"
+      },
+      {
+        "eval": "SZ.actions.dispatch('wallet'), true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "(()=>{const row=SZ.overlay.$('.flows-bills .flows-bill-link[data-kind=envelope][data-id=u0040]');return !!row && /8\\.88/.test(row.textContent)})()",
+        "msg": "wallet shows the red packet, with the amount"
+      },
+      {
+        "eval": "SZ.overlay.$('.flows-bill-link[data-kind=envelope]').click(), true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!SZ.overlay.top().el.querySelector('.cx-log') && ShizhongChat.isOpen('u0040')",
         "msg": "the bill leads back to the chat"
       }
     ]

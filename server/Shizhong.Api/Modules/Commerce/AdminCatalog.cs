@@ -221,6 +221,7 @@ public sealed partial class CommerceModule
         g.MapPost("/catalog/services/import", async (HttpContext ctx, Db db, CatalogStore store, Audit audit) =>
         {
             var a = ctx.RequireAdmin("catalog.import");
+            if (!ctx.Request.HasFormContentType) throw ApiError.BadRequest("media.missing");
             var form = await ctx.Request.ReadFormAsync();
             var file = form.Files.GetFile("file") ?? throw ApiError.BadRequest("media.missing");
             if (file.Length > 20 * 1024 * 1024) throw ApiError.BadRequest("media.tooLarge", null, new { maxMb = 20 });

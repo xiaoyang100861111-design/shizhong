@@ -58,7 +58,7 @@ public sealed partial class AdminModule
         await using var c = await db.OpenAsync();
         var b = await c.QueryFirstOrDefaultAsync("SELECT Type, Title, Body, Action, Audience, SentAt FROM dbo.Broadcasts WHERE Id = @id", new { id });
         if (b is null || b.SentAt != null) return 0;
-        var audience = Json.Node((string)b.Audience) as JsonObject ?? new JsonObject();
+        var audience = Json.Node((string?)b!.Audience) as JsonObject ?? new JsonObject();
         var kind = audience["kind"]?.GetValue<string>() ?? "all";
         var args = new DynamicParameters(a?.ScopeArgs ?? new { });
         args.Add("id", id);

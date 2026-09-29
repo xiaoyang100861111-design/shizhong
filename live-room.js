@@ -1569,7 +1569,15 @@
     if (SERVER) {
       if (!(await socialCall('POST', 'blocks/' + encodeURIComponent(targetId), 'blocked', targetId, true))) return;
       afterBlock(targetId);
-      toast(t('live.block.done', { name: nameOf(p) }));
+      toast(t('live.block.done', { name: nameOf(p) }), {
+        action: {
+          label: t('common.undo'),
+          run: async () => {
+            if (await socialCall('DELETE', 'blocks/' + encodeURIComponent(targetId), 'blocked', targetId, false) && typeof render === 'function')
+              render();
+          },
+        },
+      });
       return;
     }
     if (

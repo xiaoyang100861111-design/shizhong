@@ -241,7 +241,7 @@ public sealed class PrivateModule : IModule
             var txId = await db.TxAsync(async (c, t) =>
             {
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, -total, "call", "通话送礼", "srvlive.bill.callGift",
-                    new { name = gift.LiveName ?? gift.Name, host = host.Name, qty }, "beans", "call", id.ToString()));
+                    new { name = gift.LiveName ?? gift.Name, id = gift.Id, host = host.Name, qty }, "beans", "call", id.ToString()));
                 var tx = await c.ExecuteScalarAsync<long>("""
                     INSERT INTO dbo.GiftTransactions(Kind, UserId, ToUserId, GiftId, Quantity, UnitBeans, TotalBeans, PaidBeans, RefId)
                     OUTPUT inserted.Id VALUES ('private', @Id, @HostId, @GiftId, @qty, @Beans, @total, @total, @ref)

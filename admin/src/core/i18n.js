@@ -24,9 +24,21 @@ export function addMessages(bundle) {
   for (const l of ['zh', 'en']) if (bundle[l]) merge(messages[l], bundle[l]);
 }
 
+// Keys may be nested objects or flat dotted names inside a branch (err: { 'orders.notFound': … }), so at each
+// level try the whole remaining key before descending one segment.
 function lookup(obj, key) {
+  if (!obj || typeof obj !== 'object') return undefined;
   if (key in obj) return obj[key];
-  return key.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), obj);
+  let dot = key.indexOf('.');
+  while (dot > 0) {
+    const head = key.slice(0, dot);
+    if (head in obj) {
+      const found = lookup(obj[head], key.slice(dot + 1));
+      if (found !== undefined) return found;
+    }
+    dot = key.indexOf('.', dot + 1);
+  }
+  return undefined;
 }
 
 export function t(key, params = {}) {

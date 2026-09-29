@@ -25,10 +25,10 @@ public sealed partial class GiftsLiveAdmin : IModule
         var g = app.MapGroup("/api/admin").RequireAdmin();
 
         // ------------------------------------------------------------ settings for these areas (without system.config)
-        g.MapGet("/gl-config", (HttpContext ctx, ConfigService cfg, string keys) =>
+        g.MapGet("/gl-config", (HttpContext ctx, ConfigService cfg, string? keys) =>
         {
             var a = ctx.RequireAdmin();
-            var list = keys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var list = (keys ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = new Dictionary<string, object?>();
             foreach (var key in list)
             {

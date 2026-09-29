@@ -117,6 +117,7 @@ public sealed partial class PlatformModule : IModule
         api.MapPost("/media", async (HttpContext ctx, MediaStore media, ConfigService cfg) =>
         {
             var user = ctx.RequireUser();
+            if (!ctx.Request.HasFormContentType) throw ApiError.BadRequest("media.missing");
             var form = await ctx.Request.ReadFormAsync();
             var file = form.Files.GetFile("file") ?? throw ApiError.BadRequest("media.missing");
             var purpose = form["purpose"].FirstOrDefault();
@@ -130,6 +131,8 @@ public sealed partial class PlatformModule : IModule
             if (item is null) return Results.NotFound();
             ctx.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
             ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            // Uploads are served from the app's origin: never let one run script (console SVGs, mislabelled files).
+            ctx.Response.Headers.ContentSecurityPolicy = "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox";
             if (!item.Mime.StartsWith("image/") && !item.Mime.StartsWith("audio/") && !item.Mime.StartsWith("video/"))
                 ctx.Response.Headers.ContentDisposition = "attachment; filename*=UTF-8''" + Uri.EscapeDataString(item.Name ?? "file");
             return Results.Bytes(item.Data, item.Mime, enableRangeProcessing: true);

@@ -75,7 +75,24 @@ public static class ModuleRegistry
             .Select(t => (IModule)Activator.CreateInstance(t)!)
             .OrderBy(m => m.Order).ThenBy(m => m.GetType().Name)
             .ToList();
+        AssertSingleOwners(modules);
         return modules;
+    }
+
+    /// <summary>
+    /// A state key projected by two modules would be overwritten by whichever runs last, and both would
+    /// strip it from PUT /api/state — fail fast at start-up instead of shipping a silent data race.
+    /// </summary>
+    static void AssertSingleOwners(IEnumerable<IModule> list)
+    {
+        var clashes = list
+            .SelectMany(m => m.OwnedStateKeys.Distinct().Select(k => (Key: k, Module: m.GetType().Name)))
+            .GroupBy(x => x.Key)
+            .Where(g => g.Count() > 1)
+            .Select(g => $"'{g.Key}' ({string.Join(", ", g.Select(x => x.Module))})")
+            .ToList();
+        if (clashes.Count > 0)
+            throw new InvalidOperationException("State keys owned by more than one module: " + string.Join("; ", clashes));
     }
 
     public static IEnumerable<ConfigDef> AllConfigs => All.SelectMany(m => m.Configs);

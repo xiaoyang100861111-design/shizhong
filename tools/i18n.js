@@ -70,11 +70,83 @@ function localeFiles() {
 function all() {
   const map = {};
   for (const { code, file } of localeFiles()) map[code] = loadLocale(file);
+  // Extension files (locales/server-*.js: server-mode strings) call SZ_I18N.extend(code, …) for several locales.
+  const own = new Set(localeFiles().map(l => l.file));
+  for (const name of fs.readdirSync(LOCALES).filter(f => f.endsWith('.js')).sort()) {
+    const file = path.join(LOCALES, name);
+    if (own.has(file)) continue;
+    const sandbox = {
+      SZ_I18N: {
+        register() {},
+        addContent() {},
+        extend(code, messages) {
+          if (!map[code]) map[code] = { meta: null, messages: {} };
+          deepMerge(map[code].messages, messages || {});
+        },
+      },
+    };
+    vm.runInNewContext(fs.readFileSync(file, 'utf8'), sandbox, { filename: file });
+  }
   return map;
+}
+/**
+ * Keys the server writes into the app (bill titles, notices, error codes → server.error.<code>), and error codes
+ * of console-only endpoints (admin/ shows them as err.<code>). Only dotted literals whose first segment is a
+ * top-level key of zh-CN are considered, so SQL / config / audit names are ignored.
+ */
+const isAdminFile = rel =>
+  /(^|[\\/])Admin[^\\/]*\.cs$|Admin\.cs$|[\\/]Modules[\\/]Admin[\\/]|SupportDesk\.cs$|CommerceCommon\.cs$|ScopedConfig\.cs$|Infrastructure[\\/]Config\.cs$/.test(rel);
+function serverKeys(src) {
+  const app = new Map(), admin = new Map();
+  const roots = new Set(Object.keys(src).map(k => k.split('.')[0]));
+  const walk = dir => {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (['bin', 'obj'].includes(name)) continue;
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith('.cs')) {
+        const text = fs.readFileSync(full, 'utf8');
+        const rel = path.relative(ROOT, full);
+        const consoleOnly = isAdminFile(rel);
+        let m;
+        const lit = /"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+){2,})"/g;
+        while ((m = lit.exec(text)))
+          if (!consoleOnly && roots.has(m[1].split('.')[0]) && !app.has(m[1])) app.set(m[1], rel);
+        const err = /ApiError\.(?:BadRequest|Forbidden|NotFound|Conflict|TooMany|Unauthorized)\(\s*"([a-zA-Z0-9_.]+)"/g;
+        while ((m = err.exec(text))) {
+          const target = consoleOnly || m[1].startsWith('admin.') ? admin : app;
+          const key = target === admin ? m[1] : 'server.error.' + m[1];
+          if (!target.has(key)) target.set(key, rel);
+        }
+      }
+    }
+  };
+  const dir = path.join(ROOT, 'server', 'Shizhong.Api');
+  if (fs.existsSync(dir)) walk(dir);
+  return { app, admin };
+}
+/** err.<code> texts of the console (flat 'area.reason' keys inside err: {…} blocks of admin/src). */
+function adminErrKeys() {
+  const keys = new Set();
+  const walk = dir => {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (/\.(js|vue)$/.test(name)) {
+        const text = fs.readFileSync(full, 'utf8');
+        const re = /\berr:\s*\{([\s\S]*?)\n\s*\}/g;
+        let m;
+        while ((m = re.exec(text))) for (const k of m[1].matchAll(/'([a-zA-Z]+\.[A-Za-z0-9_.]+)'\s*:/g)) keys.add(k[1]);
+      }
+    }
+  };
+  const dir = path.join(ROOT, 'admin', 'src');
+  if (fs.existsSync(dir)) walk(dir);
+  return keys;
 }
 function sourceFiles(dir = ROOT, out = []) {
   for (const name of fs.readdirSync(dir)) {
-    if (['node_modules', 'data', 'vendor', 'assets', 'locales', 'tools', '.git', 'dist'].includes(name)) continue;
+    if (['node_modules', 'data', 'vendor', 'assets', 'locales', 'tools', '.git', 'dist', 'admin', 'server', '.claude', '.qa'].includes(name)) continue;
     const full = path.join(dir, name);
     const stat = fs.statSync(full);
     if (stat.isDirectory()) sourceFiles(full, out);
@@ -112,12 +184,26 @@ function check() {
     problems += missing.length + mismatch.length;
   }
   const used = usedKeys();
-  const unknown = [...used].filter(([k]) => !(k in src) && !Object.keys(src).some(s => s.startsWith(k + '.')));
+  // t('area.status.' + s) style prefixes only need some key under them
+  const unknown = [...used].filter(([k]) => !(k in src) && !Object.keys(src).some(s => s.startsWith(k.endsWith('.') ? k : k + '.')));
   if (unknown.length) {
     console.log(`\n[code] keys used but missing in ${SOURCE} (${unknown.length}):`);
     for (const [k, f] of unknown) console.log(`    ${k}   (${f})`);
   }
   problems += unknown.length;
+  const server = serverKeys(src);
+  const fromServer = [...server.app].filter(([k]) => !(k in src));
+  if (fromServer.length) {
+    console.log(`\n[server] keys the API sends but missing in ${SOURCE} (${fromServer.length}):`);
+    for (const [k, f] of fromServer) console.log(`    ${k}   (${f})`);
+  }
+  const consoleErr = adminErrKeys();
+  const fromAdmin = [...server.admin].filter(([k]) => !consoleErr.has(k) && !(('server.error.' + k) in src));
+  if (fromAdmin.length) {
+    console.log(`\n[console] error codes without an err.<code> text in admin/src (${fromAdmin.length}):`);
+    for (const [k, f] of fromAdmin) console.log(`    ${k}   (${f})`);
+  }
+  problems += fromServer.length + fromAdmin.length;
   console.log(problems ? `\n${problems} problem(s).` : '\nAll locales complete.');
   process.exitCode = problems ? 1 : 0;
 }

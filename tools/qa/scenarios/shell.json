@@ -152,7 +152,9 @@
         "expect": "document.querySelector('.me-stat[data-id=fans] strong').textContent.trim()==='150'",
         "msg": "demo fans from state.social"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "offline sample fans"
   },
   {
     "name": "shell-me-orders",
@@ -367,6 +369,8 @@
         "expect": "ui.homeFilter === 'recommended' && ui.orderFilter === 'all' && ui.commsTab === 'chats'",
         "msg": "ui filters use stable ids"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "seeds a local save; the server owns these keys"
   }
 ]

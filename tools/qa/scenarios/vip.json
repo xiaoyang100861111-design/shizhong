@@ -235,7 +235,9 @@
         "expect": "state.vip.theme === JSON.parse(window.__vipqa).vip.theme",
         "msg": "state restored"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "raises the level client-side; the server computes VIP xp"
   },
   {
     "name": "vip-toggle",

@@ -80,6 +80,7 @@ public sealed partial class AdminModule
         g.MapPost("/media", async (HttpContext ctx, Platform.MediaStore media, ConfigService cfg) =>
         {
             var a = ctx.RequireAdmin();
+            if (!ctx.Request.HasFormContentType) throw ApiError.BadRequest("media.missing");
             var form = await ctx.Request.ReadFormAsync();
             var file = form.Files.GetFile("file") ?? throw ApiError.BadRequest("media.missing");
             return Results.Ok(await media.SaveAsync(file, null, a.Id, form["purpose"].FirstOrDefault() ?? "admin", cfg));

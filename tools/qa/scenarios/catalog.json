@@ -428,6 +428,31 @@
     "expect": "!!(state.wallet===window.__w && state.orders[0].payMethod==='tng' && state.orders[0].paid)",
     "msg": "external method does not touch the wallet"
    }
+  ],
+  "serverSteps": [
+   {
+    "click": "[data-action=category][data-id=guide]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "expect": "!!(SZ.overlay.$('[data-checkout=method][data-value=tng]') === null || SZ.overlay.$('[data-checkout=method][data-value=tng]').dataset.off === 'true')",
+    "msg": "server mode: only the wallet can pay this phase (TNG shown as unavailable)"
+   }
   ]
  },
  {
@@ -475,6 +500,47 @@
    {
     "expect": "!!(state.orders[0].status==='confirmed' && (state.messages['merchant:'+state.orders[0].serviceId]||[]).length>0 && SZ.overlay.$('.checkout-status-confirmed'))",
     "msg": "merchant auto-confirms, chat message and live timeline"
+   }
+  ],
+  "serverSteps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "wait": 22000
+   },
+   {
+    "expect": "!!(state.orders[0].status==='confirmed' && (state.messages['merchant:'+state.orders[0].serviceId]||[]).length>0 && SZ.overlay.$('.checkout-status-confirmed'))",
+    "msg": "server auto-confirms (orders.autoConfirm*Seconds), merchant chat message and live timeline"
    }
   ]
  },
@@ -532,6 +598,59 @@
    {
     "expect": "!!(state.orders[0].status==='cancelled' && Math.abs(state.wallet-(window.__w+window.__pay))<0.001 && state.bills[0].type==='order-refund')",
     "msg": "cancel refunds to wallet with a bill"
+   }
+  ],
+  "serverSteps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "eval": "window.__w=state.wallet, window.__pay=state.orders[0].payable, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child .checkout-bottom-bar [data-action=cancel-order]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-reason=plans]"
+   },
+   {
+    "shot": "cancel-sheet"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-cancel-confirm]"
+   },
+   {
+    "expect": "!!(state.orders[0].status==='cancelled' && Math.abs(state.wallet-(window.__w+window.__pay))<0.001 && state.bills[0].kind==='refund' && state.bills[0].orderId===state.orders[0].id)",
+    "msg": "cancel refunds to wallet with a refund bill linked to the order"
    }
   ]
  },
@@ -598,6 +717,76 @@
    },
    {
     "expect": "!!(state.orders[0].status==='done' && state.reviews[window.__sid][0].stars===4 && state.orders[0].review)",
+    "msg": "review stored"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='service' && SZ.overlay.$('.checkout-review .tag-brand'))",
+    "msg": "own review shows on the service detail"
+   }
+  ],
+  "serverSteps": [
+   {
+    "click": "[data-action=category][data-id=clean]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=service]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "eval": "window.__sid=SZ.overlay.top().meta.serviceId, true"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=book-service]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=phone]",
+    "value": "+60 12-345 6789"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=request]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=address]",
+    "value": "Jalan Ampang 12"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-checkout=place]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=order-detail]"
+   },
+   {
+    "wait": 22000
+   },
+   {
+    "click": "[data-sz-layer]:last-child .checkout-bottom-bar [data-action=complete-order]"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-star='4']"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-tag=onTime]"
+   },
+   {
+    "type": "[data-sz-layer]:last-child textarea[name=text]",
+    "value": "Great job"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form[data-catalog-form=review]"
+   },
+   {
+    "expect": "!!(state.orders[0].status==='done' && state.reviews[window.__sid] && state.reviews[window.__sid][0].stars===4 && state.orders[0].review)",
     "msg": "review stored"
    },
    {
@@ -1178,7 +1367,9 @@
     "expect": "!!(SZ.overlay.depth()===1 && SZ.overlay.$('.checkout-card'))",
     "msg": "campaign screen lists picks"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "server banners come from the console"
  },
  {
   "name": "catalog-all-services",
@@ -1276,7 +1467,9 @@
     "expect": "!!(state.orders[0].couponId==='city' && state.orders[0].discount===5 && window.__used && window.__used[0]==='city')",
     "msg": "chosen coupon used inside the order commit"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "mocks window.ShizhongCoupons; server coupons: tools/qa/server_smoke.py"
  },
  {
   "name": "catalog-topup",
@@ -1592,7 +1785,9 @@
     "expect": "!!(SZ.overlay.top().meta.view==='confirm' && state.orders.length===window.__o)",
     "msg": "backing out of bank approval keeps the order unplaced"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "bank approval screens are offline-only (wallet only this phase)"
  },
  {
   "name": "e2e-order-lifecycle",
@@ -1731,7 +1926,9 @@
     "expect": "SZ.overlay.top().meta.view==='order' && SZ.overlay.top().meta.orderId===state.orders[0].id",
     "msg": "the newest notice opens the order"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "uses the prototype's merchant simulation; server: catalog-order-* serverSteps and realtime_check.js"
  },
  {
   "name": "e2e-guest-clean",
@@ -1819,6 +2016,8 @@
     "expect": "(document.querySelector('#bottom-nav [data-id=comms] .nav-badge')?.textContent||'').trim()===String(Math.min(99,ShizhongChat.unreadCount()))",
     "msg": "nav badge follows"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "injects a local incoming message; server mode: realtime_check.js delivers a real one live"
  }
 ]

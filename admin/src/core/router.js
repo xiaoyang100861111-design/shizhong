@@ -35,5 +35,8 @@ router.beforeEach(async to => {
     }
     return '/forbidden';
   }
+  // A module hidden for this account (e.g. "My shop" without a linked shop) is not reachable by URL either.
+  const visible = to.meta.module?.visible;
+  if (typeof visible === 'function' && !visible(session.me)) return '/forbidden';
   return true;
 });
