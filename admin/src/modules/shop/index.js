@@ -5,6 +5,8 @@ const shop = { shop: true };
 export default {
   menu: 'shop',
   order: 21,
+  // only accounts bound to a shop (a super admin without a shop would only see errors here)
+  visible: me => !!me?.merchantId,
   icon: 'Shop',
   title: { zh: '商家后台', en: 'My shop' },
   routes: [

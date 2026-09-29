@@ -5,6 +5,7 @@
 //     menu: 'orders',                // permission menu code from the server (null = always visible)
 //     order: 30,                     // sidebar position
 //     icon: 'Tickets',               // Element Plus icon component name
+//     visible: me => true,           // optional extra condition on the signed-in admin
 //     title: { zh: '订单管理', en: 'Orders' },
 //     routes: [
 //       { path: '/orders', component: () => import('./OrderList.vue'),

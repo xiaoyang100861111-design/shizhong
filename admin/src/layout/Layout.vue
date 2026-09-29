@@ -100,7 +100,7 @@ function toggleMenu() {
 const menus = computed(() => {
   const allowed = new Set(session.me?.menus || []);
   return modules
-    .filter(m => m.menu === null || allowed.has(m.menu))
+    .filter(m => (m.menu === null || allowed.has(m.menu)) && (!m.visible || m.visible(session.me)))
     .map(m => ({
       key: (m.menu || '') + ':' + (m.title?.en || m.title?.zh || ''),
       icon: m.icon || 'Menu',
