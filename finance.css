@@ -1,0 +1,331 @@
+/*
+ * finance.css (owner: finance) — server-mode money screens: recharge channels, crypto deposit address,
+ * deposit / top-up / withdrawal lists, payout accounts. Tokens only; builds on flows.css pieces. Prefix fin-.
+ */
+.fin-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 120px;
+  color: var(--c-text-3);
+  font-size: var(--fs-14);
+}
+.fin-status {
+  white-space: nowrap;
+}
+.fin-soon {
+  flex-shrink: 0;
+  margin-left: var(--sp-2);
+  font-size: var(--fs-11);
+}
+.fin-channel.is-disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.fin-channel.is-disabled .flows-radio-mark {
+  visibility: hidden;
+}
+
+/* coin / network picker */
+.fin-picker .form-label {
+  margin: 0 0 var(--sp-2);
+}
+.fin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.fin-chip {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 1px var(--c-border-strong);
+  color: var(--c-text-2);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.fin-chip.is-active {
+  background: var(--c-text);
+  box-shadow: none;
+  color: var(--c-surface);
+}
+.fin-chip:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* address card */
+.fin-addr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
+  border-radius: var(--r-xl);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-1);
+  text-align: center;
+}
+.fin-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(210px, 62vw);
+  aspect-ratio: 1;
+  padding: var(--sp-2);
+  border-radius: var(--r-md);
+  background: #ffffff; /* QR codes need a light quiet zone in every theme */
+}
+.fin-qr svg {
+  width: 100%;
+  height: 100%;
+}
+.fin-addr-label {
+  margin: var(--sp-2) 0 0;
+  color: var(--c-text-2);
+  font-size: var(--fs-13);
+}
+.fin-addr {
+  width: 100%;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: var(--fs-14);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.fin-addr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+.fin-addr-actions .ico {
+  width: 18px;
+  height: 18px;
+}
+.fin-reuse {
+  margin: 0;
+}
+.fin-warnings {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0;
+  padding: 0;
+  list-style: none;
+}
+.fin-warnings li {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  color: var(--c-text-2);
+  font-size: var(--fs-13);
+  line-height: var(--lh-snug);
+}
+.fin-warnings .ico {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+.fin-warnings li.is-strong {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--c-warning-soft);
+  color: var(--c-warning);
+  font-weight: var(--fw-semibold);
+}
+.fin-calc {
+  margin-bottom: var(--sp-4);
+}
+.fin-calc .caption {
+  margin: 0 0 var(--sp-3);
+}
+.fin-calc .form-group {
+  margin-bottom: var(--sp-2);
+}
+.fin-need {
+  margin: 0 0 var(--sp-2);
+  font-weight: var(--fw-semibold);
+}
+.fin-calc-out {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--c-success);
+  font-weight: var(--fw-semibold);
+}
+
+/* lists */
+.fin-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+.fin-row {
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.fin-row > .ico {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.fin-row .list-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fin-row .flows-row-sub {
+  overflow-wrap: anywhere;
+}
+.fin-coin-badge {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--c-gold-soft);
+  color: var(--c-gold);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
+}
+.fin-net {
+  margin-left: 4px;
+  color: var(--c-text-3);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+}
+.fin-test {
+  margin-left: 6px;
+  font-size: var(--fs-11);
+}
+.fin-tx {
+  color: var(--c-info);
+}
+.fin-progress {
+  width: 100%;
+  max-width: 180px;
+  margin-top: 4px;
+}
+.fin-row-end {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+.fin-credit {
+  color: var(--c-success);
+  font-weight: var(--fw-semibold);
+}
+.fin-links {
+  margin-top: var(--sp-4);
+  overflow: hidden;
+}
+.fin-links .badge {
+  position: static;
+}
+.fin-instructions {
+  margin-bottom: var(--sp-4);
+}
+.fin-instructions h3 {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-15);
+}
+.fin-instructions p {
+  margin: 0 0 var(--sp-1);
+  color: var(--c-text-2);
+  font-size: var(--fs-14);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+
+/* withdrawal form */
+.fin-available {
+  margin: 0 0 var(--sp-2);
+  color: var(--c-text-2);
+  font-size: var(--fs-14);
+}
+.fin-amount-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.fin-amount-row .form-group {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.fin-amount-row .fin-all {
+  flex-shrink: 0;
+  margin-bottom: var(--sp-4);
+}
+.fin-fee {
+  min-height: 1.4em;
+  margin: calc(-1 * var(--sp-2)) 0 var(--sp-4);
+  color: var(--c-text-2);
+  font-size: var(--fs-13);
+}
+.fin-account .fin-account-remove {
+  flex-shrink: 0;
+  color: var(--c-text-3);
+}
+.fin-account .fin-account-remove .ico {
+  width: 18px;
+  height: 18px;
+}
+.fin-add {
+  margin-top: var(--sp-2);
+}
+.fin-empty-line {
+  margin: 0 0 var(--sp-2);
+}
+.fin-wd-note {
+  margin: 0 0 var(--sp-3);
+}
+.fin-kinds {
+  margin-bottom: var(--sp-4);
+}
+
+/* wallet page */
+.fin-frozen {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--c-info-soft);
+  color: var(--c-info);
+  font-size: var(--fs-13);
+}
+.fin-frozen .ico {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+.fin-wallet-section .fin-links {
+  margin-top: 0;
+}
+
+/* invite stats */
+.fin-invite-count {
+  margin: var(--sp-4) 0 0;
+  text-align: center;
+  color: var(--c-text-2);
+  font-size: var(--fs-14);
+}
+.fin-invite-count strong {
+  color: var(--c-text);
+}
