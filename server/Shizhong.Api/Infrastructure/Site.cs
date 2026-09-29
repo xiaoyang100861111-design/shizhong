@@ -68,12 +68,15 @@ public static class Site
 
         // The app.
         var files = new PhysicalFileProvider(siteRoot);
-        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-        app.UseStaticFiles(new StaticFileOptions
+        app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/admin"), site =>
         {
-            FileProvider = files,
-            ContentTypeProvider = types,
-            OnPrepareResponse = r => Cache(r.Context, r.File.Name),
+            site.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
+            site.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = files,
+                ContentTypeProvider = types,
+                OnPrepareResponse = r => Cache(r.Context, r.File.Name),
+            });
         });
 
         // Admin SPA history fallback (after static files, so /admin/assets/* are served as files).

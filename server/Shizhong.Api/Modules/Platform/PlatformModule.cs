@@ -80,6 +80,7 @@ public sealed partial class PlatformModule : IModule
                 me,
                 state,
                 stateVersion = version,
+                ownedKeys = ModuleRegistry.OwnedStateKeys.OrderBy(k => k),
                 serverTime = Json.Ms(DateTime.UtcNow),
             };
             ctx.Response.Headers.CacheControl = "no-store";
