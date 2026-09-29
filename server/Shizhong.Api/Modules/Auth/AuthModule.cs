@@ -243,6 +243,15 @@ public sealed partial class AuthModule : IModule
             if (body.Interests != null) { sets.Add("Interests = @interests"); args.Add("interests", Json.Serialize(body.Interests.Take(20).Select(i => Clip(i, 30)))); }
             if (body.Location != null) { sets.Add("Location = @location"); args.Add("location", body.Location.ToJsonString(Json.Options)); }
             if (body.Marketing != null) { sets.Add("Marketing = @marketing"); args.Add("marketing", body.Marketing.Value); }
+            if (user.IsDemo && (body.Phone != null || body.Email != null))
+            {
+                // The shared demo account signs in with its published phone / e-mail: nobody may change them.
+                var current = await db.QueryFirstAsync<(string? Phone, string? Email)>("SELECT Phone, Email FROM dbo.Users WHERE Id = @Id", new { user.Id });
+                var (p, _) = Normalize(body.Phone, null);
+                var (_, e) = Normalize(null, body.Email);
+                if ((body.Phone != null && p != current.Phone) || (body.Email != null && e != current.Email)) throw ApiError.Forbidden("auth.demoContactLocked");
+                body = body with { Phone = null, Email = null };
+            }
             if (body.Phone != null)
             {
                 var (phone, _) = Normalize(body.Phone, null);
