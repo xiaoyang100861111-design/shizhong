@@ -66,13 +66,6 @@ FROM dbo.GiftTransactions g JOIN dbo.Users h ON h.Id = g.ToUserId AND h.Kind <> 
 WHERE g.Kind = 'live' AND g.CreatedAt > DATEADD(DAY, -1, SYSUTCDATETIME())
   AND NOT EXISTS (SELECT 1 FROM dbo.HostEarnings e WHERE e.GiftTxId = g.Id)
 UNION ALL
-SELECT 'check-ins: one per member per day', COUNT(*) FROM (SELECT UserId, Day FROM dbo.CheckIns GROUP BY UserId, Day HAVING COUNT(*) > 1) x
-UNION ALL
-SELECT 'check-ins: one reward ledger row per check-in (today)', COUNT(*)
-FROM dbo.CheckIns c
-WHERE c.Day >= CAST(SYSUTCDATETIME() AS DATE) AND c.Reward > 0
-  AND (SELECT COUNT(*) FROM dbo.WalletTransactions t WHERE t.UserId = c.UserId AND t.Kind = 'checkin' AND t.RefId = CONVERT(NVARCHAR(10), c.Day, 23)) <> 1
-UNION ALL
 SELECT 'withdrawals: at most 3 active requests per member per day', COUNT(*)
 FROM (SELECT UserId, CAST(CreatedAt AS DATE) AS D FROM dbo.Withdrawals WHERE Status <> 3 GROUP BY UserId, CAST(CreatedAt AS DATE) HAVING COUNT(*) > 3) x
 UNION ALL

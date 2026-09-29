@@ -62,7 +62,7 @@ const SCREENS = {
   withdraw: `SZ.actions.dispatch('withdraw')`,
   withdrawals: `SZ.actions.dispatch('fin-withdrawals')`,
   beans: `SZ.actions.dispatch('fin-beans')`,
-  checkin: `SZ.actions.dispatch('checkin')`,
+  points: `SZ.actions.dispatch('points')`,
   tasks: `SZ.actions.dispatch('tasks')`,
   membership: `SZ.actions.dispatch('membership')`,
   invite: `SZ.actions.dispatch('invite')`,

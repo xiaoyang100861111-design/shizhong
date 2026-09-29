@@ -103,8 +103,8 @@
         "msg": "me app bar"
       },
       {
-        "expect": "!!document.querySelector('.me-wallet') && !!document.querySelector('.me-checkin')",
-        "msg": "wallet and check-in"
+        "expect": "!!document.querySelector('.me-wallet') && !document.querySelector('.me-checkin, [data-action=checkin]')",
+        "msg": "wallet, no check-in card"
       },
       {
         "expect": "!document.querySelector('.me-guest')",
@@ -329,27 +329,6 @@
     ]
   },
   {
-    "name": "shell-me-checkin-refresh",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "document.querySelector('#app .me-checkin').scrollIntoView({block:'center'}),true"
-      },
-      {
-        "click": "#app .me-checkin [data-action=checkin]",
-        "settle": 900
-      },
-      {
-        "eval": "(async()=>{const b=SZ.overlay.$('[data-action=do-checkin]');if(b&&!b.disabled)b.click();await new Promise(r=>setTimeout(r,900));SZ.overlay.closeAll();return true})()",
-        "settle": 900
-      },
-      {
-        "expect": "ShizhongCheckin.status().done === (document.querySelector('#app .me-checkin [data-action=checkin]').classList.contains('btn-secondary'))",
-        "msg": "check-in card reflects ShizhongCheckin.status() after the layer closes"
-      }
-    ]
-  },
-  {
     "name": "shell-module-defaults",
     "hash": "me",
     "setup": [
@@ -358,8 +337,8 @@
     ],
     "steps": [
       {
-        "expect": "Array.isArray(state.notices) && Array.isArray(state.friendRequests.incoming) && state.checkin.streak === 3 && Array.isArray(state.checkin.history)",
-        "msg": "missing module keys filled, saved check-in object kept"
+        "expect": "Array.isArray(state.notices) && Array.isArray(state.friendRequests.incoming) && !('checkin' in state)",
+        "msg": "missing module keys filled, old check-in state dropped"
       },
       {
         "expect": "state.gifts && typeof state.gifts.owned === 'object' && state.live !== undefined && state.vip !== undefined",

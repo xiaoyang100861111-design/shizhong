@@ -204,7 +204,7 @@ async function scopeChecks(accounts, tokens) {
     // forbidden actions
     for (const [m, p, b] of [
       ['POST', '/api/admin/users/1/adjust', { currency: 'RM', amount: 1, reason: 'x' }],
-      ['PUT', '/api/admin/config', { 'checkin.reward': 11 }],
+      ['PUT', '/api/admin/config', { 'tasks.postReward': 11 }],
       ['POST', '/api/admin/roles', { code: 'x', name: 'x', permissions: [] }],
       ['POST', '/api/admin/finance/withdrawals/1/approve', {}],
     ]) {
@@ -230,7 +230,7 @@ async function scopeChecks(accounts, tokens) {
     for (const [m, p, b] of [
       ['PATCH', '/api/admin/users/1', { status: 1 }],
       ['POST', '/api/admin/orders/1/refund', { amount: 1, reason: 'x' }],
-      ['PUT', '/api/admin/config', { 'checkin.reward': 11 }],
+      ['PUT', '/api/admin/config', { 'tasks.postReward': 11 }],
     ]) {
       const r = await api(ro, m, p, b);
       if (r.status !== 403) note('readonly', `${m} ${p} → ${r.status} (want 403)`);
