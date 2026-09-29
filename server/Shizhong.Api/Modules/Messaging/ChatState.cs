@@ -20,12 +20,15 @@ public static class ChatState
     public static Task<IEnumerable<ConvRow>> ConversationsAsync(SqlConnection c, long userId, int take, SqlTransaction? t = null) =>
         c.QueryAsync<ConvRow>($"""
             SELECT TOP ({take}) c.Id, c.Kind, c.UserA, c.UserB, c.GroupId, c.OwnerId, c.ServiceId, g.PublicId AS GroupPublicId,
-                   s.ReadAt, s.ClearedAt, ps.ReadAt AS PeerReadAt, pu.PublicId AS PeerPublicId
+                   s.ReadAt, s.ClearedAt, ISNULL(ps.ReadAt, gr.ReadAt) AS PeerReadAt, pu.PublicId AS PeerPublicId
             FROM dbo.Conversations c
             LEFT JOIN dbo.Groups g ON g.Id = c.GroupId
             LEFT JOIN dbo.ChatStates s ON s.ConversationId = c.Id AND s.UserId = @userId
             LEFT JOIN dbo.Users pu ON c.Kind = 1 AND pu.Id = CASE WHEN c.UserA = @userId THEN c.UserB ELSE c.UserA END
             LEFT JOIN dbo.ChatStates ps ON c.Kind = 1 AND ps.ConversationId = c.Id AND ps.UserId = pu.Id
+            -- groups: the latest read of any other member (double ticks once someone has read)
+            OUTER APPLY (SELECT TOP 1 gs.ReadAt FROM dbo.ChatStates gs WHERE c.Kind = 2 AND gs.ConversationId = c.Id AND gs.UserId <> @userId AND gs.ReadAt IS NOT NULL
+                         ORDER BY gs.ReadAt DESC) gr
             WHERE c.LastAt IS NOT NULL AND c.Id IN (
                 -- one index seek per kind instead of an OR over the whole table (boot / state load)
                 SELECT Id FROM dbo.Conversations WHERE Kind = 1 AND UserA = @userId
@@ -59,13 +62,15 @@ public static class ChatState
             var values = string.Join(", ", chunk.Select((id, i) => { args.Add("c" + i, id); return $"(@c{i})"; }));
             list.AddRange(await c.QueryAsync<MsgRow>($"""
                 SELECT x.Id, x.ConversationId, x.SenderId, x.AdminId, x.Type, x.Text, x.Body, x.MediaRef, x.ClientId, x.RecalledAt, x.CreatedAt,
-                       u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind
+                       u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind,
+                       x.EditedAt, x.DeletedAt, x.ExpiresAt
                 FROM (VALUES {values}) AS cv(Id)
                 LEFT JOIN dbo.ChatStates s ON s.ConversationId = cv.Id AND s.UserId = @userId
                 CROSS APPLY (
-                    SELECT TOP ({per}) m.Id, m.ConversationId, m.SenderId, m.AdminId, m.Type, m.Text, m.Body, m.MediaRef, m.ClientId, m.RecalledAt, m.CreatedAt
+                    SELECT TOP ({per}) m.Id, m.ConversationId, m.SenderId, m.AdminId, m.Type, m.Text, m.Body, m.MediaRef, m.ClientId, m.RecalledAt, m.CreatedAt,
+                           m.EditedAt, m.DeletedAt, m.ExpiresAt
                     FROM dbo.Messages m
-                    WHERE m.ConversationId = cv.Id AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
+                    WHERE m.ConversationId = cv.Id AND m.DeletedAt IS NULL AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
                       AND NOT EXISTS (SELECT 1 FROM dbo.MessageHides h WHERE h.UserId = @userId AND h.MessageId = m.Id)
                     ORDER BY m.Id DESC
                 ) x LEFT JOIN dbo.Users u ON u.Id = x.SenderId
@@ -83,16 +88,20 @@ public static class ChatState
         return only is null || only.Any(n => n?.GetValue<long>() == userId);
     }
 
-    public static async Task<JsonArray> ViewsAsync(SqlConnection c, IEnumerable<MsgRow> rows, long viewer, string viewerPublicId, SqlTransaction? t = null)
+    public static async Task<JsonArray> ViewsAsync(SqlConnection c, IEnumerable<MsgRow> rows, long viewer, string viewerPublicId, SqlTransaction? t = null,
+        Dictionary<long, List<ReactionAgg>>? reactions = null)
     {
-        var list = rows.Where(r => VisibleTo(r, viewer)).ToList();
+        var list = rows.Where(r => VisibleTo(r, viewer) && r.DeletedAt is null).ToList();
         var (packets, claims) = await ChatService.MoneyAsync(c, list.Where(r => r.Type is "envelope" or "transfer").Select(r => r.Id), t);
+        reactions ??= await ChatFeatures.ReactionsAsync(c, list.Where(r => r.RecalledAt is null).Select(r => r.Id), t);
         var arr = new JsonArray();
         foreach (var r in list)
         {
             var p = packets.GetValueOrDefault(r.Id);
             var v = ChatService.View(r, viewer, p, p is null ? null : claims[p.Id]);
-            arr.Add(ChatService.ForViewer(v, r, viewer, viewerPublicId));
+            var o = ChatService.ForViewer(v, r, viewer, viewerPublicId);
+            if (r.RecalledAt is null && ChatFeatures.ReactionsJson(reactions.GetValueOrDefault(r.Id), viewer) is { } rx) o["reactions"] = rx;
+            arr.Add(o);
         }
         return arr;
     }
@@ -104,6 +113,9 @@ public static class ChatState
         var convs = (await ConversationsAsync(c, ctx.UserId, cfg.Int("chat.syncChats", 150))).ToList();
         var rows = await RecentAsync(c, ctx.UserId, convs.Select(x => x.Id), cfg.Int("chat.historyPerChat", 50));
         var byConv = rows.GroupBy(r => r.ConversationId).ToDictionary(g => g.Key, g => g.ToList());
+        var reactions = await ChatFeatures.ReactionsAsync(c, rows.Where(r => r.RecalledAt is null).Select(r => r.Id));
+        var metas = await ChatFeatures.MetaAsync(c, ctx.UserId, convs.Select(x => x.Id).ToArray());
+        var chatMeta = new JsonObject();
         var messages = new JsonObject();
         var reads = new JsonObject();
         var peerReads = new JsonObject();
@@ -111,12 +123,14 @@ public static class ChatState
         {
             var chatId = ChatId(conv);
             if (chatId.Length == 0 || messages.ContainsKey(chatId)) continue;
-            messages[chatId] = await ViewsAsync(c, byConv.GetValueOrDefault(conv.Id) ?? [], ctx.UserId, ctx.PublicId);
+            messages[chatId] = await ViewsAsync(c, byConv.GetValueOrDefault(conv.Id) ?? [], ctx.UserId, ctx.PublicId, null, reactions);
+            if (metas.GetValueOrDefault(conv.Id) is { } meta) chatMeta[chatId] = meta;
             if (conv.ReadAt != null) reads[chatId] = Json.Ms(conv.ReadAt.Value);
             if (conv.PeerReadAt != null) peerReads[chatId] = Json.Ms(conv.PeerReadAt.Value);
         }
         ctx.State["messages"] = messages;
         ctx.State["chatReads"] = reads;
         ctx.State["chatPeerReads"] = peerReads;
+        ctx.State["chatMeta"] = chatMeta;
     }
 }

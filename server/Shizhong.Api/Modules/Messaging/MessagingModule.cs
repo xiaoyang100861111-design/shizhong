@@ -29,6 +29,36 @@ public sealed class MessagingModule : IModule
             "i18n", "官方客服欢迎语", "Support welcome message", Public: true),
         new("chat.merchantGreeting", "chat", new { zh = "你好，这里是商家客服，有什么可以帮你？", en = "Hi, this is the shop's customer service. How can we help?" },
             "i18n", "商家会话自动问候", "Merchant chat greeting", Public: true),
+        ConfigDef.GroupOf("chatplus", "聊天功能（表情回应、删除、定时、相册、视频）", "Chat features (reactions, delete, timers, albums, video)",
+            "类似 Telegram 的聊天功能。说明见 docs/聊天功能说明.md。"),
+        new("chat.reactions", "chatplus", DefaultReactions, "list", "允许的表情回应", "Allowed reactions",
+            "展开面板里显示的全部表情；客户端只能使用列表内的表情", Public: true),
+        new("chat.reactionsQuick", "chatplus", new[] { "❤️", "🔥", "👏", "👎", "😁", "🤩", "👌" }, "list", "快捷表情回应（长按菜单上方）", "Quick reactions",
+            "长按消息时上方显示的表情（建议 7 个，须在允许列表内）；双击消息使用第一个", Public: true),
+        new("chat.reactionsPerUser", "chatplus", 1, "int", "每人每条消息最多回应数", "Reactions per user per message", "1 = 换一个表情会替换原来的（同 Telegram）", Public: true, Min: 1, Max: 3),
+        new("chat.reactionNotice", "chatplus", true, "bool", "“回应了你的消息”通知", "\"Reacted to your message\" notices"),
+        new("chat.reactionNoticeMinutes", "chatplus", 10, "int", "同一会话回应通知间隔（分钟）", "Reaction notice interval per chat (min)", "避免刷屏：同一个会话在此时间内只通知一次", Min: 0, Max: 1440),
+        new("chat.deleteForEveryoneSeconds", "chatplus", 0, "int", "双向删除时限（秒，0 = 不限）", "Delete for everyone window (s, 0 = unlimited)",
+            "自己发的消息在多长时间内可以“同时为对方删除”。Telegram 不限时间", Public: true, Min: 0, Max: 31536000),
+        new("chat.deletePeerMessages", "chatplus", true, "bool", "单聊可同时删除对方的消息", "1:1: delete the other person's messages for both",
+            "同 Telegram：私聊里可以把对方发的消息也从双方删除", Public: true),
+        new("chat.deleteNotice", "chatplus", false, "bool", "双向删除后留下“撤回了一条消息”提示", "Leave an \"unsent a message\" line after delete for everyone",
+            "关闭 = 像 Telegram 一样不留痕迹", Public: true),
+        new("chat.editHours", "chatplus", 48, "int", "消息可编辑时限（小时，0 = 不限）", "Edit window (hours, 0 = unlimited)", Public: true, Min: 0, Max: 8760),
+        new("chat.autoDeleteEnabled", "chatplus", true, "bool", "允许设置消息定时删除", "Allow auto-delete timers", "关闭后已设置的计时器不再作用于新消息", Public: true),
+        new("chat.autoDeleteMinMinutes", "chatplus", 60, "int", "自定义定时删除最短（分钟）", "Shortest custom auto-delete (min)", Public: true, Min: 1, Max: 525600),
+        new("chat.autoDeleteCheckSeconds", "chatplus", 15, "int", "定时删除/定时发送检查间隔（秒）", "Timer check interval (s)", Min: 5, Max: 600),
+        new("chat.pinsMax", "chatplus", 50, "int", "每个会话最多置顶消息数", "Pinned messages per chat", Public: true, Min: 1, Max: 200),
+        new("chat.groupMembersCanPin", "chatplus", false, "bool", "群成员可以置顶消息", "Group members can pin", "关闭 = 仅群主和管理员", Public: true),
+        new("chat.albumMax", "chatplus", 10, "int", "相册最多张数", "Items per album", Public: true, Min: 2, Max: 20),
+        new("chat.captionMax", "chatplus", 1024, "int", "图片/视频说明最多字数", "Caption max length", Public: true, Min: 50, Max: 4096),
+        new("chat.videoMaxMb", "chatplus", 50, "int", "视频最大（MB）", "Max video size (MB)", "不能超过服务器上传上限 64 MB", Public: true, Min: 1, Max: 60),
+        new("chat.videoAutoplaySeconds", "chatplus", 30, "int", "短视频静音自动播放（秒以内）", "Autoplay muted clips up to (s)", "0 = 不自动播放", Public: true, Min: 0, Max: 600),
+        new("chat.fileAnyType", "chatplus", true, "bool", "聊天文件允许任意类型", "Chat files: any type",
+            "开启后聊天里可发送任意文件（仍受大小限制，下载时一律作为附件）；关闭则按“上传限制”的允许类型", Public: true),
+        new("chat.scheduleEnabled", "chatplus", true, "bool", "允许定时发送", "Allow scheduled messages", Public: true),
+        new("chat.scheduledMax", "chatplus", 100, "int", "每个会话最多定时消息数", "Scheduled messages per chat", Public: true, Min: 1, Max: 1000),
+        new("chat.readListMaxMembers", "chatplus", 100, "int", "显示“已读成员”的群人数上限", "Read-by list up to group size", "更大的群不推送已读、不显示已读成员", Public: true, Min: 0, Max: 5000),
         ConfigDef.GroupOf("money", "红包与转账", "Red packets & transfers"),
         new("chat.packetMax", "money", 200m, "money", "单个红包上限（RM）", "Max per red packet (RM)", Public: true, Min: 0.01, Max: 100000),
         new("chat.packetCountMax", "money", 100, "int", "红包个数上限", "Max red packets per send", Public: true, Min: 1, Max: 500),
@@ -50,16 +80,27 @@ public sealed class MessagingModule : IModule
         }, "list", "快捷回复", "Quick replies"),
     ];
 
+    /// <summary>Telegram's reaction set (the expandable panel).</summary>
+    public static readonly string[] DefaultReactions =
+    [
+        "❤️", "🔥", "👏", "👎", "😁", "🤩", "👌", "👍", "🥰", "🤔", "🤯", "😱", "🤬", "😢", "🎉", "🙏", "🕊", "🤡", "🥱", "🥴",
+        "😍", "🐳", "❤️‍🔥", "🌚", "🌭", "💯", "🤣", "⚡", "🍌", "🏆", "💔", "🤨", "😐", "🍓", "🍾", "💋", "🖕", "😈", "😴", "😭",
+        "🤓", "👻", "👀", "🎃", "🙈", "😇", "😨", "🤝", "✍", "🤗", "🫡", "🎅", "🎄", "☃", "💅", "🤪", "🗿", "🆒", "💘", "🙉",
+        "🦄", "😘", "💊", "🙊", "😎", "👾", "🤷", "😡",
+    ];
+
     public IEnumerable<PermissionDef> Permissions =>
         Perm.Menu("support", "客服工作台", "Support desk", 64,
             ("view", "查看会话", "View chats"), ("reply", "回复（含以运营人物身份）", "Reply (incl. as a persona)"),
             ("money", "红包与转账记录", "Red packet & transfer records"));
 
-    public IEnumerable<string> OwnedStateKeys => ["messages", "chatReads", "chatPeerReads"];
+    public IEnumerable<string> OwnedStateKeys => ["messages", "chatReads", "chatPeerReads", "chatMeta"];
 
     public void AddServices(IServiceCollection services, IConfiguration config)
     {
         services.AddSingleton<ChatService>();
+        services.AddSingleton<ChatFeatures>();
+        services.AddHostedService<ChatTimerWorker>();
         services.AddSingleton<IChat>(sp => sp.GetRequiredService<ChatService>());
         services.AddSingleton<IHubCommand, TypingCommand>();
         services.AddSingleton<DeskRealtime>();
@@ -73,6 +114,7 @@ public sealed class MessagingModule : IModule
     public void Map(WebApplication app)
     {
         MessagingApi.Map(app);
+        ChatFeaturesApi.Map(app);
         Packets.Map(app);
         Calls.Map(app);
         SupportDesk.Map(app);

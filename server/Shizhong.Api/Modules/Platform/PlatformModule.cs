@@ -32,6 +32,7 @@ public sealed partial class PlatformModule : IModule
         ConfigDef.GroupOf("upload", "上传限制", "Uploads"),
         new("upload.imageMaxMb", "upload", 15, "int", "图片最大（MB）", "Max image size (MB)", Public: true, Min: 1, Max: 50),
         new("upload.fileMaxMb", "upload", 20, "int", "文件最大（MB）", "Max file size (MB)", Public: true, Min: 1, Max: 60),
+        new("upload.videoMaxMb", "upload", 50, "int", "视频最大（MB）", "Max video size (MB)", "服务器单次上传上限为 64 MB", Public: true, Min: 1, Max: 60),
         new("upload.allowedFileTypes", "upload", new[] { "image/*", "audio/*", "video/*", "application/pdf", "text/plain", "application/zip",
             "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
@@ -126,18 +127,9 @@ public sealed partial class PlatformModule : IModule
             return Results.Ok(saved);
         }).RequireUser().RequireRateLimiting("write").DisableAntiforgery();
 
-        api.MapGet("/media/{id}", async (string id, HttpContext ctx, MediaStore media) =>
-        {
-            var item = await media.GetAsync(id);
-            if (item is null) return Results.NotFound();
-            ctx.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
-            ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            // Uploads are served from the app's origin: never let one run script (console SVGs, mislabelled files).
-            ctx.Response.Headers.ContentSecurityPolicy = "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox";
-            if (!item.Mime.StartsWith("image/") && !item.Mime.StartsWith("audio/") && !item.Mime.StartsWith("video/"))
-                ctx.Response.Headers.ContentDisposition = "attachment; filename*=UTF-8''" + Uri.EscapeDataString(item.Name ?? "file");
-            return Results.Bytes(item.Data, item.Mime, enableRangeProcessing: true);
-        });
+        // Streams from the database in pieces and answers Range requests itself (video seeking behind IIS / Cloudflare
+        // without loading a whole video per request).
+        api.MapMethods("/media/{id}", ["GET", "HEAD"], (string id, HttpContext ctx, MediaStore media) => media.ServeAsync(ctx, id));
 
         api.MapDelete("/media/{id}", async (string id, HttpContext ctx, Db db) =>
         {
@@ -331,15 +323,41 @@ public sealed class MediaStore(Db db)
 
     public async Task<object> SaveAsync(IFormFile file, long? userId, long? adminId, string? purpose, ConfigService cfg)
     {
-        var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType.ToLowerInvariant();
-        var isImage = mime.StartsWith("image/");
-        var limit = (isImage ? cfg.Int("upload.imageMaxMb", 15) : cfg.Int("upload.fileMaxMb", 20)) * 1024L * 1024;
+        var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType.ToLowerInvariant().Split(';')[0].Trim();
+        if (mime.Length is 0 or > 100) mime = "application/octet-stream";
         if (file.Length <= 0) throw ApiError.BadRequest("media.empty");
+        var head = new byte[64];
+        await using (var hs = file.OpenReadStream())
+        {
+            var n = 0;
+            while (n < head.Length)
+            {
+                var r = await hs.ReadAsync(head.AsMemory(n));
+                if (r == 0) break;
+                n += r;
+            }
+            if (n < head.Length) Array.Resize(ref head, n);
+        }
+        // The browser's type only reflects the file name: photos and videos must really be what they claim
+        // (the stored type comes from the bytes); anything else is only ever served as a download.
+        var sniffed = Sniff(head);
+        if (mime.StartsWith("image/") && mime != "image/svg+xml")
+            mime = sniffed is { } si && si.StartsWith("image/") ? si : throw ApiError.BadRequest("media.type");
+        else if (mime.StartsWith("video/"))
+            mime = sniffed is { } sv && sv.StartsWith("video/") ? sv : throw ApiError.BadRequest("media.type");
+        else if (sniffed != null && mime == "application/octet-stream") mime = sniffed;
+        var isImage = mime.StartsWith("image/");
+        var isVideo = mime.StartsWith("video/");
+        var limit = (isImage ? cfg.Int("upload.imageMaxMb", 15)
+            : isVideo ? Math.Max(cfg.Int("upload.videoMaxMb", 50), cfg.Int("chat.videoMaxMb", 50))
+            : cfg.Int("upload.fileMaxMb", 20)) * 1024L * 1024;
         if (file.Length > limit) throw ApiError.BadRequest("media.tooLarge", null, new { maxMb = limit / 1024 / 1024 });
         if (isImage && !Images.Contains(mime) && mime != "image/svg+xml") throw ApiError.BadRequest("media.type");
         if (mime == "image/svg+xml" && adminId is null) throw ApiError.BadRequest("media.type"); // SVG can carry script
         var allowed = cfg.Get<string[]>("upload.allowedFileTypes", []);
-        if (!isImage && allowed.Length > 0 && !allowed.Any(a => a.EndsWith("/*") ? mime.StartsWith(a[..^1]) : a == mime))
+        // Chat documents (purpose "chat-file") may be any type when the console allows it: they are only served as downloads.
+        var anyType = purpose == "chat-file" && cfg.Bool("chat.fileAnyType", true);
+        if (!isImage && !anyType && allowed.Length > 0 && !allowed.Any(a => a.EndsWith("/*") ? mime.StartsWith(a[..^1]) : a == mime))
             throw ApiError.BadRequest("media.type");
         await using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
@@ -355,6 +373,100 @@ public sealed class MediaStore(Db db)
             VALUES (@id, @userId, @adminId, @purpose, @mime, @name, @size, @sha, @data)
             """, new { id, userId, adminId, purpose, mime, name = name is { Length: > 200 } ? name[..200] : name, size = (long)data.Length, sha = SHA256.HashData(data), data });
         return new { id, @ref = "media:" + id, url = "/api/media/" + id, mime, size = data.Length, name };
+    }
+
+    /// <summary>Type from the first bytes (photos, videos, common audio) or null.</summary>
+    public static string? Sniff(ReadOnlySpan<byte> b)
+    {
+        if (At(b, 0, 0xFF, 0xD8, 0xFF)) return "image/jpeg";
+        if (At(b, 0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return "image/png";
+        if (At(b, 0, 0x47, 0x49, 0x46, 0x38)) return "image/gif";                                   // GIF8
+        if (At(b, 0, 0x52, 0x49, 0x46, 0x46) && At(b, 8, 0x57, 0x45, 0x42, 0x50)) return "image/webp"; // RIFF….WEBP
+        if (At(b, 0, 0x52, 0x49, 0x46, 0x46) && At(b, 8, 0x57, 0x41, 0x56, 0x45)) return "audio/wav";  // RIFF….WAVE
+        if (At(b, 4, 0x66, 0x74, 0x79, 0x70))                                                          // ….ftyp
+        {
+            var brand = b.Length >= 12 ? System.Text.Encoding.ASCII.GetString(b.Slice(8, 4)) : "";
+            if (brand.StartsWith("qt")) return "video/quicktime";
+            if (brand is "M4A " or "M4B ") return "audio/mp4";
+            if (brand.StartsWith("hei") || brand is "mif1" or "msf1" or "avif") return null; // HEIC / AVIF stills
+            return "video/mp4";
+        }
+        if (At(b, 0, 0x1A, 0x45, 0xDF, 0xA3)) return "video/webm"; // WebM / Matroska (also WebM voice notes)
+        if (At(b, 0, 0x4F, 0x67, 0x67, 0x53)) return "audio/ogg";  // OggS
+        if (At(b, 0, 0x49, 0x44, 0x33)) return "audio/mpeg";       // ID3
+        return null;
+    }
+
+    static bool At(ReadOnlySpan<byte> b, int offset, params byte[] sig) => b.Length >= offset + sig.Length && b.Slice(offset, sig.Length).SequenceEqual(sig);
+
+    sealed record MediaMeta(string Mime, string? Name, long Size);
+
+    const long RangeChunk = 4L * 1024 * 1024; // largest 206 answer to an open-ended range (players ask again)
+    const int ReadChunk = 1024 * 1024;         // bytes read from the database per round trip
+
+    /// <summary>GET/HEAD /api/media/{id}: headers, single Range requests (206) and chunked streaming from the database.</summary>
+    public async Task ServeAsync(HttpContext ctx, string id)
+    {
+        await using var c = await db.OpenAsync();
+        var meta = await c.QueryFirstOrDefaultAsync<MediaMeta>(
+            "SELECT Mime, Name, CAST(DATALENGTH(Data) AS BIGINT) AS Size FROM dbo.Media WHERE PublicId = @id AND DeletedAt IS NULL", new { id });
+        var res = ctx.Response;
+        if (meta is null)
+        {
+            res.StatusCode = 404;
+            return;
+        }
+        var etag = "\"" + id + "\"";
+        res.Headers.CacheControl = "private, max-age=31536000, immutable";
+        res.Headers["X-Content-Type-Options"] = "nosniff";
+        // Uploads are served from the app's origin: never let one run script (console SVGs, mislabelled files).
+        res.Headers.ContentSecurityPolicy = "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox";
+        res.Headers.AcceptRanges = "bytes";
+        res.Headers.ETag = etag;
+        var inline = meta.Mime.StartsWith("image/") || meta.Mime.StartsWith("audio/") || meta.Mime.StartsWith("video/");
+        if (!inline || ctx.Request.Query.ContainsKey("download"))
+            res.Headers.ContentDisposition = "attachment; filename*=UTF-8''" + Uri.EscapeDataString(meta.Name ?? "file");
+        res.ContentType = meta.Mime;
+        if (ctx.Request.Headers.IfNoneMatch.ToString() == etag)
+        {
+            res.StatusCode = 304;
+            return;
+        }
+        long from = 0, to = meta.Size - 1;
+        var range = ctx.Request.Headers.Range.ToString();
+        var ifRange = ctx.Request.Headers.IfRange.ToString();
+        if (range.StartsWith("bytes=") && !range.Contains(',') && (ifRange.Length == 0 || ifRange == etag))
+        {
+            var parts = range[6..].Split('-', 2);
+            var hasFrom = long.TryParse(parts[0], out var a);
+            var end = parts.Length > 1 && long.TryParse(parts[1], out var z) ? z : -1;
+            if (!hasFrom && end > 0) from = Math.Max(0, meta.Size - end); // suffix: the last N bytes
+            else if (hasFrom)
+            {
+                from = a;
+                to = end >= 0 ? Math.Min(end, meta.Size - 1) : meta.Size - 1;
+            }
+            if (from >= meta.Size || from > to)
+            {
+                res.StatusCode = 416;
+                res.Headers.ContentRange = $"bytes */{meta.Size}";
+                return;
+            }
+            if (inline && to - from + 1 > RangeChunk) to = from + RangeChunk - 1;
+            res.StatusCode = 206;
+            res.Headers.ContentRange = $"bytes {from}-{to}/{meta.Size}";
+        }
+        var length = to - from + 1;
+        res.ContentLength = Math.Max(0, length);
+        if (HttpMethods.IsHead(ctx.Request.Method) || length <= 0) return;
+        // SUBSTRING on VARBINARY(MAX) reads only the pages it needs.
+        for (var pos = from; pos <= to; pos += ReadChunk)
+        {
+            var n = (int)Math.Min(ReadChunk, to - pos + 1);
+            var bytes = await c.ExecuteScalarAsync<byte[]>("SELECT SUBSTRING(Data, @start, @n) FROM dbo.Media WHERE PublicId = @id", new { id, start = pos + 1, n });
+            if (bytes is null || bytes.Length == 0) break;
+            await res.Body.WriteAsync(bytes, ctx.RequestAborted);
+        }
     }
 
     public Task<MediaItem?> GetAsync(string id) =>

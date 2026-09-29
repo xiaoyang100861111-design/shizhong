@@ -18,7 +18,8 @@ public sealed record ConvRef(long Id, int Kind, long? UserA, long? UserB, long? 
     string? GroupPublicId = null);
 
 public sealed record MsgRow(long Id, long ConversationId, long? SenderId, long? AdminId, string Type, string? Text, string? Body, string? MediaRef,
-    string? ClientId, DateTime? RecalledAt, DateTime CreatedAt, string? SenderPublicId, string? SenderName, string? SenderAvatar, int? SenderKind);
+    string? ClientId, DateTime? RecalledAt, DateTime CreatedAt, string? SenderPublicId, string? SenderName, string? SenderAvatar, int? SenderKind,
+    DateTime? EditedAt, DateTime? DeletedAt, DateTime? ExpiresAt);
 
 public sealed record PacketRow(long Id, long MessageId, long SenderId, long? RecipientId, int Kind, string Mode, long TotalCents, int Count, string? Note,
     int Status, DateTime ExpiresAt, long RefundedCents, DateTime? SettledAt, string? RecipientPublicId);
@@ -34,7 +35,8 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
 {
     public const string MsgSelect = """
         SELECT m.Id, m.ConversationId, m.SenderId, m.AdminId, m.Type, m.Text, m.Body, m.MediaRef, m.ClientId, m.RecalledAt, m.CreatedAt,
-               u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind
+               u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind,
+               m.EditedAt, m.DeletedAt, m.ExpiresAt
         FROM dbo.Messages m LEFT JOIN dbo.Users u ON u.Id = m.SenderId
         """;
 
@@ -161,11 +163,15 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
     public async Task<long> InsertAsync(SqlConnection c, SqlTransaction? t, ConvRef conv, long? senderId, long? adminId, string type, string? text,
         JsonObject? body, string? mediaRef, string? clientId, DateTime? at = null)
     {
+        // Auto-delete timer of the chat (Telegram): messages sent while it is on expire after it.
+        var timer = await c.ExecuteScalarAsync<int?>("SELECT AutoDeleteSeconds FROM dbo.Conversations WHERE Id = @Id", new { conv.Id }, t);
+        var ttl = ChatRules.TtlFor(type, timer, cfg.Bool("chat.autoDeleteEnabled", true));
         var id = await c.ExecuteScalarAsync<long>("""
-            INSERT INTO dbo.Messages(ConversationId, SenderId, AdminId, Type, Text, Body, MediaRef, ClientId, CreatedAt)
+            DECLARE @now DATETIME2(3) = ISNULL(@at, SYSUTCDATETIME());
+            INSERT INTO dbo.Messages(ConversationId, SenderId, AdminId, Type, Text, Body, MediaRef, ClientId, CreatedAt, ExpiresAt)
             OUTPUT inserted.Id
-            VALUES (@Id, @senderId, @adminId, @type, @text, @body, @mediaRef, @clientId, ISNULL(@at, SYSUTCDATETIME()));
-            """, new { conv.Id, senderId, adminId, type, text, body = body is null || body.Count == 0 ? null : body.ToJsonString(Json.Options), mediaRef, clientId, at }, t);
+            VALUES (@Id, @senderId, @adminId, @type, @text, @body, @mediaRef, @clientId, @now, CASE WHEN @ttl IS NULL THEN NULL ELSE DATEADD(SECOND, @ttl, @now) END);
+            """, new { conv.Id, senderId, adminId, type, text, body = body is null || body.Count == 0 ? null : body.ToJsonString(Json.Options), mediaRef, clientId, at, ttl }, t);
         await c.ExecuteAsync("""
             UPDATE dbo.Conversations SET LastMessageId = @id, LastAt = (SELECT CreatedAt FROM dbo.Messages WHERE Id = @id),
               DeskStatus = CASE WHEN @fromMember = 1 THEN 0 ELSE DeskStatus END
@@ -219,6 +225,8 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
         }
         else o["desk"] = true;
         if (r.ClientId != null) o["clientId"] = r.ClientId;
+        if (r.EditedAt != null && r.RecalledAt is null) o["edited"] = Json.Ms(r.EditedAt.Value);
+        if (r.ExpiresAt != null && r.RecalledAt is null) o["expiresAt"] = Json.Ms(r.ExpiresAt.Value);
         if (packet != null && r.RecalledAt is null)
         {
             var list = (claims ?? []).ToList();
@@ -270,7 +278,7 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
                 await Task.Delay(300);
                 r = await RowAsync(c, messageId);
             }
-            if (r is null) return;
+            if (r is null || r.DeletedAt != null) return;
             var conv = await ByIdAsync(c, r.ConversationId);
             if (conv is null) return;
             var members = await MembersAsync(c, null, conv);

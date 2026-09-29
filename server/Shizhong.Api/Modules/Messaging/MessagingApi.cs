@@ -19,19 +19,19 @@ namespace Shizhong.Api.Modules.Messaging;
 /// </summary>
 public static class MessagingApi
 {
-    static readonly string[] ClientTypes = ["text", "emoji", "image", "voice", "file", "location", "contact"];
-    public static readonly string[] Forwardable = ["text", "emoji", "image", "voice", "file", "location", "contact"];
+    static readonly string[] ClientTypes = ["text", "emoji", "image", "voice", "file", "location", "contact", "video", "album"];
+    public static readonly string[] Forwardable = ["text", "emoji", "image", "voice", "file", "location", "contact", "video", "album"];
 
     public static void Map(WebApplication app)
     {
         var g = app.MapGroup("/api").RequireUser();
 
         g.MapPost("/chats/{chatId}/messages", async (string chatId, HttpContext ctx, JsonObject body, Db db, ChatService chat, ConfigService cfg,
-            ContentFilter filter, MediaStore media, PersonaReplies replies) =>
+            ContentFilter filter, MediaStore media, PersonaReplies replies, ChatFeatures features) =>
         {
             var user = ctx.RequireUser();
             SocialData.RequireNotMuted(user);
-            var clientId = body["clientId"]?.GetValue<string>();
+            var clientId = body["clientId"] is JsonValue cv && cv.TryGetValue<string>(out var cs) ? cs : null;
             if (clientId is { Length: > 48 }) clientId = clientId[..48];
             await using var c = await db.OpenAsync();
             if (clientId != null)
@@ -41,8 +41,25 @@ public static class MessagingApi
             }
             var conv = await chat.ResolveAsync(c, null, user.Id, Uri.UnescapeDataString(chatId), true);
             await EnsureCanWriteAsync(c, conv, user);
-            var (type, text, msg, mediaRef) = await BuildAsync(c, chat, user, body, cfg, filter, media);
+            var (type, text, msg, mediaRef) = await BuildAsync(c, chat, user, body, cfg, filter, media, conv);
+            // 定时发送: validated now, sent by the chat timer worker.
+            if (Num(body, "scheduleAt") is { } scheduleMs)
+            {
+                if (!cfg.Bool("chat.scheduleEnabled", true)) throw ApiError.BadRequest("chat.scheduleOff");
+                var sendAt = Json.FromMs((long)scheduleMs);
+                if (!ChatRules.ValidScheduleTime(sendAt, DateTime.UtcNow)) throw ApiError.BadRequest("chat.scheduleTime");
+                var waiting = await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.ScheduledMessages WHERE SenderId = @Id AND ConversationId = @conv AND Status = 0",
+                    new { user.Id, conv = conv.Id });
+                if (waiting >= cfg.Int("chat.scheduledMax", 100)) throw ApiError.BadRequest("chat.scheduleFull", null, new { n = cfg.Int("chat.scheduledMax", 100) });
+                var sid = await c.ExecuteScalarAsync<long>("""
+                    INSERT INTO dbo.ScheduledMessages(ConversationId, SenderId, Type, Text, Body, MediaRef, SendAt) OUTPUT inserted.Id
+                    VALUES (@conv, @Id, @type, @text, @body, @mediaRef, @sendAt)
+                    """, new { conv = conv.Id, user.Id, type, text, body = msg.ToJsonString(Json.Options), mediaRef, sendAt });
+                await features.PushMetaAsync(c, conv, user.Id);
+                return Results.Ok(new { scheduled = ScheduledView(sid, type, text, msg, sendAt) });
+            }
             var id = await chat.InsertAsync(c, null, conv, user.Id, null, type, text, msg, mediaRef, clientId);
+            await ChatFeatures.RecordMediaAsync(c, null, id, ChatFeatures.MediaIdsOf(mediaRef, msg));
             await TouchContactAsync(c, conv, user.Id);
             await chat.DeliverAsync(id, "chat:message", user.Id, conn: c);
             // The sender's other devices get it too (the calling device already has it from the response).
@@ -78,6 +95,16 @@ public static class MessagingApi
             try { conv = await chat.ResolveAsync(c, null, user.Id, Uri.UnescapeDataString(chatId), false); }
             catch (ApiError e) when (e.Status == 404) { return Results.Ok(new { ok = false }); }
             var at = body?.At is { } ms && ms > 0 ? Json.FromMs(Math.Min(ms, Json.Ms(DateTime.UtcNow))) : DateTime.UtcNow;
+            // Read log (read times per message): only when the marker moves past messages from the others.
+            var before = await c.QueryFirstOrDefaultAsync<(DateTime? ReadAt, DateTime? LastAt)>("""
+                SELECT (SELECT ReadAt FROM dbo.ChatStates WHERE UserId = @Id AND ConversationId = @conv) AS ReadAt,
+                       (SELECT MAX(CreatedAt) FROM (SELECT TOP 1 CreatedAt FROM dbo.Messages WHERE ConversationId = @conv AND (SenderId IS NULL OR SenderId <> @Id)
+                                                    AND DeletedAt IS NULL ORDER BY Id DESC) x) AS LastAt
+                """, new { user.Id, conv = conv.Id });
+            var advanced = before.LastAt is { } lastAt && (before.ReadAt is null || before.ReadAt < lastAt);
+            if (advanced)
+                await c.ExecuteAsync("IF NOT EXISTS (SELECT 1 FROM dbo.ChatReadLog WHERE ConversationId = @conv AND UserId = @Id AND ReadAt = @at) INSERT INTO dbo.ChatReadLog(ConversationId, UserId, ReadAt) VALUES (@conv, @Id, @at)",
+                    new { conv = conv.Id, user.Id, at = DateTime.UtcNow });
             await c.ExecuteAsync("""
                 MERGE dbo.ChatStates AS s USING (SELECT @Id AS UserId, @conv AS ConversationId) AS x ON s.UserId = x.UserId AND s.ConversationId = x.ConversationId
                 WHEN MATCHED THEN UPDATE SET ReadAt = CASE WHEN s.ReadAt IS NULL OR s.ReadAt < @at THEN @at ELSE s.ReadAt END
@@ -89,6 +116,14 @@ public static class MessagingApi
             {
                 var peer = conv.UserA == user.Id ? conv.UserB!.Value : conv.UserA!.Value;
                 _ = realtime.ToUser(peer, "chat:read", new { chatId = user.PublicId, at = Json.Ms(at) });
+            }
+            else if (conv.Kind == ConvKinds.Group && advanced)
+            {
+                // Small groups: the others' ticks turn double live (big groups see it on the next sync).
+                var members = await ChatService.MembersAsync(c, null, conv);
+                if (members.Length <= ctx.RequestServices.GetRequiredService<ConfigService>().Int("chat.readListMaxMembers", 100))
+                    foreach (var uid in members.Where(u => u != user.Id))
+                        _ = realtime.ToUser(uid, "chat:read", new { chatId = mine, at = Json.Ms(at), person = user.PublicId });
             }
             return Results.Ok(new { ok = true, at = Json.Ms(at) });
         });
@@ -122,7 +157,7 @@ public static class MessagingApi
             var rows = (await c.QueryAsync<MsgRow>($"""
                 {ChatService.MsgSelect}
                 LEFT JOIN dbo.ChatStates s ON s.ConversationId = m.ConversationId AND s.UserId = @Id
-                WHERE m.ConversationId = @conv AND m.Id < @beforeId AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
+                WHERE m.ConversationId = @conv AND m.Id < @beforeId AND m.DeletedAt IS NULL AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
                   AND NOT EXISTS (SELECT 1 FROM dbo.MessageHides h WHERE h.UserId = @Id AND h.MessageId = m.Id)
                 ORDER BY m.Id DESC OFFSET 0 ROWS FETCH NEXT {take + 1} ROWS ONLY
                 """, new { user.Id, conv = conv.Id, beforeId })).ToList();
@@ -143,7 +178,7 @@ public static class MessagingApi
             var rows = await c.QueryAsync<MsgRow>($"""
                 {ChatService.MsgSelect}
                 LEFT JOIN dbo.ChatStates s ON s.ConversationId = m.ConversationId AND s.UserId = @Id
-                WHERE m.ConversationId = @conv AND m.RecalledAt IS NULL AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
+                WHERE m.ConversationId = @conv AND m.RecalledAt IS NULL AND m.DeletedAt IS NULL AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
                   AND (m.Text LIKE @like ESCAPE '\' OR m.Body LIKE @like ESCAPE '\')
                   AND NOT EXISTS (SELECT 1 FROM dbo.MessageHides h WHERE h.UserId = @Id AND h.MessageId = m.Id)
                 ORDER BY m.Id DESC OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
@@ -157,13 +192,12 @@ public static class MessagingApi
             var mid = ParseId(id) ?? throw ApiError.NotFound("chat.messageNotFound");
             await using var c = await db.OpenAsync();
             var r = await ChatService.RowAsync(c, mid);
-            if (r is null || r.SenderId != user.Id) throw ApiError.NotFound("chat.messageNotFound");
+            if (r is null || r.SenderId != user.Id || r.DeletedAt != null) throw ApiError.NotFound("chat.messageNotFound");
             if (r.RecalledAt != null) return Results.Ok(new { message = await OneViewAsync(c, mid, user) });
             if (!Forwardable.Contains(r.Type)) throw ApiError.BadRequest("chat.cannotRecall");
             if ((DateTime.UtcNow - r.CreatedAt).TotalSeconds > cfg.Int("chat.recallSeconds", 120)) throw ApiError.BadRequest("chat.recallExpired");
-            await c.ExecuteAsync("UPDATE dbo.Messages SET RecalledAt = SYSUTCDATETIME() WHERE Id = @mid", new { mid });
-            if (r.MediaRef is { } refId && refId.StartsWith("media:"))
-                await c.ExecuteAsync("UPDATE dbo.Media SET DeletedAt = SYSUTCDATETIME() WHERE PublicId = @pid", new { pid = refId[6..] });
+            await c.ExecuteAsync("UPDATE dbo.Messages SET RecalledAt = SYSUTCDATETIME(), ExpiresAt = NULL WHERE Id = @mid; DELETE FROM dbo.MessagePins WHERE MessageId = @mid", new { mid });
+            await ChatFeatures.ReleaseMediaAsync(c, null, [mid]);
             await chat.DeliverAsync(mid, "chat:update", conn: c);
             return Results.Ok(new { message = await OneViewAsync(c, mid, user) });
         });
@@ -243,39 +277,79 @@ public static class MessagingApi
             new { userId, peer });
     }
 
-    static string? Str(JsonObject o, string k, int max)
+    internal static string? Str(JsonObject o, string k, int max)
     {
         var v = o[k] is JsonValue jv && jv.TryGetValue<string>(out var s) ? s.Trim() : null;
         return v is null ? null : v.Length > max ? v[..max] : v;
     }
 
-    static double? Num(JsonObject o, string k) => o[k] is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+    internal static double? Num(JsonObject o, string k) => o[k] is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+
+    public static JsonObject ScheduledView(long id, string type, string? text, JsonObject body, DateTime sendAt)
+    {
+        var o = (JsonObject)body.DeepClone();
+        o["id"] = "s" + id;
+        o["type"] = type;
+        o["text"] = text ?? "";
+        o["sendAt"] = Json.Ms(sendAt);
+        return o;
+    }
+
+    record MediaInfo(string Mime, long Size, long? OwnerId);
+
+    /// <summary>An uploaded file the user owns (never trust the app's type or size: both come from dbo.Media).</summary>
+    static async Task<(string Ref, MediaInfo Info)> OwnMediaAsync(SqlConnection c, CurrentUser user, string? refText)
+    {
+        if (refText is null || !SocialData.MediaRef().IsMatch(refText)) throw ApiError.BadRequest("chat.fileMissing");
+        var m = await c.QueryFirstOrDefaultAsync<MediaInfo>("SELECT Mime, Size, OwnerId FROM dbo.Media WHERE PublicId = @pid AND DeletedAt IS NULL", new { pid = refText[6..] });
+        if (m is null || m.OwnerId != user.Id) throw ApiError.BadRequest("chat.fileMissing");
+        return (refText, m);
+    }
+
+    /// <summary>One photo or video of a message / album: its file, size, poster and duration, all checked.</summary>
+    static async Task<JsonObject> VisualAsync(SqlConnection c, CurrentUser user, JsonObject input, ConfigService cfg, string? kind = null)
+    {
+        var (refText, m) = await OwnMediaAsync(c, user, Str(input, "media", 64));
+        var isVideo = m.Mime.StartsWith("video/");
+        if (kind == "image" && isVideo || kind == "video" && !isVideo) throw ApiError.BadRequest(isVideo ? "chat.notImage" : "chat.notVideo");
+        var o = new JsonObject { ["kind"] = isVideo ? "video" : "image", ["media"] = refText, ["mime"] = m.Mime, ["size"] = m.Size };
+        if (isVideo)
+        {
+            if (m.Size > cfg.Int("chat.videoMaxMb", 50) * 1048576L) throw ApiError.BadRequest("chat.videoTooLarge", null, new { n = cfg.Int("chat.videoMaxMb", 50) });
+            o["duration"] = Math.Clamp(Math.Round(Num(input, "duration") ?? 0, 1), 0, 86400);
+            if (Str(input, "poster", 64) is { } posterRef)
+            {
+                var (pr, pm) = await OwnMediaAsync(c, user, posterRef);
+                if (!pm.Mime.StartsWith("image/")) throw ApiError.BadRequest("chat.notImage");
+                o["poster"] = pr;
+            }
+            if (input["round"] is JsonValue rv && rv.TryGetValue<bool>(out var round) && round) o["round"] = true;
+        }
+        else
+        {
+            if (!m.Mime.StartsWith("image/")) throw ApiError.BadRequest("chat.notImage");
+            if (m.Size > cfg.Int("chat.imageMaxMb", 10) * 1048576L) throw ApiError.BadRequest("chat.imageTooLarge", null, new { n = cfg.Int("chat.imageMaxMb", 10) });
+        }
+        o["w"] = Math.Clamp((int)(Num(input, "w") ?? 0), 0, 20000);
+        o["h"] = Math.Clamp((int)(Num(input, "h") ?? 0), 0, 20000);
+        return o;
+    }
+
+    static string? Caption(JsonObject input, ConfigService cfg, ContentFilter filter)
+    {
+        var caption = Str(input, "caption", 20_000);
+        if (string.IsNullOrEmpty(caption)) return null;
+        if (caption.Length > cfg.Int("chat.captionMax", 1024)) throw ApiError.BadRequest("chat.tooLong", null, new { n = cfg.Int("chat.captionMax", 1024) });
+        return filter.Apply(caption);
+    }
 
     /// <summary>Validate an app message and turn it into (type, text, body, owned media).</summary>
     static async Task<(string Type, string? Text, JsonObject Body, string? MediaRef)> BuildAsync(SqlConnection c, ChatService chat, CurrentUser user, JsonObject input,
-        ConfigService cfg, ContentFilter filter, MediaStore media)
+        ConfigService cfg, ContentFilter filter, MediaStore media, ConvRef? target = null)
     {
-        var body = new JsonObject();
-        if (Str(input, "forwardFrom", 40) is { } fwd)
-        {
-            var src = ParseId(fwd) ?? throw ApiError.NotFound("chat.messageNotFound");
-            await VisibleAsync(c, chat, user, src);
-            var r = await ChatService.RowAsync(c, src) ?? throw ApiError.NotFound("chat.messageNotFound");
-            if (r.RecalledAt != null || !Forwardable.Contains(r.Type)) throw ApiError.BadRequest("chat.cannotForward");
-            var copy = Json.Node(r.Body) as JsonObject ?? new JsonObject();
-            foreach (var k in new[] { "quote", "only", "i18n", "i18nConfig", "desk" }) copy.Remove(k);
-            copy["forwarded"] = true;
-            string? newRef = null;
-            if (r.MediaRef is { } mr && mr.StartsWith("media:"))
-            {
-                var item = await media.GetAsync(mr[6..]) ?? throw ApiError.BadRequest("chat.fileMissing");
-                var saved = await media.SaveBytesAsync(item.Data, item.Mime, item.Name, user.Id, null, "chat");
-                newRef = (string)saved.GetType().GetProperty("ref")!.GetValue(saved)!;
-                copy["media"] = newRef;
-            }
-            return (r.Type, r.Text, copy, newRef);
-        }
+        if (Str(input, "forwardFrom", 40) is { } fwd) return await ForwardCopyAsync(c, chat, user, ParseId(fwd) ?? throw ApiError.NotFound("chat.messageNotFound"));
 
+        var body = new JsonObject();
         var type = Str(input, "type", 16) ?? "text";
         if (!ClientTypes.Contains(type)) throw ApiError.BadRequest("chat.badType");
         string? text = null;
@@ -288,29 +362,40 @@ public static class MessagingApi
                 if (text.Length == 0) throw ApiError.BadRequest("chat.empty");
                 if (text.Length > cfg.Int("chat.textMax", 2000)) throw ApiError.BadRequest("chat.tooLong", null, new { n = cfg.Int("chat.textMax", 2000) });
                 text = filter.Apply(text);
-                if (input["quote"] is JsonObject q)
-                    body["quote"] = new JsonObject
-                    {
-                        ["id"] = Str(q, "id", 40) ?? "", ["author"] = Str(q, "author", 40) ?? "", ["text"] = Str(q, "text", 80) ?? "", ["type"] = Str(q, "type", 16) ?? "text",
-                    };
                 break;
             case "image":
+            case "video":
+            {
+                var v = await VisualAsync(c, user, input, cfg, type);
+                foreach (var (k, node) in v.ToList()) if (k != "kind") body[k] = node?.DeepClone();
+                mediaRef = (string)v["media"]!;
+                if (Str(input, "name", 200) is { } name) body["name"] = name;
+                if (Caption(input, cfg, filter) is { } cap) body["caption"] = cap;
+                break;
+            }
+            case "album":
+            {
+                if (input["items"] is not JsonArray items || items.Count == 0) throw ApiError.BadRequest("chat.fileMissing");
+                var max = cfg.Int("chat.albumMax", 10);
+                if (items.Count > max) throw ApiError.BadRequest("chat.albumTooMany", null, new { n = max });
+                var list = new JsonArray();
+                var seen = new HashSet<string>();
+                foreach (var it in items.OfType<JsonObject>())
+                {
+                    var v = await VisualAsync(c, user, it, cfg);
+                    if (!seen.Add((string)v["media"]!)) continue;
+                    list.Add(v);
+                }
+                if (list.Count == 0) throw ApiError.BadRequest("chat.fileMissing");
+                body["items"] = list;
+                if (Caption(input, cfg, filter) is { } cap) body["caption"] = cap;
+                break;
+            }
             case "voice":
             case "file":
             {
-                var refText = Str(input, "media", 64) ?? throw ApiError.BadRequest("chat.fileMissing");
-                if (!SocialData.MediaRef().IsMatch(refText)) throw ApiError.BadRequest("chat.fileMissing");
-                var m = await c.QueryFirstOrDefaultAsync<(string Mime, long Size, long? OwnerId)>(
-                    "SELECT Mime, Size, OwnerId FROM dbo.Media WHERE PublicId = @pid AND DeletedAt IS NULL", new { pid = refText[6..] });
-                if (m.Mime is null || m.OwnerId != user.Id) throw ApiError.BadRequest("chat.fileMissing");
-                if (type == "image")
-                {
-                    if (!m.Mime.StartsWith("image/")) throw ApiError.BadRequest("chat.notImage");
-                    if (m.Size > cfg.Int("chat.imageMaxMb", 10) * 1048576L) throw ApiError.BadRequest("chat.imageTooLarge", null, new { n = cfg.Int("chat.imageMaxMb", 10) });
-                    body["w"] = Math.Clamp((int)(Num(input, "w") ?? 0), 0, 20000);
-                    body["h"] = Math.Clamp((int)(Num(input, "h") ?? 0), 0, 20000);
-                }
-                else if (type == "voice")
+                var (refText, m) = await OwnMediaAsync(c, user, Str(input, "media", 64));
+                if (type == "voice")
                 {
                     if (!(m.Mime.StartsWith("audio/") || m.Mime.StartsWith("video/webm") || m.Mime == "application/octet-stream")) throw ApiError.BadRequest("chat.notAudio");
                     var max = cfg.Int("chat.voiceMaxSeconds", 60);
@@ -318,8 +403,12 @@ public static class MessagingApi
                     if (d > max + 1) throw ApiError.BadRequest("chat.voiceTooLong", null, new { n = max });
                     body["duration"] = Math.Clamp((int)Math.Round(d), 1, max);
                 }
-                else if (m.Size > cfg.Int("chat.fileMaxMb", 20) * 1048576L)
-                    throw ApiError.BadRequest("chat.fileTooLarge", null, new { n = cfg.Int("chat.fileMaxMb", 20) });
+                else
+                {
+                    var limit = m.Mime.StartsWith("video/") ? Math.Max(cfg.Int("chat.fileMaxMb", 20), cfg.Int("chat.videoMaxMb", 50)) : cfg.Int("chat.fileMaxMb", 20);
+                    if (m.Size > limit * 1048576L) throw ApiError.BadRequest("chat.fileTooLarge", null, new { n = limit });
+                    if (Caption(input, cfg, filter) is { } cap) body["caption"] = cap;
+                }
                 mediaRef = refText;
                 body["media"] = refText;
                 body["mime"] = m.Mime;
@@ -355,7 +444,60 @@ public static class MessagingApi
                 break;
             }
         }
+        // Replies: any message type can answer another one.
+        if (input["quote"] is JsonObject q)
+            body["quote"] = new JsonObject
+            {
+                ["id"] = Str(q, "id", 40) ?? "", ["author"] = Str(q, "author", 40) ?? "", ["text"] = Str(q, "text", 80) ?? "", ["type"] = Str(q, "type", 16) ?? "text",
+            };
+        // @mentions (groups): only members of this group, at most 20.
+        if (input["mentions"] is JsonArray mentions && target?.Kind == ConvKinds.Group && (text != null || body["caption"] != null))
+        {
+            var ids = mentions.OfType<JsonValue>().Select(v => v.TryGetValue<string>(out var s) ? s : null).Where(s => s is { Length: > 0 and <= 32 }).Distinct().Take(20).ToArray();
+            if (ids.Length > 0)
+            {
+                var valid = await c.QueryAsync<string>("""
+                    SELECT u.PublicId FROM dbo.GroupMembers gm JOIN dbo.Users u ON u.Id = gm.UserId WHERE gm.GroupId = @GroupId AND u.PublicId IN @ids
+                    """, new { target.GroupId, ids });
+                var arr = new JsonArray(valid.Select(v => (JsonNode)v).ToArray());
+                if (arr.Count > 0) body["mentions"] = arr;
+            }
+        }
+        if (input["silent"] is JsonValue sv && sv.TryGetValue<bool>(out var silent) && silent) body["silent"] = true;
         if (input["forwarded"] is JsonValue fv && fv.TryGetValue<bool>(out var fwdFlag) && fwdFlag) body["forwarded"] = true;
         return (type, text, body, mediaRef);
+    }
+
+    /// <summary>
+    /// A forwarded copy of a message the user can see: same content, "forwarded from" its original author, and the same
+    /// files (shared, not copied: dbo.MessageMedia keeps them until the last message using them is gone).
+    /// </summary>
+    public static async Task<(string Type, string? Text, JsonObject Body, string? MediaRef)> ForwardCopyAsync(SqlConnection c, ChatService chat, CurrentUser user, long src,
+        SqlTransaction? t = null)
+    {
+        await VisibleAsync(c, chat, user, src, t);
+        var r = await ChatService.RowAsync(c, src, t) ?? throw ApiError.NotFound("chat.messageNotFound");
+        if (r.RecalledAt != null || r.DeletedAt != null || !Forwardable.Contains(r.Type)) throw ApiError.BadRequest("chat.cannotForward");
+        if (await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.MessageHides WHERE UserId = @Id AND MessageId = @src", new { user.Id, src }, t) > 0)
+            throw ApiError.NotFound("chat.messageNotFound");
+        var copy = Json.Node(r.Body) as JsonObject ?? new JsonObject();
+        foreach (var k in new[] { "quote", "only", "i18n", "i18nConfig", "desk", "mentions", "silent" }) copy.Remove(k);
+        // The original author stays on every further forward (Telegram).
+        if (copy["fwd"] is not JsonObject)
+        {
+            var fwdFrom = new JsonObject { ["name"] = r.SenderName ?? "" };
+            if (r.SenderPublicId != null) fwdFrom["person"] = r.SenderPublicId;
+            else fwdFrom["desk"] = true;
+            copy["fwd"] = fwdFrom;
+        }
+        copy["forwarded"] = true;
+        var refs = ChatFeatures.MediaIdsOf(r.MediaRef, Json.Node(r.Body) as JsonObject);
+        if (refs.Count > 0)
+        {
+            var alive = await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.Media WHERE PublicId IN @refs AND DeletedAt IS NULL", new { refs }, t);
+            if (alive < refs.Count) throw ApiError.BadRequest("chat.fileMissing");
+            await ChatFeatures.RecordMediaAsync(c, t, src, refs); // older messages: start tracking the shared files
+        }
+        return (r.Type, r.Text, copy, r.MediaRef);
     }
 }
