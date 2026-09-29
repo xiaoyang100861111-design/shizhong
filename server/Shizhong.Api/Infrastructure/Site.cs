@@ -114,7 +114,7 @@ public static class Site
     static readonly string[] RasterTwins = [".webp", ".jpg", ".jpeg", ".png"];
 
     /// <summary>For a missing image file: the path of an existing file with the same name in another raster format.</summary>
-    internal static string? TwinOf(IFileProvider files, string path)
+    public static string? TwinOf(IFileProvider files, string path)
     {
         var ext = Path.GetExtension(path).ToLowerInvariant();
         if (Array.IndexOf(RasterTwins, ext) < 0 || files.GetFileInfo(path).Exists) return null;
