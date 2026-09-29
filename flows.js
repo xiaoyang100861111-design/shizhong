@@ -1999,11 +1999,9 @@ function composer() {
         }
         flowsUploadCommit(form);
         flowsDone(layer);
-        // The first-post reward is the finance area's task endpoint; without it (404) there is no reward.
-        const reward = await SZ.api
-          .post('tasks/claim', { task: 'post' })
-          .then(r => r?.reward ?? r?.points ?? r?.beans ?? null)
-          .catch(() => null);
+        // The first-post reward belongs to the growth area (window.ShizhongTasks); no module, no reward.
+        const claimed = await Promise.resolve(window.ShizhongTasks?.claim?.('post')).catch(() => null);
+        const reward = claimed?.points || null;
         ui.socialTab = 'feed';
         ui.socialFilter = 'recommended';
         navigate('social');

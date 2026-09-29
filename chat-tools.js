@@ -2657,9 +2657,14 @@
     sheet(
       view,
       t(packet ? 'chat.money.confirmPacket' : 'chat.money.confirmTransfer'),
-      `<div class="cx-pay"><img class="avatar avatar-56" ${imgSrc(view.info.photo)} alt=""><p class="cx-pay-to">${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name }))}</p><strong class="cx-pay-amount num">${esc(money(p.cents))}</strong>${detail ? `<p class="caption">${esc(detail)}</p>` : ''}<p class="cx-pay-note">${esc(p.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p></div><dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.payWith'))}</dt><dd>${esc(t(SERVER ? 'server.chat.money.method' : 'chat.money.method'))}</dd></div><div><dt>${esc(t('chat.money.balanceAfter'))}</dt><dd class="num">${esc(money(walletCents() - p.cents))}</dd></div></dl><p class="caption cx-sheet-note">${esc(t(packet ? 'chat.money.expiryNote' : 'chat.money.transferExpiryNote'))}</p>${foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-pay" data-id="${esc(p.id)}">${esc(t('chat.money.pay', { amount: money(p.cents) }))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-pay-edit">${esc(t('chat.money.edit'))}</button>`)}`,
+      `<div class="cx-pay"><img class="avatar avatar-56" ${imgSrc(view.info.photo)} alt=""><p class="cx-pay-to">${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name }))}</p><strong class="cx-pay-amount num">${esc(money(p.cents))}</strong>${detail ? `<p class="caption">${esc(detail)}</p>` : ''}<p class="cx-pay-note">${esc(p.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p></div><dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.payWith'))}</dt><dd>${esc(t(SERVER ? 'server.chat.money.method' : 'chat.money.method'))}</dd></div><div><dt>${esc(t('chat.money.balanceAfter'))}</dt><dd class="num">${esc(money(walletCents() - p.cents))}</dd></div></dl><p class="caption cx-sheet-note">${esc(SERVER ? t(packet ? 'server.chat.money.expiryNote' : 'server.chat.money.transferExpiryNote', { time: expiryText() }) : t(packet ? 'chat.money.expiryNote' : 'chat.money.transferExpiryNote'))}</p>${foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-pay" data-id="${esc(p.id)}">${esc(t('chat.money.pay', { amount: money(p.cents) }))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-pay-edit">${esc(t('chat.money.edit'))}</button>`)}`,
       { mode: 'replace' }
     );
+  }
+  /** How long unclaimed money waits before it is refunded (chat.packetExpireMinutes). */
+  function expiryText() {
+    const minutes = Math.round(EXPIRE_MS / 60000);
+    return minutes % 60 === 0 ? tn('server.chat.money.hours', minutes / 60) : tn('server.chat.money.minutes', minutes);
   }
   function luckySplit(total, count) {
     const out = [];
@@ -3171,7 +3176,8 @@
   }
   function drawCall(c) {
     if (!c.layer?.el.isConnected) return;
-    c.layer.el.querySelector('.cx-call').classList.toggle('is-connected', c.status === 'connected');
+    const root = c.layer.el.matches('.cx-call') ? c.layer.el : c.layer.el.querySelector('.cx-call');
+    root?.classList.toggle('is-connected', c.status === 'connected');
     c.layer.el.querySelector('.cx-call-controls').innerHTML = callControls(c);
     drawStatus(c);
   }

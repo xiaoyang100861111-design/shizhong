@@ -266,7 +266,7 @@ public sealed class PacketExpiryWorker(Db db, ChatService chat, ConfigService cf
                         sysId = await chat.InsertAsync(c, t, conv, null, null, "system", p.Kind == 0 ? "红包已过期退回" : "转账已过期退回",
                             new JsonObject
                             {
-                                ["sys"] = new JsonObject { ["key"] = p.Kind == 0 ? "chat.system.packetRefunded" : "chat.system.transferRefunded", ["cents"] = back },
+                                ["sys"] = new JsonObject { ["key"] = p.Kind == 0 ? "server.chat.sys.packetRefunded" : "server.chat.sys.transferRefunded", ["cents"] = back },
                                 ["only"] = new JsonArray(p.SenderId),
                             }, null, null);
                     return (p.MessageId, sysId, p.SenderId);

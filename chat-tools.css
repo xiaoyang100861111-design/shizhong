@@ -1907,3 +1907,39 @@ button.cx-bubble {
 .cx-group-av[data-count='3'] img:first-child {
   grid-row: span 2;
 }
+
+/* ---------------------------------------------------------------- server mode: real calls, delivery, older history */
+.cx-call-note {
+  max-width: 280px;
+  margin: var(--sp-2, 8px) 0 0;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.38);
+  color: var(--c-immersive-text);
+  font-size: var(--fs-13, 13px);
+  line-height: 1.45;
+  text-align: center;
+}
+.cx-call-btn.is-accept .cx-call-circle {
+  background: var(--c-success);
+  color: var(--c-on-brand);
+}
+.cx-call-remote {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cx-call-local {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cx-tick[data-state='sending'] {
+  opacity: 0.45;
+}
+.cx-older {
+  display: block;
+  margin: 4px auto 8px;
+}
