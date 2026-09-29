@@ -111,17 +111,24 @@ async function walk(browser, acc) {
     if (u.includes('/api/') && r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.request().method()} ${u.replace(BASE, '')}`);
   });
   await page.goto(BASE + '/admin/', { waitUntil: 'networkidle' });
-  const routes = await page.evaluate(() => {
+  const routes = await page.evaluate(me => {
     const app = document.querySelector('#app').__vue_app__;
     return app.config.globalProperties.$router
       .getRoutes()
       .filter(r => !r.path.includes(':') && r.path.startsWith('/') && !['/login', '/forbidden', '/'].includes(r.path))
-      .map(r => ({ path: r.path, perm: r.meta?.perm || null, menu: !!r.meta?.menu || !!r.menu, title: r.meta?.title || '' }));
-  });
+      .map(r => ({
+        path: r.path,
+        perm: r.meta?.perm || null,
+        // a module can hide itself for some accounts (e.g. "My shop" without a linked shop)
+        hidden: typeof r.meta?.module?.visible === 'function' && !r.meta.module.visible(me),
+        menu: !!r.meta?.menu || !!r.menu,
+        title: r.meta?.title || '',
+      }));
+  }, me);
   // sidebar = allowed menu pages
   const menuLinks = await page.$$eval('.el-menu a[href], .el-menu-item', els => els.map(e => e.getAttribute('href') || e.getAttribute('index') || '').filter(Boolean));
   for (const r of routes) {
-    const allowed = can(r.perm);
+    const allowed = can(r.perm) && !r.hidden;
     errors.length = 0;
     await page.goto(BASE + '/admin' + r.path, { waitUntil: 'networkidle', timeout: 45000 }).catch(e => errors.push('goto: ' + e.message.slice(0, 120)));
     await page.waitForTimeout(400);
@@ -160,7 +167,7 @@ async function walk(browser, acc) {
   // the menu must not offer pages the role cannot open
   for (const href of menuLinks) {
     const r = routes.find(x => href.endsWith(x.path));
-    if (r && !can(r.perm)) note(who, `menu shows ${r.path} without ${r.perm}`);
+    if (r && (!can(r.perm) || r.hidden)) note(who, `menu shows ${r.path} without ${r.perm}`);
   }
   await context.close();
   return { token, me };
