@@ -140,6 +140,9 @@ def t_boot():
     for key in ["wallet", "points", "bills", "orders", "coupons", "messages", "follows", "checkin", "gifts", "vip", "finance", "notices"]:
         ok(key in st, f"demo state has '{key}'")
     ok(len(st.get("orders", [])) > 0, "demo account has sample orders")
+    ok(any((b.get("i18n") or {}).get("key") == "server.bill.demoGrant" for b in st["bills"]) or st["wallet"] > 0,
+       "demo account has money to try checkout / gifts", st["wallet"])
+    d.patch("/api/me", {"email": "someone@example.my"}, expect=403)  # the shared demo login stays usable
 
 
 def t_signup():
@@ -317,6 +320,19 @@ def t_social_money():
     if a.status == 400:
         cfg = a.get("/api/config")
         print("   (report reasons)", str(cfg)[:200])
+    # live rooms respect blocks (either side)
+    live = b.post("/api/live/sessions", {"title": "QA 直播", "topic": "同城聊天"}, expect=[200, 403])
+    sid = (live.get("session") or {}).get("sessionId") if isinstance(live, dict) else None
+    if sid:
+        a.post(f"/api/live/sessions/{sid}/comments", {"text": "hi"})
+        b.post(f"/api/blocks/{a.me['id']}")
+        rooms = a.get("/api/live/rooms").get("rooms", [])
+        ok(all(r.get("host", {}).get("id") != b.me["id"] for r in rooms), "a host who blocked you is not listed")
+        a.get(f"/api/live/sessions/{sid}", expect=403)
+        a.post(f"/api/live/sessions/{sid}/comments", {"text": "hi"}, expect=403)
+        a.post(f"/api/live/sessions/{sid}/gifts", {"giftId": "rose", "quantity": 1}, expect=403)
+        b.delete(f"/api/blocks/{a.me['id']}")
+        b.post(f"/api/live/sessions/{sid}/end", {})
     # message ownership
     msg = a.post(f"/api/chats/{b.me['id']}/messages", {"type": "text", "text": "secret"})
     m_id = msg.get("message", {}).get("id", "m0")
