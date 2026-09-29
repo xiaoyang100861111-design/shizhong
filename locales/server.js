@@ -60,6 +60,10 @@ SZ_I18N.extend('zh-CN', {
       'rtc.otherScope': '音视频连接无效',
       'rtc.denied': '请允许使用麦克风/摄像头',
       'rtc.noDevice': '没有找到可用的麦克风或摄像头',
+      'rtc.badTrack': '音视频连接无效',
+      'state.missing': '数据还没有同步，请稍后再试',
+      'device.invalid': '设备信息无效',
+      'tickets.textRequired': '请填写反馈内容',
     },
     bill: {
       welcome: '新用户礼金',
@@ -153,6 +157,10 @@ SZ_I18N.extend('en', {
       'rtc.otherScope': 'Invalid media connection.',
       'rtc.denied': 'Allow microphone / camera access.',
       'rtc.noDevice': 'No microphone or camera found.',
+      'rtc.badTrack': 'Invalid media connection.',
+      'state.missing': 'Your data has not synced yet. Please try again.',
+      'device.invalid': 'Invalid device details.',
+      'tickets.textRequired': 'Please describe your feedback.',
     },
     bill: {
       welcome: 'Welcome credit',
