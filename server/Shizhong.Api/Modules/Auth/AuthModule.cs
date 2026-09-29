@@ -54,6 +54,8 @@ public sealed partial class AuthModule : IModule
         ConfigDef.GroupOf("newUser", "新用户", "New accounts"),
         new("newUser.balance", "newUser", 100m, "money", "新用户赠送余额（RM）", "Sign-up balance (RM)", Min: 0, Max: 100000),
         new("newUser.beans", "newUser", 1000, "int", "新用户赠送金豆", "Sign-up gold beans", Min: 0, Max: 10000000),
+        new("newUser.demoBalance", "newUser", 5000m, "money", "体验账号初始余额（RM，首次启动时发放）", "Demo account starting balance (RM, granted once)", Min: 0, Max: 10000000),
+        new("newUser.demoBeans", "newUser", 100000, "int", "体验账号初始金豆（首次启动时发放）", "Demo account starting gold beans (granted once)", Min: 0, Max: 1000000000),
         ConfigDef.GroupOf("legal", "条款与隐私", "Terms & privacy"),
         new("legal.terms", "legal", new { zh = "", en = "" }, "i18n", "用户协议正文（留空使用内置文本）", "Terms of service (empty = built-in)", Public: true),
         new("legal.privacy", "legal", new { zh = "", en = "" }, "i18n", "隐私政策正文（留空使用内置文本）", "Privacy policy (empty = built-in)", Public: true),

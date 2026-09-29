@@ -68,6 +68,8 @@ SZ_I18N.extend('zh-CN', {
     bill: {
       welcome: '新用户礼金',
       welcomeBeans: '新用户金豆',
+      demoGrant: '体验账号余额',
+      demoBeans: '体验账号金豆',
       manualRecharge: '人工充值',
       adjustIn: '系统补发',
       adjustOut: '系统扣减',
@@ -165,6 +167,8 @@ SZ_I18N.extend('en', {
     bill: {
       welcome: 'Welcome credit',
       welcomeBeans: 'Welcome gold beans',
+      demoGrant: 'Demo account balance',
+      demoBeans: 'Demo account gold beans',
       manualRecharge: 'Top-up (manual)',
       adjustIn: 'Credit from Shizhong',
       adjustOut: 'Debit by Shizhong',
