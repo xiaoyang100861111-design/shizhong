@@ -529,11 +529,11 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "8.88"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -583,11 +583,11 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "8.88"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -631,15 +631,15 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "120"
       },
       {
-        "type": ".cx-sheet input[name=note]",
+        "type": ".wx-send input[name=note]",
         "value": "Dinner"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -657,7 +657,7 @@
         "wait": 400
       },
       {
-        "expect": "!!SZ.overlay.$('.cx-pay-amount')",
+        "expect": "!!SZ.overlay.$('.wx-tf-amt')",
         "msg": "transfer detail"
       }
     ]
@@ -736,18 +736,18 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=count]",
+        "type": ".wx-send input[name=count]",
         "value": "3"
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "30"
       },
       {
         "shot": "form"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -780,18 +780,18 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=count]",
+        "type": ".wx-send input[name=count]",
         "value": "3"
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "30"
       },
       {
         "shot": "form"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -1409,11 +1409,11 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "8.88"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
@@ -1472,11 +1472,11 @@
         "wait": 300
       },
       {
-        "type": ".cx-sheet input[name=amount]",
+        "type": ".wx-send input[name=amount]",
         "value": "8.88"
       },
       {
-        "submit": ".cx-sheet form"
+        "submit": ".wx-send"
       },
       {
         "wait": 300
