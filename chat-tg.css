@@ -207,7 +207,7 @@
   gap: 12px;
   width: 100%;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 18px;
   color: var(--c-text);
   font-size: var(--fs-15);
   text-align: left;
@@ -221,7 +221,12 @@
   width: 21px;
   height: 21px;
   flex: 0 0 auto;
-  color: var(--c-text-2);
+  color: var(--c-text);
+}
+/* icon first, as in Telegram */
+.tg-mi > .tg-ico {
+  order: -1;
+  margin-right: 6px;
 }
 .tg-mi-main {
   display: flex;
