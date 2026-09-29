@@ -412,7 +412,7 @@
 .auth-sheet .list.auth-list + .list.auth-list {
   margin-top: var(--sp-1);
 }
-/* explicit row metrics: legacy list/tag rules in styles.css would otherwise leak in */
+/* explicit row metrics for account / country / language rows */
 .auth-sheet .auth-list .list-row {
   gap: var(--sp-3);
   min-height: 56px;
@@ -1066,7 +1066,7 @@
   font-size: var(--fs-13);
 }
 
-/* ---------- guard against legacy styles.css (raw colours / its own --bg) until the shell migrates ---------- */
+/* ---------- auth sheets and screens: warm page background, quiet chips and segmented controls ---------- */
 .sheet.auth-sheet {
   background: var(--c-bg);
   color: var(--c-text);
@@ -1131,8 +1131,4 @@
     var(--shadow-1),
     inset 0 0 0 1px var(--c-border);
   color: var(--c-text);
-}
-.auth-screen button:disabled,
-.auth-sheet button:disabled {
-  opacity: 1;
 }

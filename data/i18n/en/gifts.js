@@ -235,6 +235,55 @@ SZ_I18N.addContent('en', 'gifts', {
     name: 'Dusk · Homing Geese',
     description: 'Sunset reddens the eaves as geese fly home. A gentle hello at the end of the day.',
   },
+  // 大马风情 / Malaysia series (assets/gift-art/malaysia-series.json).
+  'my-teh-tarik': {
+    name: "Teh Tarik",
+    description: "A tall-pulled, frothy teh tarik that hands you all the warmth of a late-night mamak chat.",
+  },
+  'my-ketupat': {
+    name: "Ketupat",
+    description: "A hand-woven ketupat, packed with the reunion blessings of Hari Raya.",
+  },
+  'my-cendol': {
+    name: "Cendol",
+    description: "Green cendol under a drizzle of gula melaka, a cool spoonful for a hot afternoon.",
+  },
+  'my-nasi-lemak': {
+    name: "Nasi Lemak",
+    description: "Coconut rice with sambal, egg and crispy anchovies: the most Malaysian way to say good morning.",
+  },
+  'my-satay': {
+    name: "Satay",
+    description: "Charcoal-grilled satay with peanut sauce, made for sharing with good friends.",
+  },
+  'my-bunga-raya': {
+    name: "Bunga Raya",
+    description: "A bunga raya in full bloom, sending warmth and courage to someone you care about.",
+  },
+  'my-durian': {
+    name: "Durian",
+    description: "The king of fruits has arrived, and those who know will smile.",
+  },
+  'my-wau-bulan': {
+    name: "Wau Bulan",
+    description: "A painted wau bulan rides the wind, carrying your wishes high and far.",
+  },
+  'my-kampung': {
+    name: "Kampung House",
+    description: "A kampung house under the coconut palm, a warm corner that always welcomes you home.",
+  },
+  'my-hornbill': {
+    name: "Rhinoceros Hornbill",
+    description: "A rhinoceros hornbill from the Borneo rainforest flies in to watch over the promises you share.",
+  },
+  'my-petronas': {
+    name: "KL Twin Towers",
+    description: "The twin towers glitter in the evening sky, lighting up the whole city just for you.",
+  },
+  'my-panda-mascot': {
+    name: "Shizhong Panda",
+    description: "Our Shizhong panda winks and hugs a heart, saving the best wishes for someone special.",
+  },
 });
 SZ_I18N.addContent('en', 'giftBackgrounds', {
   'crimson-gold': {

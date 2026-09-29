@@ -371,7 +371,6 @@ const services = [...window.SHIZHONG_DEMO.services, ...legacyServices.map(s => (
 const people = [...legacyPeople, ...window.SHIZHONG_DEMO.people];
 const basePosts = [...window.SHIZHONG_DEMO.posts, ...legacyPosts];
 const defaultGroups = [...window.SHIZHONG_DEMO.groups, ...legacyGroups];
-SZ.bootTasks = SZ.bootTasks || [];
 SZ.bootTasks.push(() => SZ_I18N.loadContent('legacy'));
 
 // Animated portraits are used only where an avatar is shown (and not for reduced motion);
@@ -417,7 +416,10 @@ const initialState = {
   blocked: [],
   readChats: [],
   points: 1000000000,
-  checkin: '',
+  // Module-owned shapes, declared here too because the state is loaded before those modules run.
+  checkin: { streak: 0, lastDate: '', history: [] },
+  notices: [],
+  friendRequests: { incoming: [], outgoing: [] },
   cart: {},
   orders: [],
   posts: [],
@@ -457,6 +459,13 @@ function accountDefaults() {
   return base;
 }
 let state = SZ.store.load(accountDefaults());
+/*
+ * app.js loads the state before the feature modules add their own `initialState.<key>` defaults,
+ * so fill those in once every module has run (first boot task) — old saves upgrade automatically.
+ */
+SZ.bootTasks.unshift(() => {
+  SZ.withDefaults(state, accountDefaults());
+});
 if (
   SZ.session.isDemo &&
   (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg')
@@ -494,15 +503,15 @@ function moneyShort(value) {
 const ui = {
   page: 'home',
   homeTab: 'life',
-  homeFilter: '推荐',
+  homeFilter: 'recommended',
   socialTab: 'friends',
-  socialFilter: '推荐',
+  socialFilter: 'recommended',
   liveTab: 'public',
-  liveFilter: '全部',
-  commsTab: 'friends',
-  cityFilter: '全部',
-  interestFilter: '全部',
-  orderFilter: '全部',
+  liveFilter: 'all',
+  commsTab: 'chats',
+  cityFilter: 'all',
+  interestFilter: 'all',
+  orderFilter: 'all',
   gift: 'flower',
   quantity: 1,
 };
@@ -689,10 +698,8 @@ function liveBars() {
 /** Conversation list row. name/text are plain text; time is epoch ms or an already formatted string. */
 function chatRow(id, name, text, photo, time, unread = 0) {
   const image = `<img class="avatar" loading="lazy" decoding="async" ${imageAttrs(photo)} alt="">`;
-  const avatar =
-    people.some(person => person.id === id) && window.ShizhongGifts?.avatarDecoration
-      ? window.ShizhongGifts.avatarDecoration(image, id, 'list')
-      : image;
+  // Returns the image unchanged for groups, merchants and anyone without a charm.
+  const avatar = window.ShizhongGifts?.avatarDecoration?.(image, id, 'list') || image;
   const count =
     typeof window.ShizhongChat?.unread === 'function'
       ? Number(window.ShizhongChat.unread(id)) || 0
@@ -741,34 +748,19 @@ function localDate() {
 
 // ------------------------------------------------------------------ Me tab
 /*
- * Order: hero (gifts module, or the tidy fallback below) → guest sign-in → VIP → wallet →
- * orders → daily check-in → "my life" shortcuts → settings rows. Every block reads live data;
- * other modules are optional (optional chaining) so a missing module never breaks the page.
+ * Order: profile hero (the gifts module's decorated hero for signed-in users; the plain hero below
+ * for guests or when that module is missing) → VIP → wallet → orders → daily check-in → "my stuff"
+ * shortcuts → settings rows. Every block reads live data; other modules are optional (optional
+ * chaining) so a missing module never breaks the page.
  */
-function meHero() {
-  const hero = window.ShizhongGifts?.profileHero?.();
-  if (hero) return hero;
-  const guest = SZ.session.isGuest;
-  const id = displayId();
-  const city = locationText('short');
+function meStats() {
   const stats = [
     ['follows', state.follows.length],
     ['fans', state.social?.fans || 0],
     ['visitors', state.social?.visitors || 0],
     ['saved', state.saved.length],
   ];
-  const idLine = id
-    ? `<span class="me-id">${esc(t('shell.me.id', { id }))}</span>${act('copy-id', '', icon('copy'), 'icon-button me-copy', `aria-label="${esc(t('shell.me.copyId'))}"`)}`
-    : `<span class="me-id">${esc(t('shell.me.guestId'))}</span>`;
-  return `<section class="me-hero card" aria-label="${esc(t('shell.me.profile'))}"><div class="me-hero-main">${act(
-    guest ? 'me-sign-in' : 'edit-profile',
-    '',
-    `<img class="avatar avatar-72" ${imageAttrs(state.profile.photo)} alt="">`,
-    'me-avatar',
-    `aria-label="${esc(guest ? t('shell.me.guest.action') : t('shell.me.editProfile'))}"`
-  )}<div class="me-hero-text"><h2 class="me-name">${esc(profileName())}</h2><p class="me-meta">${idLine}</p><p class="me-city">${icon('pin')}<span>${esc(city)}</span></p></div>${
-    guest ? '' : act('edit-profile', '', esc(t('shell.me.edit')), 'btn btn-secondary btn-sm me-edit')
-  }</div>${profileBio() ? `<p class="me-bio">${esc(profileBio())}</p>` : ''}<div class="me-stats">${stats
+  return `<div class="me-stats">${stats
     .map(([key, n]) =>
       act(
         'stat',
@@ -777,14 +769,34 @@ function meHero() {
         'me-stat'
       )
     )
-    .join('')}</div></section>`;
+    .join('')}</div>`;
 }
-function meGuestCard() {
-  if (!SZ.session.isGuest) return '';
-  return `<section class="me-guest card"><div class="me-guest-text"><h2>${esc(t('shell.me.guest.title'))}</h2><p>${esc(t('shell.me.guest.text'))}</p></div>${act('me-sign-in', '', esc(t('shell.me.guest.action')), 'btn btn-primary btn-block')}</section>`;
+function meHero() {
+  const guest = SZ.session.isGuest;
+  const hero = guest ? '' : window.ShizhongGifts?.profileHero?.();
+  if (hero) return hero;
+  const id = displayId();
+  const city = locationText('short');
+  const idLine = id
+    ? `<span class="me-id">${esc(t('shell.me.id', { id }))}</span>${act('copy-id', '', icon('copy'), 'icon-button me-copy', `aria-label="${esc(t('shell.me.copyId'))}"`)}`
+    : `<span class="me-id">${esc(t('shell.me.guestId'))}</span>`;
+  const main = `<div class="me-hero-main">${act(
+    guest ? 'me-sign-in' : 'edit-profile',
+    '',
+    `<img class="avatar avatar-72" ${imageAttrs(state.profile.photo)} alt="">`,
+    'me-avatar',
+    `aria-label="${esc(guest ? t('shell.me.guest.action') : t('shell.me.editProfile'))}"`
+  )}<div class="me-hero-text"><h2 class="me-name">${esc(profileName())}</h2><p class="me-meta">${idLine}</p><p class="me-city">${icon('pin')}<span>${esc(city)}</span></p></div>${
+    guest ? '' : act('edit-profile', '', esc(t('shell.me.edit')), 'btn btn-secondary btn-sm me-edit')
+  }</div>`;
+  // Guests have no profile numbers yet: the card explains what signing in unlocks instead.
+  const foot = guest
+    ? `<div class="me-guest"><h3>${esc(t('shell.me.guest.title'))}</h3><p>${esc(t('shell.me.guest.text'))}</p>${act('me-sign-in', '', esc(t('shell.me.guest.action')), 'btn btn-primary btn-block')}</div>`
+    : `${profileBio() ? `<p class="me-bio">${esc(profileBio())}</p>` : ''}${meStats()}`;
+  return `<section class="me-hero card${guest ? ' me-hero--guest' : ''}" aria-label="${esc(t('shell.me.profile'))}">${main}${foot}</section>`;
 }
 function meWallet() {
-  const coupons = window.ShizhongCoupons?.all?.()?.length ?? state.coupons.length;
+  const coupons = window.ShizhongCoupons?.available?.()?.length ?? state.coupons.length;
   const cells = [
     [
       'wallet',
@@ -809,6 +821,7 @@ function meWallet() {
 }
 function meOrders() {
   const counts = typeof orderCounts === 'function' ? orderCounts() || {} : {};
+  // Badges only for orders that still need attention; completed ones are history.
   const items = [
     ['clock', 'pending', counts.pending],
     ['calendar', 'confirmed', (counts.confirmed || 0) + (counts.serving || 0)],
@@ -816,7 +829,7 @@ function meOrders() {
   ];
   return `<section class="me-section card"><div class="me-section-head"><h2>${esc(t('shell.me.orders.title'))}</h2>${act(
     'orders',
-    '', // no filter = all orders
+    'all',
     `<span>${esc(t('shell.me.orders.all'))}</span>${icon('chevron')}`,
     'see-all'
   )}</div><div class="shortcut-grid">${items
@@ -824,12 +837,13 @@ function meOrders() {
     .join('')}${shortcut('headset', esc(t('shell.me.orders.afterSales')), 'after-sales')}</div></section>`;
 }
 function meCheckin() {
-  const status = window.ShizhongCheckin?.status?.() || { done: state.checkin === localDate(), streak: 0 };
+  const status = window.ShizhongCheckin?.status?.() || { done: false, streak: 0 };
+  const reward = Number(status.reward) || 10;
   const text = status.done
     ? status.streak
       ? tn('shell.me.checkin.streak', status.streak)
       : t('shell.me.checkin.doneToday')
-    : t('shell.me.checkin.reward');
+    : tn('shell.me.checkin.reward', reward);
   return `<section class="me-checkin card"><span class="me-checkin-icon">${icon('calendar')}</span><div class="me-checkin-text"><h2>${esc(t('shell.me.checkin.title'))}</h2><p>${esc(text)}</p></div>${act(
     'checkin',
     '',
@@ -855,7 +869,26 @@ function meLife() {
 function meRows() {
   const language = SZ_I18N.meta()?.name || '';
   const region = window.ShizhongRegions?.locationLabel ? locationText('long') : t('shell.me.regionDefault');
-  return `<div class="list me-list">${listRow('headset', esc(t('shell.me.support')), 'chat', esc(t('shell.me.supportHint')), 'support')}${listRow('help', esc(t('shell.me.help')), 'help')}${listRow('globe', esc(t('shell.me.language')), 'language', esc([language, region].filter(Boolean).join(' · ')))}${listRow('settings', esc(t('shell.me.settings')), 'settings')}</div>`;
+  const unread = Number(window.ShizhongNotices?.unread?.()) || 0;
+  const notices = unread
+    ? `<span class="badge me-row-badge" aria-hidden="true">${countLabel(unread)}</span><span class="sr-text">${esc(tn('shell.me.noticesUnread', unread))}</span>`
+    : '';
+  const rows = [
+    window.ShizhongNotices ? listRow('bell', esc(t('shell.me.notices')), 'notifications', notices) : '',
+    listRow('headset', esc(t('shell.me.support')), 'chat', esc(t('shell.me.supportHint')), 'support'),
+    listRow('help', esc(t('shell.me.help')), 'help'),
+    listRow(
+      'globe',
+      esc(t('shell.me.language')),
+      'language',
+      esc([language, region].filter(Boolean).join(' · '))
+    ),
+    SZ.session.isLoggedIn && window.ShizhongAuth
+      ? listRow('user', esc(t('shell.me.switchAccount')), 'auth-switch')
+      : '',
+    listRow('settings', esc(t('shell.me.settings')), 'settings'),
+  ];
+  return `<div class="list me-list">${rows.join('')}</div>`;
 }
 function mePage() {
   const actions = [
@@ -864,10 +897,33 @@ function mePage() {
       : act('share-profile', '', icon('qr'), 'icon-button', `aria-label="${esc(t('shell.me.share'))}"`),
     act('settings', '', icon('settings'), 'icon-button', `aria-label="${esc(t('shell.me.settings'))}"`),
   ];
-  return `<section class="page me-page">${appBar({ title: t('nav.me'), actions })}<div class="me-body">${meHero()}${meGuestCard()}${
+  return `<section class="page me-page">${appBar({ title: t('nav.me'), actions })}<div class="me-body">${meHero()}${
     window.ShizhongVIP?.homeCard?.() || ''
   }${meWallet()}${meOrders()}${meCheckin()}${meLife()}${meRows()}<p class="endnote">${esc(t('shell.me.endnote'))}</p></div></section>`;
 }
+/**
+ * Redraw the Me page in place (scroll position kept). Orders, check-in, coupons, notices and the
+ * wallet change inside layers, so Me catches up once the last layer closes.
+ */
+function refreshMe() {
+  if (ui.page !== 'me' || SZ.overlay.depth()) return;
+  const app = document.querySelector('#app');
+  const top = app?.scrollTop || 0;
+  const focused = app?.contains(document.activeElement)
+    ? document.activeElement.closest('[data-action]')
+    : null;
+  render();
+  if (app) app.scrollTop = top;
+  if (focused) {
+    const { action, id } = focused.dataset;
+    const again = [...app.querySelectorAll('[data-action]')].find(
+      el => el.dataset.action === action && el.dataset.id === id
+    );
+    again?.focus({ preventScroll: true });
+  }
+}
+SZ.on('notices:change', refreshMe);
+SZ.on('overlay:empty', refreshMe);
 SZ.actions.register('me-sign-in', () => {
   if (window.ShizhongAuth?.open) window.ShizhongAuth.open('login', { reason: t('shell.me.guest.text') });
   else SZ.requireLogin(t('shell.me.guest.text'));

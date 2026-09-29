@@ -17,7 +17,10 @@
 
   const account = () => (SZ.session.isLoggedIn ? SZ.session.account : null);
   const formatId = id => String(id || '').replace(/(\d{4})(?=\d)/g, '$1 ');
-  const cityLabel = () => window.ShizhongRegions?.locationLabel?.('short') || td('city', state.city);
+  const cityLabel = () =>
+    typeof locationText === 'function' ? locationText('short') : td('city', state.city);
+  /** Shell display name: guests and the untouched demo profile read in the active language. */
+  const myName = () => (typeof profileName === 'function' ? profileName() : state.profile.name || '');
 
   function isLocalPreview() {
     const host = location.hostname;
@@ -90,7 +93,7 @@
     }
     shown = {
       url: profileLink(acc.displayId),
-      name: state.profile.name,
+      name: myName(),
       displayId: acc.displayId,
       city: cityLabel(),
     };
@@ -178,7 +181,7 @@
     }
     try {
       await navigator.share({
-        title: t('gifts.qr.shareTitle', { name: state.profile.name }),
+        title: t('gifts.qr.shareTitle', { name: myName() }),
         text: t('gifts.qr.shareText', { id: formatId(acc.displayId) }),
         url,
       });
@@ -362,7 +365,7 @@
     if (!card?.displayId) return null;
     const mine = account()?.displayId === card.displayId;
     const local = !mine && SZ.accounts.list().find(a => a.displayId === card.displayId);
-    const name = mine ? state.profile.name : card.name || local?.name || t('gifts.qr.someone');
+    const name = mine ? myName() : card.name || local?.name || t('gifts.qr.someone');
     const avatar = mine
       ? avatarHtml('avatar pq-photo')
       : `<span class="pq-initial" aria-hidden="true">${esc(Array.from(name)[0] || '?')}</span>`;

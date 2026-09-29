@@ -163,20 +163,8 @@
       requestAnimationFrame(() => layer.el.querySelector(selector)?.focus({ preventScroll: true }))
     );
   }
-  /*
-   * Session switches reload the page. Core flushes the live state on 'pagehide', which by then
-   * resolves to the *new* account's storage key and would overwrite that account with the old
-   * one's data (e.g. a guest's state replacing the demo account). So: save the current account
-   * now, then stop further saves until the reload. Remove once core suspends saves itself.
-   */
-  function leaveAccount() {
-    SZ.store.flush();
-    const idle = () => {};
-    idle.flush = () => {};
-    SZ.store.saveSoon = idle;
-  }
+  /** Core saves this account and detaches the store before switching, so nothing leaks across. */
   function switchTo(accountId) {
-    leaveAccount();
     if (accountId === 'guest') SZ.session.guest({ reload: true });
     else SZ.session.login(accountId);
   }
@@ -834,7 +822,7 @@
         pick.city = loc.cityName || loc.stateName || loc.countryName || pick.city;
         layer.el.querySelectorAll('[data-act=city]').forEach(b => b.setAttribute('aria-pressed', 'false'));
         el.setAttribute('aria-pressed', 'true');
-        el.querySelector('span').textContent = pick.city;
+        el.querySelector('span').textContent = td('city', pick.city);
       } else if (act === 'locale') {
         pick.locale = el.dataset.value;
         layer.el
@@ -1209,13 +1197,19 @@
   }
   function profileOf(account) {
     if (account.id === SZ.session.accountId && typeof state !== 'undefined' && state?.profile)
-      return { name: state.profile.name, photo: state.profile.photo };
+      return {
+        name: typeof profileName === 'function' ? profileName() : state.profile.name,
+        photo: state.profile.photo,
+      };
     let { name, avatar: photo } = account;
     if (!name || !photo) {
       const saved = readSavedProfile(account.id);
       name = name || saved?.name;
       photo = photo || saved?.photo;
     }
+    // The demo account's untouched sample name is demo content, shown in the active language.
+    if (account.demo && name && typeof DEMO_PROFILE !== 'undefined' && name === DEMO_PROFILE.name)
+      name = tc('profile', DEMO_PROFILE.id, 'name', name);
     return {
       name: name || t(account.demo ? 'auth.switcher.demo' : 'shell.newUserName'),
       photo: photo || DEFAULT_AVATAR,
@@ -1283,7 +1277,6 @@
           danger: true,
         });
         if (!ok) return;
-        leaveAccount();
         SZ.session.logout();
       }
     });

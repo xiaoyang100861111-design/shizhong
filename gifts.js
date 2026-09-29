@@ -78,6 +78,12 @@
     return `<img class="${cls}" src="${esc(asset(src))}"${ref} alt="${esc(alt)}" loading="lazy" decoding="async">`;
   }
 
+  /** The user's display name (the shell translates guests and the untouched demo profile). */
+  const myName = () => (typeof profileName === 'function' ? profileName() : state.profile.name || '');
+  /** lang="zh" on user text written in Chinese while the UI is in another language (screen readers). */
+  const nameLang = text =>
+    !/^zh/.test(window.SZ_I18N?.locale || 'zh') && /[㐀-鿿]/.test(text) ? ' lang="zh"' : '';
+
   // People are looked up for every chat row and message: one index, rebuilt when chunks add people.
   let personIndex = null;
   let personCount = -1;
@@ -284,20 +290,22 @@
   }
 
   // ------------------------------------------------------------------ Me page
+  /**
+   * The signed-in user's decorated profile card on Me: cover with gift stickers, avatar with its
+   * charm, name, account ID, city, bio and profile numbers. Returns '' for guests (the shell's plain
+   * hero with the sign-in prompt is better there). Name, bio and city come from the shell so the
+   * untouched demo profile reads in the active language; QR and settings live in the Me app bar.
+   */
   function profileHero() {
+    if (!SZ.session.isLoggedIn) return '';
     const d = G().decoration;
-    const guest = !SZ.session.isLoggedIn;
-    const displayId = SZ.session.account?.displayId || '';
-    const name = state.profile.name || t('gifts.hero.noName');
-    const city = window.ShizhongRegions?.locationLabel?.('short') || td('city', state.city);
-    const vip = guest ? '' : window.ShizhongVIP?.badge?.('self') || '';
+    const displayId = String(SZ.session.account?.displayId || '');
+    const name = myName();
+    const bio = typeof profileBio === 'function' ? profileBio() : state.profile.bio || '';
+    const city = typeof locationText === 'function' ? locationText('short') : td('city', state.city);
+    const vip = window.ShizhongVIP?.badge?.('self') || '';
     const avatarImg = photo(state.profile.photo, t('gifts.hero.avatarAlt'), 'avatar gf-hero-photo');
-    const avatarEl = guest
-      ? avatarImg
-      : `<button type="button" class="gf-hero-avatar-btn" data-action="edit-profile" aria-label="${esc(t('gifts.hero.editProfile'))}">${avatarImg}</button>`;
-    const actions = guest
-      ? `<button type="button" class="btn btn-primary btn-sm" data-action="gift-login">${esc(t('gifts.hero.signIn'))}</button>`
-      : `<button type="button" class="btn btn-outline btn-sm gf-hero-edit" data-action="edit-profile" aria-label="${esc(t('gifts.hero.editProfile'))}">${icon('edit')}<span>${esc(t('gifts.hero.edit'))}</span></button><button type="button" class="icon-button" data-action="gift-qr" aria-label="${esc(t('gifts.hero.qr'))}">${icon('qr')}</button><button type="button" class="icon-button" data-action="gift-share-profile" aria-label="${esc(t('gifts.hero.share'))}">${icon('share')}</button>`;
+    const avatarEl = `<button type="button" class="gf-hero-avatar-btn" data-action="edit-profile" aria-label="${esc(t('gifts.hero.editProfile'))}">${avatarImg}</button>`;
     const social = state.social || {};
     const stats = [
       ['follows', (state.follows || []).length, t('gifts.hero.follows')],
@@ -305,15 +313,17 @@
       ['visitors', Number(social.visitors) || 0, t('gifts.hero.visitors')],
       ['saved', (state.saved || []).length, t('gifts.hero.saved')],
     ];
-    const bio = state.profile.bio || (guest ? t('gifts.hero.guestBio') : '');
+    const idLine = displayId
+      ? `<span class="gf-hero-id">${esc(t('gifts.hero.id', { id: formatId(displayId) }))}<button type="button" class="gf-inline-icon" data-action="gift-copy-id" aria-label="${esc(t('gifts.hero.copyId'))}">${icon('copy')}</button></span>`
+      : '';
     return `<section class="gf-hero" aria-label="${esc(t('gifts.hero.aria'))}">
-      <div class="gf-hero-cover">${cover({ ...d, action: 'gift-sticker' })}${guest ? '' : `<button type="button" class="gf-cover-edit" data-action="gift-studio">${icon('edit')}<span>${esc(t('gifts.hero.decorate'))}</span></button>`}</div>
+      <div class="gf-hero-cover">${cover({ ...d, action: 'gift-sticker' })}<button type="button" class="gf-cover-edit" data-action="gift-studio">${icon('edit')}<span>${esc(t('gifts.hero.decorate'))}</span></button></div>
       <div class="gf-hero-body">
-        <div class="gf-hero-top"><div class="gf-hero-avatar">${charmed(avatarEl, guest ? '' : d.avatarFrameId, 'hero')}</div><div class="gf-hero-actions">${actions}</div></div>
-        <div class="gf-hero-name-row"><h2 class="gf-hero-name">${esc(name)}</h2>${vip}</div>
-        <p class="gf-hero-meta">${displayId ? `<span class="gf-hero-id">${esc(t('gifts.hero.id', { id: formatId(displayId) }))}<button type="button" class="gf-inline-icon" data-action="gift-copy-id" aria-label="${esc(t('gifts.hero.copyId'))}">${icon('copy')}</button></span>` : ''}<span class="gf-hero-city">${icon('pin')}${esc(city)}</span></p>
-        ${bio ? `<p class="gf-hero-bio">${esc(bio)}</p>` : ''}
-        <div class="gf-hero-stats">${stats.map(([id, n, text]) => `<button type="button" data-action="stat" data-id="${id}"><strong class="num">${esc(SZ.fmt.compact(n))}</strong><span>${esc(text)}</span></button>`).join('')}</div>
+        <div class="gf-hero-top"><div class="gf-hero-avatar">${charmed(avatarEl, d.avatarFrameId, 'hero')}</div><button type="button" class="btn btn-secondary btn-sm gf-hero-edit" data-action="edit-profile">${icon('edit')}<span>${esc(t('gifts.hero.edit'))}</span></button></div>
+        <div class="gf-hero-name-row"><h2 class="gf-hero-name"${nameLang(name)}>${esc(name)}</h2>${vip}</div>
+        <p class="gf-hero-meta">${idLine}<span class="gf-hero-city">${icon('pin')}<span>${esc(city)}</span></span></p>
+        ${bio ? `<p class="gf-hero-bio"${nameLang(bio)}>${esc(bio)}</p>` : ''}
+        <div class="me-stats gf-hero-stats">${stats.map(([id, n, text]) => `<button type="button" class="me-stat" data-action="stat" data-id="${id}"><strong class="num">${esc(SZ.fmt.compact(n))}</strong><span>${esc(text)}</span></button>`).join('')}</div>
       </div>
     </section>`;
   }
@@ -531,6 +541,16 @@
     return `<div class="gf-summary"><span class="gf-summary-art">${art(g, 'thumb')}</span><dl class="gf-facts gf-facts--compact">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></div>`;
   }
   let busy = false;
+  const APPEND_FAILED = 'gift-append-failed';
+  /** SZ.store.commit for a send: a chat that could not save the message means nothing was sent. */
+  function commitSend(mutate) {
+    try {
+      return SZ.store.commit(mutate);
+    } catch (e) {
+      if (e?.message !== APPEND_FAILED) throw e;
+      return false; // rolled back; the chat already told the user saving failed
+    }
+  }
   async function buy(giftId, qty = 1) {
     const g = byId.get(giftId);
     if (!g || busy || !SZ.requireLogin(t('gifts.auth.buy'))) return;
@@ -622,7 +642,7 @@
         text: t('gifts.message.text', { name: gName(g), count: qty }),
         time: now,
       };
-      const done = SZ.store.commit(s => {
+      const done = commitSend(s => {
         const gs = G();
         s.wallet = round2(s.wallet - plan.cost);
         if (plan.fromOwned) {
@@ -649,8 +669,6 @@
               kind: 'gift',
             });
         }
-        if (!Array.isArray(s.messages[chatId])) s.messages[chatId] = [];
-        s.messages[chatId].push(message);
         gs.sent.unshift({
           id,
           giftId: g.id,
@@ -666,6 +684,14 @@
         gs.transactions.push(id);
         capLists(gs);
         cleanDecoration(gs.decoration, gs);
+        // The chat stores the message, draws one bubble and schedules the friend's thank-you.
+        // It saves inside this commit; if that fails, throwing rolls the payment back too.
+        if (window.ShizhongChat?.append) {
+          if (!window.ShizhongChat.append(chatId, message)) throw new Error(APPEND_FAILED);
+        } else {
+          if (!Array.isArray(s.messages[chatId])) s.messages[chatId] = [];
+          s.messages[chatId].push(message);
+        }
       });
       if (!done) return false;
       const layers = SZ.overlay.layers();
@@ -673,7 +699,7 @@
         .filter(Boolean)
         .sort((a, b) => layers.indexOf(a) - layers.indexOf(b))[0];
       if (first) await closeAbove(first, true);
-      window.ShizhongChat?.refresh?.(chatId);
+      if (!window.ShizhongChat?.append) window.ShizhongChat?.refresh?.(chatId);
       refreshAll();
       playEffect(g.id, { caption: t('gifts.effect.sentTo', { name: personName(person) }), count: qty });
       SZ.toast(t('gifts.toast.sent', { name: personName(person) }), { type: 'success' });
@@ -913,7 +939,7 @@
   }
   function studioStage(s) {
     const d = s.draft;
-    return `${cover({ ...d, editing: true, selected: s.selected, className: 'gf-cover--edit' })}<div class="gf-stage-profile"><span class="gf-stage-avatar">${stageAvatar(d.avatarFrameId)}</span><span class="gf-stage-name">${esc(state.profile.name)}</span></div>`;
+    return `${cover({ ...d, editing: true, selected: s.selected, className: 'gf-cover--edit' })}<div class="gf-stage-profile"><span class="gf-stage-avatar">${stageAvatar(d.avatarFrameId)}</span><span class="gf-stage-name"${nameLang(myName())}>${esc(myName())}</span></div>`;
   }
   function stickerPanel(s) {
     const item = s.draft.stickers.find(x => x.id === s.selected);
@@ -1243,7 +1269,7 @@
     const author = m.person ? personById(m.person) : null;
     const direct = !who.group && !who.support && !who.serviceId ? personById(who.id) : null;
     const friend = m.self ? null : author || direct;
-    const name = m.self ? state.profile.name : friend ? personName(friend) : m.author || who.name || '';
+    const name = m.self ? myName() : friend ? personName(friend) : m.author || who.name || '';
     const src = m.self
       ? state.profile.photo
       : friend
@@ -1659,7 +1685,6 @@
   );
 
   // ------------------------------------------------------------------ boot: translations, media, demo data
-  SZ.bootTasks = SZ.bootTasks || [];
   SZ.bootTasks.push(
     () => window.SZ_I18N.loadContent('gifts'),
     () => {
@@ -1749,9 +1774,5 @@
     giftName: id => (byId.has(id) ? gName(byId.get(id)) : ''),
     avatarFrameId: () => G().decoration.avatarFrameId || '',
     config: CONFIG,
-    // Deprecated no-ops: lazy.js and the old chat-tools.js still call these until their owners
-    // migrate (the chat screen now belongs to window.ShizhongChat). Remove after the merge.
-    captureNavigation: () => null,
-    openChat: id => window.ShizhongChat?.open?.(id),
   };
 })();
