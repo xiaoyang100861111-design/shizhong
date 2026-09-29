@@ -1,11 +1,318 @@
 [
- {
-  "name": "vip-center",
-  "hash": "me",
-  "steps": [
-   {
-    "click": "[data-action^=vip-]"
-   }
-  ]
- }
+  {
+    "name": "vip-me-card",
+    "hash": "me",
+    "steps": [
+      {
+        "expect": "!!document.querySelector('#app .vip-card .vip-medal')",
+        "msg": "VIP card on the Me page"
+      },
+      {
+        "expect": "document.querySelector('#app .vip-card').getAttribute('aria-label').includes('VIP ' + ShizhongVIP.level())",
+        "msg": "card label names the level"
+      },
+      {
+        "eval": "document.querySelector('#app .vip-card').scrollIntoView({block:'center'}),true"
+      }
+    ]
+  },
+  {
+    "name": "vip-me-guest",
+    "hash": "me",
+    "session": "guest",
+    "steps": [
+      {
+        "expect": "!document.querySelector('#app .vip-card')",
+        "msg": "guests see no VIP card"
+      },
+      {
+        "expect": "ShizhongVIP.badge('self') === ''",
+        "msg": "guests have no badge"
+      }
+    ]
+  },
+  {
+    "name": "vip-badge",
+    "hash": "me",
+    "steps": [
+      {
+        "expect": "/data-action=\"vip-open\"/.test(ShizhongVIP.badge('self')) && !/data-action/.test(ShizhongVIP.badge('p1'))",
+        "msg": "own badge opens the centre, other people get a static badge"
+      },
+      {
+        "expect": "ShizhongVIP.level('p1') === ShizhongVIP.level('p1') && ShizhongVIP.level('p1') >= 8 && ShizhongVIP.level('p1') <= 60",
+        "msg": "stable demo level for other people"
+      },
+      {
+        "expect": "!!document.querySelector('#app .gf-hero .vip-badge')",
+        "msg": "badge shown in the profile hero"
+      }
+    ]
+  },
+  {
+    "name": "vip-centre",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.vip === 'centre'",
+        "msg": "centre is an overlay screen"
+      },
+      {
+        "expect": "document.querySelectorAll('.vip-screen .vip-theme').length === 4",
+        "msg": "four themes"
+      },
+      {
+        "expect": "new Set([...document.querySelectorAll('.vip-screen .vip-theme')].map(e => e.querySelector('.vip-art').innerHTML.replace(/vipart\\d+/g,''))).size === 4",
+        "msg": "each theme has its own cover art"
+      },
+      {
+        "expect": "!!document.querySelector('.vip-screen [role=progressbar]')",
+        "msg": "progress exposed as progressbar"
+      }
+    ]
+  },
+  {
+    "name": "vip-centre-themes",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "eval": "document.querySelector('.vip-screen .vip-themes').scrollIntoView({block:'start'}),true"
+      }
+    ]
+  },
+  {
+    "name": "vip-centre-earn",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "eval": "document.querySelector('.vip-screen .vip-earn').scrollIntoView({block:'center'}),true"
+      }
+    ]
+  },
+  {
+    "name": "vip-levels",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "click": ".vip-screen .vip-step[data-action=vip-levels][data-id='35']"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.vip === 'levels' && SZ.overlay.depth() === 2",
+        "msg": "levels pushed over the centre"
+      },
+      {
+        "expect": "SZ.overlay.$('[data-action=vip-range][aria-selected=true]')?.dataset.id === '31'",
+        "msg": "range of the chosen milestone selected"
+      },
+      {
+        "click": "[data-action=vip-range][data-id='61']"
+      },
+      {
+        "expect": "SZ.overlay.depth() === 2 && SZ.overlay.$('.vip-table tbody tr').textContent.includes('61')",
+        "msg": "range switched in place"
+      },
+      {
+        "shot": "range"
+      },
+      {
+        "back": true
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.vip === 'centre'",
+        "msg": "back returns to the centre"
+      }
+    ]
+  },
+  {
+    "name": "vip-levels-current",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "click": ".vip-screen .detail-header [data-action=vip-levels]"
+      },
+      {
+        "expect": "!!SZ.overlay.$('.vip-table tr.is-current')",
+        "msg": "current level highlighted"
+      }
+    ]
+  },
+  {
+    "name": "vip-preview",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "click": ".vip-screen [data-action=vip-preview][data-id=cosmic]"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!document.querySelector('.vip-screen .vpe-stage.vpe-cosmic')",
+        "msg": "preview plays in the centre"
+      },
+      {
+        "shot": "stage"
+      },
+      {
+        "click": ".vip-screen .vpe-skip"
+      },
+      {
+        "expect": "!document.querySelector('.vpe-stage')",
+        "msg": "skip removes the stage"
+      },
+      {
+        "click": ".vip-screen [data-action=vip-preview][data-id=imperial]"
+      },
+      {
+        "back": true
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!document.querySelector('.vpe-stage') && !SZ.overlay.top()",
+        "msg": "closing the centre stops the preview"
+      }
+    ]
+  },
+  {
+    "name": "vip-wear",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "(window.__vipqa = JSON.stringify({ vip: state.vip, xp: state.live?.honorXp ?? 0 }), SZ.store.commit(s => { s.live = s.live || {}; s.live.honorXp = (Number(s.live.honorXp) || 0) + 30000; }), ShizhongVIP.refresh(), true)"
+      },
+      {
+        "expect": "ShizhongVIP.level() >= 20",
+        "msg": "gifts raise the level"
+      },
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "click": ".vip-screen [data-action=vip-wear][data-id=rose]"
+      },
+      {
+        "expect": "state.vip.theme === 'rose'",
+        "msg": "theme saved"
+      },
+      {
+        "expect": "!!document.querySelector('.vip-screen .vip-theme.is-worn[data-vip-theme=rose]')",
+        "msg": "card updated in place"
+      },
+      {
+        "expect": "!document.querySelector('.vip-screen [data-action=vip-wear][data-id=imperial]')",
+        "msg": "locked theme cannot be worn"
+      },
+      {
+        "eval": "document.querySelector('.vip-screen .vip-themes').scrollIntoView({block:'start'}),true"
+      },
+      {
+        "shot": "worn"
+      },
+      {
+        "eval": "(() => { const b = JSON.parse(window.__vipqa); SZ.store.commit(s => { s.live = s.live || {}; s.live.honorXp = b.xp; s.vip = b.vip; }); ShizhongVIP.refresh(); return true; })()"
+      },
+      {
+        "expect": "state.vip.theme === JSON.parse(window.__vipqa).vip.theme",
+        "msg": "state restored"
+      }
+    ]
+  },
+  {
+    "name": "vip-toggle",
+    "hash": "me",
+    "steps": [
+      {
+        "click": "#app .vip-card[data-action=vip-open]"
+      },
+      {
+        "eval": "window.__vipOn = state.vip.entranceEnabled, true"
+      },
+      {
+        "click": ".vip-screen [data-action=vip-toggle]"
+      },
+      {
+        "expect": "state.vip.entranceEnabled === !window.__vipOn",
+        "msg": "toggle saved"
+      },
+      {
+        "expect": "document.querySelector('.vip-screen [data-action=vip-toggle]').getAttribute('aria-checked') === String(!window.__vipOn)",
+        "msg": "switch state announced"
+      },
+      {
+        "click": ".vip-screen [data-action=vip-toggle]"
+      },
+      {
+        "expect": "state.vip.entranceEnabled === window.__vipOn",
+        "msg": "toggled back"
+      }
+    ]
+  },
+  {
+    "name": "vip-entry-quick",
+    "hash": "live",
+    "steps": [
+      {
+        "eval": "(() => { const r = document.createElement('div'); r.id = 'vipqa-room'; r.style.cssText = 'position:absolute;inset:0;z-index:45;background:#2a2230 url(' + asset(people[3].photo) + ') center/cover'; document.querySelector('#app-shell').append(r); return true; })()"
+      },
+      {
+        "expect": "ShizhongVIP.entry(document.querySelector('#vipqa-room'), { quick: true }) === true",
+        "msg": "quick banner plays"
+      },
+      {
+        "expect": "!!document.querySelector('#vipqa-room .vpe-banner')",
+        "msg": "banner in the container"
+      },
+      {
+        "shot": "banner",
+        "settle": 300
+      },
+      {
+        "wait": 2000
+      },
+      {
+        "expect": "!document.querySelector('.vpe-banner')",
+        "msg": "banner removes itself"
+      },
+      {
+        "eval": "document.querySelector('#vipqa-room').remove(), true"
+      }
+    ]
+  },
+  {
+    "name": "vip-entry-auto",
+    "hash": "live",
+    "steps": [
+      {
+        "expect": "ShizhongVIP.entry(document.querySelector('#app')) === true && !!document.querySelector('#app .vpe-stage')",
+        "msg": "first entrance of the session is the full effect"
+      },
+      {
+        "eval": "document.querySelector('.vpe-skip').click(), true"
+      },
+      {
+        "expect": "ShizhongVIP.entry(document.querySelector('#app')) === true && !!document.querySelector('#app .vpe-banner') && !document.querySelector('.vpe-stage')",
+        "msg": "re-entering quickly shows the banner"
+      }
+    ]
+  }
 ]
