@@ -16,7 +16,7 @@ and VIP pages must not look like a different app.
 | Brand fill (primary buttons, active tab bar, selected) | `--c-brand` + `--c-on-brand` |
 | Brand-coloured text (prices, links, "view all") | `--c-brand-text` |
 | Soft brand backgrounds | `--c-brand-soft` |
-| Panda yellow (check-in, highlights) | `--c-accent` + `--c-on-accent` |
+| Panda yellow (highlights) | `--c-accent` + `--c-on-accent` |
 | Premium / VIP | `--c-gold`, `--c-gold-soft`, `--c-gold-line` |
 | Status | `--c-success/-soft`, `--c-warning/-soft`, `--c-danger/-soft`, `--c-info/-soft` |
 | Live rooms, calls, video (always dark) | `--c-immersive-*` |
