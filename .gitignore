@@ -14,3 +14,7 @@ server/**/obj/
 server/**/appsettings.Local.json
 server/**/*.user
 
+
+# local tooling
+.claude/
+__pycache__/
