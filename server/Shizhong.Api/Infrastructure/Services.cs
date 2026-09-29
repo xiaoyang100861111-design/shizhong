@@ -19,7 +19,7 @@ public sealed class Audit(Db db)
             AdminId = admin?.Id,
             AdminName = admin?.Name ?? admin?.Username,
             action,
-            target,
+            target = target is { Length: > 120 } ? target[..117] + "..." : target, // column is NVARCHAR(120): saving many settings at once
             detail = detail is null ? null : Json.Serialize(detail),
             ip = ctx.Ip(),
         };
