@@ -60,7 +60,8 @@ public static class SeedCleaner
         DELETE FROM dbo.Conversations WHERE Id IN (SELECT Id FROM #convs);
 
         -- social
-        DELETE FROM dbo.PostLikes WHERE PostId IN (SELECT Id FROM #posts) OR UserId IN (SELECT Id FROM #su);
+        DELETE FROM dbo.PostLikes WHERE PostId IN (SELECT Id FROM #posts) OR UserId IN (SELECT Id FROM #su)
+            OR CONCAT(PostId, ':', UserId) IN (SELECT K FROM dbo.SeedTextKeys WHERE Tbl = N'PostLikes');
         DELETE FROM dbo.Comments WHERE Id IN {K("Comments")} OR PostId IN (SELECT Id FROM #posts) OR UserId IN (SELECT Id FROM #su);
         DELETE FROM dbo.Posts WHERE Id IN (SELECT Id FROM #posts);
         DELETE FROM dbo.Follows WHERE UserId IN (SELECT Id FROM #su) OR TargetId IN (SELECT Id FROM #su);
@@ -113,7 +114,12 @@ public static class SeedCleaner
         -- platform
         DELETE FROM dbo.Merchants WHERE Id IN {K("Merchants")};
         DELETE FROM dbo.Tickets WHERE Id IN {K("Tickets")} OR UserId IN (SELECT Id FROM #su);
-        DELETE FROM dbo.Notifications WHERE Id IN {K("Notifications")} OR UserId IN (SELECT Id FROM #su);
+        DELETE FROM dbo.Notifications WHERE Id IN {K("Notifications")} OR UserId IN (SELECT Id FROM #su) OR BroadcastId IN {K("Broadcasts")};
+        DELETE FROM dbo.Broadcasts WHERE Id IN {K("Broadcasts")};
+        DELETE FROM dbo.Banners WHERE Id IN {K("Banners")};
+        UPDATE dbo.GiftDecorations SET BackgroundId = N'rose-mist' WHERE BackgroundId IN (SELECT K FROM dbo.SeedTextKeys WHERE Tbl = N'GiftBackgrounds');
+        UPDATE dbo.GiftDecorations SET ChatBackgroundId = N'default' WHERE ChatBackgroundId IN (SELECT K FROM dbo.SeedTextKeys WHERE Tbl = N'GiftBackgrounds');
+        DELETE FROM dbo.GiftBackgrounds WHERE Id IN (SELECT K FROM dbo.SeedTextKeys WHERE Tbl = N'GiftBackgrounds');
         DELETE FROM dbo.LoginLogs WHERE Id IN {K("LoginLogs")} OR UserId IN (SELECT Id FROM #su);
         DELETE FROM dbo.UserSessions WHERE UserId IN (SELECT Id FROM #su);
         DELETE FROM dbo.UserStates WHERE UserId IN (SELECT Id FROM #su);
@@ -159,6 +165,7 @@ public static class SeedCleaner
         SELECT g.ToUserId, g.GiftId, SUM(g.Quantity) FROM dbo.GiftTransactions g JOIN dbo.Users u ON u.Id = g.ToUserId
         WHERE g.Kind = 'send' AND g.Status = 1 AND u.Kind = 1 GROUP BY g.ToUserId, g.GiftId;
         DELETE FROM dbo.SeedKeys;
+        DELETE FROM dbo.SeedTextKeys;
         {RecountSql}
         COMMIT;
         """;
@@ -255,6 +262,14 @@ public static class SeedCleaner
                OR s.IncomeCents <> (SELECT ISNULL(SUM(e.AmountCents), 0) FROM dbo.HostEarnings e WHERE e.Source = 'live' AND e.SourceId = CAST(s.Id AS NVARCHAR(64)))
                OR s.PeakViewers > s.Viewers
             """, "SELECT COUNT(*) FROM dbo.LiveSessions WHERE Status = 1");
+        await Add("live.now", "正在直播：观众 / 点赞 / 评论 / 礼物金豆与记录一致", """
+            SELECT COUNT(*) FROM dbo.LiveSessions s
+            WHERE s.Status = 0 AND (s.GiftBeans <> (SELECT ISNULL(SUM(g.TotalBeans), 0) FROM dbo.GiftTransactions g WHERE g.Kind = 'live' AND g.RefId = CAST(s.Id AS NVARCHAR(64)))
+               OR s.Viewers <> (SELECT COUNT(*) FROM dbo.LiveViews v WHERE v.SessionId = s.Id)
+               OR s.Likes <> (SELECT ISNULL(SUM(v.Likes), 0) FROM dbo.LiveViews v WHERE v.SessionId = s.Id)
+               OR s.Comments <> (SELECT COUNT(*) FROM dbo.LiveComments c WHERE c.SessionId = s.Id)
+               OR s.PeakViewers > s.Viewers OR s.EndedAt IS NOT NULL)
+            """, "SELECT COUNT(*) FROM dbo.LiveSessions WHERE Status = 0");
         await Add("live.earnings", "直播礼物主播收益 = 金豆价值 × 分成", """
             SELECT COUNT(*) FROM dbo.HostEarnings e JOIN dbo.GiftTransactions g ON g.Id = e.GiftTxId
             WHERE e.GrossBeans <> g.TotalBeans OR e.AmountCents <> FLOOR(e.GrossCents * e.Share) OR e.GrossCents <> g.TotalBeans * 100 / 10
@@ -303,6 +318,21 @@ public static class SeedCleaner
         await Add("commissions", "代理佣金 = 充值金额 × 比例", """
             SELECT COUNT(*) FROM dbo.AgentCommissions WHERE CommissionCents <> FLOOR(BaseCents * Rate)
             """, "SELECT COUNT(*) FROM dbo.AgentCommissions");
+        await Add("crypto.balances", "生成地址的链上余额不超过该地址收到的充值", """
+            SELECT COUNT(*) FROM dbo.CryptoBalances b JOIN dbo.CryptoAddresses a ON a.Id = b.AddressId
+            WHERE a.Id IN (SELECT Id FROM dbo.SeedKeys WHERE Tbl = N'CryptoAddresses')
+              AND (b.Balance < 0 OR b.Balance > (SELECT ISNULL(SUM(d.Amount), 0) FROM dbo.CryptoDeposits d WHERE d.AddressId = b.AddressId AND d.AssetCode = b.AssetCode AND d.Simulated = 0))
+            """, "SELECT COUNT(*) FROM dbo.CryptoBalances");
+        await Add("broadcasts.sent", "通知推送：发送人数 = 生成的通知条数，定时的尚未发送", """
+            SELECT COUNT(*) FROM dbo.Broadcasts b OUTER APPLY (SELECT COUNT(*) AS N FROM dbo.Notifications n WHERE n.BroadcastId = b.Id) x
+            WHERE (b.SentAt IS NULL AND (b.SentCount <> 0 OR x.N <> 0)) OR x.N > b.SentCount
+               OR (b.Id IN (SELECT Id FROM dbo.SeedKeys WHERE Tbl = N'Broadcasts') AND x.N <> b.SentCount)
+            """, "SELECT COUNT(*) FROM dbo.Broadcasts");
+        await Add("coupons.limits", "优惠券发放不超过每人限领和总量", """
+            SELECT COUNT(*) FROM dbo.CouponTemplates t
+            WHERE (t.TotalLimit IS NOT NULL AND (SELECT COUNT(*) FROM dbo.UserCoupons u WHERE u.TemplateId = t.Id) > t.TotalLimit)
+               OR (t.PerUserLimit > 0 AND EXISTS (SELECT 1 FROM dbo.UserCoupons u WHERE u.TemplateId = t.Id GROUP BY u.UserId HAVING COUNT(*) > t.PerUserLimit))
+            """, "SELECT COUNT(*) FROM dbo.CouponTemplates");
         await Add("checkins.ledger", "签到奖励都有金豆流水", """
             SELECT COUNT(*) FROM dbo.CheckIns c WHERE c.Reward > 0 AND NOT EXISTS (SELECT 1 FROM dbo.WalletTransactions t
               WHERE t.UserId = c.UserId AND t.Kind = 'checkin' AND t.RefId = CONVERT(char(10), c.Day, 23) AND t.Amount = c.Reward)
@@ -314,7 +344,8 @@ public static class SeedCleaner
     public static async Task<object> CountsAsync(Db db)
     {
         await using var c = await db.OpenAsync();
-        var generated = (await c.QueryAsync<(string Tbl, int N)>("SELECT Tbl, COUNT(*) FROM dbo.SeedKeys GROUP BY Tbl")).ToDictionary(x => x.Tbl, x => x.N);
+        var generated = (await c.QueryAsync<(string Tbl, int N)>("SELECT Tbl, COUNT(*) FROM dbo.SeedKeys GROUP BY Tbl UNION ALL SELECT Tbl, COUNT(*) FROM dbo.SeedTextKeys GROUP BY Tbl"))
+            .GroupBy(x => x.Tbl).ToDictionary(g => g.Key, g => g.Sum(x => x.N));
         var totals = await c.QueryFirstAsync("""
             SELECT (SELECT COUNT(*) FROM dbo.Users WHERE Kind = 0 AND DeletedAt IS NULL) AS members, (SELECT COUNT(*) FROM dbo.Users WHERE Kind = 1) AS personas,
                    (SELECT COUNT(*) FROM dbo.Agents) AS agents, (SELECT COUNT(*) FROM dbo.AdminUsers) AS admins, (SELECT COUNT(*) FROM dbo.Merchants) AS merchants,
@@ -325,7 +356,11 @@ public static class SeedCleaner
                    (SELECT COUNT(*) FROM dbo.PrivateCalls) AS privateCalls, (SELECT COUNT(*) FROM dbo.CryptoDeposits) AS cryptoDeposits, (SELECT COUNT(*) FROM dbo.TopupRequests) AS topups,
                    (SELECT COUNT(*) FROM dbo.Withdrawals) AS withdrawals, (SELECT COUNT(*) FROM dbo.Tickets) AS tickets, (SELECT COUNT(*) FROM dbo.Notifications) AS notifications,
                    (SELECT COUNT(*) FROM dbo.WalletTransactions) AS ledger, (SELECT COUNT(*) FROM dbo.CheckIns) AS checkIns, (SELECT COUNT(*) FROM dbo.AdminLogs) AS adminLogs,
-                   (SELECT COUNT(*) FROM dbo.RedPackets) AS redPackets, (SELECT COUNT(*) FROM dbo.AgentCommissions) AS commissions
+                   (SELECT COUNT(*) FROM dbo.RedPackets) AS redPackets, (SELECT COUNT(*) FROM dbo.AgentCommissions) AS commissions,
+                   (SELECT COUNT(*) FROM dbo.Broadcasts) AS broadcasts, (SELECT COUNT(*) FROM dbo.Banners) AS banners, (SELECT COUNT(*) FROM dbo.CouponTemplates) AS couponTemplates,
+                   (SELECT COUNT(*) FROM dbo.GiftBackgrounds) AS giftBackgrounds, (SELECT COUNT(*) FROM dbo.LiveSessions WHERE Status = 0) AS liveNow,
+                   (SELECT COUNT(*) FROM dbo.CryptoBalances) AS cryptoBalances, (SELECT COUNT(*) FROM dbo.HostProfiles WHERE Status = 0) AS hostApplications,
+                   (SELECT COUNT(*) FROM dbo.Tickets WHERE Kind = N'merchant') AS merchantApplications
             """);
         return new { generated, totals };
     }

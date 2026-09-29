@@ -38,7 +38,8 @@ export default {
         count: {
           members: '会员', agents: '代理', orders: '订单', reviews: '评价', posts: '动态', comments: '评论', follows: '关注', messages: '聊天消息',
           liveSessions: '直播场次', giftTransactions: '礼物流水', privateCalls: '一对一通话', cryptoDeposits: '加密货币充值', withdrawals: '提现申请', tickets: '工单',
-          ledger: '钱包流水', notifications: '通知',
+          ledger: '钱包流水', notifications: '通知', broadcasts: '通知推送', banners: 'Banner', couponTemplates: '优惠券模板', giftBackgrounds: '背景主题',
+          liveNow: '正在直播', cryptoBalances: '地址余额', hostApplications: '待审主播申请', merchantApplications: '商家入驻申请',
         },
       },
       err: { 'seed.running': '测试数据任务正在运行，请稍候', 'seed.disabled': '测试数据功能已关闭（系统配置 seed.enabled）' },
@@ -69,7 +70,9 @@ export default {
         count: {
           members: 'Members', agents: 'Agents', orders: 'Orders', reviews: 'Reviews', posts: 'Posts', comments: 'Comments', follows: 'Follows', messages: 'Chat messages',
           liveSessions: 'Live sessions', giftTransactions: 'Gift transactions', privateCalls: '1:1 calls', cryptoDeposits: 'Crypto deposits', withdrawals: 'Withdrawals', tickets: 'Tickets',
-          ledger: 'Ledger rows', notifications: 'Notifications',
+          ledger: 'Ledger rows', notifications: 'Notifications', broadcasts: 'Broadcasts', banners: 'Banners', couponTemplates: 'Coupon templates',
+          giftBackgrounds: 'Backgrounds', liveNow: 'Live now', cryptoBalances: 'Address balances', hostApplications: 'Host applications (pending)',
+          merchantApplications: 'Merchant applications',
         },
       },
       err: { 'seed.running': 'A test-data job is running, please wait', 'seed.disabled': 'Test data is switched off (setting seed.enabled)' },

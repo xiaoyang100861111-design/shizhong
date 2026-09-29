@@ -36,6 +36,7 @@ public sealed class SUser
     public bool Host;
     public bool Disabled;
     public bool Seeded;             // row written by the generator
+    public bool Marketing;          // opted in to marketing messages
     public string? Phone;
     public string? Email;
     public string Lang = "zh";
@@ -183,6 +184,7 @@ public sealed partial class SeedGenerator
         Step("会员", 8);
         await MembersAsync();
         await TemplatesAsync();
+        await BackgroundsAsync();
         await LoadChatContextAsync();
         Step("资料、地址与登录", 14);
         BuildProfiles();
@@ -200,6 +202,7 @@ public sealed partial class SeedGenerator
         BuildGrowthAndFinancePlans();
         Step("工单", 56);
         BuildTickets();
+        BuildBroadcasts();
         BuildShopExtras();
         BuildSettlements();
         Step("资金流水模拟", 60);

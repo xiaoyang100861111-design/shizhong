@@ -365,6 +365,21 @@ public sealed partial class SeedGenerator
                 AddCommission(u, "crypto", d.Id, credit, creditAt);
             });
         }
+        // Large deposits waiting for finance to check them by hand (status 5, not credited yet).
+        foreach (var _ in Enumerable.Range(0, N(10)))
+        {
+            var u = PickUser(active, actW);
+            var at = T.Now.AddMinutes(-R.Next(30, 60 * 24 * 4));
+            if (at <= u.RegAt.AddHours(2)) continue;
+            var asset = assets.FirstOrDefault(a => a.Code == Pick(new[] { "USDT-TRC20", "USDT-TRC20", "USDT-BEP20", "USDC-ERC20" })) ?? assets[0];
+            var d = NewDeposit(u, asset, Pick(new[] { 11800m, 12000m, 15000m, 20000m, 25000m }), at);
+            d.Status = 5;
+            d.StatusReason = "tooLarge";
+            d.Credited = null;
+            d.Updated = at;
+            Notice(u, at.AddSeconds(2), "system", "server.finance.notice.cryptoReview", "server.finance.notice.cryptoReviewBody",
+                new { qty = d.Amount.ToString("0.########", CultureInfo.InvariantCulture), coin = d.Coin, network = d.Network }, "fin-deposits", null);
+        }
         // Deposits still confirming right now.
         var recentUsers = active.Where(m => m.LastSeen > T.Now.AddHours(-6)).ToList();
         if (recentUsers.Count == 0) recentUsers = active;
@@ -409,6 +424,11 @@ public sealed partial class SeedGenerator
         var hostUsers = members.Where(m => m.Host).ToList();
         foreach (var _ in Enumerable.Range(0, N(170)))
             if (hostUsers.Count > 0) PlanWithdrawal(Pick(hostUsers), "income");
+        // The review queue this morning: requests from the last day and a half.
+        foreach (var _ in Enumerable.Range(0, N(16)))
+            PlanWithdrawal(PickUser(active, actW), "wallet", recent: true);
+        foreach (var _ in Enumerable.Range(0, N(8)))
+            if (hostUsers.Count > 0) PlanWithdrawal(Pick(hostUsers), "income", recent: true);
 
         // Manual adjustments by finance (compensation, campaign rewards).
         foreach (var _ in Enumerable.Range(0, N(40)))
@@ -462,13 +482,13 @@ public sealed partial class SeedGenerator
         return a;
     }
 
-    void PlanWithdrawal(SUser u, string source)
+    void PlanWithdrawal(SUser u, string source, bool recent = false)
     {
-        var at = T.Pick(R, u.RegAt.AddDays(3), u.LastSeen);
+        var at = T.Pick(R, recent ? Max(u.RegAt.AddDays(3), T.Now.AddHours(-34)) : u.RegAt.AddDays(3), u.LastSeen);
         if (at > T.Now.AddMinutes(-20)) return;
         var w = new Withdrawal { U = u, Source = source, Created = at, Account = AccountFor(u, at) };
         var age = (T.Now - at).TotalHours;
-        w.Status = age < 36 && Chance(0.75) ? 0 : Weighted(new (int, double)[] { (1, 78), (2, 12), (3, 10) });
+        w.Status = age < 36 && (recent || Chance(0.75)) ? 0 : Weighted(new (int, double)[] { (1, 78), (2, 12), (3, 10) });
         withdrawals.Add(w);
         var admin = Pick(financeAdmins);
         At(at, () =>

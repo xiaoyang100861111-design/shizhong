@@ -17,7 +17,7 @@ export default {
     zh: {
       mk: {
         banners: 'Banner 与活动', bannersSub: '首页 Banner（多个时可左右滑动）；点击后打开活动页、分类、服务、搜索或外部链接。', newBanner: '新增 Banner', editBanner: '编辑 Banner',
-        image: '图片', copy: '文案', action: '点击后', window: '上线时间', now: '立即', forever: '长期', live: '展示中', scheduled: '未到时间', kicker: '小标题', titleLabel: '标题',
+        image: '图片', copy: '文案', action: '点击后', window: '上线时间', now: '立即', forever: '长期', live: '展示中', scheduled: '未到时间', ended: '已结束', kicker: '小标题', titleLabel: '标题',
         sub: '副标题', subAbroad: '海外用户副标题', cta: '按钮文字', campaignCats: '活动选品分类', campaignIds: '指定服务', campaignIdsHint: '输入服务编码回车，留空按分类选品',
         defaultCats: '默认分类（推荐位设置）', pickedN: '指定 {n} 项',
         actions: { campaign: '活动页', category: '分类', service: '服务详情', search: '搜索', url: '外部链接', none: '不跳转' },
@@ -38,7 +38,7 @@ export default {
     en: {
       mk: {
         banners: 'Banners', bannersSub: 'Home banners (swipe when several are live); a tap opens a campaign page, category, listing, search or external link.', newBanner: 'New banner', editBanner: 'Edit banner',
-        image: 'Image', copy: 'Copy', action: 'On tap', window: 'Live window', now: 'Now', forever: 'No end', live: 'Live', scheduled: 'Scheduled', kicker: 'Kicker', titleLabel: 'Title',
+        image: 'Image', copy: 'Copy', action: 'On tap', window: 'Live window', now: 'Now', forever: 'No end', live: 'Live', scheduled: 'Scheduled', ended: 'Ended', kicker: 'Kicker', titleLabel: 'Title',
         sub: 'Subtitle', subAbroad: 'Subtitle (outside Malaysia)', cta: 'Button', campaignCats: 'Campaign categories', campaignIds: 'Picked listings', campaignIdsHint: 'Type listing codes; empty = by category',
         defaultCats: 'Default categories (see Placements)', pickedN: '{n} picked',
         actions: { campaign: 'Campaign page', category: 'Category', service: 'Listing', search: 'Search', url: 'External link', none: 'Nothing' },

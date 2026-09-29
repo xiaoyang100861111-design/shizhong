@@ -14,18 +14,27 @@ public sealed partial class SeedGenerator
     public SeedGenerator(Db db, ConfigService cfg, ILogger log, double scale, int randomSeed, string siteRoot, Action<SeedProgress> progress)
         : this(db, cfg, log, scale, randomSeed, progress) => this.siteRoot = siteRoot;
 
-    /// <summary>Coupon templates of the two campaigns in the data (9.9 grocery festival, Mid-Autumn).</summary>
+    /// <summary>Coupon templates of the campaigns in the data (<see cref="CampaignCoupons"/>: past, running, scheduled and switched-off ones).</summary>
     async Task TemplatesAsync()
     {
         var t = new SeedTable("CouponTemplates", ("Code", typeof(string)), ("Name", typeof(string)), ("NameEn", typeof(string)), ("AmountCents", typeof(long)),
-            ("MinCents", typeof(long)), ("Days", typeof(int)), ("Category", typeof(string)), ("AutoOnSignup", typeof(bool)), ("PerUserLimit", typeof(int)), ("Enabled", typeof(bool)),
-            ("Note", typeof(string)), ("CreatedAt", typeof(DateTime)));
-        var added = newTemplates.Where(x => !coupons.ContainsKey(x.Code)).ToList();
-        foreach (var x in added) t.Add(x.Code, x.Name, x.NameEn, x.Amount, x.Min, x.Days, x.Category, false, 1, true, "活动券（测试数据）", T.Start.AddDays(R.Next(20, 60)));
+            ("MinCents", typeof(long)), ("Days", typeof(int)), ("Category", typeof(string)), ("AutoOnSignup", typeof(bool)), ("PerUserLimit", typeof(int)), ("TotalLimit", typeof(int)),
+            ("Enabled", typeof(bool)), ("Note", typeof(string)), ("CreatedAt", typeof(DateTime)), ("UpdatedAt", typeof(DateTime)));
+        var existing = (await C.QueryAsync<string>("SELECT Code FROM dbo.CouponTemplates")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var added = CampaignCoupons.Where(x => !existing.Contains(x.Code)).ToList();
+        foreach (var x in added)
+        {
+            var created = CouponCreated(x);
+            var updated = x.Enabled ? created : Min(created.AddDays(R.Next(10, 30)), T.Now.AddDays(-1));
+            t.Add(x.Code, x.Name, x.NameEn, x.Amount, x.Min, x.Days, x.Category, false, x.PerUser, x.Total, x.Enabled, x.Note ?? "活动券（测试数据）", created, updated);
+        }
         if (t.Count == 0) return;
         var ids = await W.InsertAsync(t);
         for (var i = 0; i < ids.Length; i++)
             coupons[added[i].Code] = new CouponTpl(ids[i], added[i].Code, added[i].Amount, added[i].Min, added[i].Days, added[i].Category);
+        foreach (var x in added.Where(x => !x.Enabled && x.Created != null))
+            Audit(Pick(operatorAdmins), "marketing.coupon.update", () => "coupon:" + x.Code, new { enabled = false }, LocalDay(x.Created!, 15).AddDays(R.Next(10, 25)));
+        Summary["couponTemplates"] = t.Count;
     }
 
     int writeStep;
@@ -72,7 +81,14 @@ public sealed partial class SeedGenerator
         commentIds = new long[commentRecs.Count];
         for (var k = 0; k < commentOrder.Count; k++) commentIds[commentOrder[k]] = cids[k];
         foreach (var (p, u, at) in likeRecs) postLikes.Add(p.Id.Id, u.Id, at);
+        // Personas liking the imported posts: neither side is generated, so these likes are recorded by key for 清除测试数据.
+        var outside = likeRecs.Where(x => x.Post.Imported && x.U.IsPersona).Select(x => $"{x.Post.Id.Id}:{x.U.Id}").Distinct().ToList();
+        var had = outside.Count == 0 ? [] : (await C.QueryAsync<string>("""
+            SELECT CONCAT(l.PostId, ':', l.UserId) FROM dbo.PostLikes l JOIN OPENJSON(@keys) WITH (k NVARCHAR(64) '$') j ON j.k = CONCAT(l.PostId, ':', l.UserId)
+            """, new { keys = Json.Serialize(outside) }, commandTimeout: 600)).ToHashSet();
         await W.InsertKeyedAsync(postLikes, "PostId", "UserId");
+        await C.ExecuteAsync("INSERT INTO dbo.SeedTextKeys(Tbl, K) SELECT N'PostLikes', value FROM OPENJSON(@keys) WITH (value NVARCHAR(128) '$')",
+            new { keys = Json.Serialize(outside.Where(k => !had.Contains(k))) });
         await W.InsertKeyedAsync(follows, "UserId", "TargetId");
         await W.InsertKeyedAsync(visits, "VisitorId", "TargetId");
         await W.InsertAsync(friendRequests);
@@ -156,7 +172,8 @@ public sealed partial class SeedGenerator
             ("StoppedBy", typeof(long)), ("StopNote", typeof(string)));
         var liveOrder = lives.OrderBy(l => l.Start).ToList();
         foreach (var s in liveOrder)
-            liveTable.Add(s.Host.Id, s.Title.Length > 60 ? s.Title[..60] : s.Title, s.Topic, s.Cover, 1, s.EndReason, s.Start, s.End, s.End, Math.Min(s.Peak, Math.Max(1, s.Views.Count)),
+            liveTable.Add(s.Host.Id, s.Title.Length > 60 ? s.Title[..60] : s.Title, s.Topic, s.Cover, s.Live ? 0 : 1, s.Live ? null : s.EndReason, s.Start, s.Live ? null : s.End,
+                s.End, s.Live ? Math.Min(s.Peak, s.Views.Count) : Math.Min(s.Peak, Math.Max(1, s.Views.Count)),
                 s.Views.Count, s.Views.Sum(v => (long)v.Likes), s.GiftBeans, s.Comments.Count(c => c.Kind != "gift"), s.NewFollowers, s.NewFans, s.Income, s.StoppedBy, s.StopNote);
         var liveIds = await W.InsertAsync(liveTable);
         for (var i = 0; i < liveIds.Length; i++) liveOrder[i].Id.Id = liveIds[i];
@@ -368,6 +385,7 @@ public sealed partial class SeedGenerator
         }
         await W.InsertKeyedAsync(walletTable, "UserId");
         Wrote("资金流水与钱包");
+        await WriteExtrasAsync();
         await W.InsertAsync(NoticeTable());
         ConsoleHousekeeping();
         await W.InsertAsync(AuditTable());
