@@ -237,6 +237,7 @@ async def run(args):
                     else:
                         setup.append("await fetch('/api/auth/logout',{method:'POST'})")
                     setup.append("localStorage.setItem('sz:v3:guest','1')" if session == "guest" else "localStorage.removeItem('sz:v3:guest')")
+                    setup.append("localStorage.removeItem('sz:v3:token')")  # the cookie is the session here
                 if session == "none":
                     setup.append("localStorage.removeItem('sz:v2:session')")
                 else:
