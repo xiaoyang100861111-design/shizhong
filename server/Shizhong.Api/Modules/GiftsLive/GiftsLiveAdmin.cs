@@ -659,7 +659,7 @@ public sealed partial class GiftsLiveAdmin : IModule
     };
 
     const string TxFrom = "dbo.GiftTransactions t JOIN dbo.Users u ON u.Id = t.UserId LEFT JOIN dbo.Users r ON r.Id = t.ToUserId LEFT JOIN dbo.Gifts g ON g.Id = t.GiftId";
-    const string TxCols = "t.Id, t.Kind, t.GiftId, g.Name AS GiftName, g.ArtThumb, t.Quantity, t.UnitBeans, t.TotalBeans, t.PaidBeans, t.FromOwned, t.Note, t.RefId, t.Status, t.CreatedAt, " +
+    const string TxCols = "t.Id, t.Kind, t.GiftId, CASE WHEN t.Kind IN ('live', 'private') THEN ISNULL(g.LiveName, g.Name) ELSE g.Name END AS GiftName, g.ArtThumb, t.Quantity, t.UnitBeans, t.TotalBeans, t.PaidBeans, t.FromOwned, t.Note, t.RefId, t.Status, t.CreatedAt, " +
                           "u.Id AS FromId, u.Name AS FromName, u.DisplayId AS FromDisplayId, r.Id AS ToId, r.Name AS ToName, r.DisplayId AS ToDisplayId";
 
     static (string, DynamicParameters) TxWhere(CurrentAdmin a, TxFilter f)
