@@ -1,0 +1,92 @@
+# 自动部署：main 分支有新提交时，GitHub 打包 → 服务器上的 GitHub Runner 发布到 IIS。
+#
+#   build  （GitHub 的 Linux 机器）python tools/deploy/build_server.py：后端 + 用户端 + 管理后台
+#   deploy （你的 Windows 服务器上的 Runner）tools/deploy/deploy_iis.ps1：备份 → 停池 → 覆盖 → 启动 → 健康检查，失败自动回滚
+#
+# 一次性配置见 部署说明.md「自动部署」：在服务器上运行 tools/deploy/install_runner.ps1，
+# 然后在仓库 Settings › Secrets and variables › Actions › Variables 里加 DEPLOY_ENABLED = true。
+# 没有 DEPLOY_ENABLED 时只打包、不部署。
+name: Deploy
+
+on:
+  push:
+    branches: [main, "claude/**"]   # claude/** 只打包检查，不部署
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装管理后台依赖
+        run: npm ci --no-audit --no-fund
+        working-directory: admin
+
+      - name: 打包
+        id: pkg
+        run: |
+          python tools/deploy/build_server.py
+          dir=$(ls -d dist/shizhong-server-*/ | head -n 1)
+          echo "dir=${dir%/}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shizhong-server
+          path: ${{ steps.pkg.outputs.dir }}
+          include-hidden-files: true
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-script
+          path: tools/deploy/deploy_iis.ps1
+          retention-days: 14
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: [self-hosted, windows, shizhong]
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: shizhong-server
+          path: ${{ runner.temp }}\shizhong-server
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: deploy-script
+          path: ${{ runner.temp }}\deploy-script
+
+      - name: 发布到 IIS
+        shell: powershell
+        # 可选变量：DEPLOY_SITE_PATH（默认 D:\sites\shizhong）、DEPLOY_APP_POOL（默认 shizhong）、DEPLOY_HEALTH_URL（默认按 IIS 绑定自动推算）
+        env:
+          DEPLOY_SITE_PATH: ${{ vars.DEPLOY_SITE_PATH }}
+          DEPLOY_APP_POOL: ${{ vars.DEPLOY_APP_POOL }}
+          DEPLOY_HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$env:RUNNER_TEMP\deploy-script\deploy_iis.ps1" -Package "$env:RUNNER_TEMP\shizhong-server"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 清理
+        if: always()
+        shell: powershell
+        run: Remove-Item -Recurse -Force "$env:RUNNER_TEMP\shizhong-server", "$env:RUNNER_TEMP\deploy-script" -ErrorAction SilentlyContinue
