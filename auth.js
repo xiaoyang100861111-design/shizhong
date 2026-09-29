@@ -21,11 +21,14 @@
   const STATE_KEY = id => 'sz:v2:state:' + id;
   const AVATAR_MAX_BYTES = 40 * 1024;
   const AVATAR_SIZE = 256;
-  const NAME_MAX = 20;
+  // Server mode (backend hosts the app): password accounts, no codes or social sign-in unless the
+  // admin console enables them; lists below come from the console settings when available.
+  const SERVER = !!SZ.server;
+  const NAME_MAX = Number(SZ.config('auth.nameMax', 20)) || 20;
   const DEFAULT_AVATAR = 'ui/avatar-default.svg';
 
   // Dial codes offered in the picker; Malaysia first (default), then the region, then the diaspora.
-  const COUNTRIES = [
+  const COUNTRIES_DEFAULT = [
     { id: 'MY', dial: '60' },
     { id: 'SG', dial: '65' },
     { id: 'CN', dial: '86' },
@@ -43,9 +46,15 @@
     { id: 'KR', dial: '82' },
     { id: 'IN', dial: '91' },
   ];
+  const COUNTRIES = (() => {
+    const list = SZ.config('auth.countryCodes', null);
+    return Array.isArray(list) && list.length
+      ? list.map(c => ({ id: String(c.code || c.id), dial: String(c.dial) })).filter(c => c.id && c.dial)
+      : COUNTRIES_DEFAULT;
+  })();
   // Stored city values (the app keeps cities in the source language and shows them via td('city')).
-  const CITIES = ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保'];
-  const INTERESTS = [
+  const CITIES = SZ.config('auth.cities', ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保']);
+  const INTERESTS = SZ.config('auth.interests', null) || [
     'food',
     'travel',
     'fitness',
@@ -61,7 +70,14 @@
     'beauty',
     'homeLife',
   ];
-  const PROVIDERS = { google: 'Google', apple: 'Apple', facebook: 'Facebook' };
+  const PROVIDERS_ALL = { google: 'Google', apple: 'Apple', facebook: 'Facebook' };
+  const PROVIDERS = SERVER
+    ? Object.fromEntries(Object.entries(PROVIDERS_ALL).filter(([id]) => (SZ.config('auth.providers', []) || []).includes(id)))
+    : PROVIDERS_ALL;
+  const DEMO_ENABLED = !SERVER || SZ.config('auth.demoLogin', true) !== false;
+  const PW_MIN = Number(SZ.config('auth.passwordMin', 8)) || 8;
+  const PW_MAX = Number(SZ.config('auth.passwordMax', 64)) || 64;
+  const PW_MIX = SZ.config('auth.passwordLetterDigit', true) !== false;
 
   // Icons the shared set does not have (same 24px stroke style as icon() in app.js).
   const GLYPHS = {
@@ -128,12 +144,12 @@
   }
   const emailValid = value => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[a-z]{2,}$/i.test(value);
   const passwordRules = value => ({
-    length: value.length >= 8,
-    mix: /[a-z]/i.test(value) && /\d/.test(value),
+    length: value.length >= PW_MIN,
+    mix: !PW_MIX || (/[a-z]/i.test(value) && /\d/.test(value)),
   });
   const passwordValid = value => {
     const r = passwordRules(value);
-    return r.length && r.mix && value.length <= 64;
+    return r.length && r.mix && value.length <= PW_MAX;
   };
   function randomCode() {
     const n = new Uint32Array(1);
@@ -142,9 +158,23 @@
   }
   function setBusy(button, label) {
     if (!button) return;
+    if (button.dataset.idleHtml === undefined) button.dataset.idleHtml = button.innerHTML;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
     button.innerHTML = `<span class="auth-spinner" aria-hidden="true"></span><span>${esc(label)}</span>`;
+  }
+  function unbusy(button) {
+    if (!button || button.dataset.idleHtml === undefined) return;
+    button.innerHTML = button.dataset.idleHtml;
+    delete button.dataset.idleHtml;
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+  }
+  /** Server mode: store the session token and reload into the account. */
+  function enterServerSession(res) {
+    if (res?.token) SZ.api.setToken(res.token);
+    draft = null;
+    SZ.session.login(res?.me?.id || '');
   }
   function showError(el, text) {
     if (!el) return;
@@ -400,7 +430,12 @@
           `<button type="button" class="auth-provider" data-action="auth-provider" data-id="${id}" aria-label="${esc(t('auth.provider.continueWith', { provider: name }))}"><span class="auth-provider-logo auth-provider-${id}">${providerLogo(id)}</span><span class="auth-provider-name">${name}</span></button>`
       )
       .join('');
-    return `<div class="auth-entry"><button type="button" class="btn btn-primary btn-lg btn-block" data-action="auth-phone">${icon('phone')}<span>${esc(t('auth.welcome.phone'))}</span></button><button type="button" class="btn btn-outline btn-lg btn-block" data-action="auth-email">${glyph('mail')}<span>${esc(t('auth.welcome.email'))}</span></button><div class="auth-divider"><span>${esc(t('auth.welcome.or'))}</span></div><div class="auth-providers">${providers}</div><p class="auth-provider-note"><span class="tag">${esc(t('auth.welcome.demoTag'))}</span><span>${esc(t('auth.welcome.providersNote'))}</span></p></div>`;
+    const phoneOn = !SERVER || SZ.config('auth.phoneEnabled', true) !== false;
+    const emailOn = !SERVER || SZ.config('auth.emailEnabled', true) !== false;
+    const social = providers
+      ? `<div class="auth-divider"><span>${esc(t('auth.welcome.or'))}</span></div><div class="auth-providers">${providers}</div>${SERVER ? '' : `<p class="auth-provider-note"><span class="tag">${esc(t('auth.welcome.demoTag'))}</span><span>${esc(t('auth.welcome.providersNote'))}</span></p>`}`
+      : '';
+    return `<div class="auth-entry">${phoneOn ? `<button type="button" class="btn btn-primary btn-lg btn-block" data-action="auth-phone">${icon('phone')}<span>${esc(t('auth.welcome.phone'))}</span></button>` : ''}${emailOn ? `<button type="button" class="btn ${phoneOn ? 'btn-outline' : 'btn-primary'} btn-lg btn-block" data-action="auth-email">${glyph('mail')}<span>${esc(t('auth.welcome.email'))}</span></button>` : ''}${social}</div>`;
   }
   function legalLine() {
     return `<p class="auth-legal">${t('auth.welcome.legal', legalLinks())}</p>`;
@@ -425,7 +460,7 @@
     ]
       .map(([ico, key]) => `<li>${icon(ico)}<span>${esc(t(key))}</span></li>`)
       .join('');
-    const html = `<section class="full-screen auth-screen auth-welcome" role="dialog" aria-modal="true" aria-labelledby="${headingId}" data-auth="welcome"><div class="auth-welcome-bar">${close}<span class="auth-header-fill"></span>${langPill}</div><div class="auth-welcome-hero"><img class="auth-logo" src="${asset('logo.png')}" alt="" width="88" height="88"><h1 class="auth-brand" id="${headingId}">${esc(t('auth.brand'))}</h1><p class="auth-tagline">${esc(t('auth.welcome.tagline'))}</p><p class="auth-value">${esc(t('auth.welcome.value'))}</p><ul class="auth-highlights">${highlights}</ul></div><div class="auth-welcome-actions">${entryButtons()}<div class="auth-quick"><button type="button" class="btn btn-tonal btn-lg btn-block" data-action="auth-demo">${icon('spark')}<span>${esc(t('auth.welcome.demoAccount'))}</span></button><button type="button" class="btn btn-ghost btn-block auth-guest" data-action="auth-guest">${esc(t('auth.welcome.guest'))}</button></div>${legalLine()}</div></section>`;
+    const html = `<section class="full-screen auth-screen auth-welcome" role="dialog" aria-modal="true" aria-labelledby="${headingId}" data-auth="welcome"><div class="auth-welcome-bar">${close}<span class="auth-header-fill"></span>${langPill}</div><div class="auth-welcome-hero"><img class="auth-logo" src="${asset('logo.png')}" alt="" width="88" height="88"><h1 class="auth-brand" id="${headingId}">${esc(t('auth.brand'))}</h1><p class="auth-tagline">${esc(t('auth.welcome.tagline'))}</p><p class="auth-value">${esc(t('auth.welcome.value'))}</p><ul class="auth-highlights">${highlights}</ul></div><div class="auth-welcome-actions">${entryButtons()}<div class="auth-quick">${DEMO_ENABLED ? `<button type="button" class="btn btn-tonal btn-lg btn-block" data-action="auth-demo">${icon('spark')}<span>${esc(t('auth.welcome.demoAccount'))}</span></button>` : ''}<button type="button" class="btn btn-ghost btn-block auth-guest" data-action="auth-guest">${esc(t('auth.welcome.guest'))}</button></div>${legalLine()}</div></section>`;
     welcomeLayer = SZ.overlay.open({
       kind: 'raw',
       mode,
@@ -453,7 +488,7 @@
       title: t('auth.login.title'),
       className: 'auth-sheet auth-login-sheet',
       meta: { auth: 'login' },
-      html: `<div class="auth-sheet-content"><div class="auth-sheet-lead"><img class="auth-sheet-logo" src="${asset('logo.png')}" alt="" width="48" height="48"><p class="auth-reason">${esc(text)}</p></div>${entryButtons()}<button type="button" class="btn btn-tonal btn-lg btn-block" data-action="auth-demo">${icon('spark')}<span>${esc(t('auth.welcome.demoAccount'))}</span></button><button type="button" class="btn btn-ghost btn-block auth-not-now" data-action="close">${esc(t('auth.login.notNow'))}</button>${legalLine()}</div>`,
+      html: `<div class="auth-sheet-content"><div class="auth-sheet-lead"><img class="auth-sheet-logo" src="${asset('logo.png')}" alt="" width="48" height="48"><p class="auth-reason">${esc(text)}</p></div>${entryButtons()}${DEMO_ENABLED ? `<button type="button" class="btn btn-tonal btn-lg btn-block" data-action="auth-demo">${icon('spark')}<span>${esc(t('auth.welcome.demoAccount'))}</span></button>` : ''}<button type="button" class="btn btn-ghost btn-block auth-not-now" data-action="close">${esc(t('auth.login.notNow'))}</button>${legalLine()}</div>`,
     });
   }
 
@@ -475,6 +510,14 @@
       SZ.overlay.close();
       return;
     }
+    if (SERVER) {
+      setBusy(button, t('auth.welcome.signingIn'));
+      SZ.api.post('auth/demo').then(enterServerSession, e => {
+        unbusy(button);
+        SZ.api.fail(e);
+      });
+      return;
+    }
     signIn(SZ.accounts.DEMO_ID, button);
   }
 
@@ -486,7 +529,7 @@
       mode,
       title: t('auth.phone.title'),
       body: `<p class="auth-sub">${esc(t('auth.phone.sub'))}</p>${phoneFieldHTML(id)}`,
-      footer: `${submitButton(t('auth.phone.send'))}<button type="button" class="btn btn-ghost btn-block" data-action="auth-email" data-id="replace">${glyph('mail')}<span>${esc(t('auth.phone.useEmail'))}</span></button>`,
+      footer: `${submitButton(t(SERVER ? 'auth.consent.continue' : 'auth.phone.send'))}<button type="button" class="btn btn-ghost btn-block" data-action="auth-email" data-id="replace">${glyph('mail')}<span>${esc(t('auth.phone.useEmail'))}</span></button>`,
     });
     const submit = layer.el.querySelector('[type=submit]');
     const field = bindPhoneField(layer, id, ok => (submit.disabled = !ok));
@@ -497,10 +540,26 @@
           field.input.focus({ preventScroll: true });
         });
     });
-    onSubmit(layer, () => {
+    onSubmit(layer, button => {
       field.touched = true;
       if (!field.showError()) return field.input.focus();
       const phone = SZ.accounts.normalizePhone(field.value());
+      if (SERVER) {
+        setBusy(button, t('auth.consent.continue'));
+        SZ.api.post('auth/lookup', { phone }).then(
+          res => {
+            unbusy(button);
+            if (res.exists) return openServerPassword({ phone });
+            newDraft({ phone, channel: 'sms', total: 3 });
+            openAccountStep({ n: 2 });
+          },
+          e => {
+            unbusy(button);
+            SZ.api.fail(e);
+          }
+        );
+        return;
+      }
       const existing = SZ.accounts.find({ phone });
       newDraft({ phone, channel: 'sms', existing, total: existing ? 0 : 4 });
       openCode();
@@ -647,6 +706,13 @@
         : `<p class="auth-sub">${esc(t('auth.consent.sub'))}</p>${consent}`,
       footer: submitButton(t('auth.consent.continue')),
     });
+    if (SERVER) {
+      const required = SZ.config('auth.inviteRequired', false) === true;
+      layer.el.querySelector('.auth-consent')?.insertAdjacentHTML(
+        'beforebegin',
+        `<div class="form-group"><label class="form-label" for="${id}-invite">${esc(t('auth.server.inviteLabel'))}${required ? '<span class="required" aria-hidden="true">*</span>' : ''}</label><input id="${id}-invite" class="field" name="invite" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="${esc(t('auth.server.invitePlaceholder'))}" value="${esc(d.inviteCode || new URLSearchParams(location.search).get('invite') || '')}"></div>`
+      );
+    }
     const form = layer.el.querySelector('form');
     const submit = layer.el.querySelector('[type=submit]');
     const pw = layer.el.querySelector('#' + id);
@@ -673,6 +739,7 @@
     });
     onSubmit(layer, () => {
       if (needPassword) d.password = pw.value;
+      if (SERVER) d.inviteCode = (form.invite?.value || '').trim();
       d.consent = { age: true, terms: true, marketing: form.marketing.checked, at: Date.now() };
       openProfile(n + 1);
     });
@@ -858,6 +925,32 @@
   /** Create the account, seed its first state and reload into it. */
   async function finish(profile) {
     const d = draft;
+    if (SERVER) {
+      try {
+        const res = await SZ.api.post('auth/register', {
+          phone: d.phone || null,
+          email: d.email || null,
+          password: d.password,
+          name: profile.name,
+          avatar: profile.photo || null,
+          city: profile.city,
+          location: profile.location || null,
+          language: profile.locale && profile.locale.startsWith('en') ? 'en' : 'zh',
+          interests: profile.interests || [],
+          marketing: !!d.consent?.marketing,
+          ageConfirmed: true,
+          terms: true,
+          inviteCode: d.inviteCode || null,
+        });
+        if (profile.locale && profile.locale !== window.SZ_I18N.locale)
+          window.SZ_I18N.setLocale(profile.locale, { reload: false });
+        enterServerSession(res);
+        return true;
+      } catch (e) {
+        SZ.api.fail(e);
+        return false;
+      }
+    }
     let account;
     try {
       account = SZ.accounts.create({
@@ -948,7 +1041,7 @@
       rules.hidden = !create;
       layer.el.querySelector('.auth-inline-links').hidden = create;
       layer.el.querySelector('.auth-demo-hint').hidden = create;
-      submit.textContent = t(create ? 'auth.email.sendCode' : 'auth.email.signIn');
+      submit.textContent = t(create ? (SERVER ? 'auth.consent.continue' : 'auth.email.sendCode') : 'auth.email.signIn');
       showError(emailError, '');
       showError(pwError, '');
       invalid(input, false);
@@ -967,7 +1060,7 @@
         if (s <= 0 || current !== 'signin') {
           clearInterval(cooldownTimer);
           showError(pwError, '');
-          submit.textContent = t(current === 'create' ? 'auth.email.sendCode' : 'auth.email.signIn');
+          submit.textContent = t(current === 'create' ? (SERVER ? 'auth.consent.continue' : 'auth.email.sendCode') : 'auth.email.signIn');
           update();
           return;
         }
@@ -1017,6 +1110,7 @@
         invalid(input, true);
         return input.focus();
       }
+      if (SERVER) return serverEmailSubmit(e, button);
       const account = SZ.accounts.find({ email: e });
       if (current === 'create') {
         if (account) {
@@ -1058,13 +1152,107 @@
       clearThrottle(throttleKey());
       signIn(account.id, button);
     });
+    function serverEmailSubmit(e, button) {
+      if (current === 'create') {
+        if (!passwordValid(pw.value)) {
+          showError(pwError, t('auth.password.weak'));
+          invalid(pw, true);
+          return pw.focus();
+        }
+        setBusy(button, t('auth.consent.continue'));
+        SZ.api.post('auth/lookup', { email: e }).then(
+          res => {
+            unbusy(button);
+            if (res.exists) {
+              errorWithAction(emailError, t('auth.email.exists'), t('auth.email.signInInstead'), 'to-signin');
+              invalid(input, true);
+              return;
+            }
+            newDraft({ email: e, password: pw.value, channel: 'email', total: 3 });
+            openAccountStep({ n: 2 });
+          },
+          err => {
+            unbusy(button);
+            SZ.api.fail(err);
+          }
+        );
+        return;
+      }
+      if (!pw.value) {
+        showError(pwError, t('auth.email.passwordRequired'));
+        return pw.focus();
+      }
+      setBusy(button, t('auth.welcome.signingIn'));
+      SZ.api.post('auth/login', { email: e, password: pw.value }).then(enterServerSession, err => {
+        unbusy(button);
+        update();
+        if (err.code === 'auth.notFound') {
+          errorWithAction(emailError, t('auth.email.notFound'), t('auth.email.createInstead'), 'to-create');
+          invalid(input, true);
+        } else if (err.code === 'auth.wrongPassword') {
+          invalid(pw, true);
+          pw.select();
+          showError(pwError, tn('auth.email.wrongPassword', Number(err.extra?.left) || 0));
+        } else showError(pwError, SZ.api.errorText(err));
+      });
+    }
     setTab(tab);
     focusSoon(layer, email ? '#' + id + '-pw' : '#' + id);
     return layer;
   }
 
+  // ------------------------------------------------------------------ server mode: phone password
+  /** Password step for an existing phone (or remembered e-mail) account. */
+  function openServerPassword({ phone = '', email = '', name = '' } = {}) {
+    const id = uid('spw');
+    const account = phone ? displayPhone(phone) : email;
+    const layer = openScreen({
+      name: 'password',
+      title: t('auth.server.passwordTitle'),
+      body: `<p class="auth-sub">${esc(name ? name + ' · ' : '')}${esc(t('auth.server.passwordSub', { account: '⁨' + account + '⁩' }))}</p>${passwordField({ id, autocomplete: 'current-password' })}<div class="auth-inline-links"><button type="button" class="auth-link" data-act="forgot">${esc(t('auth.server.forgot'))}</button></div>`,
+      footer: submitButton(t('auth.server.signIn')),
+    });
+    const pw = layer.el.querySelector('#' + id);
+    const error = layer.el.querySelector('#' + id + '-error');
+    const submit = layer.el.querySelector('[type=submit]');
+    pw.addEventListener('input', () => {
+      submit.disabled = !pw.value;
+      showError(error, '');
+      invalid(pw, false);
+    });
+    onAct(layer, (act, el) => {
+      if (act === 'toggle-password') togglePassword(el);
+      else if (act === 'forgot') openForgot({ email });
+    });
+    onSubmit(layer, button => {
+      setBusy(button, t('auth.welcome.signingIn'));
+      SZ.api.post('auth/login', { phone: phone || null, email: email || null, password: pw.value }).then(enterServerSession, err => {
+        unbusy(button);
+        submit.disabled = !pw.value;
+        invalid(pw, true);
+        pw.select();
+        showError(
+          error,
+          err.code === 'auth.wrongPassword' ? tn('auth.email.wrongPassword', Number(err.extra?.left) || 0) : SZ.api.errorText(err)
+        );
+      });
+    });
+    focusSoon(layer, '#' + id);
+    return layer;
+  }
+
   // ------------------------------------------------------------------ forgot / new password
   function openForgot({ email = '' } = {}) {
+    if (SERVER && SZ.config('auth.otpEnabled', false) !== true) {
+      return SZ.overlay.open({
+        kind: 'sheet',
+        mode: 'push',
+        title: t('auth.server.forgotTitle'),
+        className: 'auth-sheet',
+        meta: { auth: 'forgot' },
+        html: `<div class="auth-sheet-content"><p class="auth-sub">${esc(t('auth.server.forgotBody', { hours: SZ.config('site.supportHours', '09:00–22:00') }))}</p><button type="button" class="btn btn-primary btn-lg btn-block" data-action="close">${esc(t('common.ok'))}</button></div>`,
+      });
+    }
     const id = uid('forgot');
     const byEmail = !!email;
     let channel = byEmail ? 'email' : 'sms';
@@ -1260,6 +1448,11 @@
     onAct(layer, async (act, el) => {
       if (act === 'switch') {
         if (el.dataset.id === currentId) return SZ.overlay.close({ layer });
+        if (SERVER) {
+          const target = SZ.accounts.get(el.dataset.id);
+          if (target?.demo) return loginDemo(el);
+          if (target) return openServerPassword({ phone: target.phone, email: target.phone ? '' : target.email, name: target.name });
+        }
         el.disabled = true;
         el.setAttribute('aria-busy', 'true');
         switchTo(el.dataset.id);
@@ -1357,6 +1550,7 @@
   // Keep a small name/avatar summary on the account record so the switcher can list every
   // account without parsing each one's full saved state.
   function syncSummary() {
+    if (SERVER) return;
     if (!SZ.session.isLoggedIn || typeof state === 'undefined' || !state?.profile) return;
     const account = SZ.session.account;
     if (!account) return;

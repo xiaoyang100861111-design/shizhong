@@ -952,6 +952,9 @@
       s.recentLocations = recents(s.recentLocations);
     });
     if (!ok) return;
+    // Server mode: the home location belongs to the account (also used for "nearby" and admin regions).
+    if (SZ.server && SZ.session.isLoggedIn)
+      SZ.api.patch('me', { location: state.location, city: state.city }).catch(e => SZ.api.fail(e));
     p.result = loc;
     SZ.overlay.close({ layer: p.layer, reason: 'done' });
     render();

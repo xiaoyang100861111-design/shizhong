@@ -717,9 +717,18 @@ window.ShizhongNotices = {
   markAllRead() {
     if (!state.notices.some(n => !n.read)) return;
     SZ.store.commit(s => s.notices.forEach(n => (n.read = true)), { quiet: true });
+    if (SZ.server && SZ.session.isLoggedIn) SZ.api.post('notices/read', { all: true }).catch(() => {});
     flowsNoticesChanged();
   },
   open: () => notifications(),
+  /** Server mode: a notice arrived over realtime (already inserted into state.notices). */
+  changed(n) {
+    flowsNoticesChanged();
+    if (state.settings.notifications !== false && n && !n.silent && !flowsNoticesOpen()) {
+      const view = flowsNoticeView(n);
+      toast(view.title, n.action ? { action: { label: t('flows.notice.view'), run: () => flowsOpenNotice(n.id) } } : {});
+    }
+  },
 };
 
 // ------------------------------------------------------------------ coupons API
@@ -917,7 +926,7 @@ function flowsSettingsBody() {
   );
   const privacy = flowsSection(
     t('flows.settings.privacy'),
-    `<div class="list">${flowsRow('block', t('flows.settings.blocked'), 'flows-blocked', { value: state.blocked.length ? SZ.fmt.number(state.blocked.length) : '' })}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media', { sub: t('flows.settings.clearMediaSub') })}${flowsRow('download', t('flows.settings.export'), 'export-data')}</div>`
+    `<div class="list">${flowsRow('block', t('flows.settings.blocked'), 'flows-blocked', { value: state.blocked.length ? SZ.fmt.number(state.blocked.length) : '' })}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${SZ.media.remote ? '' : flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media', { sub: t('flows.settings.clearMediaSub') })}${flowsRow('download', t('flows.settings.export'), 'export-data')}</div>`
   );
   const about = flowsSection(
     t('flows.settings.support'),
@@ -930,12 +939,13 @@ function flowsSettingsBody() {
     t('flows.settings.dangerZone'),
     `<div class="list">${flowsRow('refresh', t('flows.settings.reset'), 'reset-data', { danger: true, sub: t('flows.settings.resetSub') })}${loggedIn && !SZ.session.isDemo ? flowsRow('trash', t('flows.settings.delete'), 'flows-delete-account', { danger: true, sub: t('flows.settings.deleteSub') }) : ''}</div>`
   );
-  return `${head}${accountRows}${prefs}${privacy}${about}${session ? `<section class="flows-section">${session}</section>` : ''}${danger}<p class="caption flows-footnote">${t('flows.settings.localNote')}</p>`;
+  return `${head}${accountRows}${prefs}${privacy}${about}${session ? `<section class="flows-section">${session}</section>` : ''}${danger}<p class="caption flows-footnote">${t(SZ.server ? 'server.settings.note' : 'flows.settings.localNote')}</p>`;
 }
 function flowsToggleSetting(key, el) {
   if (!['notifications', 'nearby', 'marketing'].includes(key)) return;
   const next = !flowsSettingOn(key);
   if (!SZ.store.commit(s => (s.settings[key] = next))) return;
+  if (key === 'marketing' && SZ.server && SZ.session.isLoggedIn) SZ.api.patch('me', { marketing: next }).catch(e => SZ.api.fail(e));
   el?.setAttribute('aria-checked', String(next));
   if (key === 'nearby') flowsRender();
   toast(t(next ? 'flows.settings.' + key + 'On' : 'flows.settings.' + key + 'Off'));
@@ -981,14 +991,28 @@ function flowsPasswordSheet() {
     });
     return;
   }
-  const hasPassword = !!account.passHash;
+  const hasPassword = SZ.server ? account.hasPassword !== false : !!account.passHash;
   flowsOpen('password', {
     kind: 'sheet',
     title: hasPassword ? t('flows.password.title') : t('flows.password.setTitle'),
     body: () =>
       `<form>${hasPassword ? field(t('flows.password.current'), 'current', 'password', '', true, '', { autocomplete: 'current-password', maxlength: 64 }) : `<p class="flows-lead">${t('flows.password.noPassword')}</p>`}${field(t('flows.password.new'), 'next', 'password', '', true, '', { autocomplete: 'new-password', maxlength: 64, hint: t('flows.password.rule') })}${field(t('flows.password.repeat'), 'repeat', 'password', '', true, '', { autocomplete: 'new-password', maxlength: 64 })}${submitButton(t('flows.password.save'))}</form>`,
-    form(data, form, layer) {
+    async form(data, form, layer) {
       const input = name => form.querySelector(`[name="${name}"]`);
+      if (SZ.server) {
+        if (data.next.length < 8 || !/\d/.test(data.next) || !/[a-z]/i.test(data.next))
+          return flowsFieldError(input('next'), t('flows.password.rule'));
+        if (data.next !== data.repeat) return flowsFieldError(input('repeat'), t('flows.password.mismatch'));
+        try {
+          await SZ.api.post('me/password', { current: data.current || '', next: data.next });
+        } catch (e) {
+          if (e.code === 'auth.wrongPassword') return flowsFieldError(input('current'), t('flows.password.wrong'));
+          return SZ.api.fail(e);
+        }
+        flowsDone(layer);
+        toast(t('flows.password.saved'), { type: 'success' });
+        return;
+      }
       if (hasPassword && !SZ.accounts.verify(SZ.accounts.get(account.id), data.current))
         return flowsFieldError(input('current'), t('flows.password.wrong'));
       if (data.next.length < 8 || !/\d/.test(data.next) || !/[a-z]/i.test(data.next))
@@ -1026,6 +1050,26 @@ async function flowsDeleteAccount() {
     danger: true,
   });
   if (!second) return;
+  if (SZ.server) {
+    flowsOpen('delete-password', {
+      kind: 'sheet',
+      title: t('flows.settings.deleteFinalTitle'),
+      body: () =>
+        `<form><p class="flows-lead">${esc(t('auth.server.deletePassword'))}</p>${field(t('flows.password.current'), 'password', 'password', '', true, '', { autocomplete: 'current-password', maxlength: 64 })}${submitButton(t('flows.settings.deleteConfirm'))}</form>`,
+      async form(data, form, layer) {
+        try {
+          await SZ.accounts.remove(account.id, data.password);
+        } catch (e) {
+          if (e.code === 'auth.wrongPassword') return flowsFieldError(form.querySelector('[name="password"]'), t('flows.password.wrong'));
+          return SZ.api.fail(e);
+        }
+        flowsDone(layer);
+        toast(t('flows.settings.deleting'));
+        SZ.session.logout();
+      },
+    });
+    return;
+  }
   toast(t('flows.settings.deleting'));
   await SZ.accounts.remove(account.id);
   SZ.session.logout();
@@ -1084,9 +1128,17 @@ function flowsExportSheet() {
       `<p class="flows-lead">${t('flows.export.intro')}</p><h4 class="flows-mini-title">${t('flows.export.included')}</h4><ul class="flows-bullets">${['profile', 'orders', 'social', 'messages', 'wallet', 'settings'].map(k => `<li>${t(`flows.export.item.${k}`)}</li>`).join('')}</ul><h4 class="flows-mini-title">${t('flows.export.excluded')}</h4><ul class="flows-bullets">${['media', 'password'].map(k => `<li>${t(`flows.export.skip.${k}`)}</li>`).join('')}</ul><p class="caption">${t('flows.export.care')}</p><div class="flows-cta">${act('flows-export-download', '', `${flowsIcon('download')}${t('flows.export.download')}`, 'btn btn-primary btn-lg btn-block')}</div>`,
   });
 }
-function flowsExportDownload() {
+async function flowsExportDownload() {
   const account = SZ.session.account;
-  const payload = {
+  let serverData = null;
+  if (SZ.server && SZ.session.isLoggedIn) {
+    try {
+      serverData = await SZ.api.get('me/export');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+  }
+  const payload = serverData ? { app: 'Shizhong', build: SHIZHONG_BUILD, ...serverData } : {
     app: 'Shizhong',
     build: SHIZHONG_BUILD,
     exportedAt: new Date().toISOString(),
@@ -1737,6 +1789,7 @@ function flowsOpenNotice(id) {
   if (!n) return;
   if (!n.read) {
     SZ.store.commit(() => (n.read = true), { quiet: true });
+    if (SZ.server && SZ.session.isLoggedIn && /^n\d+$/.test(n.id)) SZ.api.post('notices/read', { ids: [n.id] }).catch(() => {});
     flowsNoticesChanged();
   }
   if (n.action?.name) SZ.actions.dispatch(n.action.name, n.action.id || '');
@@ -1791,6 +1844,33 @@ document.addEventListener('change', event => {
   const full = inputs.filter(i => i.checked).length >= 5;
   for (const i of inputs) i.disabled = full && !i.checked;
 });
+/** Server mode: the profile lives on the account (PATCH /api/me); rewards are granted by the server. */
+async function flowsProfileSubmitServer({ data, form, layer, name, bio, photo, interests, location, oldPhoto }) {
+  let res;
+  try {
+    res = await SZ.api.patch('me', {
+      name,
+      bio,
+      avatar: photo,
+      interests,
+      phone: data.phone || '',
+      email: data.email || '',
+      language: flowsServiceLangCode(data.language),
+      ...(location ? { location, city: location.cityName || location.stateName || location.countryName || state.city } : {}),
+    });
+  } catch (e) {
+    return SZ.api.fail(e);
+  }
+  SZ.api.apply(res.state);
+  if (res.reward) SZ.api.apply(res.reward.state);
+  flowsUploadCommit(form);
+  if (oldPhoto !== photo && SZ.media.isRef(oldPhoto)) SZ.media.remove(oldPhoto).catch(() => {});
+  SZ.accounts.update(SZ.session.accountId, { name, avatar: photo });
+  flowsDone(layer);
+  flowsRender();
+  flowsRefresh('settings', 'tasks');
+  toast(res.reward?.points ? t('flows.profile.savedReward', { n: res.reward.points }) : t('flows.profile.saved'), { type: 'success' });
+}
 function flowsProfileSubmit(data, form, layer, shown = {}) {
   const before = state.profile;
   const photo = flowsUploadValue(form) || before.photo;
@@ -1805,6 +1885,7 @@ function flowsProfileSubmit(data, form, layer, shown = {}) {
   const changed = name !== before.name || bio !== (before.bio || '') || photo !== before.photo;
   const reward = changed && !state.profileReward;
   const oldPhoto = before.photo;
+  if (SZ.server && SZ.session.isLoggedIn) return flowsProfileSubmitServer({ data, form, layer, name, bio, photo, interests, location, oldPhoto });
   if (
     !SZ.store.commit(s => {
       flowsApplyLocation(location);
@@ -2357,7 +2438,7 @@ function flowsPrivacy() {
             `<li><strong>${t(`flows.privacy.perm.${k}`)}</strong><span>${t(`flows.privacy.perm.${k}Why`)}</span></li>`
         )
         .join('');
-      const choices = `<div class="list">${flowsRow('download', t('flows.settings.export'), 'export-data')}${flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media')}${flowsRow('refresh', t('flows.settings.reset'), 'reset-data', { danger: true })}${SZ.session.isLoggedIn && !SZ.session.isDemo ? flowsRow('trash', t('flows.settings.delete'), 'flows-delete-account', { danger: true }) : ''}</div>`;
+      const choices = `<div class="list">${flowsRow('download', t('flows.settings.export'), 'export-data')}${SZ.media.remote ? '' : flowsRow('image', t('flows.settings.clearMedia'), 'flows-clear-media')}${flowsRow('refresh', t('flows.settings.reset'), 'reset-data', { danger: true })}${SZ.session.isLoggedIn && !SZ.session.isDemo ? flowsRow('trash', t('flows.settings.delete'), 'flows-delete-account', { danger: true }) : ''}</div>`;
       return `<article class="flows-doc"><p class="flows-lead">${t('flows.privacy.intro')}</p><p class="caption">${t('flows.privacy.updated', { date: SZ.fmt.date('2026-09-29', 'long') })}</p>${section('stored')}<section class="flows-doc-section"><h3>${t('flows.privacy.perm.title')}</h3><p>${t('flows.privacy.perm.intro')}</p><ul class="flows-perms">${perms}</ul></section>${section('share')}${section('keep')}<section class="flows-doc-section"><h3>${t('flows.privacy.choices.title')}</h3><p>${t('flows.privacy.choices.p1')}</p>${choices}</section>${section('pdpa')}${section('community')}</article>`;
     },
   });
@@ -2731,6 +2812,8 @@ SZ.bootTasks.push(async () => {
 });
 function flowsSeed() {
   if (!state) return;
+  // Server mode: welcome notices and demo data are written by the server (sign-up / seed data).
+  if (SZ.server) return;
   const done = Array.isArray(state.flowsSeeds) ? state.flowsSeeds : [];
   const now = Date.now();
   const notices = [];

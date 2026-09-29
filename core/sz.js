@@ -464,6 +464,220 @@
     return H.map(x => x.toString(16).padStart(8, '0')).join('');
   }
 
+  // ------------------------------------------------------------------ server mode
+  /*
+   * When the ASP.NET Core backend hosts the app, /core/server.js sets window.SZ_SERVER (public settings,
+   * the signed-in account and its state). Accounts, session, state and media then live on the server;
+   * feature modules call SZ.api for anything authoritative (money, orders, messages…). Without it
+   * (file:// or a static host) everything below behaves exactly as the offline demo.
+   */
+  const SERVER = window.SZ_SERVER && typeof window.SZ_SERVER === 'object' ? window.SZ_SERVER : null;
+  const TOKEN_KEY = 'sz:v3:token';
+  const GUEST_KEY = 'sz:v3:guest';
+  const REMEMBER_KEY = 'sz:v3:remembered';
+  class ApiError extends Error {
+    constructor(status, code, detail, extra) {
+      super(code || 'common.server');
+      this.status = status;
+      this.code = code || 'common.server';
+      this.detail = detail || '';
+      this.extra = extra || null;
+    }
+  }
+  function appPlatform() {
+    const p = window.Capacitor?.getPlatform?.();
+    return p === 'android' || p === 'ios' ? p : 'web';
+  }
+  const api = {
+    enabled: !!SERVER,
+    ApiError,
+    base: SERVER ? new URL(SERVER.api || 'api/', document.baseURI).href : '',
+    platform: appPlatform(),
+    token() {
+      try {
+        return localStorage.getItem(TOKEN_KEY) || '';
+      } catch (_) {
+        return '';
+      }
+    },
+    setToken(token) {
+      try {
+        if (token) localStorage.setItem(TOKEN_KEY, token);
+        else localStorage.removeItem(TOKEN_KEY);
+      } catch (_) {}
+    },
+    url(path, query) {
+      const url = new URL(String(path).replace(/^\//, ''), api.base);
+      for (const [k, v] of Object.entries(query || {})) if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+      return url.href;
+    },
+    /** fetch JSON; throws ApiError { status, code, detail, extra } on failure (code 'common.network' when offline). */
+    async request(method, path, body, { query, form, keepalive = false, signal } = {}) {
+      if (!api.enabled) throw new ApiError(0, 'common.offline');
+      const headers = { 'X-SZ-Platform': api.platform, Accept: 'application/json' };
+      const token = api.token();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      let payload;
+      if (form) payload = form;
+      else if (body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        payload = JSON.stringify(body);
+      }
+      let res;
+      try {
+        res = await fetch(api.url(path, query), { method, headers, body: payload, credentials: 'same-origin', keepalive, signal });
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e;
+        throw new ApiError(0, 'common.network');
+      }
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (_) {}
+      if (!res.ok) {
+        const err = new ApiError(res.status, data?.code || (res.status === 401 ? 'auth.required' : 'common.server'), data?.detail, data?.extra);
+        if (res.status === 401 && session.isLoggedIn && !String(path).startsWith('auth/')) emit('server:unauthorized', err);
+        throw err;
+      }
+      return data;
+    },
+    get: (path, query, opts) => api.request('GET', path, undefined, { ...opts, query }),
+    post: (path, body, opts) => api.request('POST', path, body ?? {}, opts),
+    put: (path, body, opts) => api.request('PUT', path, body ?? {}, opts),
+    patch: (path, body, opts) => api.request('PATCH', path, body ?? {}, opts),
+    del: (path, body, opts) => api.request('DELETE', path, body, opts),
+    /** Merge server-owned keys ({ wallet, bills, orders… }) returned by an action into `state`. */
+    apply(patch) {
+      if (!patch || typeof patch !== 'object') return;
+      const target = live();
+      if (!target) return;
+      const keys = Object.keys(patch);
+      for (const k of keys) target[k] = patch[k];
+      emit('state:server', keys);
+    },
+    /** request + apply(res.state). Use for actions that change server-owned state. */
+    async act(method, path, body, opts) {
+      const res = await api.request(method, path, body, opts);
+      if (res?.state) api.apply(res.state);
+      return res;
+    },
+    /** Re-read server-owned keys (e.g. after a realtime 'state:refresh'). */
+    async refresh(keys) {
+      if (!session.isLoggedIn || !keys?.length) return;
+      const res = await api.post('state/refresh', { keys });
+      api.apply(res?.state);
+    },
+    /** Public setting from the admin console, with the prototype default as fallback. */
+    config(key, fallback) {
+      const v = SERVER?.config?.[key];
+      return v === undefined || v === null ? fallback : v;
+    },
+    /** A translated message for an ApiError (server.error.<code>), or a generic one. */
+    errorText(e, params) {
+      const code = e?.code || 'common.server';
+      const key = 'server.error.' + code;
+      return t.has?.(key) ? t(key, { ...(e?.extra || {}), ...(params || {}) }) : t('server.error.generic');
+    },
+    /** Show the error as a toast; returns false so handlers can `return SZ.api.fail(e)`. */
+    fail(e, params) {
+      if (e?.name === 'AbortError') return false;
+      toast(api.errorText(e, params), { type: 'error' });
+      return false;
+    },
+    /** Upload a Blob/File; resolves to { id, ref:'media:<id>', url }. */
+    async upload(blob, { name = '', purpose = '' } = {}) {
+      const form = new FormData();
+      form.append('file', blob, name || blob.name || 'file');
+      if (purpose) form.append('purpose', purpose);
+      return api.request('POST', 'media', undefined, { form });
+    },
+  };
+
+  /*
+   * Realtime (SignalR). Connects lazily once signed in; modules subscribe with SZ.realtime.on(name, fn)
+   * and join topics (live rooms, conversations) with join(topic). Server → client: ("evt", name, payload).
+   */
+  const realtime = (() => {
+    const handlers = new Map();
+    const topics = new Set();
+    let conn = null;
+    let starting = null;
+    function loadLib() {
+      if (window.signalR) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = new URL('vendor/signalr-8.min.js' + (SERVER?.build ? '?v=' + SERVER.build : ''), document.baseURI).href;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('signalr'));
+        document.head.append(s);
+      });
+    }
+    async function start() {
+      if (!api.enabled || !session.isLoggedIn) return null;
+      if (conn) return conn;
+      if (starting) return starting;
+      starting = (async () => {
+        await loadLib();
+        const c = new window.signalR.HubConnectionBuilder()
+          .withUrl(new URL(SERVER.hub || 'hubs/app', document.baseURI).href, { accessTokenFactory: () => api.token() })
+          .withAutomaticReconnect([0, 2000, 5000, 10000, 20000, 30000])
+          .configureLogging(window.signalR.LogLevel.Warning)
+          .build();
+        c.on('evt', (name, payload) => {
+          for (const fn of handlers.get(name) || []) {
+            try {
+              fn(payload);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          emit('realtime:' + name, payload);
+        });
+        c.onreconnected(() => {
+          for (const topic of topics) c.invoke('Join', topic).catch(() => {});
+          emit('realtime:reconnected');
+        });
+        await c.start();
+        conn = c;
+        for (const topic of topics) c.invoke('Join', topic).catch(() => {});
+        emit('realtime:connected');
+        return c;
+      })().finally(() => (starting = null));
+      return starting;
+    }
+    return {
+      start,
+      get connected() {
+        return conn?.state === 'Connected';
+      },
+      on(name, fn) {
+        if (!handlers.has(name)) handlers.set(name, new Set());
+        handlers.get(name).add(fn);
+        return () => handlers.get(name)?.delete(fn);
+      },
+      async join(topic) {
+        topics.add(topic);
+        const c = await start().catch(() => null);
+        return c ? c.invoke('Join', topic).catch(() => false) : false;
+      },
+      async leave(topic) {
+        topics.delete(topic);
+        if (conn) await conn.invoke('Leave', topic).catch(() => {});
+      },
+      async command(name, args = {}) {
+        const c = await start();
+        if (!c) throw new ApiError(0, 'common.offline');
+        try {
+          return await c.invoke('Command', name, args);
+        } catch (e) {
+          const code = String(e?.message || '').match(/HubException: (.+)$/)?.[1] || 'common.server';
+          throw new ApiError(0, code.trim());
+        }
+      },
+    };
+  })();
+
   // ------------------------------------------------------------------ accounts & session
   const KEYS = {
     accounts: 'sz:v2:accounts',
@@ -627,6 +841,86 @@
       location.reload();
     },
   };
+  // Server mode: the account comes from the server session; this device only remembers who signed in
+  // (for the account switcher). Creating accounts and checking passwords happen in auth.js via SZ.api.
+  if (SERVER) {
+    const me = SERVER.me ? { ...SERVER.me } : null;
+    const remembered = (readJSON(REMEMBER_KEY, []) || []).filter(a => a && typeof a.id === 'string' && a.id !== me?.id);
+    if (me) remembered.unshift(me);
+    accountList = remembered.slice(0, 6);
+    const persist = () => {
+      try {
+        writeJSON(
+          REMEMBER_KEY,
+          accountList.map(a => ({ id: a.id, name: a.name, avatar: a.avatar, phone: a.phone, email: a.email, displayId: a.displayId, demo: !!a.demo }))
+        );
+      } catch (_) {}
+    };
+    persist();
+    sessionData = me ? { accountId: me.id, at: Date.now() } : readJSON(GUEST_KEY, null) ? { accountId: 'guest', at: Date.now() } : null;
+    const unsupported = () => {
+      throw new Error('server');
+    };
+    Object.assign(accounts, {
+      DEMO_ID: 'demo',
+      create: unsupported,
+      verify: unsupported,
+      setPassword: unsupported,
+      update(id, patch) {
+        const a = accounts.get(id);
+        if (!a) return null;
+        Object.assign(a, patch);
+        persist();
+        return a;
+      },
+      /** Forget a remembered account on this device, or delete the signed-in one on the server. */
+      async remove(id, password) {
+        if (id === DEMO_ID) return false;
+        if (id === session.accountId) {
+          await api.del('me', { password: password || '' });
+          store.detach();
+          api.setToken('');
+        }
+        accountList = accountList.filter(a => a.id !== id);
+        persist();
+        return true;
+      },
+    });
+    Object.assign(session, {
+      login(accountId, { reload = true } = {}) {
+        store.flush();
+        try {
+          localStorage.removeItem(GUEST_KEY);
+        } catch (_) {}
+        if (reload) location.reload();
+      },
+      guest({ reload = false } = {}) {
+        const wasIn = session.isLoggedIn;
+        store.flush();
+        writeJSON(GUEST_KEY, { at: Date.now() });
+        sessionData = { accountId: 'guest', at: Date.now() };
+        if (wasIn) {
+          store.detach();
+          api.post('auth/logout').catch(() => {}).finally(() => {
+            api.setToken('');
+            location.reload();
+          });
+        } else if (reload) location.reload();
+      },
+      logout() {
+        store.flush();
+        store.detach();
+        api.post('auth/logout').catch(() => {}).finally(() => {
+          api.setToken('');
+          try {
+            localStorage.removeItem(GUEST_KEY);
+          } catch (_) {}
+          location.reload();
+        });
+      },
+    });
+  }
+
   /** Returns true when a real account is signed in; otherwise asks the auth module to prompt. */
   function requireLogin(reason = '') {
     if (session.isLoggedIn) return true;
@@ -728,6 +1022,70 @@
     Object.assign(target, source);
   }
   store.saveSoon = debounce(() => store.save(), 300);
+
+  // Server mode, signed in: the client-owned part of state is saved to PUT /api/state (debounced,
+  // versioned). Server-owned keys (wallet, orders…) are never sent; they arrive via SZ.api.apply().
+  if (SERVER && session.isLoggedIn) {
+    const owned = new Set(SERVER.ownedKeys || []);
+    let version = Number(SERVER.stateVersion) || 0;
+    let unsaved = false;
+    let pushing = null;
+    const clientPart = data => {
+      const out = {};
+      for (const [k, v] of Object.entries(data || {})) if (!owned.has(k)) out[k] = v;
+      return out;
+    };
+    const push = (keepalive = false) => {
+      if (detached || !unsaved) return pushing;
+      if (pushing) return pushing.then(() => push(keepalive));
+      unsaved = false;
+      const body = { state: clientPart(live()), version };
+      const size = JSON.stringify(body).length;
+      pushing = api
+        .put('state', body, { keepalive: keepalive && size < 60000 })
+        .then(r => {
+          version = r?.version ?? version;
+          $('#storage-notice')?.remove();
+        })
+        .catch(e => {
+          // Another device saved meanwhile: take its version and write ours (last writer wins for UI prefs).
+          if (e?.status === 409 && e.extra?.version != null) version = e.extra.version;
+          unsaved = true;
+          if (e?.status !== 401) setTimeout(() => pushSoon(), e?.status === 409 ? 50 : 5000);
+        })
+        .finally(() => (pushing = null));
+      return pushing;
+    };
+    const pushSoon = debounce(() => push(), 800);
+    Object.assign(store, {
+      key: () => 'server',
+      load(defaults) {
+        storeKey = 'server';
+        detached = false;
+        stateRef = withDefaults(clone(SERVER.state || {}), clone(defaults));
+        return stateRef;
+      },
+      save() {
+        if (detached) return true;
+        unsaved = true;
+        pushSoon();
+        return true;
+      },
+      flush() {
+        pushSoon.cancel();
+        push(true);
+      },
+      /** "Reset experience": clears this account's client-side preferences on the server. */
+      async reset() {
+        store.detach();
+        await api.put('state', { state: {}, version, force: true }).catch(() => {});
+      },
+      get version() {
+        return version;
+      },
+    });
+    store.saveSoon = debounce(() => store.save(), 300);
+  }
   window.addEventListener('pagehide', () => store.flush());
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) store.flush();
@@ -831,6 +1189,29 @@
       return new Promise(resolve => canvas.toBlob(b => resolve(b || file), type, quality));
     },
   };
+  // Server mode, signed in: files are uploaded to /api/media; refs stay 'media:<id>' and load from the server.
+  if (SERVER && session.isLoggedIn) {
+    const idOf = ref => String(ref).replace(media.PREFIX, '');
+    const srcOf = ref => api.url('media/' + encodeURIComponent(idOf(ref)));
+    Object.assign(media, {
+      async put(blob, info = {}) {
+        const res = await api.upload(blob, { name: info.name || blob.name || '', purpose: info.purpose || '' });
+        return res.ref;
+      },
+      async get(ref) {
+        const res = await fetch(srcOf(ref), { credentials: 'same-origin' });
+        return res.ok ? res.blob() : null;
+      },
+      url: async ref => (media.isRef(ref) ? srcOf(ref) : ref),
+      src: ref => (media.isRef(ref) ? srcOf(ref) : ref),
+      async remove(ref) {
+        if (media.isRef(ref)) await api.del('media/' + encodeURIComponent(idOf(ref))).catch(() => {});
+      },
+      clearAccount: async () => {},
+      estimate: () => Promise.resolve(null),
+      remote: true,
+    });
+  }
   async function isAnimatedPng(file) {
     const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
     for (let i = 0; i < head.length - 4; i++)
@@ -929,6 +1310,13 @@
     media,
     routes,
     requireLogin,
+    /** Boot data from the backend, or null in the offline demo. */
+    server: SERVER,
+    api,
+    realtime,
+    ApiError,
+    /** Admin-editable public setting (server mode) with the prototype's value as fallback. */
+    config: (key, fallback) => api.config(key, fallback),
     get fmt() {
       return window.SZ_I18N.fmt;
     },
