@@ -54,13 +54,20 @@
 <script setup>
 // Renders admin-editable settings (ConfigDef on the server) grouped as declared by the modules.
 // <ConfigForm :groups="['checkout', 'fees']" /> embeds only those groups in a domain page.
+// endpoint / perm: a domain's own settings endpoint (same response shape as /config, e.g. 'finance/config')
+// guarded by its own permission, so staff without system.config can edit their area's rules.
 import { computed, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { api } from '../core/api';
 import { t, pick } from '../core/i18n';
 import { can } from '../core/auth';
 
-const props = defineProps({ groups: { type: Array, default: null }, filter: { type: String, default: '' } });
+const props = defineProps({
+  groups: { type: Array, default: null },
+  filter: { type: String, default: '' },
+  endpoint: { type: String, default: 'config' },
+  perm: { type: [String, Array], default: 'system.config' },
+});
 const emit = defineEmits(['loaded', 'saved']);
 const loading = ref(false);
 const saving = ref(false);
@@ -86,10 +93,10 @@ const dirtyCount = computed(() => Object.values(dirty).filter(Boolean).length);
 const isWide = item => ['text', 'json', 'i18n', 'list'].includes(item.type);
 
 async function load() {
-  if (!can('system.config')) return;
+  if (![].concat(props.perm).some(can)) return;
   loading.value = true;
   try {
-    const res = await api.get('config');
+    const res = await api.get(props.endpoint, props.endpoint === 'config' ? undefined : { groups: props.groups?.join(',') });
     all.value = res.groups;
     for (const g of res.groups)
       for (const i of g.items) {
@@ -126,7 +133,7 @@ async function save() {
   for (const [k, d] of Object.entries(dirty)) if (d) changes[k] = values[k];
   saving.value = true;
   try {
-    await api.put('config', changes);
+    await api.put(props.endpoint, changes);
     ElMessage.success(t('common.saved'));
     await load();
     emit('saved', changes);
@@ -136,7 +143,7 @@ async function save() {
 }
 async function restore(item) {
   await ElMessageBox.confirm(t('cfg.restoreConfirm', { name: pick(item) }), { type: 'warning' });
-  await api.post('config/reset', { keys: [item.key] });
+  await api.post(props.endpoint + '/reset', { keys: [item.key] });
   ElMessage.success(t('common.done'));
   load();
 }
