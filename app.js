@@ -496,7 +496,10 @@ function compactBalance(value) {
 /** RM amount that stays short on small cards: RM 12.50, RM 8亿 / RM 800M. */
 function moneyShort(value) {
   const n = Number(value) || 0;
-  return Math.abs(n) >= 100000 ? 'RM ' + SZ.fmt.compact(n) : SZ.fmt.money(n);
+  // A third of a phone-wide card: large amounts go compact and from RM 1,000 the cents are dropped
+  // (the exact amount is in the cell's label and on the wallet screen).
+  if (Math.abs(n) >= 10000) return 'RM ' + SZ.fmt.compact(n);
+  return Math.abs(n) >= 1000 ? SZ.fmt.money(Math.floor(n), { digits: 0 }) : SZ.fmt.money(n);
 }
 
 // Filter values are stable ids compared by the catalog module (it translates their labels).
