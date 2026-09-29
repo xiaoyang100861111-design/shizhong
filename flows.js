@@ -1180,9 +1180,34 @@ function flowsBlockedBody() {
     })
     .join('')}</ul>`;
 }
-function flowsUnblock(id, quiet = false) {
+async function flowsUnblock(id, quiet = false) {
   const at = state.blocked.indexOf(id);
   if (at < 0) return;
+  if (SZ.server) {
+    try {
+      await SZ.api.act('DELETE', 'blocks/' + encodeURIComponent(id));
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    flowsRender();
+    flowsRefresh('blocked', 'settings');
+    if (quiet) return;
+    const q = flowsPerson(id);
+    toast(t('flows.blocked.unblocked', { name: q ? personName(q) : id }), {
+      action: {
+        label: t('common.undo'),
+        run: () =>
+          SZ.api
+            .act('POST', 'blocks/' + encodeURIComponent(id))
+            .then(() => {
+              flowsRender();
+              flowsRefresh('blocked', 'settings');
+            })
+            .catch(e => SZ.api.fail(e)),
+      },
+    });
+    return;
+  }
   if (!SZ.store.commit(s => s.blocked.splice(at, 1))) return;
   flowsRender();
   flowsRefresh('blocked', 'settings');
@@ -1972,30 +1997,72 @@ function flowsProfileSubmit(data, form, layer, shown = {}) {
 
 // ------------------------------------------------------------------ compose post
 const FLOWS_TOPICS = ['life', 'weekend', 'daily', 'city', 'food'];
+/** Topic ids and labels: the console's list in server mode (social.topics), the prototype's otherwise. */
+function flowsTopics() {
+  const list = SZ.config('social.topics', null);
+  if (!Array.isArray(list) || !list.length) return FLOWS_TOPICS.map(id => ({ id, label: t(`flows.compose.topic.${id}`) }));
+  const en = !SZ_I18N.isSource && String(SZ_I18N.locale).startsWith('en');
+  return list
+    .filter(x => x && x.id)
+    .map(x => ({ id: String(x.id), label: (en ? x.en || x.zh : x.zh || x.en) || (t.has?.(`flows.compose.topic.${x.id}`) ? t(`flows.compose.topic.${x.id}`) : x.id) }));
+}
 function composer() {
   if (!SZ.requireLogin(t('flows.reason.post'))) return;
   return flowsOpen('compose', {
     kind: 'sheet',
     title: t('flows.compose.title'),
     body: () => {
-      const topics = FLOWS_TOPICS.map(
-        (id, i) =>
-          `<label class="flows-chip"><input type="radio" name="topic" value="${id}"${i === 0 ? ' checked' : ''}><span>${t(`flows.compose.topic.${id}`)}</span></label>`
-      ).join('');
+      const topics = flowsTopics()
+        .map(
+          ({ id, label }, i) =>
+            `<label class="flows-chip"><input type="radio" name="topic" value="${esc(id)}"${i === 0 ? ' checked' : ''}><span>${esc(label)}</span></label>`
+        )
+        .join('');
       const visibility = ['public', 'private']
         .map(
           (v, i) =>
             `<label class="flows-seg"><input type="radio" name="visibility" value="${v}"${i === 0 ? ' checked' : ''}><span>${flowsIcon(v === 'public' ? 'globe' : 'lock')}${t(`flows.compose.visibility.${v}`)}</span></label>`
         )
         .join('');
-      return `<form class="flows-form">${field(t('flows.compose.text'), 'text', 'textarea', t('flows.compose.placeholder'), false, '', { maxlength: 500, rows: 5, counter: true })}${uploadField(t('flows.compose.photo'))}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.topicLabel')}</legend><div class="flows-chips">${topics}</div></fieldset>${field(t('flows.compose.place'), 'place', 'text', t('flows.compose.placePlaceholder'), false, flowsPlaceLabel(state.location, state.city), { maxlength: 60 })}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.visibilityLabel')}</legend><div class="flows-segmented">${visibility}</div></fieldset>${formNote(t('flows.compose.note'))}${submitButton(t('flows.compose.submit'))}</form>`;
+      return `<form class="flows-form">${field(t('flows.compose.text'), 'text', 'textarea', t('flows.compose.placeholder'), false, '', { maxlength: Number(SZ.config('social.postMax', 500)) || 500, rows: 5, counter: true })}${uploadField(t('flows.compose.photo'))}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.topicLabel')}</legend><div class="flows-chips">${topics}</div></fieldset>${field(t('flows.compose.place'), 'place', 'text', t('flows.compose.placePlaceholder'), false, flowsPlaceLabel(state.location, state.city), { maxlength: 60 })}<fieldset class="flows-fieldset"><legend class="form-label">${t('flows.compose.visibilityLabel')}</legend><div class="flows-segmented">${visibility}</div></fieldset>${formNote(t('flows.compose.note'))}${submitButton(t('flows.compose.submit'))}</form>`;
     },
-    form(data, form, layer) {
+    async form(data, form, layer) {
       const image = flowsUploadValue(form);
       if (!data.text && !image) {
         const input = form.querySelector('[name="text"]');
         flowsFieldError(input, t('flows.compose.empty'));
         input.focus();
+        return;
+      }
+      if (SZ.server) {
+        let res;
+        try {
+          res = await SZ.api.act('POST', 'posts', {
+            text: data.text,
+            image,
+            topicId: data.topic,
+            place: data.place,
+            visibility: data.visibility === 'private' ? 'private' : 'public',
+          });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+        flowsUploadCommit(form);
+        flowsDone(layer);
+        // The first-post reward belongs to the growth area (window.ShizhongTasks); no module, no reward.
+        const claimed = await Promise.resolve(window.ShizhongTasks?.claim?.('post')).catch(() => null);
+        const reward = claimed?.points || null;
+        ui.socialTab = 'feed';
+        ui.socialFilter = 'recommended';
+        navigate('social');
+        toast(
+          res?.pending
+            ? t('server.social.postPending')
+            : reward
+              ? t('flows.compose.postedReward', { n: reward })
+              : t('flows.compose.posted'),
+          { type: 'success' }
+        );
         return;
       }
       const topicId = FLOWS_TOPICS.includes(data.topic) ? data.topic : 'life';
@@ -2058,13 +2125,30 @@ function greet(id) {
   return flowsNeed(keys, () => {
     const name = personName(p);
     const tags = lc('people', p, 'tags');
-    const suggestions = [1, 2, 3].map(i => t(`flows.greet.suggest${i}`));
+    const configured = SZ.config('social.greetSuggestions', null);
+    const en = !SZ_I18N.isSource && String(SZ_I18N.locale).startsWith('en');
+    const suggestions =
+      Array.isArray(configured) && configured.length
+        ? configured.map(x => (typeof x === 'string' ? x : (en ? x?.en || x?.zh : x?.zh || x?.en) || '')).filter(Boolean)
+        : [1, 2, 3].map(i => t(`flows.greet.suggest${i}`));
     return flowsOpen('greet', {
       kind: 'sheet',
       title: t('flows.greet.title', { name }),
       body: () =>
-        `<form class="flows-form"><div class="flows-person-card">${flowsAvatar(avatarSource(p), 48)}<div><strong>${esc(name)}</strong><p>${esc((Array.isArray(tags) ? tags : []).slice(0, 3).join(' · '))}</p></div></div><div class="flows-chips flows-suggestions" role="group" aria-label="${esc(t('flows.greet.suggestions'))}">${suggestions.map((s, i) => act('greeting-text', s, esc(s), 'chip', `aria-pressed="${i === 0}"`)).join('')}</div>${field(t('flows.greet.message'), 'message', 'textarea', t('flows.greet.placeholder'), true, suggestions[0], { maxlength: 200, rows: 3, counter: true })}${formNote(t('flows.greet.note'))}${submitButton(t('flows.greet.send'))}</form>`,
-      form(data, form, layer) {
+        `<form class="flows-form"><div class="flows-person-card">${flowsAvatar(avatarSource(p), 48)}<div><strong>${esc(name)}</strong><p>${esc((Array.isArray(tags) ? tags : []).slice(0, 3).join(' · '))}</p></div></div><div class="flows-chips flows-suggestions" role="group" aria-label="${esc(t('flows.greet.suggestions'))}">${suggestions.map((s, i) => act('greeting-text', s, esc(s), 'chip', `aria-pressed="${i === 0}"`)).join('')}</div>${field(t('flows.greet.message'), 'message', 'textarea', t('flows.greet.placeholder'), true, suggestions[0], { maxlength: Number(SZ.config('social.greetMax', 200)) || 200, rows: 3, counter: true })}${formNote(t('flows.greet.note'))}${submitButton(t('flows.greet.send'))}</form>`,
+      async form(data, form, layer) {
+        if (SZ.server) {
+          try {
+            const res = await SZ.api.act('POST', 'greet/' + encodeURIComponent(id), { text: data.message, clientId: SZ.uid('c') });
+            if (res?.message) window.ShizhongChat?.ingest?.(res.chatId || id, res.message);
+          } catch (e) {
+            return SZ.api.fail(e);
+          }
+          flowsDone(layer);
+          flowsRender();
+          flowsOpenChat(id);
+          return;
+        }
         if (!flowsAppendMessage(id, { text: data.message })) return;
         if (!state.greeted.includes(id)) SZ.store.commit(s => s.greeted.push(id));
         flowsDone(layer);
@@ -2134,11 +2218,27 @@ function flowsFriendsBody() {
     .join('');
   return `${flowsSection(t('flows.friends.incoming'), incoming.length ? `<ul class="list flows-people">${inRows}</ul>` : `<p class="caption flows-section-note">${t('flows.friends.noIncoming')}</p>`)}${outgoing.length ? flowsSection(t('flows.friends.outgoing'), `<ul class="list flows-people">${outRows}</ul>`) : ''}`;
 }
-function flowsAcceptFriend(id) {
+async function flowsAcceptFriend(id) {
   if (!SZ.requireLogin(t('flows.reason.friend'))) return;
   const list = state.friendRequests.incoming;
   const r = list.find(x => x.id === id) || list.find(x => x.personId === id);
   const personId = r ? r.personId : id;
+  if (SZ.server) {
+    if (!r) return;
+    try {
+      await SZ.api.act('POST', 'friends/requests/' + encodeURIComponent(r.id) + '/accept');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    const q = flowsPerson(personId);
+    flowsRefresh('friends');
+    flowsRender();
+    toast(t('flows.friends.accepted', { name: q ? personName(q) : personId }), {
+      type: 'success',
+      action: { label: t('flows.friends.sayHi'), run: () => flowsOpenChat(personId) },
+    });
+    return;
+  }
   const p = flowsPerson(personId);
   if (!p) return;
   if (
@@ -2168,6 +2268,25 @@ function flowsIgnoreFriend(id) {
   const at = list.findIndex(x => x.id === id);
   if (at < 0) return;
   const r = list[at];
+  if (SZ.server) {
+    SZ.api
+      .act('POST', 'friends/requests/' + encodeURIComponent(r.id) + '/ignore')
+      .then(() => {
+        flowsRefresh('friends');
+        toast(t('flows.friends.ignored'), {
+          action: {
+            label: t('common.undo'),
+            run: () =>
+              SZ.api
+                .act('POST', 'friends/requests/' + encodeURIComponent(r.id) + '/restore')
+                .then(() => flowsRefresh('friends'))
+                .catch(e => SZ.api.fail(e)),
+          },
+        });
+      })
+      .catch(e => SZ.api.fail(e));
+    return;
+  }
   if (!SZ.store.commit(s => s.friendRequests.incoming.splice(at, 1))) return;
   flowsRefresh('friends');
   toast(t('flows.friends.ignored'), {
@@ -2184,14 +2303,14 @@ function flowsIgnoreFriend(id) {
     },
   });
 }
-function flowsAddFriend() {
+function flowsAddFriend(prefill = '') {
   if (!SZ.requireLogin(t('flows.reason.friend'))) return;
   return flowsOpen('add-friend', {
     kind: 'sheet',
     title: t('flows.friends.addTitle'),
     body: () =>
-      `<form class="flows-form">${field(t('flows.friends.account'), 'account', 'text', t('flows.friends.accountPlaceholder'), true, '', { maxlength: 24, inputmode: 'tel', autocomplete: 'off', hint: t('flows.friends.accountHint') })}${field(t('flows.friends.note'), 'message', 'textarea', '', false, t('flows.friends.defaultMessage'), { maxlength: 120, rows: 3, counter: true })}${formNote(t('flows.friends.demoNote'))}${submitButton(t('flows.friends.send'))}</form>`,
-    form(data, form, layer) {
+      `<form class="flows-form">${field(t('flows.friends.account'), 'account', 'text', t('flows.friends.accountPlaceholder'), true, prefill || '', { maxlength: 24, inputmode: 'tel', autocomplete: 'off', hint: t('flows.friends.accountHint') })}${field(t('flows.friends.note'), 'message', 'textarea', '', false, t('flows.friends.defaultMessage'), { maxlength: Number(SZ.config('social.requestMax', 120)) || 120, rows: 3, counter: true })}${SZ.server ? '' : formNote(t('flows.friends.demoNote'))}${submitButton(t('flows.friends.send'))}</form>`,
+    async form(data, form, layer) {
       const input = form.querySelector('[name="account"]');
       const raw = data.account.replace(/\s/g, '');
       if (!/^\d{6,10}$/.test(raw) && !flowsValidPhone(data.account))
@@ -2205,6 +2324,21 @@ function flowsAddFriend() {
         )
       )
         return flowsFieldError(input, t('flows.friends.duplicate'));
+      if (SZ.server) {
+        let res;
+        try {
+          res = await SZ.api.act('POST', 'friends/requests', { account: data.account, message: data.message });
+        } catch (e) {
+          if (['social.accountNotFound', 'social.self', 'social.requestPending', 'social.alreadyFriends'].includes(e?.code))
+            return flowsFieldError(input, SZ.api.errorText(e));
+          return SZ.api.fail(e);
+        }
+        flowsDone(layer);
+        flowsRefresh('friends');
+        flowsRender();
+        toast(res?.accepted ? t('server.social.requestAccepted') : t('flows.friends.sent'), { type: 'success' });
+        return;
+      }
       const request = {
         id: SZ.uid('fr'),
         account: data.account,
@@ -2222,7 +2356,7 @@ function flowsAddFriend() {
 }
 /** Demo: every sent request is accepted by a sample person a few seconds later. */
 function flowsResolveFriendRequests() {
-  if (!state) return;
+  if (!state || SZ.server) return; // server mode: real people answer (personas accept on the server)
   const due = state.friendRequests.outgoing.filter(r => r.status === 'pending' && Date.now() - r.ts > 4000);
   for (const r of due) {
     const pool = people.filter(p => !state.greeted.includes(p.id) && !state.blocked.includes(p.id));
@@ -2360,12 +2494,19 @@ function flowsFeedback() {
     title: t('flows.feedback.title'),
     body: () =>
       `<form class="flows-form">${selectField(t('flows.feedback.typeLabel'), 'type', types)}${field(t('flows.feedback.text'), 'text', 'textarea', t('flows.feedback.placeholder'), true, '', { maxlength: 1000, counter: true })}${field(t('flows.feedback.contact'), 'contact', 'text', t('flows.feedback.contactPlaceholder'), false, SZ.session.account?.email || '', { maxlength: 80, autocomplete: 'email' })}${formNote()}${submitButton(t('flows.feedback.submit'))}</form>`,
-    form(data, form, layer) {
-      if (!flowsRecordFeedback({ kind: 'feedback', ...data })) return;
+    async form(data, form, layer) {
+      if (SZ.server) {
+        try {
+          await SZ.api.act('POST', 'tickets/feedback', { type: data.type, text: data.text, contact: data.contact });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (!flowsRecordFeedback({ kind: 'feedback', ...data })) return;
       layer.meta.flowsDone = true;
       flowsSuccess({
         title: t('flows.feedback.doneTitle'),
         text: t('flows.feedback.doneText'),
+        primary: SZ.server ? act('feedback-status', '', t('server.social.myTickets'), 'btn btn-primary btn-lg btn-block') : '',
         mode: 'replace',
       });
     },
@@ -2431,20 +2572,51 @@ function flowsAfterSales(orderId) {
   });
 }
 const FLOWS_REPORT_REASONS = ['harassment', 'inappropriate', 'fake', 'spam', 'scam', 'minor', 'misc'];
-function flowsReport(targetId) {
+/** Report reasons: the console's list in server mode (social.reportReasons), the prototype's otherwise. */
+function flowsReportReasons() {
+  const list = SZ.config('social.reportReasons', null);
+  if (!Array.isArray(list) || !list.length) return FLOWS_REPORT_REASONS.map(id => ({ id, label: t(`flows.report.r.${id}`) }));
+  const en = !SZ_I18N.isSource && String(SZ_I18N.locale).startsWith('en');
+  return list
+    .filter(x => x && x.id)
+    .map(x => ({ id: String(x.id), label: (en ? x.en || x.zh : x.zh || x.en) || (t.has?.(`flows.report.r.${x.id}`) ? t(`flows.report.r.${x.id}`) : x.id) }));
+}
+/**
+ * Report a person (default), or in server mode a post, comment, group, message or live room:
+ * flowsReport(personId) · flowsReport(id, { targetType: 'post' | 'comment' | 'group' | 'message' | 'live-room', personId })
+ */
+function flowsReport(targetId, opts = {}) {
   if (!SZ.requireLogin(t('flows.reason.report'))) return;
-  const p = flowsPerson(targetId);
+  const targetType = opts.targetType || 'person';
+  const p = flowsPerson(targetType === 'person' || targetType === 'live-room' ? targetId : opts.personId || '');
   const name = p ? personName(p) : '';
   const blocked = state.blocked.includes(targetId);
   const origin = SZ.overlay.top(); // the reported person's screen, closed if they get blocked too
   return flowsOpen('report', {
     kind: 'sheet',
-    title: name ? t('flows.report.titleName', { name }) : t('flows.report.title'),
+    title:
+      targetType !== 'person' && t.has?.(`server.social.reportTitle.${targetType}`)
+        ? t(`server.social.reportTitle.${targetType}`)
+        : name
+          ? t('flows.report.titleName', { name })
+          : t('flows.report.title'),
     body: () =>
-      `<form class="flows-form"><p class="flows-lead">${t('flows.report.intro')}</p><fieldset class="flows-fieldset" data-flows-required-group="reason" data-label="${esc(t('flows.report.reason'))}"><legend class="form-label">${t('flows.report.reason')}<span class="required" aria-hidden="true">*</span></legend><div class="list flows-methods">${FLOWS_REPORT_REASONS.map(r => `<label class="list-row flows-method"><input type="radio" name="reason" value="${r}"><span class="list-row-main"><span class="flows-row-label">${t(`flows.report.r.${r}`)}</span></span><span class="flows-radio-mark" aria-hidden="true"></span></label>`).join('')}</div></fieldset>${field(t('flows.report.details'), 'details', 'textarea', t('flows.report.detailsPlaceholder'), false, '', { maxlength: 500, rows: 3, counter: true })}${p && !blocked ? `<label class="flows-check-row"><input type="checkbox" name="alsoBlock" value="1"><span>${t('flows.report.alsoBlock', { name: esc(name) })}</span></label>` : ''}${submitButton(t('flows.report.submit'))}</form>`,
-    form(data, form, layer) {
+      `<form class="flows-form"><p class="flows-lead">${t('flows.report.intro')}</p><fieldset class="flows-fieldset" data-flows-required-group="reason" data-label="${esc(t('flows.report.reason'))}"><legend class="form-label">${t('flows.report.reason')}<span class="required" aria-hidden="true">*</span></legend><div class="list flows-methods">${flowsReportReasons().map(r => `<label class="list-row flows-method"><input type="radio" name="reason" value="${esc(r.id)}"><span class="list-row-main"><span class="flows-row-label">${esc(r.label)}</span></span><span class="flows-radio-mark" aria-hidden="true"></span></label>`).join('')}</div></fieldset>${field(t('flows.report.details'), 'details', 'textarea', t('flows.report.detailsPlaceholder'), false, '', { maxlength: 500, rows: 3, counter: true })}${p && !blocked && p.id !== SZ.server?.me?.id ? `<label class="flows-check-row"><input type="checkbox" name="alsoBlock" value="1"><span>${t('flows.report.alsoBlock', { name: esc(name) })}</span></label>` : ''}${submitButton(t('flows.report.submit'))}</form>`,
+    async form(data, form, layer) {
       const block = data.alsoBlock === '1' && p;
-      if (
+      if (SZ.server) {
+        try {
+          await SZ.api.act('POST', 'reports', {
+            targetType,
+            targetId: targetType === 'person' || !p ? targetId : targetId,
+            reason: data.reason,
+            details: data.details,
+            block: !!block,
+          });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (
         !SZ.store.commit(s => {
           s.feedback.unshift({
             id: SZ.uid('rp'),
@@ -2467,21 +2639,53 @@ function flowsReport(targetId) {
           SZ.overlay.close({ layer: origin, force: true });
         flowsRender();
       }
-      window.ShizhongNotices.push({
-        type: 'system',
-        titleKey: 'flows.notice.report',
-        bodyKey: 'flows.notice.reportBody',
-        silent: true,
-      });
+      // Server mode: the server wrote the notice (and pushes the outcome later).
+      if (!SZ.server)
+        window.ShizhongNotices.push({
+          type: 'system',
+          titleKey: 'flows.notice.report',
+          bodyKey: 'flows.notice.reportBody',
+          silent: true,
+        });
       flowsSuccess({
         title: t('flows.report.doneTitle'),
         text: block ? t('flows.report.doneBlocked', { name: esc(name) }) : t('flows.report.doneText'),
         steps: [1, 2, 3].map(i => t(`flows.report.step${i}`)),
+        primary: SZ.server ? act('feedback-status', '', t('server.social.myTickets'), 'btn btn-primary btn-lg btn-block') : '',
         mode: 'replace',
       });
     },
   });
 }
+/** My feedback, reports and other requests with their status and the team's reply (state.feedback). */
+function flowsTicketStatus() {
+  return flowsOpen('feedback-status', {
+    title: t('server.social.myTickets'),
+    body: () => {
+      const items = (state.feedback || []).filter(f => ['feedback', 'report'].includes(f.kind) || !f.kind);
+      if (!items.length) return flowsEmpty('flag', t('server.social.ticketsEmpty'), t('server.social.ticketsEmptyText'));
+      const statusTag = s =>
+        `<span class="tag ${s === 'resolved' ? 'tag-success' : s === 'rejected' ? '' : 'tag-warning'}">${esc(t('server.social.ticketStatus.' + (s || 'received')))}</span>`;
+      return `<ul class="list flows-bills">${items
+        .map(f => {
+          const title =
+            f.kind === 'report'
+              ? t('server.social.ticketReport', { target: t('server.social.target.' + (f.targetType || 'person')) })
+              : t('server.social.ticketFeedback');
+          const reason = f.kind === 'report' ? flowsReportReasons().find(r => r.id === f.reason)?.label || f.reason || '' : f.type ? t(`flows.feedback.type.${f.type}`) : '';
+          const text = f.details || f.text || '';
+          return `<li class="list-row flows-ticket"><span class="list-row-main"><span class="flows-row-label">${esc(title)}${reason ? ' · ' + esc(reason) : ''}</span>${text ? `<small class="flows-row-sub">${esc(text)}</small>` : ''}${f.reply ? `<small class="flows-ticket-reply">${esc(t('server.social.teamReply', { text: f.reply }))}</small>` : ''}<small class="caption">${esc(SZ.fmt.dateTime(f.ts))}</small></span>${statusTag(f.status)}</li>`;
+        })
+        .join('')}</ul>`;
+    },
+  });
+}
+window.ShizhongReports = Object.freeze({
+  /** { targetType: person|post|comment|group|message|live-room, targetId, personId? } */
+  open: ({ targetType = 'person', targetId = '', personId = '' } = {}) => flowsReport(targetId, { targetType, personId }),
+  status: () => flowsTicketStatus(),
+});
+
 // ------------------------------------------------------------------ help, privacy, about, licences
 function flowsHelp() {
   return flowsOpen('help', {
@@ -2701,6 +2905,7 @@ const FLOWS_ACTIONS = {
   feedback: () => flowsFeedback(),
   'after-sales': id => flowsAfterSales(id),
   report: id => flowsReport(id),
+  'feedback-status': () => flowsTicketStatus(),
   unblock: id => flowsUnblock(id),
   help: () => flowsHelp(),
   privacy: () => flowsPrivacy(),

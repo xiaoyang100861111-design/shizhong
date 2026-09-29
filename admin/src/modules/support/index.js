@@ -1,0 +1,53 @@
+export const deskMessages = {
+  zh: {
+    desk: {
+      title: '客服工作台', money: '红包与转账记录', settings: '聊天与客服设置',
+      kind: { all: '全部', support: '官方客服', persona: '运营人物', merchant: '商家会话', direct: '私聊' },
+      status: { open: '进行中', closed: '已结束', all: '全部' }, mine: '只看分配给我', search: '会员昵称 / ID / 手机',
+      empty: '选择左侧的会话开始接待', noChats: '暂时没有会话', assign: '分配给我', unassign: '取消分配', assigned: '接待人：{name}',
+      close: '结束会话', reopen: '重新打开', placeholder: '输入回复，Enter 发送，Shift+Enter 换行', send: '发送', quick: '快捷回复',
+      image: '图片', asPersona: '以「{name}」的身份回复', asDesk: '以官方客服身份回复', asMerchant: '以商家客服身份回复',
+      live: '实时', offline: '未连接', older: '加载更早的消息', recalled: '（已撤回）', fromMember: '会员', desk: '客服', persona: '运营人物',
+      viewMember: '会员详情', online: '在线', unreadN: '{n} 条未读',
+      msg: { image: '[图片]', voice: '[语音 {n} 秒]', file: '[文件] {name}', location: '[位置] {name}', contact: '[名片] {name}', gift: '[礼物] {text}',
+        envelope: '[红包] RM {amount} · {status}', transfer: '[转账] RM {amount} · {status}', call: '[{kind}] {outcome}', system: '[系统] {text}' },
+      money: { pending: '待领取', received: '已领取', refunded: '已退回' },
+      call: { voice: '语音通话', video: '视频通话', ended: '已接通 {n} 秒', missed: '未接听', declined: '已拒绝', cancelled: '已取消', busy: '忙线' },
+      packets: { kind: '类型', envelope: '红包', transfer: '转账', sender: '发送人', recipient: '接收人 / 群', amount: '金额', count: '个数', claimed: '已领取', refunded: '已退回',
+        expires: '过期时间', note: '留言', claims: '领取明细', lucky: '拼手气', normal: '普通' },
+    },
+    err: { 'support.notFound': '会话不存在或不在你的数据范围内', 'support.notDesk': '这个会话不能由客服回复', 'chat.empty': '请输入内容', 'chat.notImage': '请选择图片' },
+  },
+  en: {
+    desk: {
+      title: 'Support desk', money: 'Red packets & transfers', settings: 'Chat & desk settings',
+      kind: { all: 'All', support: 'Support', persona: 'Personas', merchant: 'Merchants', direct: 'Direct' },
+      status: { open: 'Open', closed: 'Closed', all: 'All' }, mine: 'Assigned to me', search: 'Nickname / ID / phone',
+      empty: 'Pick a conversation on the left', noChats: 'No conversations', assign: 'Assign to me', unassign: 'Unassign', assigned: 'Handled by {name}',
+      close: 'Close', reopen: 'Reopen', placeholder: 'Type a reply — Enter to send, Shift+Enter for a new line', send: 'Send', quick: 'Quick replies',
+      image: 'Photo', asPersona: 'Replying as “{name}”', asDesk: 'Replying as Shizhong support', asMerchant: "Replying as the shop's support",
+      live: 'Live', offline: 'Offline', older: 'Load earlier', recalled: '(unsent)', fromMember: 'Member', desk: 'Desk', persona: 'Persona',
+      viewMember: 'Member details', online: 'Online', unreadN: '{n} unread',
+      msg: { image: '[Photo]', voice: '[Voice {n}s]', file: '[File] {name}', location: '[Location] {name}', contact: '[Card] {name}', gift: '[Gift] {text}',
+        envelope: '[Red packet] RM {amount} · {status}', transfer: '[Transfer] RM {amount} · {status}', call: '[{kind}] {outcome}', system: '[System] {text}' },
+      money: { pending: 'Pending', received: 'Taken', refunded: 'Refunded' },
+      call: { voice: 'Voice call', video: 'Video call', ended: 'Connected {n}s', missed: 'Missed', declined: 'Declined', cancelled: 'Cancelled', busy: 'Busy' },
+      packets: { kind: 'Type', envelope: 'Red packet', transfer: 'Transfer', sender: 'Sender', recipient: 'Recipient / group', amount: 'Amount', count: 'Count', claimed: 'Taken', refunded: 'Refunded',
+        expires: 'Expires', note: 'Note', claims: 'Claims', lucky: 'Lucky', normal: 'Normal' },
+    },
+    err: { 'support.notFound': 'Conversation not found or outside your scope', 'support.notDesk': 'The desk cannot reply here', 'chat.empty': 'Type a message', 'chat.notImage': 'Choose a picture' },
+  },
+};
+
+export default {
+  menu: 'support',
+  order: 64,
+  icon: 'Service',
+  title: { zh: '客服工作台', en: 'Support desk' },
+  routes: [
+    { path: '/support', component: () => import('./Desk.vue'), meta: { title: { zh: '客服工作台', en: 'Support desk' }, perm: 'support.view' }, menu: true },
+    { path: '/support/money', component: () => import('./Packets.vue'), meta: { title: { zh: '红包与转账记录', en: 'Red packets & transfers' }, perm: 'support.money' }, menu: true },
+    { path: '/support/settings', component: () => import('./Settings.vue'), meta: { title: { zh: '聊天与客服设置', en: 'Chat & desk settings' }, perm: 'system.config' }, menu: true },
+  ],
+  messages: deskMessages,
+};

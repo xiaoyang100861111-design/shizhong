@@ -361,8 +361,43 @@
       return null;
     }
   }
+  /** Server mode: the card behind #u/<displayId> is looked up on the server (real name, photo, city). */
+  function openServerCard(displayId) {
+    return SZ.api
+      .get('people/card/' + encodeURIComponent(displayId))
+      .then(p => {
+        const mine = account()?.displayId === p.displayId;
+        const photo = `<img class="avatar pq-photo" ${typeof imageAttrs === 'function' ? imageAttrs(p.photo) : `src="${esc(asset(p.photo))}"`} alt="">`;
+        const cta = !SZ.session.isLoggedIn
+          ? `<button type="button" class="btn btn-primary btn-lg btn-block" data-action="pq-login">${esc(t('gifts.qr.signInToConnect'))}</button>`
+          : mine
+            ? `<button type="button" class="btn btn-primary btn-lg btn-block" data-action="close">${esc(t('gifts.qr.enter'))}</button>`
+            : `<button type="button" class="btn btn-primary btn-lg btn-block" data-action="pq-add" data-id="${esc(p.displayId)}">${esc(t('server.social.qrAdd'))}</button><button type="button" class="btn btn-secondary btn-lg btn-block" data-action="pq-profile" data-id="${esc(p.id)}">${esc(t('server.social.qrProfile'))}</button>`;
+        return SZ.overlay.open({
+          kind: 'screen',
+          title: t('gifts.qr.publicTitle'),
+          className: 'gf-screen pq-public-screen',
+          meta: { gift: 'qr-public', displayId: p.displayId, personId: p.id },
+          html: `<div class="gf-page pq-public">
+            <div class="pq-public-card">
+              <div class="pq-avatar">${photo}</div>
+              <h2 class="pq-name">${esc(p.name)}</h2>
+              <p class="pq-sub">${esc(t('gifts.hero.id', { id: formatId(p.displayId) }))}${p.city ? ' · ' + esc(td('city', p.city)) : ''}</p>
+              ${mine ? `<span class="tag tag-success">${esc(t('gifts.qr.yours'))}</span>` : ''}
+            </div>
+            <div class="gf-sticky-cta">${cta}</div>
+          </div>`,
+        });
+      })
+      .catch(e => {
+        if (e?.status === 404) toast(t('server.social.qrMissing'), { type: 'error' });
+        else SZ.api.fail(e);
+        return null;
+      });
+  }
   function openPublic(card) {
     if (!card?.displayId) return null;
+    if (SZ.server && /^\d{6,12}$/.test(String(card.displayId))) return openServerCard(String(card.displayId));
     const mine = account()?.displayId === card.displayId;
     const local = !mine && SZ.accounts.list().find(a => a.displayId === card.displayId);
     const name = mine ? myName() : card.name || local?.name || t('gifts.qr.someone');
@@ -412,7 +447,11 @@
     else if (action === 'pq-save') saveImage();
     else if (action === 'pq-share') share();
     else if (action === 'pq-download') download();
-    else if (action === 'pq-login') {
+    else if (action === 'pq-add') {
+      if (typeof flowsAddFriend === 'function') flowsAddFriend(id);
+    } else if (action === 'pq-profile') {
+      if (typeof personDetail === 'function') personDetail(id);
+    } else if (action === 'pq-login') {
       if (window.ShizhongAuth?.open) window.ShizhongAuth.open('login');
       else SZ.requireLogin(t('gifts.qr.loginReason'));
     } else return false;
