@@ -91,13 +91,20 @@ function assetPath(value) {
   const webp = value.replace(/\.(jpe?g|png)(?=$|[?#])/i, '.webp');
   return aliases[value] || aliases[webp] || (value.startsWith('assets/') ? value : 'assets/' + value);
 }
+// URLs asset() turned from an old .jpg/.png name into .webp → the name as written (tried if the .webp is missing).
+const RENAMED_ASSETS = new Map();
 function asset(name) {
   const value = String(name || 'logo.webp');
   if (/^(data:|blob:)/i.test(value)) return value;
   // Photos the user uploaded live in IndexedDB ('media:<id>'); <img data-media> hydrates them.
   if (SZ.media.isRef(value)) return SZ.media.src(value);
   if (/^(https?:)?\/\//i.test(value)) return new URL(value, SHIZHONG_BASE).href;
-  return resourceURL(assetPath(value));
+  const path = assetPath(value);
+  const webp = path.replace(/\.(jpe?g|png)$/i, '.webp');
+  if (webp === path) return resourceURL(path);
+  const url = resourceURL(webp);
+  RENAMED_ASSETS.set(url, resourceURL(path));
+  return url;
 }
 // Photos in these folders also exist 320 px wide as <name>.w320.webp (tools/perf/optimize_images.py).
 const THUMB_DIRS = /^assets\/(photos|optimized)\/[^/]+\.webp$/;
@@ -117,15 +124,17 @@ function srcsetAttr(name, sizes = '100vw') {
   if (!isThumbable(path) || !path.startsWith('assets/photos/')) return '';
   return ` srcset="${esc(resourceURL(path.replace(/\.webp$/, '.w320.webp')))} 320w, ${esc(resourceURL(path))} 640w" sizes="${esc(sizes)}"`;
 }
-// Old saved data or a cached page may still name a .jpg/.png that is now .webp: retry once with the WebP twin.
+// A local image named .jpg/.png is requested as .webp (saved data from before the conversion); should that
+// file not exist (an image added since, not yet converted), retry once with the name as written.
 document.addEventListener(
   'error',
   e => {
     const img = e.target;
-    if (!(img instanceof HTMLImageElement) || img.dataset.webpRetry) return;
-    if (!/\/assets\/[^?#]+\.(jpe?g|png)(?=$|[?#])/i.test(img.src)) return;
-    img.dataset.webpRetry = '1';
-    img.src = img.src.replace(/\.(jpe?g|png)(?=$|[?#])/i, '.webp');
+    if (!(img instanceof HTMLImageElement) || img.dataset.assetRetry) return;
+    const original = RENAMED_ASSETS.get(img.src);
+    if (!original) return;
+    img.dataset.assetRetry = '1';
+    img.src = original;
   },
   true
 );
