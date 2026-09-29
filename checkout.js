@@ -1352,7 +1352,8 @@
               'complete-order',
               o.id,
               esc(t(pickKey(`catalog.order.complete.${orderFlow(o)}`, 'catalog.order.complete.service'))),
-              `${cls} btn-primary`
+              // Closing a free request is housekeeping, not the page's main action.
+              `${cls} ${isPaidFlow(orderFlow(o)) ? 'btn-primary' : 'btn-secondary'}`
             )
       );
     if (status === 'done' && o.serviceId && !o.review && isPaidFlow(orderFlow(o)))
