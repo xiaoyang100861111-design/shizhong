@@ -25,9 +25,25 @@ SET Permissions = ISNULL((SELECT N'[' + STRING_AGG(N'"' + STRING_ESCAPE(j.value,
 WHERE ISJSON(Permissions) = 1
   AND EXISTS (SELECT 1 FROM OPENJSON(Permissions) j WHERE j.value = N'marketing.checkin');
 
--- Notices and broadcasts that opened the check-in sheet now open the gold-bean sheet ('points').
+-- Notices whose action opened the check-in sheet.
+--   * Gold-bean adjustments by an admin (server.notice.beansAdjusted) are about beans, not check-in: they now open
+--     the gold-bean sheet ('points').
+--   * Everything else with that action announced or promoted check-in (broadcasts such as "签到奖励升级"): the broadcast
+--     and the member notices it produced are removed, so nothing about check-in is left in the notification centre
+--     and nothing scheduled can still go out.
 UPDATE dbo.Notifications SET Action = JSON_MODIFY(Action, '$.name', N'points')
-WHERE Action IS NOT NULL AND ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin';
+WHERE ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin' AND TitleKey = N'server.notice.beansAdjusted';
 
-UPDATE dbo.Broadcasts SET Action = JSON_MODIFY(Action, '$.name', N'points')
-WHERE Action IS NOT NULL AND ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin';
+DELETE FROM dbo.Notifications
+WHERE BroadcastId IN (SELECT Id FROM dbo.Broadcasts WHERE ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin');
+
+DELETE FROM dbo.Notifications WHERE ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin';
+
+DELETE FROM dbo.Broadcasts WHERE ISJSON(Action) = 1 AND JSON_VALUE(Action, '$.name') = N'checkin';
+
+-- The generated demo broadcast "任务中心上新" listed 每日签到 among the ways to earn beans; same text as the seed now uses.
+UPDATE dbo.Broadcasts SET Body = N'完善资料、发布第一条动态、保存常用地址都能领金豆，快去看看吧。'
+WHERE Body = N'每日签到、完善资料、首次下单都能领金豆，快去看看吧。';
+
+UPDATE dbo.Notifications SET Body = N'完善资料、发布第一条动态、保存常用地址都能领金豆，快去看看吧。'
+WHERE Body = N'每日签到、完善资料、首次下单都能领金豆，快去看看吧。';
