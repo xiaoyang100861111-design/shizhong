@@ -1526,7 +1526,7 @@ button.flows-row:hover {
 }
 .full-screen.flows-layer > .detail-header {
   border-bottom: 1px solid var(--c-border);
-  background: color-mix(in srgb, var(--c-surface) 94%, transparent);
+  background: var(--c-surface);
 }
 .full-screen.flows-layer > .detail-header .icon-button {
   color: var(--c-icon);
@@ -1542,4 +1542,66 @@ button.flows-row:hover {
 .flows-layer .form-hint,
 .flows-layer .form-note {
   color: var(--c-text-3);
+}
+
+/* wallet: order and chat payments open what they paid for */
+.flows-bills > li > .flows-bill-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.flows-bills > li > .flows-bill-link:active {
+  background: var(--c-surface-3);
+}
+.flows-bill-link .ico.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-inline-start: calc(var(--sp-1) * -1);
+  color: var(--c-text-3);
+}
+.flows-gift-thumb {
+  overflow: hidden;
+  background: var(--c-gold-soft);
+}
+.flows-gift-thumb img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+/* edit profile: interest checkboxes share the radio-chip look */
+.flows-fieldset-hint {
+  margin: calc(var(--sp-1) * -1) 0 var(--sp-2);
+}
+.flows-check-chip input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.flows-bill-spacer {
+  flex-shrink: 0;
+  width: 16px;
+  margin-inline-start: calc(var(--sp-1) * -1);
+}
+.flows-bill .flows-row-label {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+@media (max-width: 359px) {
+  .flows-bill {
+    gap: var(--sp-2);
+  }
+  .flows-bill-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .flows-bill-amount {
+    font-size: var(--fs-14);
+  }
 }

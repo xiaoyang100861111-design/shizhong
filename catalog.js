@@ -69,6 +69,7 @@
       : image;
   }
   const selfPhoto = () => state.profile?.photo || 'ui/avatar-default.svg';
+  const selfName = () => (typeof profileName === 'function' ? profileName() : state.profile?.name || '');
 
   // ------------------------------------------------------------------ price, sales, rating
   function priceParts(s) {
@@ -427,7 +428,7 @@
     )}<p class="checkout-person-status"><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span><span aria-hidden="true">·</span><span>${html(personPlace(p))}</span></p></div>${act('greet', p.id, esc(greeted ? t('catalog.person.message') : t('catalog.person.greet')), 'btn btn-sm btn-tonal checkout-person-cta')}<div class="checkout-person-body"><p class="checkout-person-bio">${html(txt('people', p, 'bio'))}</p>${tags.length ? `<div class="checkout-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}</div></div>`;
   }
   function postAuthor(post) {
-    if (post.person === 'self') return { id: 'self', name: state.profile.name, self: true };
+    if (post.person === 'self') return { id: 'self', name: selfName(), self: true };
     const p = findPerson(post.person);
     return p ? { id: p.id, name: personName(p), person: p } : null;
   }
@@ -468,7 +469,7 @@
   }
   const groupName = g => txt('groups', g, 'name');
   function groupAvatar(g, size = 48) {
-    let members = (g.memberIds || []).map(findPerson).filter(Boolean).slice(0, 4);
+    let members = groupMembers(g).map(findPerson).filter(Boolean).slice(0, 4);
     if (!members.length) members = people.slice(0, 4);
     return `<span class="checkout-group-avatar" style="--size:${size}px" role="img" aria-label="${esc(t('catalog.group.avatar', { name: groupName(g) }))}" data-count="${members.length}">${members.map(p => img(p.photo, '', '', 'width="32" height="32"')).join('')}</span>`;
   }
@@ -584,14 +585,18 @@
   function messagePreview(m, who) {
     if (!m) return '';
     const type = m.type || 'text';
+    const chatPreview = window.ShizhongChat?.preview;
     const body =
-      type === 'text'
-        ? m.text || ''
-        : t.has(`catalog.msg.${type}`)
-          ? t(`catalog.msg.${type}`)
-          : t('catalog.msg.unknown');
+      typeof chatPreview === 'function'
+        ? String(chatPreview(m) || '')
+        : type === 'text'
+          ? m.text || ''
+          : t.has(`catalog.msg.${type}`)
+            ? t(`catalog.msg.${type}`)
+            : t('catalog.msg.unknown');
     if (who?.group && !m.self && m.author) return t('catalog.msg.fromAuthor', { name: m.author, text: body });
-    if (m.self && type !== 'text') return t('catalog.msg.youSent', { text: body });
+    if (m.self && !['text', 'emoji', 'system', 'recalled'].includes(type))
+      return t('catalog.msg.youSent', { text: body });
     return body;
   }
   function chatInfo(id) {
@@ -636,11 +641,11 @@
         id,
         name: groupName(g),
         desc: txt('groups', g, 'desc'),
-        photo: findPerson((g.memberIds || [])[0])?.photo || people[0]?.photo || 'logo.png',
+        photo: findPerson(groupMembers(g)[0])?.photo || people[0]?.photo || 'logo.png',
         initial: txt('groups', g, 'desc') || t('catalog.group.welcome'),
         group: true,
         count: Number(g.count) || 1,
-        memberIds: g.memberIds || [],
+        memberIds: groupMembers(g),
       };
     return {
       id,
@@ -648,6 +653,15 @@
       photo: 'avatars/women-000.jpg',
       initial: t('catalog.chat.requestSaved'),
     };
+  }
+  /** Member ids; the hand-written legacy groups have none, so pick stable local people for them. */
+  function groupMembers(g) {
+    if (Array.isArray(g.memberIds) && g.memberIds.length) return g.memberIds;
+    if (g.createdAt) return []; // groups the visitor created start with only themselves
+    const pool = people.filter(p => !g.city || g.city === '全马' || p.city === g.city);
+    const list = pool.length >= 4 ? pool : people;
+    const start = stableHash(g.id) % Math.max(1, list.length);
+    return [...list.slice(start), ...list.slice(0, start)].slice(0, 8).map(p => p.id);
   }
   function contactPeople() {
     const ids = new Set([...Object.keys(state.messages || {}), ...state.greeted]);
@@ -1019,10 +1033,21 @@
         }),
       });
     }
+    // Joined groups join the conversation list once the visitor has taken part (all are under Groups).
     for (const id of state.joined) {
       const g = findGroup(id);
-      if (!g || !state.messages[id]?.length) continue;
-      rows.push({ time: lastMessage(id)?.time || 0, html: groupRow(g) });
+      const last = g && state.messages[id]?.length ? lastMessage(id) : null;
+      if (!last) continue;
+      rows.push({
+        time: last.time,
+        html: chatListRow(id, {
+          avatar: groupAvatar(g),
+          name: groupName(g),
+          preview: messagePreview(last, { group: true }),
+          time: last.time,
+          unread: unreadFor(id),
+        }),
+      });
     }
     rows.sort((a, b) => b.time - a.time);
     return [{ html: pinned }, ...rows];
@@ -1108,6 +1133,22 @@
       t('catalog.comms.title')
     )}</div><div class="checkout-tab-body">${loadBody('comms', draw, () => skeleton('row', 6))}</div></section>`;
   }
+
+  // The Messages list follows the chat module: new messages and read changes redraw it, right away
+  // when it is visible, otherwise once the covering layers close.
+  let commsStale = false;
+  const refreshComms = SZ.debounce(() => {
+    if (ui.page !== 'comms') return;
+    if (SZ.overlay.depth()) commsStale = true;
+    else render();
+  }, 150);
+  SZ.on('chat:unread', refreshComms);
+  SZ.on('chat:message', refreshComms);
+  SZ.on('overlay:empty', () => {
+    if (!commsStale) return;
+    commsStale = false;
+    if (ui.page === 'comms') render();
+  });
 
   // ------------------------------------------------------------------ option sheets (pickers)
   /** Radio list in a pushed sheet; onPick(id) runs after the sheet closes. */
@@ -1266,7 +1307,7 @@
     return [...userReviews(s.id).map(r => ({ ...r, own: true })), ...(s.reviews || [])];
   }
   function reviewItem(r) {
-    const author = r.own ? r.name || state.profile.name : r.author;
+    const author = r.own ? selfName() : r.author;
     const when = r.at ? fmt().date(r.at, 'medium') : r.date ? fmt().date(r.date, 'medium') : '';
     const tags = (r.tags || [])
       .map(id => `<span class="tag">${esc(t(`catalog.review.tag.${id}`))}</span>`)
@@ -1295,13 +1336,14 @@
     if (top?.meta.serviceId === id && top.meta.view === 'service') return top;
     const flow = C.flowOf?.(s) || 'service';
     const job = s.type === 'job';
-    const description = s.description || '';
-    const untranslated = !SZ_I18N.isSource && CJK.test(description + (s.includes || []).join(''));
-    const includes = s.includes || [];
+    // Translated content where the language pack has it (legacy records do), else the shop's own text.
+    const description = txt('services', s, 'description') || '';
+    const includes = contentList('services', s, 'includes');
+    const untranslated = !SZ_I18N.isSource && CJK.test(description + includes.join(''));
     const right = `<span class="checkout-header-actions">${act('catalog-share', 'service:' + id, icon('share'), 'icon-button', `aria-label="${esc(t('catalog.detail.share'))}"`)}${saveButton(id)}</span>`;
     const facts = job
-      ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.requirements'))}</h3>${bulletList(s.requirements || includes, 'check')}${s.benefits?.length ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.benefits'))}</h3>${bulletList(s.benefits, 'check')}` : ''}`
-      : `<h3 class="checkout-block-title">${esc(t('catalog.detail.included'))}</h3>${includes.length ? bulletList(includes, 'check') : `<p class="checkout-muted">${esc(t('catalog.detail.includedDefault'))}</p>`}<h3 class="checkout-block-title">${esc(t('catalog.detail.excluded'))}</h3>${s.excludes?.length ? bulletList(s.excludes, 'close') : `<p class="checkout-muted">${esc(t('catalog.detail.excludedDefault'))}</p>`}${s.pricingNote ? `<p class="checkout-note">${html(s.pricingNote)}</p>` : ''}`;
+      ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.requirements'))}</h3>${bulletList(s.requirements ? contentList('services', s, 'requirements') : includes, 'check')}${s.benefits?.length ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.benefits'))}</h3>${bulletList(contentList('services', s, 'benefits'), 'check')}` : ''}`
+      : `<h3 class="checkout-block-title">${esc(t('catalog.detail.included'))}</h3>${includes.length ? bulletList(includes, 'check') : `<p class="checkout-muted">${esc(t('catalog.detail.includedDefault'))}</p>`}<h3 class="checkout-block-title">${esc(t('catalog.detail.excluded'))}</h3>${s.excludes?.length ? bulletList(contentList('services', s, 'excludes'), 'close') : `<p class="checkout-muted">${esc(t('catalog.detail.excludedDefault'))}</p>`}${s.pricingNote ? `<p class="checkout-note">${html(txt('services', s, 'pricingNote'))}</p>` : ''}`;
     const cart =
       flow === 'goods'
         ? act(
@@ -1330,7 +1372,7 @@
           : ''
       }<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.facts'))}</h3>${detailRows(s)}</section><section class="checkout-block">${facts}</section>${
         s.notice || s.faq?.length
-          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(s.notice)}</p>` : ''}${(s.faq || []).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
+          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(txt('services', s, 'notice'))}</p>` : ''}${(s.faq || []).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
           : ''
       }<div data-part="reviews">${reviewsSection(s)}</div><p class="checkout-footnote">${esc(t('catalog.detail.demoNote'))}</p></div><div class="checkout-bottom-bar">${act('service-chat', id, `${icon('chat')}<span>${esc(t('catalog.detail.askShort'))}</span>`, 'checkout-bar-icon')}${cart}${act('book-service', id, esc(t(`catalog.detail.cta.${flow}`)), 'btn btn-lg btn-primary checkout-cta')}</div>`,
     });
@@ -1683,9 +1725,9 @@
     const g = findGroup(id);
     if (!g) return toast(t('catalog.group.missing'), { type: 'error' });
     const joined = state.joined.includes(id);
-    const members = (g.memberIds || []).map(findPerson).filter(Boolean);
+    const members = groupMembers(g).map(findPerson).filter(Boolean);
     const self = joined
-      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${html(state.profile.name)}</span></span>`
+      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${html(selfName())}</span></span>`
       : '';
     const rules = contentList('groups', g, 'rules');
     const recent = conversationMessages(id).slice(-4);
@@ -1710,7 +1752,7 @@
           ''
         )}</div></section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.recent'))}</h3>${
         recent.length
-          ? `<div class="checkout-group-preview">${recent.map(m => `<p><b>${html(m.self ? state.profile.name : m.author || t('catalog.group.member'))}</b>${html(messagePreview(m))}</p>`).join('')}</div>`
+          ? `<div class="checkout-group-preview">${recent.map(m => `<p><b>${html(m.self ? selfName() : m.author || t('catalog.group.member'))}</b>${html(messagePreview(m))}</p>`).join('')}</div>`
           : `<p class="checkout-muted">${esc(t('catalog.group.quiet'))}</p>`
       }</section>${joined ? act('leave-group', id, esc(t('catalog.group.leave')), 'btn btn-ghost btn-block checkout-danger-text') : ''}</div><div class="checkout-bottom-bar">${act(joined ? 'chat' : 'join-group', id, esc(joined ? t('catalog.group.open') : t('catalog.group.join')), 'btn btn-lg btn-primary checkout-cta')}</div>`,
     });
@@ -1776,7 +1818,7 @@
   // ------------------------------------------------------------------ comments & photo
   function commentRow(c) {
     const person = c.person ? findPerson(c.person) : null;
-    const name = c.self || !person ? c.name || c.author || state.profile.name : personName(person);
+    const name = c.self ? selfName() : !person ? c.name || c.author || selfName() : personName(person);
     const photo = person ? avatarHTML(person, 32) : img(selfPhoto(), '', 'avatar avatar-32');
     return `<div class="checkout-comment">${photo}<div><p class="checkout-comment-name">${html(name)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}</p><p>${html(c.text)}</p></div></div>`;
   }
@@ -1922,8 +1964,11 @@
       })
     )
       return;
-    const layer = SZ.overlay.layers().find(l => l.meta.personId === id);
-    if (layer) await SZ.overlay.close({ layer, force: true });
+    // Their profile, chat and chat sheets close: nothing of theirs stays on screen.
+    const layers = SZ.overlay
+      .layers()
+      .filter(l => l.meta.personId === id || l.meta.chatId === id || l.meta.cxChat === id);
+    for (const layer of layers.reverse()) await SZ.overlay.close({ layer, force: true });
     render();
     toast(t('catalog.person.blocked'), {
       action: {
@@ -2029,7 +2074,6 @@
       openingChat = true;
       try {
         if (window.ShizhongChat?.open) return window.ShizhongChat.open(id);
-        if (window.ShizhongGifts?.openChat) return window.ShizhongGifts.openChat(id); // pre-v2 chat screen
         return fallbackChat(id);
       } finally {
         openingChat = false;
@@ -2050,7 +2094,7 @@
       return window.ShizhongGifts.messageBubble(m, who);
     const author = m.person ? findPerson(m.person) : null;
     const photo = m.self ? selfPhoto() : author?.photo || who?.photo || 'logo.png';
-    const name = m.self ? state.profile.name : m.author || (author ? personName(author) : who?.name);
+    const name = m.self ? selfName() : m.author || (author ? personName(author) : who?.name);
     return `<div class="checkout-bubble-line${m.self ? ' is-self' : ''}">${img(photo, '', 'avatar avatar-32')}<div class="checkout-bubble-main">${!m.self && who?.group ? `<span class="caption">${html(name)}</span>` : ''}<p class="checkout-bubble">${html(m.type && m.type !== 'text' ? messagePreview(m) : m.text)}</p>${m.time ? `<time class="caption">${esc(fmt().time(m.time))}</time>` : ''}</div></div>`;
   }
   /** Minimal chat screen, used only when the chat module is missing. */
@@ -2377,9 +2421,8 @@
     nextRoom,
     openChat,
     messageBubble,
-    // Transitional: unmigrated flows.js calls expandedAction() before its switch and
-    // private-room.js reassigns privateCard at load. Remove once both use SZ.actions.
+    // Transitional: private-room.js on main still reassigns privateCard at load (strict mode would
+    // throw without the global). Remove once the wave-2 private module no longer does.
     privateCard,
-    expandedAction: () => false,
   });
 })();

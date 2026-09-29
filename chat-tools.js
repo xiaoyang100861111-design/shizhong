@@ -382,11 +382,20 @@
     state.chatReads[chatId] = Date.now();
     if (!state.readChats.includes(chatId)) state.readChats.push(chatId); // legacy readers
     SZ.store.saveSoon();
-    if (had) {
-      listDirty = true;
-      refreshNav();
-      SZ.emit('chat:unread', { chatId, unread: 0 });
-    }
+    if (had) listDirty = true;
+    emitUnread(chatId);
+  }
+  /*
+   * Tell the nav badge and the Messages list whenever a chat's unread count changes: new messages
+   * from the other side, reading, and own messages (sending also marks the chat as read).
+   */
+  const lastUnread = new Map();
+  function emitUnread(chatId) {
+    const n = unread(chatId);
+    if (lastUnread.get(chatId) === n) return;
+    lastUnread.set(chatId, n);
+    refreshNav();
+    SZ.emit('chat:unread', { chatId, unread: n });
   }
 
   // ------------------------------------------------------------------ summaries (previews, quotes, menu)
@@ -673,6 +682,18 @@
     </form>`;
   }
   function headerAvatar(info) {
+    // Groups: a small grid of member faces (like the Messages list), opening the group's page.
+    if (info.kind === 'group') {
+      const faces = info.memberIds.map(personById).filter(Boolean).slice(0, 4);
+      if (faces.length >= 2)
+        return act(
+          'group-detail',
+          info.id,
+          `<span class="cx-group-av" data-count="${faces.length}">${faces.map(p => `<img ${imgSrc(p.photo)} alt="" loading="lazy">`).join('')}</span>`,
+          'cx-head-av',
+          `aria-label="${esc(t('chat.header.group', { name: info.name }))}"`
+        );
+    }
     const gifts = window.ShizhongGifts?.avatar;
     if (gifts && info.person) {
       try {
@@ -1054,11 +1075,10 @@
     if (!m.self && m.type !== 'system') {
       if (view?.el.isConnected && !document.hidden) markRead(chatId);
       else {
-        refreshNav();
-        SZ.emit('chat:unread', { chatId, unread: unread(chatId) });
+        emitUnread(chatId);
         refreshList();
       }
-    }
+    } else emitUnread(chatId);
     if (m.self && reply && !['call', 'system', 'recalled'].includes(m.type)) scheduleReply(chatId, m);
     SZ.emit('chat:message', { chatId, message: m });
   }
@@ -1324,9 +1344,10 @@
               id: SZ.uid('b'),
               title: t('chat.money.refundBill', { name }),
               amount: back / 100,
-              method: t('chat.money.method'),
+              method: 'wallet',
               time: now,
               kind: 'chat-refund',
+              chatId,
               i18n: { key: 'chat.money.refundBill', params: { name } },
             });
           }
@@ -2336,9 +2357,10 @@
         id: p.id,
         title: t(billKey, { name: view.info.name }),
         amount: -p.cents / 100,
-        method: t('chat.money.method'),
+        method: 'wallet',
         time: now,
         kind: 'chat-' + p.kind,
+        chatId: view.chatId,
         i18n: { key: billKey, params: { name: view.info.name } },
       });
     });

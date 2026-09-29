@@ -929,5 +929,146 @@
         "msg": "avatar is a small data URL"
       }
     ]
+  },
+  {
+    "name": "flows-settings-account",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "SZ.actions.dispatch('settings'), true"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-action=flows-switch-account]') && !!SZ.overlay.$('[data-action=flows-logout]')",
+        "msg": "switch account and sign out"
+      },
+      {
+        "expect": "(SZ.overlay.$('[data-action=language] .row-value')?.textContent||'').trim()===SZ_I18N.meta().name",
+        "msg": "language row shows the language name"
+      },
+      {
+        "expect": "!/88002688|8800 2688/.test(SZ.overlay.top().el.textContent) || SZ.session.account.displayId==='88002688'",
+        "msg": "account ID comes from the session"
+      },
+      {
+        "click": "[data-sz-layer]:last-child [data-action=flows-toggle][data-id=marketing]"
+      },
+      {
+        "expect": "state.settings.marketing===true",
+        "msg": "marketing opt-in toggles"
+      },
+      {
+        "click": "[data-sz-layer]:last-child [data-action=flows-logout]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "!!SZ.overlay.$('.sz-confirm-actions')",
+        "msg": "sign out asks first"
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-sz-layer]:last-child [data-sz-confirm='0']"
+      },
+      {
+        "wait": 200
+      },
+      {
+        "expect": "SZ.session.isDemo && SZ.overlay.top().meta.flowsKey==='settings'",
+        "msg": "cancel keeps the session"
+      }
+    ]
+  },
+  {
+    "name": "flows-profile-interests",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "SZ.actions.dispatch('edit-profile'), true"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "eval": "['food','travel'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
+      },
+      {
+        "type": "[data-sz-layer]:last-child input[name=email]",
+        "value": "me@example.my"
+      },
+      {
+        "shot": "form"
+      },
+      {
+        "submit": "[data-sz-layer]:last-child form"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "state.profile.interests.join()==='food,travel' && state.profile.email==='me@example.my' && SZ.overlay.depth()===0",
+        "msg": "interests and email saved"
+      },
+      {
+        "eval": "SZ.actions.dispatch('edit-profile'), true"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "SZ.overlay.$('input[name=interest][value=food]').checked && SZ.overlay.$('input[name=name]').value===profileName()",
+        "msg": "form shows saved interests and the display name"
+      },
+      {
+        "eval": "['music','movies','gaming'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
+      },
+      {
+        "expect": "SZ.overlay.$('input[name=interest][value=pets]').disabled",
+        "msg": "at most five interests"
+      }
+    ]
+  },
+  {
+    "name": "flows-wallet-bills",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "(()=>{const now=Date.now();state.bills.unshift({id:'qa1',kind:'chat-transfer',chatId:'p1',title:'好友转账 · 小满',amount:-12.5,method:'wallet',time:now-60000,i18n:{key:'chat.money.transferBill',params:{name:'小满'}}},{id:'qa2',kind:'gift',title:'购买礼物',amount:-9.9,method:'演示余额',time:now-120000},{id:'qa3',kind:'recharge',title:'',amount:50,method:'tng',ts:now-180000});return true})()"
+      },
+      {
+        "eval": "SZ.actions.dispatch('wallet'), true"
+      },
+      {
+        "wait": 400
+      },
+      {
+        "expect": "!!SZ.overlay.$('.flows-bill-link[data-kind=transfer][data-id=p1]') && SZ.overlay.$('.flows-bills').textContent.includes(SZ.fmt.time(Date.now()-60000))",
+        "msg": "chat transfer links to the chat, times via SZ.fmt"
+      },
+      {
+        "shot": "wallet"
+      }
+    ]
+  },
+  {
+    "name": "flows-gift-wall",
+    "hash": "me",
+    "steps": [
+      {
+        "eval": "(state.live=state.live||{}, state.live.giftHistory=[{id:'qa',giftId:'rose',name:'心动玫瑰',hostId:'p1',hostName:'小满',quantity:3,total:30,time:Date.now()-3600000}], SZ.actions.dispatch('gift-wall'), true)"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "expect": "SZ.overlay.top().meta.flowsKey==='gift-wall' && SZ.overlay.top().el.querySelectorAll('.flows-bill').length===1",
+        "msg": "live gift history lists sent gifts"
+      }
+    ]
   }
 ]
