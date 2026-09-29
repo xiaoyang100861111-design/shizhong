@@ -15,6 +15,7 @@ addMessages({
       today: '今天', yesterday: '昨天', last7: '近 7 天', last30: '近 30 天', last90: '近 90 天', online: '在线', offline: '离线',
       normal: '正常', open: '打开', submit: '提交', select: '请选择', input: '请输入', success: '成功', failed: '失败',
       unsaved: '有未保存的修改', noData: '暂无数据', id: 'ID', user: '用户', city: '城市', phone: '手机', email: '邮箱',
+      verified: '蓝V认证',
     },
     layout: {
       logout: '退出登录', password: '修改密码', lang: 'English', collapse: '收起菜单', expand: '展开菜单',
@@ -66,6 +67,7 @@ addMessages({
       today: 'Today', yesterday: 'Yesterday', last7: 'Last 7 days', last30: 'Last 30 days', last90: 'Last 90 days', online: 'Online', offline: 'Offline',
       normal: 'Active', open: 'Open', submit: 'Submit', select: 'Select', input: 'Enter', success: 'Success', failed: 'Failed',
       unsaved: 'Unsaved changes', noData: 'No data', id: 'ID', user: 'Member', city: 'City', phone: 'Phone', email: 'E-mail',
+      verified: 'Blue V',
     },
     layout: {
       logout: 'Sign out', password: 'Change password', lang: '中文', collapse: 'Collapse', expand: 'Expand',

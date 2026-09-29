@@ -30,10 +30,12 @@ public sealed class RiskModule : IModule
 
     public IEnumerable<ConfigDef> Configs =>
     [
-        ConfigDef.GroupOf("risk", "账号风控", "Risk control", "风控规则请在「风控中心 → 风控策略」里设置，这里是通用参数"),
-        new("risk.level", "risk", RiskLevels.Light, "select", "风控等级", "Risk level", "在「风控中心 → 风控策略」里可以看到每个等级的具体规则",
+        // level and custom rules: edited on 风控中心 → 风控策略 (kept in their own group so the general parameters can be embedded there)
+        ConfigDef.GroupOf("riskPolicy", "风控策略", "Risk policy", "建议在「风控中心 → 风控策略」里修改，那里有每个等级的规则说明和对比"),
+        new("risk.level", "riskPolicy", RiskLevels.Light, "select", "风控等级", "Risk level", "在「风控中心 → 风控策略」里可以看到每个等级的具体规则",
             Options: RiskLevels.All.Select(l => new { value = l, label = RiskPolicy.LevelInfo[l].Zh, labelEn = RiskPolicy.LevelInfo[l].En }).ToArray()),
-        new("risk.custom", "risk", RiskPolicy.Preset(RiskLevels.Light), "json", "自定义规则（风控等级选「自定义」时生效）", "Custom rules (used when the level is Custom)"),
+        new("risk.custom", "riskPolicy", RiskPolicy.Preset(RiskLevels.Light), "json", "自定义规则（风控等级选「自定义」时生效）", "Custom rules (used when the level is Custom)"),
+        ConfigDef.GroupOf("risk", "风控通用参数", "Risk control settings", "滑块、临时邮箱、记录保留；各场景的规则在「风控策略」里设置"),
         new("risk.captchaTolerance", "risk", 6, "int", "滑块允许的误差（像素）", "Slider tolerance (px)", Min: 2, Max: 20),
         new("risk.captchaTtlSeconds", "risk", 120, "int", "滑块通过后有效时间（秒）", "Slider pass valid for (s)", Min: 30, Max: 900),
         new("risk.disposableDomains", "risk", Array.Empty<string>(), "list", "额外的临时邮箱域名", "More disposable e-mail domains", "内置常见临时邮箱，这里可以补充"),

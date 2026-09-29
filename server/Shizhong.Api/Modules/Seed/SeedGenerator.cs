@@ -215,6 +215,10 @@ public sealed partial class SeedGenerator
         await WriteAllAsync();
         Step("更新统计与缓存", 95);
         await FinalizeAsync();
+        Step("风控与蓝V", 97);
+        var risk = new SeedRisk(C, W, new Random(R.Next()), T.Now);
+        await risk.RunAsync();
+        foreach (var (k, v) in risk.Summary) Summary[k] = v;
         Summary["seconds"] = Math.Round(watch.Elapsed.TotalSeconds, 1);
         Summary["rows"] = W.Written;
         Step("完成", 100, $"{W.Written:N0} 行，用时 {watch.Elapsed.TotalSeconds:0} 秒");

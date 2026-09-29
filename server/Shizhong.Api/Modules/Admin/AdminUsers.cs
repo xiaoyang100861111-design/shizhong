@@ -34,7 +34,7 @@ public sealed partial class AdminModule
         u.Id, u.PublicId, u.DisplayId, u.Kind, u.Phone, u.Email, u.Name, u.Avatar, u.City, u.Status, u.MutedUntil, u.Hidden, u.AgentId,
         ag.Name AS AgentName, ag.Code AS AgentCode, u.Platform, u.RegisterMethod, u.CreatedAt, u.LastLoginAt, u.LastSeenAt,
         ISNULL(w.BalanceCents, 0) AS BalanceCents, ISNULL(w.FrozenCents, 0) AS FrozenCents, ISNULL(w.Beans, 0) AS Beans,
-        ISNULL(w.IncomeCents, 0) AS IncomeCents
+        ISNULL(w.IncomeCents, 0) AS IncomeCents, u.Verified, u.VerifiedLabel
         """;
     const string UserFrom = "dbo.Users u LEFT JOIN dbo.Wallets w ON w.UserId = u.Id LEFT JOIN dbo.Agents ag ON ag.Id = u.AgentId";
 
@@ -46,7 +46,7 @@ public sealed partial class AdminModule
         agentCode = (string?)u.AgentCode, platform = (string?)u.Platform, registerMethod = (string?)u.RegisterMethod,
         createdAt = Json.Ms((DateTime)u.CreatedAt), lastLoginAt = Json.Ms((DateTime?)u.LastLoginAt), lastSeenAt = Json.Ms((DateTime?)u.LastSeenAt),
         balance = Money.ToRm((long)u.BalanceCents), frozen = Money.ToRm((long)u.FrozenCents), beans = (long)u.Beans, income = Money.ToRm((long)u.IncomeCents),
-        online = Presence.IsOnline((long)u.Id),
+        online = Presence.IsOnline((long)u.Id), verified = (int)u.Verified == 1, verifiedLabel = (int)u.Verified == 1 ? (string?)u.VerifiedLabel : null,
     };
 
     static void MapUsers(RouteGroupBuilder g)

@@ -124,7 +124,7 @@ const staff = computed(() => (info.value?.accounts || []).filter(a => a.role !==
 const countRole = role => (info.value?.accounts || []).filter(a => a.role === role).length;
 const cardKeys = ['members', 'agents', 'orders', 'reviews', 'posts', 'comments', 'follows', 'messages', 'liveSessions', 'giftTransactions', 'privateCalls',
   'cryptoDeposits', 'withdrawals', 'tickets', 'ledger', 'notifications', 'broadcasts', 'banners', 'couponTemplates', 'giftBackgrounds', 'liveNow', 'cryptoBalances',
-  'hostApplications', 'merchantApplications'];
+  'hostApplications', 'merchantApplications', 'riskEvents', 'riskLists', 'verified', 'verifiedDomains'];
 const cards = computed(() => cardKeys.map(key => ({ key, total: info.value?.counts?.totals?.[key] ?? 0 })));
 const tables = computed(() => Object.entries(info.value?.counts?.generated || {}).map(([table, n]) => ({ table, n })).sort((a, b) => b.n - a.n));
 

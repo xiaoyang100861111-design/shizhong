@@ -30,7 +30,7 @@ public static class RiskAdmin
         g.MapGet("/risk/overview", async (HttpContext ctx, Db db, RiskRules rules, CaptchaService captcha, int? days) =>
         {
             ctx.RequireAdmin("risk.view");
-            var d = Math.Clamp(days ?? 7, 1, 90);
+            var d = Math.Clamp(days ?? 7, 1, 30); // actions are kept 31 days (RiskCleanup)
             var firstDay = Clock.Today.AddDays(-(d - 1));
             var since = Clock.LocalMidnightUtc(firstDay);
             var today = Clock.LocalMidnightUtc(Clock.Today);
@@ -48,14 +48,18 @@ public static class RiskAdmin
                 GROUP BY CAST(DATEADD(HOUR, 8, At) AS DATE), Scene
                 """, new { since });
             var topIps = await c.QueryAsync("""
-                SELECT TOP 10 Ip AS ip, COUNT(*) AS events, SUM(CASE WHEN Action = 'block' THEN 1 ELSE 0 END) AS blocks, MAX(At) AS lastAt
-                FROM dbo.RiskEvents WHERE At >= @since AND Ip IS NOT NULL GROUP BY Ip ORDER BY COUNT(*) DESC
+                SELECT TOP 10 e.Ip AS ip, COUNT(*) AS events, SUM(CASE WHEN e.Action = 'block' THEN 1 ELSE 0 END) AS blocks, MAX(e.At) AS lastAt,
+                       COUNT(DISTINCT e.UserId) AS users,
+                       (SELECT TOP 1 l.ListType FROM dbo.RiskLists l WHERE l.Kind = N'ip' AND l.Value = e.Ip AND (l.ExpiresAt IS NULL OR l.ExpiresAt > SYSUTCDATETIME())
+                        ORDER BY CASE l.ListType WHEN 'allow' THEN 0 ELSE 1 END) AS listed
+                FROM dbo.RiskEvents e WHERE e.At >= @since AND e.Ip IS NOT NULL GROUP BY e.Ip ORDER BY COUNT(*) DESC
                 """, new { since });
             var topUsers = await c.QueryAsync("""
-                SELECT TOP 10 e.UserId AS id, u.DisplayId AS displayId, u.Name AS name, u.Avatar AS avatar, COUNT(*) AS events,
-                       SUM(CASE WHEN e.Action = 'block' THEN 1 ELSE 0 END) AS blocks, MAX(e.At) AS lastAt
+                SELECT TOP 10 e.UserId AS id, u.DisplayId AS displayId, u.Name AS name, u.Avatar AS avatar, u.Verified AS verified, u.MutedUntil AS mutedUntil,
+                       COUNT(*) AS events, SUM(CASE WHEN e.Action = 'block' THEN 1 ELSE 0 END) AS blocks,
+                       SUM(CASE WHEN e.Action = 'mute' THEN 1 ELSE 0 END) AS mutes, MAX(e.At) AS lastAt
                 FROM dbo.RiskEvents e JOIN dbo.Users u ON u.Id = e.UserId
-                WHERE e.At >= @since GROUP BY e.UserId, u.DisplayId, u.Name, u.Avatar ORDER BY COUNT(*) DESC
+                WHERE e.At >= @since GROUP BY e.UserId, u.DisplayId, u.Name, u.Avatar, u.Verified, u.MutedUntil ORDER BY COUNT(*) DESC
                 """, new { since });
             var lists = await c.QueryFirstAsync<(int Block, int Allow, int Auto)>("""
                 SELECT ISNULL(SUM(CASE WHEN ListType = 'block' THEN 1 END), 0), ISNULL(SUM(CASE WHEN ListType = 'allow' THEN 1 END), 0),
@@ -96,13 +100,16 @@ public static class RiskAdmin
                         mute = trend.Where(t => t.Day == day && t.Action == "mute").Sum(t => t.N),
                     };
                 }),
-                topIps,
-                topUsers,
+                topIps = Rows(topIps),
+                topUsers = Rows(topUsers),
                 lists = new { block = lists.Block, allow = lists.Allow, auto = lists.Auto },
                 verified,
                 muted,
             });
         });
+
+        // the general risk parameters and the Blue V settings, editable on the console pages without system.config
+        Finance.ScopedConfig.Map(g, "risk/config", new() { ["risk"] = "risk.policy", ["verified"] = "risk.verify" });
 
         // ------------------------------------------------------------ policy
         g.MapGet("/risk/policy", (HttpContext ctx, ConfigService cfg, RiskRules rules) =>
@@ -148,9 +155,9 @@ public static class RiskAdmin
                        u.DisplayId AS displayId, u.Name AS name, u.Avatar AS avatar, u.Verified AS verified, e.Account AS account, e.Ip AS ip,
                        e.DeviceId AS deviceId, e.Platform AS platform, e.Detail AS detail, e.Handled AS handled
                 FROM dbo.RiskEvents e LEFT JOIN dbo.Users u ON u.Id = e.UserId
-                WHERE {where} ORDER BY e.Id DESC OFFSET {skip} ROWS FETCH NEXT {s} ROWS ONLY
+                WHERE {where} ORDER BY e.At DESC, e.Id DESC OFFSET {skip} ROWS FETCH NEXT {s} ROWS ONLY
                 """, args);
-            return Results.Ok(new Paged<object>(rows, total, p, s));
+            return Results.Ok(new Paged<object>(Rows(rows), total, p, s));
         });
 
         g.MapGet("/risk/events/export", async (HttpContext ctx, Db db, Audit audit, [AsParameters] EventFilter f) =>
@@ -159,7 +166,7 @@ public static class RiskAdmin
             var (where, args) = EventQuery(f);
             var rows = (await db.QueryAsync($"""
                 SELECT TOP 50000 e.Id, e.At, e.Scene, e.RuleKey AS [Rule], e.Action, e.Level, u.DisplayId, u.Name, e.Account, e.Ip, e.DeviceId, e.Platform, e.Detail
-                FROM dbo.RiskEvents e LEFT JOIN dbo.Users u ON u.Id = e.UserId WHERE {where} ORDER BY e.Id DESC
+                FROM dbo.RiskEvents e LEFT JOIN dbo.Users u ON u.Id = e.UserId WHERE {where} ORDER BY e.At DESC, e.Id DESC
                 """, args)).ToList();
             await audit.WriteAsync(ctx, "risk.export", null, new { count = rows.Count, filter = f });
             var csv = Csv.Build(["ID", "时间", "场景", "规则", "处理", "等级", "用户ID", "昵称", "账号", "IP", "设备", "平台", "详情"],
@@ -196,7 +203,7 @@ public static class RiskAdmin
                 FROM dbo.RiskLists l LEFT JOIN dbo.AdminUsers a ON a.Id = l.CreatedBy
                 WHERE {sql} ORDER BY l.Id DESC OFFSET {skip} ROWS FETCH NEXT {s} ROWS ONLY
                 """, args);
-            return Results.Ok(new Paged<object>(rows, total, p, s));
+            return Results.Ok(new Paged<object>(Rows(rows), total, p, s));
         });
 
         g.MapPost("/risk/lists", async (HttpContext ctx, ListBody body, Db db, Audit audit) =>
@@ -219,8 +226,11 @@ public static class RiskAdmin
         g.MapPut("/risk/lists/{id:long}", async (long id, HttpContext ctx, ListBody body, Db db, Audit audit) =>
         {
             ctx.RequireAdmin("risk.lists");
+            // Hours: null = keep the current expiry, 0 = permanent, n = n hours from now.
             DateTime? expires = body.Hours is > 0 ? DateTime.UtcNow.AddHours(body.Hours.Value) : null;
-            var n = await db.ExecuteAsync("UPDATE dbo.RiskLists SET Note = @note, ExpiresAt = @expires WHERE Id = @id", new { id, note = Clip(body.Note, 200), expires });
+            var n = await db.ExecuteAsync("""
+                UPDATE dbo.RiskLists SET Note = @note, ExpiresAt = CASE WHEN @keep = 1 THEN ExpiresAt ELSE @expires END WHERE Id = @id
+                """, new { id, note = Clip(body.Note, 200), expires, keep = body.Hours is null ? 1 : 0 });
             if (n == 0) throw ApiError.NotFound();
             await audit.WriteAsync(ctx, "risk.list.edit", id.ToString(), body);
             return Results.Ok(new { ok = true });
@@ -272,7 +282,7 @@ public static class RiskAdmin
                 FROM dbo.Users u LEFT JOIN dbo.AdminUsers ad ON ad.Id = u.VerifiedBy
                 WHERE {sql} ORDER BY u.VerifiedAt DESC OFFSET {skip} ROWS FETCH NEXT {s} ROWS ONLY
                 """, args);
-            return Results.Ok(new Paged<object>(rows, total, p, s));
+            return Results.Ok(new Paged<object>(Rows(rows), total, p, s));
         });
 
         g.MapPost("/users/{id:long}/verified", async (long id, HttpContext ctx, VerifiedBody body, Db db, ConfigService cfg, VerifiedDirectory directory, Audit audit) =>
@@ -298,7 +308,7 @@ public static class RiskAdmin
                        (SELECT COUNT(*) FROM dbo.Users u WHERE u.DeletedAt IS NULL AND u.Email LIKE N'%@' + d.Domain) AS users
                 FROM dbo.VerifiedDomains d LEFT JOIN dbo.AdminUsers a ON a.Id = d.CreatedBy ORDER BY d.Id DESC
                 """);
-            return Results.Ok(new { items = rows });
+            return Results.Ok(new { items = Rows(rows) });
         });
 
         g.MapPost("/risk/domains", async (HttpContext ctx, DomainBody body, Db db, ConfigService cfg, Audit audit) =>
@@ -351,13 +361,13 @@ public static class RiskAdmin
         // Verifies every existing account with an e-mail on this domain.
         g.MapPost("/risk/domains/{id:long}/apply", async (long id, HttpContext ctx, Db db, Audit audit, VerifiedDirectory directory) =>
         {
-            ctx.RequireAdmin("risk.verify");
+            var a = ctx.RequireAdmin("risk.verify");
             var d = await db.QueryFirstOrDefaultAsync<(string Domain, string Label)>("SELECT Domain, Label FROM dbo.VerifiedDomains WHERE Id = @id", new { id });
             if (d.Domain is null) throw ApiError.NotFound();
             var n = await db.ExecuteAsync("""
-                UPDATE dbo.Users SET Verified = 1, VerifiedLabel = @Label, VerifiedSource = 'domain', VerifiedAt = SYSUTCDATETIME(), MutedUntil = NULL
+                UPDATE dbo.Users SET Verified = 1, VerifiedLabel = @Label, VerifiedSource = 'domain', VerifiedAt = SYSUTCDATETIME(), VerifiedBy = @aid, MutedUntil = NULL
                 WHERE DeletedAt IS NULL AND Verified = 0 AND Email LIKE N'%@' + @Domain
-                """, d);
+                """, new { d.Domain, d.Label, aid = a.Id });
             await audit.WriteAsync(ctx, "risk.domain.apply", d.Domain, new { verified = n });
             await directory.ChangedAsync();
             return Results.Ok(new { ok = true, verified = n });
@@ -372,9 +382,10 @@ public static class RiskAdmin
             var u = await c.QueryFirstOrDefaultAsync<(int Verified, string? Label, string? Source, DateTime? VerifiedAt, DateTime? MutedUntil, string? Phone, string? Email, DateTime CreatedAt)>(
                 "SELECT Verified, VerifiedLabel, VerifiedSource, VerifiedAt, MutedUntil, Phone, Email, CreatedAt FROM dbo.Users WHERE Id = @id", new { id });
             var events = await c.QueryAsync("""
-                SELECT TOP 100 Id AS id, At AS at, Scene AS scene, RuleKey AS [rule], Action AS action, Ip AS ip, DeviceId AS deviceId, Platform AS platform, Detail AS detail
-                FROM dbo.RiskEvents WHERE UserId = @id ORDER BY Id DESC
-                """, new { id });
+                SELECT TOP 100 Id AS id, At AS at, Scene AS scene, RuleKey AS [rule], Action AS action, Ip AS ip, DeviceId AS deviceId, Platform AS platform,
+                       Detail AS detail, Handled AS handled
+                FROM dbo.RiskEvents WHERE UserId = @id OR (UserId IS NULL AND Account IN (@phone, @email)) ORDER BY At DESC, Id DESC
+                """, new { id, phone = u.Phone ?? "\u0000", email = u.Email ?? "\u0000" });
             var today = await c.QueryAsync<(string Scene, int N)>(
                 "SELECT Scene, SUM(Qty) FROM dbo.RiskActions WHERE UserId = @id AND At > DATEADD(DAY, -1, SYSUTCDATETIME()) GROUP BY Scene", new { id });
             var account = u.Phone ?? u.Email;
@@ -383,13 +394,13 @@ public static class RiskAdmin
                 verified = u.Verified == 1,
                 label = u.Label,
                 source = u.Source,
-                verifiedAt = u.VerifiedAt,
-                mutedUntil = u.MutedUntil,
-                createdAt = u.CreatedAt,
+                verifiedAt = Json.Ms(u.VerifiedAt),
+                mutedUntil = Json.Ms(u.MutedUntil),
+                createdAt = Json.Ms(u.CreatedAt),
                 account,
                 attemptsLeft = account is null ? null : await engine.AttemptsLeftAsync(c, account),
                 last24h = today.ToDictionary(x => x.Scene, x => x.N),
-                events,
+                events = Rows(events),
             });
         });
     }
@@ -430,10 +441,19 @@ public static class RiskAdmin
             where.Add("(e.Account LIKE @like ESCAPE '\\' OR e.Ip LIKE @like ESCAPE '\\' OR e.DeviceId LIKE @like ESCAPE '\\' OR u.Name LIKE @like ESCAPE '\\' OR u.DisplayId LIKE @like ESCAPE '\\')");
             args.Add("like", Paging.Like(f.Q.Trim()));
         }
-        if (f.From is { } from) { where.Add("e.At >= @from"); args.Add("from", Clock.LocalMidnightUtc(DateOnly.FromDateTime(from))); }
-        if (f.To is { } to) { where.Add("e.At < @to"); args.Add("to", Clock.LocalMidnightUtc(DateOnly.FromDateTime(to).AddDays(1))); }
+        // epoch ms like every console filter (useList sends the end of the last day as "to")
+        if (f.From is { } from) { where.Add("e.At >= @from"); args.Add("from", Json.FromMs(from)); }
+        if (f.To is { } to) { where.Add("e.At < @to"); args.Add("to", Json.FromMs(to)); }
         return (string.Join(" AND ", where), args);
     }
+
+    /// <summary>Dapper rows as JSON objects with times as epoch ms (the console's convention, docs/BACKEND-DEV.md).</summary>
+    static IEnumerable<Dictionary<string, object?>> Rows(IEnumerable<dynamic> rows) => rows.Select(r =>
+    {
+        var d = new Dictionary<string, object?>();
+        foreach (var (k, v) in (IDictionary<string, object>)r) d[k] = v is DateTime t ? Json.Ms(t) : v;
+        return d;
+    });
 
     static string SceneName(string s) => RiskPolicy.Schema.TryGetValue(s, out var v) ? v.Zh : s;
     static string? Clip(string? s, int n) => s is null ? null : s.Length > n ? s[..n] : s;
@@ -443,5 +463,5 @@ public static class RiskAdmin
     public sealed record UnlockBody(string? Account, string? Ip);
     public sealed record VerifiedBody(bool Verified, string? Label);
     public sealed record DomainBody(string? Domain, string? Label, bool? Enabled, string? Note);
-    public sealed record EventFilter(string? Scene, string? Action, long? UserId, string? Ip, string? Q, bool? Handled, DateTime? From, DateTime? To, int? Page, int? Size);
+    public sealed record EventFilter(string? Scene, string? Action, long? UserId, string? Ip, string? Q, bool? Handled, long? From, long? To, int? Page, int? Size);
 }

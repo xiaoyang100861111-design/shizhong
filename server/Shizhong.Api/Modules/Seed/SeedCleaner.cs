@@ -111,6 +111,11 @@ public static class SeedCleaner
         DELETE FROM dbo.CheckIns WHERE UserId IN (SELECT Id FROM #su);
         DELETE FROM dbo.TaskClaims WHERE UserId IN (SELECT Id FROM #su);
 
+        -- risk control and Blue V (personas / members verified by the generator go back to unverified)
+        {SeedRisk.ClearSql}
+        DELETE FROM dbo.RiskEvents WHERE UserId IN (SELECT Id FROM #su);
+        DELETE FROM dbo.RiskActions WHERE UserId IN (SELECT Id FROM #su);
+
         -- platform
         DELETE FROM dbo.Merchants WHERE Id IN {K("Merchants")};
         DELETE FROM dbo.Tickets WHERE Id IN {K("Tickets")} OR UserId IN (SELECT Id FROM #su);
@@ -337,6 +342,26 @@ public static class SeedCleaner
             SELECT COUNT(*) FROM dbo.CheckIns c WHERE c.Reward > 0 AND NOT EXISTS (SELECT 1 FROM dbo.WalletTransactions t
               WHERE t.UserId = c.UserId AND t.Kind = 'checkin' AND t.RefId = CONVERT(char(10), c.Day, 23) AND t.Amount = c.Reward)
             """, "SELECT COUNT(*) FROM dbo.CheckIns");
+        await Add("risk.events", "风控记录：场景、处理方式都合法，会员存在", $"""
+            SELECT COUNT(*) FROM dbo.RiskEvents e
+            WHERE e.Action NOT IN ('captcha', 'block', 'lock', 'mute', 'fail', 'pass')
+               OR e.Scene NOT IN ({string.Join(", ", Risk.RiskScenes.All.Append("captcha").Select(x => "'" + x + "'"))})
+               OR (e.UserId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Users u WHERE u.Id = e.UserId))
+            """, "SELECT COUNT(*) FROM dbo.RiskEvents");
+        await Add("risk.lists", "黑白名单：类型合法，自动封禁都有到期时间", """
+            SELECT COUNT(*) FROM dbo.RiskLists
+            WHERE Kind NOT IN ('ip', 'device', 'phone', 'email', 'emailDomain', 'nameKeyword') OR ListType NOT IN ('block', 'allow')
+               OR (Source = 'auto' AND ExpiresAt IS NULL) OR Source NOT IN ('manual', 'auto')
+            """, "SELECT COUNT(*) FROM dbo.RiskLists");
+        await Add("verified.fields", "蓝V：认证账号有名称、来源和时间，未认证的没有", """
+            SELECT COUNT(*) FROM dbo.Users
+            WHERE (Verified = 1 AND (VerifiedLabel IS NULL OR VerifiedSource NOT IN ('manual', 'domain') OR VerifiedAt IS NULL))
+               OR (Verified = 0 AND (VerifiedLabel IS NOT NULL OR VerifiedSource IS NOT NULL)) OR Verified NOT IN (0, 1)
+            """, "SELECT COUNT(*) FROM dbo.Users WHERE Verified = 1");
+        await Add("verified.muted", "蓝V 账号不会被自动禁言", """
+            SELECT COUNT(*) FROM dbo.RiskEvents e JOIN dbo.Users u ON u.Id = e.UserId
+            WHERE e.Action = 'mute' AND u.Verified = 1 AND u.VerifiedAt < e.At
+            """, "SELECT COUNT(*) FROM dbo.RiskEvents WHERE Action = 'mute'");
         return list;
     }
 
@@ -360,7 +385,9 @@ public static class SeedCleaner
                    (SELECT COUNT(*) FROM dbo.Broadcasts) AS broadcasts, (SELECT COUNT(*) FROM dbo.Banners) AS banners, (SELECT COUNT(*) FROM dbo.CouponTemplates) AS couponTemplates,
                    (SELECT COUNT(*) FROM dbo.GiftBackgrounds) AS giftBackgrounds, (SELECT COUNT(*) FROM dbo.LiveSessions WHERE Status = 0) AS liveNow,
                    (SELECT COUNT(*) FROM dbo.CryptoBalances) AS cryptoBalances, (SELECT COUNT(*) FROM dbo.HostProfiles WHERE Status = 0) AS hostApplications,
-                   (SELECT COUNT(*) FROM dbo.Tickets WHERE Kind = N'merchant') AS merchantApplications
+                   (SELECT COUNT(*) FROM dbo.Tickets WHERE Kind = N'merchant') AS merchantApplications,
+                   (SELECT COUNT(*) FROM dbo.RiskEvents) AS riskEvents, (SELECT COUNT(*) FROM dbo.RiskLists) AS riskLists,
+                   (SELECT COUNT(*) FROM dbo.Users WHERE Verified = 1) AS verified, (SELECT COUNT(*) FROM dbo.VerifiedDomains) AS verifiedDomains
             """);
         return new { generated, totals };
     }
