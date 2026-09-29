@@ -264,7 +264,8 @@
   "hash": "me",
   "steps": [
    {
-    "eval": "SZ.actions.dispatch('points'); true"
+    "eval": "SZ.actions.dispatch('points'); true",
+    "settle": 900
    },
    {
     "shot": "beans"
