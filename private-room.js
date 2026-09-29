@@ -1,339 +1,705 @@
-/* One-to-one H5 prototype. No media capture, remote calls or real billing. */
 'use strict';
+/*
+ * 1:1 video calls (owner: private): the body of Live › 1:1 (lobby), the call room and the call
+ * history. Prototype only: no camera/microphone capture and no real payment. A call is billed per
+ * started minute from the demo RM wallet (state.wallet); gifts use gold beans (state.points).
+ * Public API: window.ShizhongPrivate (docs/CONTRACTS.md). Actions: 'oo-*' and 'book-call'.
+ */
 (() => {
   initialState.oneToOne = { calls: [], gifts: [] };
-  let session = null,
-    serial = 0;
-  const gifts = () => window.SHIZHONG_LIVE_GIFTS || [];
-  const findGift = id => gifts().find(g => g.id === id);
-  const findPerson = id => people.find(p => p.id === id);
-  const clone = value => JSON.parse(JSON.stringify(value));
-  const data = () => {
-    state.oneToOne = { calls: [], gifts: [], ...(state.oneToOne || {}) };
-    return state.oneToOne;
+
+  /*
+   * Timings. timeScale speeds up the call clock (billing, runway, host leaving) so demos and QA
+   * scenarios can show a whole call in seconds: ShizhongPrivate.config.timeScale = 60.
+   */
+  const CONFIG = {
+    answerMs: 1600,
+    noAnswerMs: 12000,
+    reconnectMs: 1800,
+    awayMs: 15000,
+    replyMs: 1600,
+    lowSeconds: 120,
+    hostEndMinutes: 90,
+    timeScale: 1,
   };
-  const amount = n => Number(n || 0).toLocaleString('zh-CN');
-  const rate = p => Math.max(0, Number(p.price) || 0) / 10;
-  const money = n =>
-    Number(n)
-      .toFixed(2)
-      .replace(/\.00$/, '')
-      .replace(/(\.\d)0$/, '$1');
-  const clock = seconds =>
-    String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
-  const hash = value => [...String(value)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 0);
-  const vip = p => (p ? 8 + (hash(p.id + 'vip') % 53) : (window.ShizhongVIP?.level() ?? 10));
-  const badge = p => `<span class="oo-vip">◆ VIP ${vip(p)}</span>`;
-  function commit(change) {
-    const before = clone(state);
-    change();
-    if (save()) return true;
-    state = before;
-    toast('保存失败，请释放浏览器空间后重试');
-    return false;
+  // Host topics are stored in the source language; ids pick the label and the scripted lines.
+  const TOPICS = { 同城聊天: 'local', 旅行分享: 'travel', 语言交流: 'language', 音乐时光: 'music' };
+  const FILTERS = ['all', 'local', 'travel', 'language'];
+  const QUANTITIES = [1, 10, 66, 99];
+  const BEAN_PACKS = [100, 1000, 10000];
+  const MAX_MESSAGES = 60;
+  const CJK = /[㐀-鿿]/;
+  const LIVE_PHASES = ['connected', 'away', 'reconnecting'];
+  let session = null;
+  let serial = 0;
+  const giftUI = { category: '', giftId: 'heart', quantity: 1 };
+
+  // ------------------------------------------------------------------ helpers
+  const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
+  const findPerson = id => people.find(p => p.id === id) || null;
+  const nameOf = p => (p ? personName(p) : '');
+  const topicId = p => TOPICS[p?.topic] || 'local';
+  const topicName = p => t(`private.topic.${topicId(p)}`);
+  const cityOf = p => (p?.city ? td('city', p.city) : '');
+  const rateOf = p => Math.max(0, Number(p?.price) || 0) / 10;
+  const rateText = rate =>
+    rate > 0 ? t('private.rate', { price: SZ.fmt.money(rate, { digits: 2 }) }) : t('private.free');
+  const moneyText = n => SZ.fmt.money(n, { cents: true });
+  const languagesOf = p => lc('people', p, 'language') || '';
+  const statusOf = p =>
+    p.online ? t('private.status.online') : lc('people', p, 'activeText') || t('private.status.away');
+  const photoOf = p => asset(p?.photo || 'avatars/women-000.jpg');
+  // Low-resolution avatars are shown as a framed "video tile" instead of being stretched full screen.
+  const lowRes = p => /(^|\/)avatars\//.test(String(p?.photo || ''));
+  function list(kind, record, field) {
+    const value = record ? lc(kind, record, field) : null;
+    if (Array.isArray(value)) return value.filter(v => typeof v === 'string');
+    return Array.isArray(record?.[field]) ? record[field].filter(v => typeof v === 'string') : [];
+  }
+  /** Escaped demo text; untranslated Chinese is marked lang="zh-CN" (screen readers, QA). */
+  function html(value) {
+    const text = String(value ?? '');
+    return !SZ_I18N.isSource && CJK.test(text) ? `<span lang="zh-CN">${esc(text)}</span>` : esc(text);
+  }
+  function clock(seconds) {
+    const s = Math.max(0, Math.floor(Number(seconds) || 0));
+    const two = n => String(n).padStart(2, '0');
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return (h ? h + ':' + two(m) : two(m)) + ':' + two(s % 60);
+  }
+  // State is loaded by app.js before this file runs, so older saves may lack the block.
+  function own(target = state) {
+    if (!target.oneToOne || typeof target.oneToOne !== 'object') target.oneToOne = { calls: [], gifts: [] };
+    if (!Array.isArray(target.oneToOne.calls)) target.oneToOne.calls = [];
+    if (!Array.isArray(target.oneToOne.gifts)) target.oneToOne.gifts = [];
+    return target.oneToOne;
+  }
+  function refreshLobby() {
+    if (ui.page === 'live' && ui.liveTab === 'private') render();
   }
 
-  // Preserve the public-room page and its filters. The private directory uses
-  // the same 300 people, pagination and topic filters without booking forms.
-  const previousLivePage = livePage;
-  livePage = function () {
-    if (ui.liveTab !== 'private') return previousLivePage().replace('面对面', '一对一聊天');
-    const list = livePeople();
-    return `<section class="page oo-lobby"><div class="white-section"><div class="standard-header"><h1 class="page-title">此刻，有人陪你</h1>${act('oo-history', '', icon('clock'), 'icon-button soft', 'aria-label="最近的一对一聊天"')}</div>${tabs(
-      [
-        ['public', '热闹直播'],
-        ['private', '一对一聊天'],
-      ],
-      ui.liveTab,
-      'live-tab'
-    )}<div class="subtabs">${chips(['全部', '同城聊天', '旅行分享', '语言交流'], ui.liveFilter, 'live-filter')}</div></div><div class="section-padding"><div class="oo-intro"><div><span class="oo-eyebrow">JUST YOU & ME</span><h2>这一刻，只聊我们</h2><p>主播在线等你，点一下就能见面</p></div><div class="oo-intro-art">${icon('heart')}</div></div><div class="oo-lobby-tools"><div class="oo-availability"><i></i><strong>${amount(list.length)}</strong><span>位主播等候中</span></div>${act('oo-history', '', '最近聊过 ' + icon('chevron'), 'oo-history-link')}</div>${pagedList('live-private' + ui.liveFilter, list, privateCard, 'oo-grid', 20)}<p class="oo-panel-note">人物与在线状态为演示样本 · 连线免费体验</p></div></section>`;
-  };
-  privateCard = function (p) {
-    return `<article class="oo-card">${act('oo-enter', p.id, `<img src="${asset(p.photo)}" alt="${esc(p.name)}的聊天封面" loading="lazy" decoding="async"><span class="oo-online"><i></i>在线等你</span><span class="oo-card-topic">${esc(p.topic)}</span><div class="oo-cover-name"><h3>${esc(p.name)}</h3><span>${esc(p.city)} · ${esc(p.age)}岁</span></div>`, 'oo-cover', `aria-label="与${esc(p.name)}一对一聊天"`)}<div class="oo-card-body"><p class="oo-card-theme">${esc(p.theme || p.bio)}</p><div class="oo-card-language">${esc(p.language || '中文')}</div><div class="oo-card-footer"><span class="oo-rate"><small>RM</small><b>${money(rate(p))}</b><em>/分钟</em></span>${act('oo-enter', p.id, icon('video') + '开聊', 'oo-enter', `aria-label="立即与${esc(p.name)}开聊"`)}</div></div></article>`;
-  };
+  // ------------------------------------------------------------------ gifts (catalogue owned by live)
+  const giftList = () => window.ShizhongLive?.gifts?.() || window.SHIZHONG_LIVE_GIFTS || [];
+  const findGift = id => giftList().find(g => g.id === id) || null;
+  function giftName(g) {
+    if (!g) return '';
+    const fromLive = window.ShizhongLive?.giftName?.(g);
+    if (fromLive) return fromLive;
+    if (SZ_I18N.isSource) return g.name;
+    const mine = td('private.gift', g.name);
+    return mine !== g.name ? mine : tc('gifts', g.id, 'name', g.name);
+  }
+  function giftArt(g, size = 'thumb') {
+    if (!g) return asset('');
+    const fromLive = window.ShizhongLive?.giftArt?.(g.id, size);
+    if (fromLive) return fromLive;
+    const entry = window.SHIZHONG_GIFT_ART?.[g.id];
+    const path = entry && (size === 'full' ? entry.full || entry.thumb : entry.thumb || entry.full);
+    return asset(path || g.image);
+  }
+  const categoryName = c => window.ShizhongLive?.categoryName?.(c) || td('private.giftCategory', c);
+  function giftCategories() {
+    const seen = [];
+    for (const g of giftList()) if (g.category && !seen.includes(g.category)) seen.push(g.category);
+    return seen;
+  }
 
-  function seconds(s) {
-    return s.startedAt ? Math.max(0, Math.floor(((s.endedAt || Date.now()) - s.startedAt) / 1000)) : 0;
+  // ------------------------------------------------------------------ lobby (Live › 1:1 body)
+  function card(p) {
+    const name = nameOf(p);
+    const rate = rateText(rateOf(p));
+    const meta = [p.age ? t('private.age', { n: p.age }) : '', cityOf(p)].filter(Boolean).join(' · ');
+    // One button opens the profile sheet; the round call button beside it starts the call directly.
+    return `<article class="oo-card${p.online ? ' is-online' : ''}">${act(
+      'oo-host',
+      p.id,
+      `<span class="oo-card-media"><img src="${esc(photoOf(p))}" alt="" loading="lazy" decoding="async"><span class="oo-card-status"><i aria-hidden="true"></i>${html(statusOf(p))}</span><span class="oo-card-topic">${esc(topicName(p))}</span></span><span class="oo-card-body"><span class="oo-card-name">${html(name)}</span><span class="oo-card-meta">${html(meta)}</span><span class="oo-card-lang">${html(languagesOf(p))}</span><span class="oo-card-rate">${esc(rate)}</span></span>`,
+      'oo-card-main'
+    )}${act(
+      'oo-call',
+      p.id,
+      icon('video'),
+      'oo-card-call',
+      `aria-label="${esc(t('private.lobby.callAria', { name, rate }))}"`
+    )}</article>`;
   }
-  function delay(s, fn, ms) {
-    const timer = setTimeout(() => {
-      s.pending.delete(timer);
-      if (session === s && s.el.isConnected && s.phase === 'connected') fn();
-    }, ms);
-    s.pending.add(timer);
-  }
-  function stop(s = session) {
-    if (!s) return;
-    clearTimeout(s.connectTimer);
-    clearInterval(s.timer);
-    for (const timer of s.pending) clearTimeout(timer);
-    s.pending.clear();
-    s.observer?.disconnect();
-    if (session === s) {
-      session = null;
-      window.ShizhongLiveEffects?.stop();
-      window.ShizhongOrientalEffects?.stop();
+  function recentHosts(limit = 10) {
+    const seen = new Set();
+    const out = [];
+    for (const c of own().calls) {
+      if (!c?.hostId || seen.has(c.hostId) || state.blocked.includes(c.hostId)) continue;
+      seen.add(c.hostId);
+      const p = findPerson(c.hostId);
+      if (p) out.push(p);
+      if (out.length >= limit) break;
     }
+    return out;
   }
-  function saveCall(s) {
-    if (!s.startedAt || s.saved) return true;
-    const record = {
-      id: s.key,
-      hostId: s.host.id,
-      name: s.host.name,
-      photo: s.host.photo,
-      time: s.startedAt,
-      seconds: seconds(s),
-      referenceRM: Number(((seconds(s) * rate(s.host)) / 60).toFixed(2)),
-      goldBeans: s.spent,
-      gifts: clone(s.sent),
-      messages: clone(s.messages.slice(-40)),
-    };
-    const ok = commit(() => {
-      const own = data();
-      own.calls = [record, ...own.calls.filter(c => c.id !== s.key)].slice(0, 50);
+  function lobby() {
+    const filter = FILTERS.includes(ui.liveFilter) ? ui.liveFilter : 'all';
+    const hosts = [...livePeople()].sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+    const online = hosts.filter(p => p.online).length;
+    const chips = `<div class="chip-row oo-chips" role="group" aria-label="${esc(t('private.lobby.topicLabel'))}">${FILTERS.map(
+      id => act('live-filter', id, esc(t(`private.topic.${id}`)), 'chip', `aria-pressed="${filter === id}"`)
+    ).join('')}</div>`;
+    const recent = recentHosts();
+    const recentHTML = recent.length
+      ? `<section class="oo-recent" aria-labelledby="oo-recent-title"><h2 class="oo-section-title" id="oo-recent-title">${esc(t('private.lobby.recent'))}</h2><div class="oo-recent-row">${recent
+          .map(p =>
+            act(
+              'oo-host',
+              p.id,
+              `<span class="oo-recent-avatar"><img class="avatar avatar-56" src="${esc(photoOf(p))}" alt="" loading="lazy" decoding="async">${p.online ? '<i class="oo-recent-dot" aria-hidden="true"></i>' : ''}</span><span class="oo-recent-name">${html(nameOf(p))}</span>`,
+              'oo-recent-item',
+              `aria-label="${esc(t('private.lobby.openAria', { name: nameOf(p) }))}"`
+            )
+          )
+          .join('')}</div></section>`
+      : '';
+    const blocked = people.filter(p => p.liveMode === 'private' && state.blocked.includes(p.id)).length;
+    const blockedHTML = blocked
+      ? `<p class="oo-blocked-note">${esc(tn('private.lobby.blockedNote', blocked))}${act('flows-blocked', '', esc(t('private.lobby.manageBlocked')), 'btn btn-ghost btn-sm')}</p>`
+      : '';
+    const body = hosts.length
+      ? pagedList('private:' + filter, hosts, card, 'oo-grid', 20)
+      : `<div class="empty-state oo-empty">${icon('video')}<h3>${esc(t('private.lobby.emptyTitle'))}</h3><p>${esc(t('private.lobby.emptyText'))}</p>${filter !== 'all' ? act('live-filter', 'all', esc(t('private.lobby.showAll')), 'btn btn-tonal btn-sm') : ''}</div>`;
+    return `<div class="oo-lobby">${chips}${recentHTML}<div class="oo-lobby-bar"><p class="oo-count"><i class="oo-count-dot" aria-hidden="true"></i>${esc(tn('private.lobby.count', hosts.length, { online: SZ.fmt.number(online) }))}</p>${act('oo-history', '', `${icon('clock')}<span>${esc(t('private.lobby.history'))}</span>`, 'btn btn-ghost btn-sm oo-history-link')}</div>${body}${blockedHTML}<p class="oo-footnote">${esc(t('private.lobby.footnote'))}</p></div>`;
+  }
+
+  // ------------------------------------------------------------------ host preview sheet
+  function followLabel(id) {
+    return state.follows.includes(id) ? t('private.host.following') : t('private.host.follow');
+  }
+  function hostSheet(id, { inCall = false } = {}) {
+    return demand(profileChunks(id), () => {
+      const p = findPerson(id);
+      if (!p) return toast(t('private.toast.unavailable'), { type: 'error' });
+      const name = nameOf(p);
+      const topics = list('profiles', p, 'callTopics');
+      const tags = list('people', p, 'tags');
+      const about = lc('profiles', p, 'about') || lc('people', p, 'bio') || '';
+      const meta = [p.age ? t('private.age', { n: p.age }) : '', cityOf(p), topicName(p)].filter(Boolean);
+      const followed = state.follows.includes(id);
+      const footer = inCall
+        ? `<div class="sheet-footer">${act('oo-follow', id, esc(followLabel(id)), 'btn btn-secondary oo-follow-btn', `aria-pressed="${followed}"`)}${act('close', '', esc(t('private.host.backToCall')), 'btn btn-primary')}</div>`
+        : `<div class="sheet-footer">${act('oo-message', id, `${icon('chat')}<span>${esc(t('private.host.message'))}</span>`, 'btn btn-secondary')}${act('oo-call', id, `${icon('video')}<span>${esc(t('private.host.call'))}</span>`, 'btn btn-primary')}</div>`;
+      return SZ.overlay.open({
+        kind: 'sheet',
+        mode: inCall ? 'push' : 'auto',
+        title: t('private.host.title'),
+        className: 'oo-host-sheet',
+        meta: { view: 'private-host', personId: id },
+        html: `<div class="oo-host-head"><img class="avatar avatar-72" src="${esc(photoOf(p))}" alt=""><div class="oo-host-id"><h3>${html(name)}</h3><p>${html(meta.join(' · '))}</p><p class="oo-host-status${p.online ? ' is-online' : ''}"><i aria-hidden="true"></i>${html(statusOf(p))}</p></div></div><div class="oo-host-actions">${inCall ? '' : act('oo-follow', id, esc(followLabel(id)), 'btn btn-outline btn-sm oo-follow-btn', `aria-pressed="${followed}"`)}${act('person', id, esc(t('private.host.fullProfile')), 'btn btn-ghost btn-sm')}</div><dl class="oo-facts"><div><dt>${esc(t('private.host.rate'))}</dt><dd class="price">${esc(rateText(rateOf(p)))}</dd></div><div><dt>${esc(t('private.host.languages'))}</dt><dd>${html(languagesOf(p) || '—')}</dd></div></dl>${tags.length ? `<div class="oo-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}${about ? `<p class="oo-about">${html(about)}</p>` : ''}${
+          topics.length
+            ? `<h4 class="oo-sheet-sub">${esc(t('private.host.topics'))}</h4><ul class="oo-topic-list">${topics.map(x => `<li>${icon('chat')}<span>${html(x)}</span></li>`).join('')}</ul>`
+            : ''
+        }<p class="form-hint oo-billing-note">${esc(p.online || inCall ? t('private.host.billing') : t('private.host.offlineNote', { name }))}</p>${footer}`,
+      });
     });
-    if (ok) s.saved = true;
-    return ok;
   }
-  function connect(s) {
-    if (session !== s || !s.el.isConnected || s.phase !== 'connecting') return;
-    s.phase = 'connected';
-    s.startedAt = Date.now();
-    s.el.classList.add('connected');
-    s.el.querySelector('.oo-connecting')?.remove();
-    s.el.querySelector('.oo-rate-note').textContent = '专属连线 · 演示中';
-    s.el.querySelectorAll('.oo-bottom button,.oo-bottom input').forEach(el => (el.disabled = false));
-    addMessage(s, 'system', '已进入双人聊天，先和 TA 打个招呼吧');
-    const opener =
-      s.host.topic === '旅行分享'
-        ? `你好，我是${s.host.name}。最近想去哪里走走？我们可以从${s.host.city}聊起。`
-        : s.host.topic === '语言交流'
-          ? `你好呀，我是${s.host.name}。${s.host.language}都可以，今天想练习什么日常话题？`
-          : `你好，我是${s.host.name}，很高兴见到你。今天过得怎么样？`;
-    addMessage(s, 'host', opener);
-    s.timer = setInterval(() => {
-      if (session !== s || !s.el.isConnected) {
-        stop(s);
-        return;
-      }
-      const el = s.el.querySelector('.oo-time');
-      if (el) el.textContent = clock(seconds(s));
-    }, 1000);
+  function topupSheet(host) {
+    const rate = rateText(rateOf(host));
+    return SZ.overlay.open({
+      kind: 'sheet',
+      title: t('private.topup.title'),
+      className: 'oo-topup-sheet',
+      meta: { view: 'private-topup', personId: host.id },
+      html: `<p>${esc(t('private.topup.text', { name: nameOf(host), rate, balance: moneyText(state.wallet) }))}</p><div class="sheet-footer">${act('close', '', esc(t('common.cancel')), 'btn btn-secondary')}${act('oo-topup', '', esc(t('private.topup.action')), 'btn btn-primary')}</div>`,
+    });
   }
+
+  // ------------------------------------------------------------------ room
   function enter(id) {
-    if (session && session.phase !== 'ended') return;
-    demand(profileChunks(id), () => draw(id));
-  }
-  function draw(id) {
-    const host = findPerson(id);
-    if (!host || state.blocked.includes(id)) {
-      toast('这位主播暂时无法连线');
+    id = String(id || '');
+    if (!id) return;
+    if (session && session.phase !== 'ended') {
+      toast(t('private.toast.inCall'));
       return;
     }
-    stop();
-    window.ShizhongLive?.stop();
+    if (!SZ.requireLogin(t('auth.reason.call'))) return;
+    return demand(profileChunks(id), () => start(id));
+  }
+  function start(id) {
+    const host = findPerson(id);
+    if (!host || state.blocked.includes(id)) return toast(t('private.toast.unavailable'), { type: 'error' });
+    const rate = rateOf(host);
+    if (rate > 0 && Number(state.wallet) < rate) return topupSheet(host);
+    if (session) closeRoom(session);
     const s = {
-      key: 'OO-' + Date.now() + '-' + ++serial,
+      key: 'OO-' + Date.now().toString(36) + '-' + ++serial,
       host,
-      phase: 'connecting',
+      rate,
+      scale: Math.max(1, Number(CONFIG.timeScale) || 1),
+      phase: 'ringing',
+      ringAt: Date.now(),
       startedAt: 0,
       endedAt: 0,
-      saved: false,
-      panel: '',
-      pending: new Set(),
-      messages: [],
-      sent: [],
+      pausedMs: 0,
+      pauseStart: 0,
+      seconds: 0,
+      minutesPaid: 0,
+      cost: 0,
       spent: 0,
-      response: 0,
-      giftId: 'heart',
-      category: '推荐',
-      quantity: 1,
+      sent: [],
+      messages: [],
+      replies: 0,
+      timers: new Set(),
       mic: true,
       camera: true,
       speaker: true,
-      fxToken: 0,
+      front: true,
+      saved: false,
     };
     session = s;
-    if (!currentOverlay) {
-      previousFocus = document.activeElement;
-      bodyScroll = document.querySelector('#app').scrollTop;
-    }
-    currentOverlay = { kind: 'private-room', title: '一对一聊天', hostId: id };
-    document.body.style.overflow = 'hidden';
-    document.querySelector('#overlay-root').innerHTML =
-      `<section class="full-screen oo-room" role="dialog" aria-modal="true" aria-label="与${esc(host.name)}的一对一聊天"><img class="oo-backdrop" src="${asset(host.photo)}" alt="${esc(host.name)}的连线预览"><div class="oo-shade"></div><header class="oo-header">${act('oo-profile', id, `<img class="avatar" src="${asset(host.photo)}" alt="${esc(host.name)}"><div><strong>${esc(host.name)}</strong><small>${esc(host.city)} · VIP ${vip(host)}</small></div>`, 'oo-host-pill', 'aria-label="查看一对一主播资料"')}${act('oo-follow', id, state.follows.includes(id) ? '已关注' : '+ 关注', 'oo-follow', `aria-pressed="${state.follows.includes(id)}"`)}${act('oo-more', '', '•••', 'oo-more', 'aria-label="一对一聊天设置"')}</header><div class="oo-connection"><span class="oo-connection-dot"></span><b class="oo-time">00:00</b><span class="oo-rate-note">正在进入专属连线</span></div><div class="oo-self-preview"><img src="${asset(state.profile.photo)}" alt="我的示例画面"><span class="oo-self-off">${icon('video')}<small>镜头已关闭</small></span><span class="oo-self-label">我 · 画面预览</span></div><div class="oo-stage-title"><span class="oo-eyebrow">A MOMENT FOR TWO</span><h2>${esc(host.theme || '很高兴，此刻遇见你')}</h2><p>${esc(host.language || '中文')} · ${esc(host.topic)}</p></div><div class="oo-connecting"><div class="oo-orbit"><img src="${asset(host.photo)}" alt="${esc(host.name)}"></div><h2>${esc(host.name)} 正在等你</h2><p>正在建立一对一演示连线…</p><div class="oo-connecting-dots"><i></i><i></i><i></i></div>${act('oo-cancel', '', '取消进入', 'oo-cancel')}</div><div class="oo-bottom"><div class="oo-conversation" role="log" aria-label="双人聊天消息" aria-live="polite"></div><div class="oo-icebreakers">${['你好，很高兴认识你', '聊聊你喜欢的城市', '送你一个小心心'].map((text, i) => act('oo-icebreaker', String(i), text)).join('')}</div><form class="oo-composer" data-form="oo-message"><input name="privateText" maxlength="160" placeholder="想对 TA 说点什么…" aria-label="一对一聊天消息" autocomplete="off" required disabled><button type="submit" aria-label="发送一对一消息" disabled>${icon('plane')}</button>${act('oo-gifts', '', icon('gift'), 'oo-gift-trigger', 'aria-label="赠送一对一礼物" disabled')}</form><div class="oo-controls">${control('mic', 'mic', '静音')}${control('camera', 'video', '镜头')}${control('speaker', 'volume', '扬声器')}${act('oo-end', '', icon('phone') + '<span>挂断</span>', 'oo-control oo-end', 'aria-label="结束一对一聊天"')}</div><p class="oo-demo-note">H5 演示 · 未启用摄像头与麦克风 · 连线免费体验</p></div></section>`;
-    s.el = document.querySelector('.oo-room');
-    s.el.querySelectorAll('.oo-icebreakers button').forEach(el => (el.disabled = true));
-    s.observer = new MutationObserver(() => {
-      if (session === s && !s.el.isConnected) {
-        s.endedAt = Date.now();
-        saveCall(s);
-        stop(s);
-      }
+    s.layer = SZ.overlay.open({
+      kind: 'raw',
+      html: roomHTML(s),
+      meta: { kind: 'screen', view: 'private-room', hostId: id, title: nameOf(host) },
+      beforeClose: () => beforeLeave(s),
+      onClose: () => onRoomClose(s),
+      onUncover: () => onUncover(s),
     });
-    s.observer.observe(document.querySelector('#overlay-root'), { childList: true });
-    s.connectTimer = setTimeout(() => connect(s), 1600);
-    focusOverlay();
-  }
-  function control(id, symbol, label) {
-    return act(
-      'oo-toggle',
-      id,
-      icon(symbol) + `<span>${label}</span>`,
-      'oo-control',
-      `aria-label="${label}" aria-pressed="false" disabled`
+    s.el = s.layer.el;
+    setPhase(s, 'ringing');
+    later(
+      s,
+      () => (host.online ? connect(s) : end(s, 'timeout')),
+      host.online ? CONFIG.answerMs : CONFIG.noAnswerMs,
+      ['ringing']
     );
+    return s.layer;
   }
-  function addMessage(s, side, text, giftId = '') {
-    if (session !== s || s.phase !== 'connected') return;
-    s.messages.push({ side, text, giftId, time: Date.now() });
-    if (s.messages.length > 60) s.messages.shift();
-    const label =
-      side === 'self' ? `${badge(null)} 我` : side === 'host' ? `${badge(s.host)} ${esc(s.host.name)}` : '';
-    const box = s.el.querySelector('.oo-conversation');
-    const gift = findGift(giftId);
-    box.insertAdjacentHTML(
-      'beforeend',
-      `<div class="oo-message ${side} ${gift ? 'gift' : ''}">${label ? `<b>${label}</b>` : ''}<span>${gift ? `<img src="${asset(gift.image)}" alt="${esc(gift.name)}">` : ''}${esc(text)}</span></div>`
-    );
-    while (box.children.length > 8) box.firstElementChild.remove();
-    box.scrollTop = box.scrollHeight;
+  function control(id, symbol, label, pressed) {
+    const attr = pressed == null ? '' : ` aria-pressed="${pressed}"`;
+    return `<button type="button" class="oo-ctrl" data-action="oo-toggle" data-id="${id}" aria-label="${esc(label)}"${attr}><span class="oo-ctrl-icon">${icon(symbol)}</span><span class="oo-ctrl-label" aria-hidden="true">${esc(label)}</span></button>`;
   }
-  function sendMessage(text) {
-    const s = session;
-    text = String(text || '').trim();
-    if (!s || s.phase !== 'connected' || !text || text.length > 160) return;
-    addMessage(s, 'self', text);
-    const replies =
-      s.host.topic === '旅行分享'
-        ? [
-            '我喜欢慢慢走，留点时间逛小店。你旅行会提前规划吗？',
-            '天气好的时候，傍晚看日落特别舒服。',
-            '比起打卡，我更喜欢找本地人常去的小店。',
-          ]
-        : s.host.topic === '语言交流'
-          ? [
-              '我们可以从自我介绍开始，慢慢说就好。',
-              '生活里的小对话最适合练习，下次买咖啡就能用上。',
-              '不用担心说错，先把自己的意思表达出来。',
-            ]
-          : [
-              '我也喜欢这种轻松聊天的感觉。你平时怎么放松？',
-              '今天忙完了，终于有时间坐下来慢慢聊。',
-              '周末我想去附近走走，找家舒服的小店。',
-            ];
-    const response = /你好|认识/.test(text)
-      ? '我也是，很高兴认识你！今天有什么想分享的吗？'
-      : /城市/.test(text)
-        ? `我在${s.host.city}，很喜欢这座城慢下来的时候。你呢？`
-        : replies[s.response++ % replies.length];
-    delay(s, () => addMessage(s, 'host', response), 1600);
-    const input = s.el.querySelector('[name="privateText"]');
-    if (input) input.value = '';
-  }
-  function panel(title, html, kind) {
-    const s = session;
-    if (!s) return;
-    const focused = document.activeElement;
-    if (!s.panel) s.panelFocus = focused;
-    s.el.querySelector('.oo-panel-layer')?.remove();
-    s.panel = kind;
-    for (const child of s.el.children) child.inert = true;
-    s.el.insertAdjacentHTML(
-      'beforeend',
-      `<div class="oo-panel-layer"><button class="oo-panel-backdrop" data-action="oo-panel-close" aria-label="收起一对一弹层"></button><section class="oo-panel oo-${kind}-panel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header class="oo-panel-header"><h2>${esc(title)}</h2>${act('oo-panel-close', '', icon('close'), 'oo-close', 'aria-label="关闭一对一弹层"')}</header><div class="oo-panel-body">${html}</div></section></div>`
-    );
-    s.el.querySelector('.oo-close')?.focus({ preventScroll: true });
-  }
-  function closePanel() {
-    const s = session;
-    if (!s) return;
-    s.el.querySelector('.oo-panel-layer')?.remove();
-    s.panel = '';
-    for (const child of s.el.children) child.inert = false;
-    if (s.panelFocus?.isConnected) s.panelFocus.focus({ preventScroll: true });
-  }
-  function profile() {
-    const s = session;
-    if (!s) return;
+  function roomHTML(s) {
     const p = s.host;
-    panel(
-      '主播资料',
-      `<div class="oo-profile-top"><img class="avatar" src="${asset(p.photo)}" alt="${esc(p.name)}"><h2>${esc(p.name)}</h2>${badge(p)}<p>${esc(p.city)} · ${esc(p.age)}岁</p></div><div class="oo-profile-tags">${(p.tags || []).map(t => `<span>${esc(t)}</span>`).join('')}</div><p class="oo-profile-bio">${esc(p.bio)}</p><div class="oo-profile-facts"><div><strong>${esc(p.language || '中文')}</strong><small>沟通语言</small></div><div><strong>RM ${money(rate(p))}</strong><small>每分钟参考价</small></div></div><div class="oo-info-card"><h3>${esc(p.theme)}</h3><p>从共同喜欢的话题开始，把这一小段时间留给彼此。</p></div>${act('oo-follow', p.id, state.follows.includes(p.id) ? '已关注 · 下次还来找 TA' : '+ 关注主播', 'oo-primary oo-wide', `aria-pressed="${state.follows.includes(p.id)}"`)}${act('oo-panel-close', '', '返回双人聊天', 'oo-secondary oo-wide')}<p class="oo-panel-note">人物资料与连线均为本地演示</p>`,
-      'profile'
+    const name = nameOf(p);
+    const titleId = 'oo-title-' + s.key;
+    const topics = list('profiles', p, 'callTopics').slice(0, 3);
+    const quick = topics.length ? topics : [0, 1, 2].map(i => t(`private.icebreaker.${i}`));
+    const heart = findGift('heart');
+    const followed = state.follows.includes(p.id);
+    return `<section class="oo-room${lowRes(p) ? ' oo-room--tile' : ''}" role="dialog" aria-modal="true" aria-labelledby="${titleId}" data-phase="ringing">
+<div class="oo-stage" aria-hidden="true"><img class="oo-stage-bg" src="${esc(photoOf(p))}" alt=""><img class="oo-video" src="${esc(photoOf(p))}" alt=""></div>
+<div class="oo-scrim" aria-hidden="true"></div>
+<header class="oo-top">${act('close', '', icon('back'), 'oo-round', `aria-label="${esc(t('common.back'))}"`)}${act(
+      'oo-profile',
+      p.id,
+      `<img class="avatar avatar-32" src="${esc(photoOf(p))}" alt=""><span class="oo-who"><strong id="${titleId}">${html(name)}</strong><small class="oo-status"></small></span>`,
+      'oo-host-pill',
+      `aria-label="${esc(t('private.room.profileAria', { name }))}"`
+    )}${act('oo-follow', p.id, esc(followed ? t('private.host.following') : t('private.host.follow')), 'oo-follow-pill oo-follow-btn', `aria-pressed="${followed}"`)}${act('oo-more', '', icon('settings'), 'oo-round', `aria-label="${esc(t('private.more.title'))}"`)}</header>
+<div class="oo-meter"><span class="oo-live-dot" aria-hidden="true"></span><b class="oo-time num" role="timer" aria-label="${esc(t('private.room.timerLabel'))}">00:00</b><span class="oo-meter-rate">${esc(rateText(s.rate))}</span><span class="oo-runway" hidden></span></div>
+<div class="oo-self" data-camera="on" data-mic="on"><img ${imageAttrs(state.profile.photo)} alt=""><span class="oo-self-off">${icon('video')}<small>${esc(t('private.room.cameraOff'))}</small></span><span class="oo-self-mute" role="img" aria-label="${esc(t('private.room.muted'))}">${icon('mic')}</span><span class="oo-self-label">${esc(t('private.room.you'))}</span></div>
+<p class="oo-banner" role="status" hidden></p>
+<div class="oo-ring"><div class="oo-ring-avatar"><img class="avatar avatar-96" src="${esc(photoOf(p))}" alt=""><i></i><i></i></div><h2>${html(name)}</h2><p class="oo-ring-status" role="status">${esc(p.online ? t('private.room.waiting', { name }) : t('private.room.calling'))}</p><p class="oo-ring-note">${esc(t('private.room.rateNote', { rate: rateText(s.rate) }))}</p></div>
+<div class="oo-low" role="alert" hidden><div class="oo-low-text"><strong class="oo-low-title"></strong><small>${esc(t('private.low.text'))}</small></div>${act('oo-topup', '', esc(t('private.low.action')), 'btn btn-accent btn-sm')}</div>
+<div class="oo-ended" hidden></div>
+<div class="oo-dock">
+<div class="oo-log" role="log" aria-live="polite" aria-label="${esc(t('private.room.log'))}" tabindex="0"></div>
+<div class="oo-combo" hidden></div>
+<div class="oo-quick" role="group" aria-label="${esc(t('private.room.quick'))}">${heart ? act('oo-heart', heart.id, `<img src="${esc(giftArt(heart))}" alt="">${esc(t('private.room.sendHeart'))}`, 'oo-quick-chip oo-quick-gift') : ''}${quick.map((text, i) => act('oo-quick', String(i), `<span>${html(text)}</span>`, 'oo-quick-chip', topics.length ? 'data-kind="topic"' : '')).join('')}</div>
+<form class="oo-composer" data-form="oo-message"><input name="text" maxlength="160" autocomplete="off" enterkeyhint="send" placeholder="${esc(t('private.room.placeholder'))}" aria-label="${esc(t('private.room.messageLabel'))}"><button type="submit" class="oo-send" aria-label="${esc(t('private.room.send'))}">${icon('plane')}</button>${act('oo-gifts', '', icon('gift'), 'oo-gift-btn', `aria-label="${esc(t('private.room.gifts'))}"`)}</form>
+<div class="oo-controls">${control('mic', 'mic', t('private.ctrl.mic'), true)}${control('camera', 'video', t('private.ctrl.camera'), true)}${control('flip', 'camera', t('private.ctrl.flip'))}${control('speaker', 'volume', t('private.ctrl.speaker'), true)}<button type="button" class="oo-ctrl oo-hangup" data-action="oo-hangup" aria-label="${esc(t('private.ctrl.cancel'))}"><span class="oo-ctrl-icon">${icon('phone')}</span><span class="oo-ctrl-label" aria-hidden="true"></span></button></div>
+<p class="oo-demo-note">${esc(t('private.room.demoNote'))}</p>
+</div>
+</section>`;
+  }
+  const $in = (s, sel) => s.el?.querySelector(sel);
+  function later(s, fn, ms, phases = LIVE_PHASES) {
+    const timer = setTimeout(() => {
+      s.timers.delete(timer);
+      if (session === s && phases.includes(s.phase)) fn();
+    }, ms);
+    s.timers.add(timer);
+    return timer;
+  }
+  function clearTimers(s) {
+    for (const timer of s.timers) clearTimeout(timer);
+    s.timers.clear();
+    clearInterval(s.ticker);
+    s.ticker = null;
+  }
+  function stopEffects() {
+    window.ShizhongLiveEffects?.stop?.();
+    window.ShizhongOrientalEffects?.stop?.();
+  }
+  function callSeconds(s) {
+    if (!s.startedAt) return 0;
+    if (s.phase === 'ended') return s.seconds;
+    const now = Date.now();
+    const paused = s.pausedMs + (s.pauseStart ? now - s.pauseStart : 0);
+    return Math.max(0, ((now - s.startedAt - paused) * s.scale) / 1000);
+  }
+  function setPhase(s, phase) {
+    s.phase = phase;
+    if (!s.el) return;
+    s.el.dataset.phase = phase;
+    const status = {
+      ringing: t('private.room.calling'),
+      connected: t('private.room.connected'),
+      reconnecting: t('private.room.reconnectingShort'),
+      away: t('private.room.awayShort'),
+      ended: t('private.end.title'),
+    }[phase];
+    const statusEl = $in(s, '.oo-status');
+    if (statusEl) statusEl.textContent = status;
+    const live = LIVE_PHASES.includes(phase);
+    s.el.querySelectorAll('.oo-composer input, .oo-composer button, .oo-quick button').forEach(el => {
+      el.disabled = !live;
+    });
+    const hangup = $in(s, '.oo-hangup');
+    if (hangup) {
+      const label = phase === 'ringing' ? t('private.ctrl.cancel') : t('private.ctrl.end');
+      hangup.setAttribute('aria-label', label);
+      hangup.querySelector('.oo-ctrl-label').textContent = label;
+      hangup.disabled = phase === 'ended';
+    }
+    updateBanner(s);
+    if (phase === 'ended') {
+      $in(s, '.oo-low').hidden = true;
+      $in(s, '.oo-combo').hidden = true;
+    }
+  }
+  function updateBanner(s) {
+    const el = $in(s, '.oo-banner');
+    if (!el) return;
+    const name = nameOf(s.host);
+    let text = '';
+    let tone = '';
+    if (s.phase === 'reconnecting') [text, tone] = [t('private.room.reconnecting'), 'warn'];
+    else if (s.phase === 'away') [text, tone] = [t('private.room.away', { name }), 'info'];
+    else if (!s.speaker && LIVE_PHASES.includes(s.phase)) text = t('private.room.speakerNote', { name });
+    el.hidden = !text;
+    el.textContent = text;
+    el.dataset.tone = tone;
+  }
+  function connect(s) {
+    if (session !== s || s.phase !== 'ringing') return;
+    s.startedAt = Date.now();
+    setPhase(s, 'connected');
+    tick(s);
+    if (s.phase !== 'connected') return;
+    s.ticker = setInterval(() => tick(s), s.scale > 1 ? 250 : 1000);
+    addMessage(s, { side: 'system', key: 'private.sys.connected' });
+    later(s, () => addMessage(s, { side: 'host', key: 'private.say.opener.' + topicId(s.host) }), 900);
+  }
+  /** Bill each started minute; false when the wallet cannot pay it. One bill per call. */
+  function charge(s) {
+    if (s.rate <= 0) {
+      s.minutesPaid++;
+      return true;
+    }
+    if (Number(state.wallet) + 1e-9 < s.rate) return false;
+    const host = s.host;
+    const ok = SZ.store.commit(st => {
+      st.wallet = round2(st.wallet - s.rate);
+      if (!Array.isArray(st.bills)) st.bills = [];
+      let bill = st.bills.find(b => b && b.id === s.key);
+      if (!bill) {
+        bill = {
+          id: s.key,
+          kind: 'call',
+          title: '',
+          amount: 0,
+          time: s.startedAt,
+          hostId: host.id,
+          i18n: { key: 'private.bill.title', params: { name: host.name } },
+        };
+        st.bills.unshift(bill);
+      }
+      bill.amount = round2(-(s.cost + s.rate));
+    });
+    if (!ok) return false;
+    s.cost = round2(s.cost + s.rate);
+    s.minutesPaid++;
+    return true;
+  }
+  function runwaySeconds(s, sec) {
+    if (s.rate <= 0) return Infinity;
+    const paidLeft = s.minutesPaid * 60 - sec;
+    return Math.max(0, paidLeft + Math.floor((Number(state.wallet) + 1e-9) / s.rate) * 60);
+  }
+  function tick(s) {
+    if (session !== s || !LIVE_PHASES.includes(s.phase)) return;
+    const sec = callSeconds(s);
+    const due = Math.floor(sec / 60) + 1;
+    while (s.minutesPaid < due) {
+      if (!charge(s)) {
+        end(s, 'balance');
+        return;
+      }
+    }
+    if (!s.hostLeaving && sec >= CONFIG.hostEndMinutes * 60) hostEnd(s);
+    const time = clock(sec);
+    const timeEl = $in(s, '.oo-time');
+    if (timeEl && timeEl.textContent !== time) timeEl.textContent = time;
+    const runway = runwaySeconds(s, sec);
+    const low = runway <= CONFIG.lowSeconds;
+    const minutes = Math.max(1, Math.ceil(runway / 60));
+    const runEl = $in(s, '.oo-runway');
+    if (runEl) {
+      const text = runway === Infinity || runway > 600 * 60 ? '' : tn('private.room.runway', minutes);
+      if (runEl.textContent !== text) runEl.textContent = text;
+      runEl.hidden = !text;
+      runEl.classList.toggle('is-low', low);
+    }
+    const lowEl = $in(s, '.oo-low');
+    if (lowEl) {
+      if (low) {
+        const title = tn('private.low.title', minutes);
+        const titleEl = lowEl.querySelector('.oo-low-title');
+        if (titleEl.textContent !== title) titleEl.textContent = title;
+      }
+      if (lowEl.hidden === low) lowEl.hidden = !low;
+    }
+  }
+  function reconnect(s) {
+    if (session !== s || s.phase !== 'connected') return;
+    setPhase(s, 'reconnecting');
+    later(
+      s,
+      () => {
+        setPhase(s, 'connected');
+        addMessage(s, { side: 'system', key: 'private.sys.reconnected' });
+      },
+      CONFIG.reconnectMs,
+      ['reconnecting']
     );
   }
-  function follow() {
-    const s = session;
-    if (!s) return;
-    const id = s.host.id,
-      followed = state.follows.includes(id);
+  function hostAway(s) {
+    if (session !== s || s.phase !== 'connected') return;
+    addMessage(s, { side: 'host', key: 'private.say.away' });
+    s.pauseStart = Date.now();
+    setPhase(s, 'away');
+    later(
+      s,
+      () => {
+        s.pausedMs += Date.now() - s.pauseStart;
+        s.pauseStart = 0;
+        setPhase(s, 'connected');
+        addMessage(s, { side: 'host', key: 'private.say.back' });
+      },
+      CONFIG.awayMs,
+      ['away']
+    );
+  }
+  function hostEnd(s) {
+    if (session !== s || !LIVE_PHASES.includes(s.phase) || s.hostLeaving) return;
+    s.hostLeaving = true;
+    addMessage(s, { side: 'host', key: 'private.say.bye' });
+    later(s, () => end(s, 'host'), 1800);
+  }
+
+  // ------------------------------------------------------------------ messages
+  // Scripted lines are stored as keys so saved transcripts follow the current language.
+  function messageText(m, host) {
+    if (!m.key) return String(m.text || '');
+    const params = { ...(m.params || {}), name: nameOf(host) || host?.name || '', city: cityOf(host) };
+    if (m.giftId) params.gift = giftName(findGift(m.giftId)) || td('private.gift', m.giftName || '');
+    return t(m.key, params);
+  }
+  function messageHTML(m, host, cls = 'oo-msg') {
+    const side = m.side === 'self' ? 'self' : m.side === 'host' ? 'host' : 'system';
+    const gift = m.giftId && side === 'self' ? findGift(m.giftId) : null;
+    const art = gift ? `<img src="${esc(giftArt(gift))}" alt="" loading="lazy">` : '';
+    return `<div class="${cls} ${cls}--${side}${gift ? ' is-gift' : ''}"><span>${art}${html(messageText(m, host))}</span></div>`;
+  }
+  function addMessage(s, m) {
+    if (session !== s || s.phase === 'ended') return;
+    const message = { ...m, time: Date.now() };
+    s.messages.push(message);
+    if (s.messages.length > MAX_MESSAGES) s.messages.shift();
+    const log = $in(s, '.oo-log');
+    if (!log) return;
+    const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+    log.insertAdjacentHTML('beforeend', messageHTML(message, s.host));
+    while (log.children.length > MAX_MESSAGES) log.firstElementChild.remove();
+    if (nearBottom || m.side === 'self') log.scrollTop = log.scrollHeight;
+  }
+  function sendText(s, text) {
+    text = String(text || '')
+      .trim()
+      .slice(0, 160);
+    if (!s || !LIVE_PHASES.includes(s.phase) || !text) return;
+    addMessage(s, { side: 'self', text });
+    const input = $in(s, '.oo-composer input');
+    if (input) input.value = '';
+    if (s.phase !== 'connected') return;
+    const key =
+      s.replies === 0 ? 'private.say.greet' : `private.say.reply.${topicId(s.host)}.${(s.replies - 1) % 4}`;
+    s.replies++;
+    later(s, () => addMessage(s, { side: 'host', key }), CONFIG.replyMs, ['connected']);
+  }
+
+  // ------------------------------------------------------------------ controls
+  function toggle(s, id, button) {
+    if (!s || s.phase === 'ended') return;
+    const self = $in(s, '.oo-self');
+    if (id === 'flip') {
+      if (!s.camera) return toast(t('private.room.flipNeedsCamera'));
+      s.front = !s.front;
+      self?.classList.toggle('is-rear', !s.front);
+      toast(s.front ? t('private.room.flipFront') : t('private.room.flipRear'));
+      return;
+    }
+    if (!['mic', 'camera', 'speaker'].includes(id)) return;
+    s[id] = !s[id];
+    button?.setAttribute('aria-pressed', String(s[id]));
+    if (id === 'mic') {
+      self.dataset.mic = s.mic ? 'on' : 'off';
+      if (s.mic) s.micHinted = false;
+      else if (!s.micHinted) {
+        s.micHinted = true;
+        later(s, () => !s.mic && addMessage(s, { side: 'host', key: 'private.say.cantHear' }), 2600, [
+          'connected',
+        ]);
+      }
+    } else if (id === 'camera') {
+      self.dataset.camera = s.camera ? 'on' : 'off';
+      const flip = $in(s, '[data-action="oo-toggle"][data-id="flip"]');
+      if (s.camera) flip?.removeAttribute('aria-disabled');
+      else flip?.setAttribute('aria-disabled', 'true');
+      if (!s.camera && !s.cameraHinted) {
+        s.cameraHinted = true;
+        later(s, () => !s.camera && addMessage(s, { side: 'host', key: 'private.say.cameraOff' }), 2200, [
+          'connected',
+        ]);
+      }
+    } else updateBanner(s);
+  }
+  function follow(id) {
+    if (!id || !SZ.requireLogin(t('auth.reason.follow'))) return;
+    const on = state.follows.includes(id);
     if (
-      !commit(() => {
-        state.follows = followed ? state.follows.filter(p => p !== id) : [...state.follows, id];
+      !SZ.store.commit(st => {
+        st.follows = on ? st.follows.filter(x => x !== id) : [...st.follows, id];
       })
     )
       return;
-    s.el.querySelectorAll('[data-action="oo-follow"]').forEach(b => {
-      b.textContent = followed ? '+ 关注' : '已关注';
-      b.setAttribute('aria-pressed', String(!followed));
+    const label = followLabel(id);
+    document.querySelectorAll(`.oo-follow-btn[data-id="${CSS.escape(id)}"]`).forEach(b => {
+      b.textContent = label;
+      b.setAttribute('aria-pressed', String(!on));
     });
-    render();
+    toast(on ? t('private.host.unfollowed') : t('private.host.followed', { name: nameOf(findPerson(id)) }));
   }
-  function giftPanel(category) {
-    const s = session;
-    if (!s || s.phase !== 'connected') return;
-    if (category) s.category = category;
-    const list = gifts().filter(g => g.category === s.category);
-    if (s.category === '盛世华章') list.sort((a, b) => a.price - b.price);
-    if (!list.some(g => g.id === s.giftId)) s.giftId = list[0]?.id;
-    const selected = findGift(s.giftId);
-    if (!selected) return;
-    panel(
-      '送给 ' + s.host.name,
-      `<div class="oo-gift-tabs">${['推荐', '互动', '典藏', '盛世华章'].map(c => act('oo-gift-category', c, c, c === s.category ? 'active' : '')).join('')}${act('oo-gift-records', '', '本次赠礼')}</div><div class="oo-gift-grid">${list.map(g => act('oo-select-gift', g.id, `<img src="${asset(g.image)}" alt="${esc(g.name)}" loading="lazy"><strong>${esc(g.name)}</strong><small>${amount(g.price)} 金豆</small>`, `oo-gift-tile ${s.giftId === g.id ? 'active' : ''}`, `aria-pressed="${s.giftId === g.id}"`)).join('')}</div><div class="oo-gift-selected"><img src="${asset(selected.image)}" alt=""><div><strong>${esc(selected.name)}</strong><small>${amount(selected.price)} 金豆 / 个 · ${esc(selected.description || '送出一份心意')}</small></div>${act('oo-preview', selected.id, '预览特效', 'oo-secondary')}</div><div class="oo-gift-footer"><div><small>我的金豆</small><b>${compactBalance(state.points)}</b>${act('oo-topup', '', '领取体验金豆 ›', 'oo-topup-link')}</div><label class="oo-quantity"><span>数量</span><select aria-label="一对一赠礼数量">${[1, 10, 66, 99].map(n => `<option value="${n}" ${n === s.quantity ? 'selected' : ''}>×${n}</option>`).join('')}</select></label>${act('oo-send-gift', selected.id, '赠送 · ' + amount(selected.price * s.quantity), 'oo-primary')}</div><p class="oo-panel-note">本地演示 · 赠礼使用体验金豆</p>`,
-      'gift'
+
+  // ------------------------------------------------------------------ gift sheet
+  function giftTile(g) {
+    return act(
+      'oo-gift-pick',
+      g.id,
+      `<img src="${esc(giftArt(g))}" alt="" loading="lazy" decoding="async"><span class="oo-gift-name">${html(giftName(g))}</span><span class="oo-gift-price num">${esc(tn('private.gift.each', g.price))}</span>`,
+      'oo-gift-tile',
+      `aria-pressed="${g.id === giftUI.giftId}"`
     );
   }
-  function play(g, quantity, preview) {
-    const s = session;
-    if (!s || s.phase !== 'connected') return;
-    closePanel();
-    const token = ++s.fxToken;
-    s.fx = true;
-    window.ShizhongLiveEffects?.stop();
-    window.ShizhongOrientalEffects?.stop();
-    const engine = g.orientalEffect ? window.ShizhongOrientalEffects : window.ShizhongLiveEffects;
-    engine?.play(
-      {
-        container: s.el,
-        gift: { ...g, image: asset(g.image) },
-        sender: preview ? '特效预览' : state.profile.name,
-        count: quantity,
-        avatar: asset(state.profile.photo),
-        theme: g.orientalEffect,
-      },
-      () => {
-        if (session === s && s.fxToken === token) s.fx = false;
-      }
+  const giftsIn = category =>
+    giftList()
+      .filter(g => g.category === category)
+      .sort((a, b) => a.price - b.price);
+  function giftSheet(s) {
+    if (!s || !LIVE_PHASES.includes(s.phase)) return;
+    const cats = giftCategories();
+    if (!cats.includes(giftUI.category)) giftUI.category = findGift(giftUI.giftId)?.category || cats[0] || '';
+    const items = giftsIn(giftUI.category);
+    if (!items.some(g => g.id === giftUI.giftId)) giftUI.giftId = items[0]?.id || '';
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('private.gift.title', { name: nameOf(s.host) }),
+      className: 'oo-gift-sheet',
+      meta: { view: 'private-gifts', hostId: s.host.id },
+      onUncover: l => updateGiftFooter(l),
+      html: `<div class="chip-row oo-gift-cats" role="group" aria-label="${esc(t('private.gift.category'))}">${cats.map(c => act('oo-gift-cat', c, html(categoryName(c)), 'chip', `aria-pressed="${c === giftUI.category}"`)).join('')}</div><div class="oo-gift-grid">${items.map(giftTile).join('')}</div><div class="sheet-footer oo-gift-foot"><div class="oo-gift-summary"><img class="oo-gift-summary-art" src="" alt=""><div class="oo-gift-summary-text"><strong class="oo-gift-summary-name"></strong><small class="oo-gift-summary-price"></small></div><div class="segmented oo-qty" role="group" aria-label="${esc(t('private.gift.quantity'))}">${QUANTITIES.map(n => act('oo-gift-qty', String(n), '×' + n, 'num', `aria-pressed="${n === giftUI.quantity}"`)).join('')}</div></div><div class="oo-gift-row"><div class="oo-gift-balance"><small>${esc(t('private.gift.balance'))}</small><span><b class="num oo-gift-beans"></b>${act('oo-beans', '', esc(t('private.gift.getBeans')), 'oo-beans-link')}</span></div>${act('oo-gift-send', '', '', 'btn btn-primary oo-gift-send')}</div><p class="oo-gift-short" role="status"></p></div>`,
+    });
+    updateGiftFooter(layer);
+    layer.el.querySelector('.oo-gift-tile[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' });
+    return layer;
+  }
+  function updateGiftFooter(layer = SZ.overlay.top()) {
+    const el = layer?.el;
+    if (!el?.querySelector('.oo-gift-foot')) return;
+    const g = findGift(giftUI.giftId);
+    const total = (g?.price || 0) * giftUI.quantity;
+    const short = Math.max(0, total - Number(state.points || 0));
+    const art = el.querySelector('.oo-gift-summary-art');
+    if (g) art.src = giftArt(g);
+    art.hidden = !g;
+    el.querySelector('.oo-gift-summary-name').textContent = g ? giftName(g) : '';
+    el.querySelector('.oo-gift-summary-price').textContent = g ? tn('private.gift.each', g.price) : '';
+    el.querySelector('.oo-gift-beans').textContent = SZ.fmt.compact(state.points);
+    const shortEl = el.querySelector('.oo-gift-short');
+    shortEl.textContent = short ? tn('private.gift.short', short) : '';
+    shortEl.hidden = !short;
+    const send = el.querySelector('.oo-gift-send');
+    send.textContent = tn('private.gift.send', total, { amount: SZ.fmt.compact(total) });
+    send.disabled = !g;
+    el.querySelectorAll('[data-action="oo-gift-qty"]').forEach(b =>
+      b.setAttribute('aria-pressed', String(Number(b.dataset.id) === giftUI.quantity))
     );
   }
-  function sendGift(id) {
-    const s = session,
-      g = findGift(id);
-    if (!s || s.phase !== 'connected' || s.panel !== 'gift' || s.sending || id !== s.giftId || !g) return;
-    const quantity = Number(s.el.querySelector('.oo-quantity select')?.value || 1),
-      total = g.price * quantity;
-    if (![1, 10, 66, 99].includes(quantity) || !Number.isSafeInteger(total) || total <= 0) return;
-    if (state.points < total) {
-      topup(total - state.points);
-      return;
+  function pickGift(id, button) {
+    if (!findGift(id)) return;
+    giftUI.giftId = id;
+    const layer = SZ.overlay.of(button) || SZ.overlay.top();
+    layer?.el
+      .querySelectorAll('.oo-gift-tile')
+      .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
+    updateGiftFooter(layer);
+  }
+  function pickCategory(category, button) {
+    if (!giftCategories().includes(category)) return;
+    giftUI.category = category;
+    const items = giftsIn(category);
+    if (!items.some(g => g.id === giftUI.giftId)) giftUI.giftId = items[0]?.id || '';
+    const layer = SZ.overlay.of(button) || SZ.overlay.top();
+    const grid = layer?.el.querySelector('.oo-gift-grid');
+    if (!grid) return;
+    layer.el
+      .querySelectorAll('[data-action="oo-gift-cat"]')
+      .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === category)));
+    grid.innerHTML = items.map(giftTile).join('');
+    grid.scrollTop = 0;
+    updateGiftFooter(layer);
+  }
+  function beansSheet() {
+    return SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('private.beans.title'),
+      className: 'oo-beans-sheet',
+      meta: { view: 'private-beans' },
+      html: `<p>${esc(t('private.beans.text'))}</p><p class="oo-beans-now">${esc(tn('private.beans.balance', state.points))}</p><div class="oo-beans-packs">${BEAN_PACKS.map(n => act('oo-claim', String(n), `<b class="num">+${esc(SZ.fmt.number(n))}</b><small>${esc(t('private.beans.unit'))}</small>`, 'oo-bean-pack')).join('')}</div>`,
+    });
+  }
+  function claimBeans(n, button) {
+    if (!BEAN_PACKS.includes(n)) return;
+    if (!SZ.store.commit(st => (st.points = (Number(st.points) || 0) + n))) return;
+    const layer = SZ.overlay.of(button);
+    if (layer) SZ.overlay.close({ layer, force: true });
+    toast(tn('private.beans.done', n), { type: 'success' });
+  }
+  function sendGift(s, id, quantity) {
+    const g = findGift(id);
+    if (!s || !g || !LIVE_PHASES.includes(s.phase) || s.sending) return;
+    if (!QUANTITIES.includes(quantity)) return;
+    const total = g.price * quantity;
+    if (!Number.isSafeInteger(total) || total <= 0) return;
+    if (Number(state.points) < total) {
+      const top = SZ.overlay.top();
+      if (top?.meta.view === 'private-gifts') updateGiftFooter(top);
+      else toast(tn('private.gift.short', total - state.points), { type: 'error' });
+      return beansSheet();
     }
     s.sending = true;
-    const previousLevel = vip();
+    const before = window.ShizhongVIP?.level?.('self');
     const record = {
-      id: s.key + '-gift-' + s.sent.length,
+      id: s.key + '-g' + s.sent.length,
       callId: s.key,
       hostId: s.host.id,
       hostName: s.host.name,
@@ -343,311 +709,541 @@
       total,
       time: Date.now(),
     };
-    const ok = commit(() => {
-      state.points -= total;
-      data().gifts = [record, ...state.oneToOne.gifts].slice(0, 200);
-      state.live = {
-        fanclubs: [],
-        reminders: [],
-        honorXp: 0,
-        giftHistory: [],
-        likes: {},
-        ...(state.live || {}),
-      };
-      state.live.honorXp += total;
+    const ok = SZ.store.commit(st => {
+      st.points -= total;
+      const mine = own(st);
+      mine.gifts = [record, ...mine.gifts].slice(0, 200);
+      // VIP progress reads state.live.honorXp (1 bean = 1 xp), shared with public live rooms.
+      if (!st.live || typeof st.live !== 'object') st.live = {};
+      st.live.honorXp = (Number(st.live.honorXp) || 0) + total;
     });
     s.sending = false;
     if (!ok) return;
     s.sent.push(record);
     s.spent += total;
-    addMessage(s, 'self', '送出 ' + g.name + ' ×' + quantity, g.id);
-    play(g, quantity, false);
-    delay(s, () => addMessage(s, 'host', '收到你的' + g.name + '啦，谢谢你把心意送给我。'), 2100);
-    render();
-    window.ShizhongVIP?.afterGift(previousLevel);
+    const top = SZ.overlay.top();
+    if (top?.meta.view === 'private-gifts') SZ.overlay.close({ layer: top, force: true });
+    addMessage(s, {
+      side: 'self',
+      key: 'private.gift.sentMsg',
+      giftId: g.id,
+      giftName: g.name,
+      params: { n: quantity },
+    });
+    play(s, g, quantity);
+    later(
+      s,
+      () => addMessage(s, { side: 'host', key: 'private.say.thanks', giftId: g.id, giftName: g.name }),
+      2100,
+      ['connected']
+    );
+    showCombo(s, g, quantity);
+    window.ShizhongVIP?.afterGift?.(before);
   }
-  function giftRecords() {
-    const s = session;
-    if (!s) return;
-    panel(
-      '本次赠礼',
-      s.sent.length
-        ? `<div class="oo-call-history">${s.sent.map(r => `<article><img class="avatar" src="${asset(findGift(r.giftId)?.image)}" alt="${esc(r.name)}"><div><h3>${esc(r.name)} ×${r.quantity}</h3><p>${amount(r.total)} 金豆</p><small>${new Date(r.time).toLocaleTimeString('zh-CN')}</small></div></article>`).join('')}</div>${act('oo-gifts', '', '继续挑选礼物', 'oo-primary oo-wide')}`
-        : `<div class="oo-empty">${icon('gift')}<h3>让心意先说话</h3><p>你送出的礼物会在这里留下一份记录。</p></div>${act('oo-gifts', '', '挑一份礼物', 'oo-primary oo-wide')}`,
-      'history'
+  function play(s, g, quantity) {
+    stopEffects();
+    const engine = g.orientalEffect ? window.ShizhongOrientalEffects : window.ShizhongLiveEffects;
+    if (!engine?.play) return;
+    s.fx = true;
+    engine.play(
+      {
+        container: s.el,
+        gift: { ...g, name: giftName(g), image: giftArt(g, 'full') },
+        sender: profileName(),
+        count: quantity,
+        avatar: asset(state.profile.photo),
+        theme: g.orientalEffect,
+      },
+      () => {
+        s.fx = false;
+      }
     );
   }
-  function topup(shortfall = 0) {
-    panel(
-      '领取体验金豆',
-      `<div class="oo-finish-hero"><h2>${compactBalance(state.points)} 金豆</h2><p>${state.points.toLocaleString('zh-CN')} 金豆</p><p>${shortfall ? '还差 ' + amount(shortfall) + ' 金豆即可赠送' : '选择一档免费体验额度'}</p></div><div class="oo-button-row">${[100, 1000, 10000, 100000].map(n => act('oo-claim', n, '+' + amount(n), 'oo-secondary')).join('')}</div><p class="oo-panel-note">仅供原稿体验，不产生真实支付</p>${act('oo-gifts', '', '返回礼物面板', 'oo-primary oo-wide')}`,
-      'topup'
+  function showCombo(s, g, quantity) {
+    const el = $in(s, '.oo-combo');
+    if (!el) return;
+    clearTimeout(s.comboTimer);
+    el.innerHTML = act(
+      'oo-combo',
+      g.id,
+      `<img src="${esc(giftArt(g))}" alt=""><span>${html(t('private.room.combo', { gift: giftName(g), n: quantity }))}</span>`,
+      'oo-combo-btn',
+      `data-qty="${quantity}"`
     );
+    el.hidden = false;
+    s.comboTimer = setTimeout(() => {
+      if (el.isConnected) el.hidden = true;
+    }, 5000);
   }
-  function settings() {
-    const s = session;
-    if (!s) return;
-    panel(
-      '聊天设置',
-      `<div class="oo-info-card"><h3>两个人的专属时间</h3><p>参考价 RM ${money(rate(s.host))}/分钟。本次连线免费体验；送礼使用体验金豆。</p></div><div class="oo-settings">${act('oo-profile', '', '查看主播资料', 'oo-settings-row')}${act('oo-gift-records', '', '本次赠礼记录', 'oo-settings-row')}${act('oo-topup', '', '领取体验金豆', 'oo-settings-row')}${act('oo-report', '', '举报与屏蔽', 'oo-settings-row')}${act('oo-end', '', '结束这次聊天', 'oo-settings-row')}</div>`,
-      'settings'
-    );
+
+  // ------------------------------------------------------------------ more / report / block
+  function moreSheet(s) {
+    const row = (action, symbol, label, extra = '', danger = false) =>
+      `<button type="button" class="list-row${danger ? ' danger' : ''}" data-action="${action}">${icon(symbol)}<span>${esc(label)}</span>${extra}${danger ? '' : icon('chevron', 'chevron')}</button>`;
+    const count = s.sent.length
+      ? `<span class="row-value num">${esc(SZ.fmt.number(s.sent.length))}</span>`
+      : '';
+    return SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('private.more.title'),
+      className: 'oo-more-sheet',
+      meta: { view: 'private-more' },
+      html: `<div class="list">${row('oo-profile', 'user', t('private.more.profile'))}${row('oo-sent', 'gift', t('private.more.gifts'), count)}${row('oo-history', 'clock', t('private.more.history'))}</div><div class="list oo-more-danger">${row('oo-report', 'shield', t('private.more.report'))}${row('oo-block', 'close', t('private.more.block'), '', true)}${s.phase !== 'ended' ? row('oo-hangup', 'phone', t('private.more.end'), '', true) : ''}</div>`,
+    });
   }
-  function askLeave() {
-    const s = session;
-    if (!s) return;
-    if (s.phase === 'connecting') {
-      exit();
-      return;
+  function sentSheet(s) {
+    const rows = s.sent
+      .slice()
+      .reverse()
+      .map(r => {
+        const g = findGift(r.giftId);
+        return `<li class="list-row"><img class="oo-gift-thumb" src="${esc(g ? giftArt(g) : asset(''))}" alt=""><span class="list-row-main"><strong>${html(g ? giftName(g) : td('private.gift', r.name))} ×${esc(r.quantity)}</strong><small class="caption">${esc(SZ.fmt.time(r.time))}</small></span><span class="row-value num">${esc(tn('private.gift.each', r.total))}</span></li>`;
+      })
+      .join('');
+    return SZ.overlay.open({
+      kind: 'sheet',
+      title: t('private.more.gifts'),
+      className: 'oo-sent-sheet',
+      meta: { view: 'private-sent' },
+      html: rows
+        ? `<ul class="list">${rows}</ul><p class="caption oo-sheet-note">${esc(tn('private.gift.totalSpent', s.spent))}</p>`
+        : `<div class="empty-state">${icon('gift')}<h3>${esc(t('private.gift.noneTitle'))}</h3><p>${esc(t('private.gift.noneText'))}</p></div>`,
+    });
+  }
+  async function block(s) {
+    const id = s.host.id;
+    const name = nameOf(s.host);
+    const ok = await SZ.confirm({
+      title: t('private.block.title', { name }),
+      message: t('private.block.message'),
+      confirmText: t('private.block.confirm'),
+      danger: true,
+    });
+    if (!ok || session !== s) return;
+    if (!SZ.store.commit(st => !st.blocked.includes(id) && st.blocked.push(id))) return;
+    end(s, 'blocked', { quiet: true });
+    closeRoom(s);
+    toast(t('private.block.done', { name }), {
+      action: {
+        label: t('common.undo'),
+        run: () => {
+          if (SZ.store.commit(st => (st.blocked = st.blocked.filter(x => x !== id)))) refreshLobby();
+        },
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------ ending
+  // Back button, Escape and the header back arrow all come here (the layer's beforeClose).
+  async function beforeLeave(s) {
+    if (session !== s || s.phase === 'ended') return true;
+    if (s.phase === 'ringing') {
+      end(s, 'cancel', { quiet: true });
+      return true;
     }
-    if (s.phase === 'ended') {
-      exit();
-      return;
-    }
-    panel(
-      '结束这次聊天？',
-      `<div class="oo-finish-hero"><img class="avatar" src="${asset(s.host.photo)}" alt="${esc(s.host.name)}"><h2>已经相伴 ${clock(seconds(s))}</h2><p>结束后可以查看本次时长与赠礼记录。</p></div><div class="oo-button-row">${act('oo-panel-close', '', '再聊一会儿', 'oo-secondary')}${act('oo-finish', '', '结束聊天', 'oo-primary')}</div>`,
-      'leave'
-    );
+    if (s.confirming) return false;
+    s.confirming = true;
+    const ok = await SZ.confirm({
+      title: t('private.leave.title'),
+      message: t('private.leave.message', { time: clock(callSeconds(s)) }),
+      confirmText: t('private.leave.confirm'),
+      cancelText: t('private.leave.stay'),
+      danger: true,
+    });
+    s.confirming = false;
+    if (!ok) return false;
+    if (s.phase !== 'ended') end(s, 'self', { quiet: true });
+    summaryToast(s);
+    return true;
   }
-  function finish() {
-    const s = session;
-    if (!s || s.phase !== 'connected') return;
-    s.phase = 'ended';
+  function summaryToast(s) {
+    if (!s.startedAt) return;
+    toast(t('private.end.toast', { time: clock(s.seconds), cost: moneyText(s.cost) }), {
+      action: s.saved ? { label: t('private.end.details'), run: () => openDetail(s.key) } : undefined,
+    });
+  }
+  function end(s, reason, { quiet = false } = {}) {
+    if (!s || s.phase === 'ended') return;
+    s.seconds = callSeconds(s);
     s.endedAt = Date.now();
-    clearInterval(s.timer);
-    for (const t of s.pending) clearTimeout(t);
-    s.pending.clear();
-    window.ShizhongLiveEffects?.stop();
-    window.ShizhongOrientalEffects?.stop();
-    saveCall(s);
-    finishPanel(s);
+    if (s.pauseStart) {
+      s.pausedMs += s.endedAt - s.pauseStart;
+      s.pauseStart = 0;
+    }
+    s.reason = reason;
+    clearTimers(s);
+    clearTimeout(s.comboTimer);
+    stopEffects();
+    s.fx = false;
+    setPhase(s, 'ended');
+    if (s.startedAt || reason === 'timeout') saveCall(s);
+    if (!quiet) renderEnded(s);
   }
-  function finishPanel(s) {
-    panel(
-      '聊天已结束',
-      `<div class="oo-finish-hero"><img class="avatar" src="${asset(s.host.photo)}" alt="${esc(s.host.name)}"><h2>谢谢这段相伴时光</h2><p>和 ${esc(s.host.name)}，下次再见。</p></div><div class="oo-summary-stats"><div><strong>${clock(seconds(s))}</strong><span>聊天时长</span></div><div><strong>${s.sent.reduce((n, g) => n + g.quantity, 0)}</strong><span>送出礼物</span></div><div><strong>${amount(s.spent)}</strong><span>体验金豆</span></div></div><div class="oo-info-card"><h3>连线免费体验 · 未扣 RM 余额</h3><p>按参考单价估算 RM ${((seconds(s) * rate(s.host)) / 60).toFixed(2)}，仅展示计时计价方式。</p></div>${!s.saved ? `${act('oo-save-call', '', '重试保存本次记录', 'oo-secondary oo-wide')}<p class="oo-panel-note">记录尚未保存，请重试或返回。</p>` : ''}<div class="oo-button-row">${act('oo-follow', s.host.id, state.follows.includes(s.host.id) ? '已关注' : '+ 关注 TA', 'oo-secondary')}${act('oo-reconnect', s.host.id, '再次连线', 'oo-primary')}</div>${act('oo-exit', '', '返回一对一大厅', 'oo-secondary oo-wide')}`,
-      'finish'
-    );
+  function saveCall(s) {
+    if (s.saved) return true;
+    const record = {
+      id: s.key,
+      v: 2,
+      hostId: s.host.id,
+      name: s.host.name,
+      photo: s.host.photo,
+      time: s.startedAt || s.ringAt,
+      seconds: Math.floor(s.seconds),
+      rate: s.rate,
+      cost: round2(s.cost),
+      goldBeans: s.spent,
+      gifts: s.sent.map(({ giftId, name, quantity, total, time }) => ({
+        giftId,
+        name,
+        quantity,
+        total,
+        time,
+      })),
+      messages: s.messages.slice(-40),
+      reason: s.reason,
+    };
+    s.saved = SZ.store.commit(st => {
+      const mine = own(st);
+      mine.calls = [record, ...mine.calls.filter(c => c.id !== s.key)].slice(0, 50);
+    });
+    return s.saved;
+  }
+  function renderEnded(s) {
+    const box = $in(s, '.oo-ended');
+    if (!box) return;
+    const p = s.host;
+    const name = nameOf(p);
+    const connected = !!s.startedAt;
+    const stats = connected
+      ? `<dl class="oo-end-stats"><div><dt>${esc(t('private.end.duration'))}</dt><dd class="num">${esc(clock(s.seconds))}</dd></div><div><dt>${esc(t('private.end.cost'))}</dt><dd class="num">${esc(moneyText(s.cost))}</dd></div><div><dt>${esc(t('private.end.gifts'))}</dt><dd class="num">${esc(SZ.fmt.number(s.sent.reduce((n, g) => n + g.quantity, 0)))}</dd></div></dl>`
+      : '';
+    const back = act('close', '', esc(t('private.end.back')), 'btn oo-link');
+    let actions;
+    if (s.reason === 'balance')
+      actions = `${act('oo-topup', '', esc(t('private.low.action')), 'btn btn-primary btn-lg btn-block')}${back}`;
+    else if (s.reason === 'timeout')
+      actions = `${act('oo-message', p.id, `${icon('chat')}<span>${esc(t('private.end.leaveMessage'))}</span>`, 'btn btn-primary btn-lg btn-block')}${act('close', '', esc(t('private.end.others')), 'btn oo-link')}`;
+    else
+      actions = `${act('oo-again', p.id, `${icon('video')}<span>${esc(t('private.end.again'))}</span>`, 'btn btn-primary btn-lg btn-block')}<div class="oo-end-row">${act('oo-message', p.id, esc(t('private.end.message')), 'btn oo-glass')}${state.follows.includes(p.id) ? '' : act('oo-follow', p.id, esc(t('private.host.follow')), 'btn oo-glass oo-follow-btn', 'aria-pressed="false"')}</div>${back}`;
+    const unsaved = !s.saved && (connected || s.reason === 'timeout');
+    box.innerHTML = `<img class="avatar avatar-72" src="${esc(photoOf(p))}" alt=""><h2 tabindex="-1">${esc(t('private.end.title'))}</h2><p class="oo-end-reason">${html(t(`private.end.reason.${s.reason}`, { name }))}</p>${stats}${unsaved ? `<p class="oo-end-warn" role="alert">${esc(t('private.end.saveFailed'))}${act('oo-save', '', esc(t('common.retry')), 'btn btn-sm oo-glass')}</p>` : ''}<div class="oo-end-actions">${actions}</div>`;
+    box.hidden = false;
+    box.querySelector('h2')?.focus({ preventScroll: true });
+  }
+  /** Close the room and anything still stacked on top of it (menus, confirm sheets). */
+  function closeRoom(s) {
+    if (!s?.layer?.el.isConnected) return;
+    const layers = SZ.overlay.layers();
+    for (const layer of layers.slice(layers.indexOf(s.layer)).reverse())
+      SZ.overlay.close({ layer, force: true });
+  }
+  function onRoomClose(s) {
+    if (s.phase !== 'ended') {
+      const reason =
+        s.phase === 'ringing' ? 'cancel' : state.blocked.includes(s.host.id) ? 'blocked' : 'self';
+      end(s, reason, { quiet: true });
+    }
+    clearTimers(s);
+    clearTimeout(s.comboTimer);
+    stopEffects();
+    if (session === s) session = null;
+    refreshLobby();
+  }
+  function onUncover(s) {
+    if (session !== s) return;
+    // Reported and blocked from the flows report sheet: the call cannot go on.
+    if (state.blocked.includes(s.host.id) && s.phase !== 'ended') {
+      end(s, 'blocked', { quiet: true });
+      closeRoom(s);
+      return;
+    }
+    tick(s);
+  }
+
+  // ------------------------------------------------------------------ history
+  function callName(r) {
+    const p = findPerson(r.hostId);
+    return p ? nameOf(p) : r.name || '';
+  }
+  const callPhoto = r => asset(findPerson(r.hostId)?.photo || r.photo);
+  const callCost = r => (typeof r.cost === 'number' ? r.cost : Number(r.referenceRM) || 0);
+  function historyBody() {
+    const calls = own().calls;
+    if (!calls.length)
+      return `<div class="oo-history-body"><div class="empty-state">${icon('video')}<h3>${esc(t('private.history.emptyTitle'))}</h3><p>${esc(t('private.history.emptyText'))}</p>${act('oo-browse', '', esc(t('private.history.browse')), 'btn btn-tonal btn-sm')}</div></div>`;
+    const rows = calls
+      .map(r => {
+        const missed = !r.seconds && r.reason === 'timeout';
+        const giftCount = (r.gifts || []).reduce((n, g) => n + (Number(g.quantity) || 0), 0);
+        const parts = missed
+          ? [t('private.history.missed')]
+          : [
+              clock(r.seconds),
+              moneyText(callCost(r)),
+              giftCount ? tn('private.history.giftCount', giftCount) : '',
+            ];
+        return act(
+          'oo-call-detail',
+          r.id,
+          `<img class="avatar avatar-48" src="${esc(callPhoto(r))}" alt=""><span class="list-row-main"><span class="oo-row-top"><strong>${html(callName(r))}</strong><time>${esc(SZ.fmt.stamp(r.time))}</time></span><span class="oo-row-sub${missed ? ' is-missed' : ''}">${icon(missed ? 'phone' : 'video')}<span>${esc(parts.filter(Boolean).join(' · '))}</span></span></span>${icon('chevron', 'chevron')}`,
+          'list-row oo-history-row'
+        );
+      })
+      .join('');
+    return `<div class="oo-history-body"><p class="oo-history-lead">${esc(tn('private.history.count', calls.length))}</p><div class="list">${rows}</div><p class="oo-footnote">${esc(t('private.history.note'))}</p></div>`;
   }
   function history() {
-    const list = data().calls;
-    showSheet(
-      '最近的一对一聊天',
-      list.length
-        ? `<div class="oo-call-history">${list.map(r => `<article><img class="avatar" src="${asset(r.photo)}" alt="${esc(r.name)}"><div><h3>${esc(r.name)}</h3><p>${clock(r.seconds)} · 赠礼 ${amount(r.goldBeans)} 金豆</p><small>${new Date(r.time).toLocaleString('zh-CN')}</small></div>${act('oo-enter', r.hostId, '再聊聊', 'oo-primary')}</article>`).join('')}</div>`
-        : `<div class="oo-empty">${icon('video')}<h3>第一次相遇，就从今天开始</h3><p>结束聊天后，时长和赠礼记录会保存在这里。</p></div>${act('close', '', '去遇见聊得来的 TA', 'oo-primary oo-wide')}`
-    );
+    return demand(['people'], () => {
+      const top = SZ.overlay.top();
+      if (top?.meta.view === 'private-history') return top;
+      return SZ.overlay.open({
+        kind: 'screen',
+        mode: 'push',
+        title: t('private.history.title'),
+        className: 'oo-history-screen',
+        meta: { view: 'private-history' },
+        right: act(
+          'oo-history-clear',
+          '',
+          esc(t('private.history.clear')),
+          'btn btn-ghost btn-sm oo-history-clear',
+          own().calls.length ? '' : 'hidden'
+        ),
+        html: historyBody(),
+      });
+    });
   }
-  const priorClose = closeOverlay;
-  function exit() {
+  function refreshHistory() {
+    for (const layer of SZ.overlay.layers()) {
+      if (layer.meta.view !== 'private-history') continue;
+      const body = layer.el.querySelector('.oo-history-body');
+      if (body) body.outerHTML = historyBody();
+      const clear = layer.el.querySelector('.oo-history-clear');
+      if (clear) clear.hidden = !own().calls.length;
+    }
+  }
+  function openDetail(id) {
+    return demand(['people'], () => {
+      const r = own().calls.find(c => c.id === id);
+      if (!r) return toast(t('private.history.missing'), { type: 'error' });
+      const p = findPerson(r.hostId);
+      const host = p || { id: r.hostId, name: r.name, photo: r.photo };
+      const name = callName(r);
+      const messages = (r.messages || []).filter(m => m && (m.text || m.key));
+      const giftRows = (r.gifts || [])
+        .map(g => {
+          const gift = findGift(g.giftId);
+          return `<li class="list-row"><img class="oo-gift-thumb" src="${esc(gift ? giftArt(gift) : asset(''))}" alt=""><span class="list-row-main">${html(gift ? giftName(gift) : td('private.gift', g.name))} ×${esc(g.quantity)}</span><span class="row-value num">${esc(tn('private.gift.each', g.total))}</span></li>`;
+        })
+        .join('');
+      const reasonKey = 'private.end.reason.' + (r.reason || 'self');
+      const again =
+        p && !state.blocked.includes(p.id)
+          ? act(
+              'oo-again',
+              p.id,
+              `${icon('video')}<span>${esc(t('private.end.again'))}</span>`,
+              'btn btn-primary'
+            )
+          : '';
+      return SZ.overlay.open({
+        kind: 'screen',
+        mode: 'push',
+        title: t('private.history.detail'),
+        className: 'oo-detail-screen',
+        meta: { view: 'private-call', callId: id },
+        html: `<div class="oo-detail"><div class="oo-detail-hero"><img class="avatar avatar-72" src="${esc(callPhoto(r))}" alt=""><h3>${html(name)}</h3><p>${esc(SZ.fmt.dateTime(r.time))}</p>${t.has(reasonKey) ? `<p class="caption">${html(t(reasonKey, { name }))}</p>` : ''}</div><dl class="oo-detail-stats"><div><dt>${esc(t('private.end.duration'))}</dt><dd class="num">${esc(clock(r.seconds))}</dd></div><div><dt>${esc(t('private.end.cost'))}</dt><dd class="num">${esc(moneyText(callCost(r)))}</dd></div><div><dt>${esc(t('private.end.beans'))}</dt><dd class="num">${esc(SZ.fmt.number(r.goldBeans || 0))}</dd></div><div><dt>${esc(t('private.end.messages'))}</dt><dd class="num">${esc(SZ.fmt.number(messages.filter(m => m.side !== 'system').length))}</dd></div></dl>${r.rate ? `<p class="caption oo-detail-rate">${esc(t('private.history.rate', { rate: rateText(r.rate) }))}</p>` : ''}<section class="oo-detail-section"><h4 class="oo-sheet-sub">${esc(t('private.history.giftsTitle'))}</h4>${giftRows ? `<ul class="list">${giftRows}</ul>` : `<p class="oo-muted">${esc(t('private.history.noGifts'))}</p>`}</section><section class="oo-detail-section"><h4 class="oo-sheet-sub">${esc(t('private.history.transcript'))}</h4>${messages.length ? `<div class="oo-transcript">${messages.map(m => messageHTML(m, host, 'oo-line')).join('')}</div>` : `<p class="oo-muted">${esc(t('private.history.noMessages'))}</p>`}</section></div><div class="screen-footer">${act('oo-call-delete', id, esc(t('private.history.delete')), 'btn btn-outline')}${again}</div>`,
+      });
+    });
+  }
+  function deleteCall(id, button) {
+    const calls = own().calls;
+    const index = calls.findIndex(c => c.id === id);
+    if (index < 0) return;
+    const record = calls[index];
+    if (!SZ.store.commit(st => (own(st).calls = own(st).calls.filter(c => c.id !== id)))) return;
+    const layer = SZ.overlay.of(button);
+    if (layer?.meta.view === 'private-call') SZ.overlay.close({ layer, force: true });
+    refreshHistory();
+    refreshLobby();
+    toast(t('private.history.deleted'), {
+      action: {
+        label: t('common.undo'),
+        run: () => {
+          const ok = SZ.store.commit(st => {
+            const mine = own(st);
+            if (!mine.calls.some(c => c.id === id))
+              mine.calls.splice(Math.min(index, mine.calls.length), 0, record);
+          });
+          if (!ok) return;
+          refreshHistory();
+          refreshLobby();
+        },
+      },
+    });
+  }
+  async function clearHistory() {
+    if (!own().calls.length) return;
+    const ok = await SZ.confirm({
+      title: t('private.history.clearTitle'),
+      message: t('private.history.clearMessage'),
+      confirmText: t('private.history.clear'),
+      danger: true,
+    });
+    if (!ok || !SZ.store.commit(st => (own(st).calls = []))) return;
+    refreshHistory();
+    refreshLobby();
+    toast(t('private.history.cleared'));
+  }
+
+  // ------------------------------------------------------------------ QA / demo hook
+  /** Preview call states without waiting: 'reconnect' | 'away' | 'hostEnd' | 'lowBalance'. */
+  function simulate(kind) {
     const s = session;
-    if (s) {
-      if (s.phase === 'connected') {
-        s.endedAt = Date.now();
-        saveCall(s);
+    if (!s) return false;
+    if (kind === 'reconnect') reconnect(s);
+    else if (kind === 'away') hostAway(s);
+    else if (kind === 'hostEnd') hostEnd(s);
+    else if (kind === 'lowBalance' && s.rate > 0 && LIVE_PHASES.includes(s.phase)) {
+      if (!SZ.store.commit(st => (st.wallet = round2(s.rate * 1.5)))) return false;
+      tick(s);
+    } else return false;
+    return true;
+  }
+
+  // ------------------------------------------------------------------ actions & events
+  SZ.actions.register('book-call', (action, id) => enter(id));
+  SZ.actions.register('oo-', (action, id, el) => {
+    const s = session;
+    // Rows of the call-options sheet replace it (block keeps it until its confirm is answered).
+    const from = el && SZ.overlay.of(el);
+    if (from?.meta.view === 'private-more' && action !== 'oo-block')
+      SZ.overlay.close({ layer: from, force: true });
+    switch (action) {
+      case 'oo-host':
+        return hostSheet(id);
+      case 'oo-call':
+        return enter(id);
+      case 'oo-again': {
+        if (s) closeRoom(s);
+        const detail = SZ.overlay.of(el);
+        if (detail?.meta.view === 'private-call') SZ.overlay.close({ layer: detail, force: true });
+        return enter(id);
       }
-      stop(s);
+      case 'oo-message':
+        if (s?.phase === 'ended') closeRoom(s);
+        return window.ShizhongChat?.open?.(id);
+      case 'oo-history':
+        return history();
+      case 'oo-call-detail':
+        return openDetail(id);
+      case 'oo-call-delete':
+        return deleteCall(id, el);
+      case 'oo-history-clear':
+        return clearHistory();
+      case 'oo-browse':
+        ui.liveTab = 'private';
+        if (ui.page === 'live') {
+          SZ.overlay.closeAll();
+          return render();
+        }
+        return navigate('live');
+      case 'oo-follow':
+        return follow(id || s?.host.id);
+      case 'oo-topup':
+        return SZ.actions.dispatch('recharge', '', el);
+      case 'oo-beans':
+        return beansSheet();
+      case 'oo-claim':
+        return claimBeans(Number(id), el);
     }
-    priorClose();
-  }
-  closeOverlay = function () {
-    if (session && session.el.isConnected) {
-      askLeave();
-      return;
-    }
-    return priorClose();
-  };
-  const priorMenu = menuAction;
-  menuAction = function (action, id, button) {
-    if (action === 'book-call') {
-      enter(id);
-      return;
-    }
-    if (!action.startsWith('oo-')) return priorMenu(action, id, button);
-    if (action === 'oo-enter') {
-      enter(id);
-      return;
-    }
-    if (action === 'oo-history') {
-      history();
-      return;
-    }
-    const s = session;
     if (!s) return;
     switch (action) {
-      case 'oo-cancel':
-        if (s.phase === 'connecting') exit();
-        return;
-      case 'oo-panel-close':
-        if (s.phase === 'ended') exit();
-        else closePanel();
-        return;
+      case 'oo-hangup':
+        if (s.phase !== 'ringing') return end(s, 'self');
+        end(s, 'cancel', { quiet: true });
+        return closeRoom(s);
       case 'oo-profile':
-        profile();
-        return;
-      case 'oo-follow':
-        follow();
-        return;
+        return hostSheet(s.host.id, { inCall: true });
       case 'oo-more':
-        settings();
-        return;
-      case 'oo-end':
-        askLeave();
-        return;
-      case 'oo-finish':
-        finish();
-        return;
-      case 'oo-exit':
-        exit();
-        return;
-      case 'oo-save-call':
-        if (saveCall(s)) finishPanel(s);
-        return;
-      case 'oo-reconnect': {
-        const hostId = s.host.id;
-        stop();
-        draw(hostId);
-        return;
-      }
-      case 'oo-toggle':
-        if (s.phase === 'connected' && ['mic', 'camera', 'speaker'].includes(id)) {
-          s[id] = !s[id];
-          button.classList.toggle('is-off', !s[id]);
-          button.setAttribute('aria-pressed', String(!s[id]));
-          button.querySelector('span').textContent =
-            id === 'mic'
-              ? s.mic
-                ? '静音'
-                : '已静音'
-              : id === 'camera'
-                ? s.camera
-                  ? '镜头'
-                  : '已关镜头'
-                : s.speaker
-                  ? '扬声器'
-                  : '已关闭';
-          s.el.querySelector('.oo-self-preview').classList.toggle('camera-off', !s.camera);
-        }
-        return;
-      case 'oo-icebreaker':
-        if (s.phase !== 'connected') return;
-        if (id === '2') {
-          s.category = '推荐';
-          s.giftId = 'heart';
-          giftPanel();
-        } else sendMessage(id === '0' ? '你好，很高兴认识你' : '聊聊你喜欢的城市');
-        return;
-      case 'oo-gifts':
-        giftPanel();
-        return;
-      case 'oo-gift-category':
-        if (['推荐', '互动', '典藏', '盛世华章'].includes(id)) giftPanel(id);
-        return;
-      case 'oo-select-gift':
-        s.giftId = id;
-        giftPanel();
-        return;
-      case 'oo-preview': {
-        const g = findGift(id);
-        if (g) play(g, 1, true);
-        return;
-      }
-      case 'oo-send-gift':
-        sendGift(id);
-        return;
-      case 'oo-gift-records':
-        giftRecords();
-        return;
-      case 'oo-topup':
-        topup();
-        return;
-      case 'oo-claim': {
-        const n = Number(id);
-        if (s.phase !== 'connected' || s.panel !== 'topup' || ![100, 1000, 10000, 100000].includes(n)) return;
-        if (commit(() => (state.points += n))) {
-          giftPanel();
-          render();
-          toast('已领取 ' + amount(n) + ' 体验金豆');
-        }
-        return;
-      }
+        return moreSheet(s);
+      case 'oo-sent':
+        return sentSheet(s);
       case 'oo-report':
-        panel(
-          '举报与屏蔽',
-          `<p class="oo-profile-bio">选择原因，记录在本机反馈列表。</p><form data-form="oo-report"><label class="field-label">原因<select name="reason" required><option>不友善言语</option><option>不当内容</option><option>资料不符</option><option>其他问题</option></select></label><label class="field-label">补充说明<textarea name="detail" maxlength="300" placeholder="选填，描述你遇到的情况"></textarea></label><button type="submit" class="oo-primary oo-wide">保存反馈</button></form>${act('oo-block', '', '屏蔽并结束聊天', 'oo-secondary oo-wide')}<p class="oo-panel-note">演示反馈仅保存在当前浏览器</p>`,
-          'settings'
-        );
-        return;
+        return SZ.actions.dispatch('report', s.host.id, el);
       case 'oo-block':
-        if (
-          commit(() => {
-            if (!state.blocked.includes(s.host.id)) state.blocked.push(s.host.id);
-          })
-        ) {
-          if (s.phase === 'connected') finish();
-          exit();
-          render();
-          toast('已屏蔽该主播');
-        }
+        return block(s);
+      case 'oo-toggle':
+        return toggle(s, id, el);
+      case 'oo-quick': {
+        // Host call topics are phrased as topics, so they are sent as "Let's talk about: …".
+        const text = (el?.textContent || '').trim();
+        return sendText(s, el?.dataset.kind === 'topic' ? t('private.room.topicMsg', { topic: text }) : text);
+      }
+      case 'oo-heart':
+        return sendGift(s, id, 1);
+      case 'oo-combo':
+        return sendGift(s, id, Number(el?.dataset.qty) || 1);
+      case 'oo-gifts':
+        return giftSheet(s);
+      case 'oo-gift-cat':
+        return pickCategory(id, el);
+      case 'oo-gift-pick':
+        return pickGift(id, el);
+      case 'oo-gift-qty':
+        giftUI.quantity = QUANTITIES.includes(Number(id)) ? Number(id) : 1;
+        return updateGiftFooter(SZ.overlay.of(el));
+      case 'oo-gift-send':
+        return sendGift(s, giftUI.giftId, giftUI.quantity);
+      case 'oo-save':
+        if (saveCall(s)) renderEnded(s);
         return;
     }
-  };
-  // Old profile entry points now join immediately instead of opening a form.
-  callBooking = enter;
-  connectCall = id => enter(id);
+  });
   document.addEventListener(
     'submit',
     event => {
-      const form = event.target.closest('[data-form="oo-message"],[data-form="oo-report"]');
+      const form = event.target.closest?.('form[data-form="oo-message"]');
       if (!form) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      const s = session;
-      if (!s) return;
-      if (form.dataset.form === 'oo-message') {
-        sendMessage(form.elements.privateText.value);
-        return;
-      }
-      if (s.panel !== 'settings' || !form.reportValidity()) return;
-      if (
-        commit(() => {
-          state.feedback.push({
-            type: '一对一聊天',
-            hostId: s.host.id,
-            reason: form.elements.reason.value,
-            text: form.elements.detail.value.trim(),
-            time: Date.now(),
-          });
-        })
-      ) {
-        closePanel();
-        toast('反馈已保存在本机');
-      }
+      if (session && form.closest('.oo-room') === session.el) sendText(session, form.elements.text.value);
     },
     true
   );
-  document.addEventListener('change', event => {
-    if (!session || !event.target.matches('.oo-quantity select')) return;
-    session.quantity = Number(event.target.value);
-    const g = findGift(session.giftId),
-      b = session.el.querySelector('[data-action="oo-send-gift"]');
-    if (g && b) b.textContent = '赠送 · ' + amount(g.price * session.quantity);
-  });
-  document.addEventListener(
+  // Escape first skips a running gift effect; the next Escape goes to the overlay (leave prompt).
+  window.addEventListener(
     'keydown',
     event => {
-      if (event.key !== 'Escape' || !session) return;
+      const s = session;
+      if (event.key !== 'Escape' || !s?.fx || SZ.overlay.top() !== s.layer) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (session.fx) {
-        window.ShizhongLiveEffects?.stop();
-        window.ShizhongOrientalEffects?.stop();
-        session.fx = false;
-      } else if (session.panel && session.phase !== 'ended') closePanel();
-      else askLeave();
+      stopEffects();
+      s.fx = false;
     },
     true
   );
-  window.ShizhongPrivate = Object.freeze({ enter, stop });
+  // Leaving the page (app switch, screen lock) drops the simulated media link; coming back reconnects.
+  document.addEventListener('visibilitychange', () => {
+    const s = session;
+    if (!s || s.phase !== 'connected') return;
+    if (document.hidden) s.hiddenAt = Date.now();
+    else if (s.hiddenAt) {
+      const gone = Date.now() - s.hiddenAt;
+      s.hiddenAt = 0;
+      if (gone > 1000) reconnect(s);
+    }
+  });
+
+  window.ShizhongPrivate = Object.freeze({
+    lobby,
+    enter,
+    history,
+    openCall: openDetail,
+    isInCall: () => !!session && session.phase !== 'ended',
+    simulate,
+    config: CONFIG,
+  });
 })();

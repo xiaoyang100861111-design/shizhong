@@ -2,26 +2,780 @@
  {
   "name": "private-lobby",
   "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
   "steps": [
    {
-    "click": ".top-tabs button, [role=tab]",
-    "text": "一对一"
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "!!(!!document.querySelector('#app .oo-lobby .oo-card'))",
+    "msg": "lobby renders host cards"
+   },
+   {
+    "click": "[data-action=live-filter][data-id=travel]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(document.querySelector('[data-action=live-filter][data-id=travel]').getAttribute('aria-pressed')==='true' && ui.liveTab==='private')",
+    "msg": "topic filter stays on the 1:1 tab"
+   }
+  ]
+ },
+ {
+  "name": "private-recent",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2600
+   },
+   {
+    "click": ".oo-controls [data-action=oo-hangup]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "click": ".oo-end-actions [data-action=close]"
+   },
+   {
+    "wait": 700
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===0 && document.querySelector('#app .oo-recent .oo-recent-item'))",
+    "msg": "lobby shows recently called hosts"
+   }
+  ]
+ },
+ {
+  "name": "private-host-sheet",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-host]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-host')",
+    "msg": "host preview sheet"
+   },
+   {
+    "click": ".oo-host-sheet [data-action=oo-call]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===1 && SZ.overlay.top().meta.view==='private-room')",
+    "msg": "call replaces the preview sheet"
    }
   ]
  },
  {
   "name": "private-room",
   "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
   "steps": [
    {
-    "click": ".top-tabs button, [role=tab]",
-    "text": "一对一"
+    "wait": 800
    },
    {
-    "click": "[data-action=oo-enter]"
+    "click": "[data-action=live-tab][data-id=private]"
    },
    {
-    "wait": 3500
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "shot": "ringing"
+   },
+   {
+    "wait": 2400
+   },
+   {
+    "expect": "!!(SZ.overlay.top().meta.view==='private-room' && document.querySelector('.oo-room').dataset.phase==='connected')",
+    "msg": "call connects"
+   },
+   {
+    "expect": "!!(state.bills[0]?.kind==='call' && state.bills[0].amount<0)",
+    "msg": "first minute billed"
+   },
+   {
+    "type": ".oo-composer input",
+    "value": "hello"
+   },
+   {
+    "submit": ".oo-composer"
+   },
+   {
+    "wait": 2400
+   },
+   {
+    "expect": "!!(document.querySelectorAll('.oo-log .oo-msg--host').length>=2)",
+    "msg": "host replies"
+   },
+   {
+    "click": "[data-action=oo-quick][data-id='1']"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!(document.querySelectorAll('.oo-log .oo-msg--self').length===2)",
+    "msg": "quick topic sends"
+   }
+  ]
+ },
+ {
+  "name": "private-controls",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "click": "[data-action=oo-toggle][data-id=mic]"
+   },
+   {
+    "click": "[data-action=oo-toggle][data-id=camera]"
+   },
+   {
+    "click": "[data-action=oo-toggle][data-id=speaker]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-self').dataset.mic==='off' && document.querySelector('.oo-self').dataset.camera==='off')",
+    "msg": "self preview shows mute and camera off"
+   },
+   {
+    "expect": "!!(!document.querySelector('.oo-banner').hidden)",
+    "msg": "speaker-off note"
+   },
+   {
+    "expect": "!!([...document.querySelectorAll('.oo-log .oo-msg--host')].length>=3)",
+    "msg": "host reacts to mute / camera off"
+   }
+  ]
+ },
+ {
+  "name": "private-states",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "eval": "ShizhongPrivate.simulate('reconnect')"
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='reconnecting')",
+    "msg": "reconnecting state",
+    "settle": 0
+   },
+   {
+    "shot": "reconnecting"
+   },
+   {
+    "wait": 2200
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='connected')",
+    "msg": "reconnects"
+   },
+   {
+    "eval": "ShizhongPrivate.simulate('away')"
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='away' && !document.querySelector('.oo-banner').hidden)",
+    "msg": "host away state"
+   },
+   {
+    "shot": "away"
+   },
+   {
+    "eval": "ShizhongPrivate.simulate('hostEnd')"
+   },
+   {
+    "wait": 2400
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='ended' && state.oneToOne.calls[0].reason==='host')",
+    "msg": "host ends the call"
+   }
+  ]
+ },
+ {
+  "name": "private-gifts",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "click": "[data-action=oo-gifts]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-gifts')",
+    "msg": "gift sheet"
+   },
+   {
+    "eval": "(window.__grid=document.querySelector('.oo-gift-grid'),true)"
+   },
+   {
+    "click": ".oo-gift-tile:nth-child(3)"
+   },
+   {
+    "click": "[data-action=oo-gift-qty][data-id='10']"
+   },
+   {
+    "expect": "!!(window.__grid===document.querySelector('.oo-gift-grid') && document.querySelector('.oo-gift-tile:nth-child(3)').getAttribute('aria-pressed')==='true')",
+    "msg": "selecting a gift updates in place"
+   },
+   {
+    "shot": "sheet"
+   },
+   {
+    "eval": "(window.__pts=state.points,true)"
+   },
+   {
+    "click": "[data-action=oo-gift-send]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "!!(state.points<window.__pts && document.querySelector('.oo-log .oo-msg--self.is-gift'))",
+    "msg": "gift sent"
+   }
+  ]
+ },
+ {
+  "name": "private-back-confirm",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.el.querySelector('.sz-confirm-message'))",
+    "msg": "back asks to end the call"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-confirm='0']"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-room')",
+    "msg": "cancel keeps the call"
+   },
+   {
+    "key": "Escape"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===0 && state.oneToOne.calls[0]?.reason==='self')",
+    "msg": "confirm ends, saves and closes"
+   }
+  ]
+ },
+ {
+  "name": "private-ended",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "type": ".oo-composer input",
+    "value": "hi"
+   },
+   {
+    "submit": ".oo-composer"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "click": ".oo-controls [data-action=oo-hangup]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='ended' && !document.querySelector('.oo-ended').hidden)",
+    "msg": "summary shown"
+   }
+  ]
+ },
+ {
+  "name": "private-low-balance",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "eval": "(ShizhongPrivate.config.timeScale=20,true)"
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2000
+   },
+   {
+    "eval": "ShizhongPrivate.simulate('lowBalance')"
+   },
+   {
+    "expect": "!!(!document.querySelector('.oo-low').hidden && document.querySelector('.oo-runway.is-low'))",
+    "msg": "low-balance prompt",
+    "settle": 100
+   },
+   {
+    "shot": "low"
+   },
+   {
+    "wait": 7000
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='ended' && state.oneToOne.calls[0].reason==='balance')",
+    "msg": "auto end at zero"
+   }
+  ]
+ },
+ {
+  "name": "private-no-answer",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "eval": "(ShizhongPrivate.config.noAnswerMs=600,ShizhongPrivate.enter(people.find(p=>p.liveMode==='private'&&!p.online).id),true)"
+   },
+   {
+    "wait": 1400
+   },
+   {
+    "expect": "!!(document.querySelector('.oo-room').dataset.phase==='ended' && state.oneToOne.calls[0].reason==='timeout')",
+    "msg": "no answer ends as missed"
+   }
+  ]
+ },
+ {
+  "name": "private-history",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "type": ".oo-composer input",
+    "value": "hello"
+   },
+   {
+    "submit": ".oo-composer"
+   },
+   {
+    "wait": 2000
+   },
+   {
+    "click": ".oo-controls [data-action=oo-hangup]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": ".oo-end-actions [data-action=close]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "click": "[data-action=oo-history]"
+   },
+   {
+    "wait": 700
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-history' && document.querySelectorAll('.oo-history-row').length===1)",
+    "msg": "history lists the call"
+   },
+   {
+    "shot": "list"
+   },
+   {
+    "click": "[data-action=oo-call-detail]"
+   },
+   {
+    "wait": 700
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-call' && document.querySelectorAll('.oo-transcript .oo-line').length>=3)",
+    "msg": "detail shows transcript"
+   },
+   {
+    "shot": "detail"
+   },
+   {
+    "click": "[data-action=oo-call-delete]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(state.oneToOne.calls.length===0 && SZ.overlay.top()?.meta.view==='private-history')",
+    "msg": "delete returns to the list"
+   }
+  ]
+ },
+ {
+  "name": "private-block",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "click": "[data-action=oo-more]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": ".oo-more-sheet [data-action=oo-block]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===0 && state.blocked.length>0)",
+    "msg": "block ends the call and closes"
+   }
+  ]
+ },
+ {
+  "name": "private-guest",
+  "hash": "live",
+  "session": "guest",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 700
+   },
+   {
+    "expect": "!!(!document.querySelector('.oo-room'))",
+    "msg": "guests must sign in before a paid call"
+   }
+  ]
+ },
+ {
+  "name": "private-more",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-call]"
+   },
+   {
+    "wait": 2800
+   },
+   {
+    "click": "[data-action=oo-heart]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "click": "[data-action=oo-more]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!(SZ.overlay.top()?.meta.view==='private-more')",
+    "msg": "call options sheet"
+   },
+   {
+    "shot": "sheet"
+   },
+   {
+    "click": ".oo-more-sheet [data-action=oo-sent]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!(SZ.overlay.depth()===2 && SZ.overlay.top().meta.view==='private-sent' && document.querySelectorAll('.oo-sent-sheet .list-row').length===1)",
+    "msg": "gifts on this call replace the options sheet"
+   }
+  ]
+ },
+ {
+  "name": "private-dark",
+  "hash": "live",
+  "setup": [
+   "SZ.store.detach()",
+   "localStorage.removeItem('sz:v2:state:demo')",
+   "localStorage.setItem('sz:theme','dark')"
+  ],
+  "steps": [
+   {
+    "wait": 800
+   },
+   {
+    "click": "[data-action=live-tab][data-id=private]"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "click": "[data-action=oo-host]"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "!!(document.documentElement.dataset.theme==='dark' && SZ.overlay.top()?.meta.view==='private-host')",
+    "msg": "host sheet in dark mode"
    }
   ]
  }
