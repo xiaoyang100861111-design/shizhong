@@ -285,6 +285,8 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
             var (packets, claims) = r.Type is "envelope" or "transfer" ? await MoneyAsync(c, [r.Id]) : (new(), Array.Empty<ClaimRow>().ToLookup(x => x.PacketId));
             var packet = packets.GetValueOrDefault(r.Id);
             var neutral = View(r, 0, packet, packet is null ? null : claims[packet.Id]);
+            // Edits and other updates keep the message's reactions (the app replaces the whole message).
+            var reactions = r.RecalledAt is null && evt == "chat:update" ? (await ChatFeatures.ReactionsAsync(c, [r.Id])).GetValueOrDefault(r.Id) : null;
             var hides = await c.QueryAsync<long>("SELECT UserId FROM dbo.MessageHides WHERE MessageId = @messageId", new { messageId });
             var hidden = hides.ToHashSet();
             var ids = await c.QueryAsync<(long Id, string PublicId)>("SELECT Id, PublicId FROM dbo.Users WHERE Id IN @members", new { members });
@@ -297,7 +299,9 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
                 if (uid == exceptUser || hidden.Contains(uid) || !ChatState.VisibleTo(r, uid)) continue;
                 if (blockedPeer && uid != r.SenderId && evt == "chat:message") continue;
                 var chatId = await ChatIdForAsync(c, null, conv, uid);
-                _ = realtime.ToUser(uid, evt, new { chatId, message = ForViewer(neutral, r, uid, publicIds.GetValueOrDefault(uid)) });
+                var message = ForViewer(neutral, r, uid, publicIds.GetValueOrDefault(uid));
+                if (ChatFeatures.ReactionsJson(reactions, uid) is { } rx) message["reactions"] = rx;
+                _ = realtime.ToUser(uid, evt, new { chatId, message });
             }
             var desk = services.GetService<DeskRealtime>();
             if (desk != null && (conv.Kind is ConvKinds.Support or ConvKinds.Merchant || conv.PersonaId != null))

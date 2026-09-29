@@ -93,15 +93,21 @@ async function open(browser, phone, label) {
   return { ctx, page, me, token: await page.evaluate(() => localStorage.getItem('sz:v3:token')) };
 }
 async function openChat(page, chatId) {
+  await page.waitForTimeout(800); // a reload may still be restoring the last screen
   await page.evaluate(() => SZ.overlay.closeAll());
   await page.evaluate(id => SZ.actions.dispatch('chat', id), chatId);
   await page.waitForSelector(`.cx-screen .cx-input`, { timeout: 15000 });
   await page.waitForTimeout(600);
+  if ((await page.$$('.cx-screen')).length !== 1) throw new Error('more than one chat screen open');
 }
 const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, `app-tg-${name}.png`) });
 /** Send a text through the composer; resolves with the server id of the new bubble. */
 async function sendText(page, text) {
   await page.fill('.cx-screen .cx-input', text);
+  if (!(await page.isVisible('.cx-screen .cx-send'))) {
+    await page.waitForTimeout(400);
+    await page.fill('.cx-screen .cx-input', text);
+  }
   await page.click('.cx-screen .cx-send');
   const id = await page.waitForFunction(
     t => {
@@ -421,8 +427,13 @@ async function pickFiles(page, tool, files) {
     }, stamp);
     check(order, 'forwarded messages keep their order');
     if (groupId) {
-      const st = await call('POST', '/api/state/refresh', { keys: ['messages'] }, { token: B.token });
-      check((st.state.messages[groupId] || []).some(m => (m.text || '').includes(`多选 2 ${stamp}`)), 'also forwarded into the group');
+      let inGroup = false;
+      for (let i = 0; i < 10 && !inGroup; i++) {
+        const st = await call('POST', '/api/state/refresh', { keys: ['messages'] }, { token: B.token });
+        inGroup = (st.state.messages[groupId] || []).some(m => (m.text || '').includes(`多选 2 ${stamp}`));
+        if (!inGroup) await sleep(500);
+      }
+      check(inGroup, 'also forwarded into the group');
     }
     // multi delete for everyone
     await longPress(a, s1);
@@ -639,6 +650,7 @@ async function pickFiles(page, tool, files) {
         await a.click('.tg-timer-custom [data-tg-timer="60"]');
         await b.waitForFunction(() => document.querySelector('.cx-screen .cx-log')?.textContent.includes('自动删除'), null, { timeout: 8000 });
         check(true, 'system line "设置了消息在 1 分钟后自动删除" on both sides');
+        await a.waitForTimeout(500);
         const gone = await sendText(a, `这条 1 分钟后消失 ${stamp}`);
         await waitRow(b, gone);
         await longPress(a, gone);

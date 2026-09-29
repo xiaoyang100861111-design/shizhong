@@ -302,7 +302,7 @@ public static class ChatFeaturesApi
                 "UPDATE dbo.ScheduledMessages SET Status = 2 OUTPUT inserted.ConversationId WHERE Id = @sid AND SenderId = @Id AND Status = 0", new { sid, user.Id });
             if (convId is { } cid && await chat.ByIdAsync(c, cid) is { } conv) await features.PushMetaAsync(c, conv, user.Id);
             return Results.Ok(new { ok = convId != null });
-        });
+        }).RequireRateLimiting("write");
 
         g.MapPost("/scheduled/{id}/send", async (string id, HttpContext ctx, ChatFeatures features) =>
         {

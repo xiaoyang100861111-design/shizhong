@@ -1658,21 +1658,25 @@
     a.click();
     a.remove();
   }
-  function openFileSheet(view, key, entry) {
+  async function openFileSheet(view, key, entry) {
     const m = I.findItem(view, key)?.m;
     if (!m) return;
+    let preview = '';
+    if (/^text\//.test(entry.blob.type) && entry.blob.size <= 65536) {
+      const text = await entry.blob.text().catch(() => '');
+      if (text) preview = `<pre class="cx-file-preview">${esc(text)}</pre>`;
+    }
     const ext = I.extOf(m.name, m.mime).toLowerCase();
     const viewable = /^(image|video|audio)\//.test(entry.blob.type) || /pdf|text\//.test(entry.blob.type);
     const layer = I.sheet(
       view,
       t('chat.file.title'),
-      `<div class="tg-filesheet"><span class="tg-file-ico is-large" data-tone="${fileTone(ext)}"><span class="tg-file-glyph" data-state="done"><b>${esc(ext.toUpperCase().slice(0, 4) || '•')}</b></span></span><h3>${esc(m.name || t('chat.msg.file'))}</h3><p class="caption">${esc(I.bytes(m.size || entry.blob.size))} · ${esc(SZ.fmt.dateTime(I.timeOf(m)))}</p></div>${I.foot(
-        `${viewable ? `<button type="button" class="btn btn-secondary btn-lg btn-block" data-tg-file-open>${svg('open')}<span>${esc(t('tg.file.openBtn'))}</span></button>` : ''}<button type="button" class="btn btn-primary btn-lg btn-block" data-tg-file-save>${svg('save')}<span>${esc(t('chat.file.save'))}</span></button>`
+      `<div class="tg-filesheet"><span class="tg-file-ico is-large" data-tone="${fileTone(ext)}"><span class="tg-file-glyph" data-state="done"><b>${esc(ext.toUpperCase().slice(0, 4) || '•')}</b></span></span><h3>${esc(m.name || t('chat.msg.file'))}</h3><p class="caption">${esc(I.bytes(m.size || entry.blob.size))} · ${esc(SZ.fmt.dateTime(I.timeOf(m)))}</p></div>${preview}${I.foot(
+        `${viewable ? `<button type="button" class="btn btn-secondary btn-lg btn-block" data-tg-file-open>${svg('open')}<span>${esc(t('tg.file.openBtn'))}</span></button>` : ''}<a class="btn btn-primary btn-lg btn-block" data-tg-file-save href="${esc(entry.url)}" download="${esc(saveName(m))}">${svg('save')}<span>${esc(t('chat.file.save'))}</span></a>`
       )}`
     );
     layer.el.addEventListener('click', e => {
       if (e.target.closest('[data-tg-file-open]')) window.open(entry.url, '_blank', 'noopener');
-      if (e.target.closest('[data-tg-file-save]')) saveBlobURL(entry.url, saveName(m));
     });
   }
   async function saveMedia(view, key, index = -1) {
@@ -2134,8 +2138,8 @@
       }
       const cell = e.target.closest('[data-tg-open]');
       if (cell) return openViewer(view, cell.dataset.tgOpen, Number(cell.dataset.index) || 0);
-      const dl = e.target.closest('[data-tg-dl]');
-      if (dl) return downloadFile(view, dl.dataset.tgDl);
+      const dl = e.target.closest('[data-tg-dl], [data-tg-file]');
+      if (dl) return downloadFile(view, dl.dataset.tgDl || dl.dataset.tgFile);
     });
     // Double tap / double click on a message: the first quick reaction (❤️).
     log.addEventListener('dblclick', e => {

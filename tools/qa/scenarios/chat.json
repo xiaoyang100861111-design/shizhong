@@ -63,7 +63,7 @@
         "click": "[data-action=cx-more]"
       },
       {
-        "expect": "!document.querySelector('.cx-tools').hidden && document.querySelectorAll('.cx-tool').length === 9",
+        "expect": "!document.querySelector('.cx-tools').hidden && document.querySelectorAll('.cx-tool[data-tool]').length === 9",
         "msg": "friend chat shows all 9 tools"
       }
     ]
@@ -711,7 +711,7 @@
         "click": "[data-action=cx-more]"
       },
       {
-        "expect": "document.querySelectorAll('.cx-tool').length === 5 && !document.querySelector('[data-tool=voiceCall]')",
+        "expect": "document.querySelectorAll('.cx-tool[data-tool]').length === 5 && !document.querySelector('[data-tool=voiceCall]')",
         "msg": "group tools: no calls or transfers"
       }
     ]
