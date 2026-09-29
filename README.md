@@ -1,6 +1,11 @@
-# 适中 Shizhong · H5 交互原型 v2
+# 适中 Shizhong · v3
 
-面向马来西亚华人的生活服务 + 同城社交 + 直播 + 聊天应用的前端交互原型。纯静态网页：没有后端、没有构建步骤，双击 `index.html` 就能运行，也可以直接部署到任何静态网站。
+面向马来西亚华人的生活服务 + 同城社交 + 直播 + 聊天应用。
+
+- **v3（当前）**：接入真实后端。ASP.NET Core 8 + SQL Server（`server/`）同时提供用户端网页、管理后台（`/admin`，Vue 3 + Element Plus，源码在 `admin/`）、接口和实时通道；安卓/苹果 App 用 Capacitor 打开同一个网站（`app/`）。
+  - 部署：`部署说明.md`；开发约定：`docs/BACKEND-DEV.md`；需求与已确认的决定：`docs/需求整理.md`；测试数据：`docs/测试数据.md`。
+  - 本地运行：`dotnet build server`，在 `server/Shizhong.Api/appsettings.Local.json` 配置数据库连接，然后运行 `server/Shizhong.Api`（默认 http://localhost:5080/），后台 `/admin`（初始账号 admin / 123123）。
+- **离线演示**：双击 `index.html` 仍可运行（没有后端时自动使用浏览器本地数据），下文是这个模式的说明。
 
 > 当前版本：`20260929-v2`（见 `index.html` 的 `shizhong-build`）
 
