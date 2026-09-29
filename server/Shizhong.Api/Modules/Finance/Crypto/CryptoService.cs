@@ -250,7 +250,7 @@ public sealed class CryptoService(
             var coin = d.Coin ?? asset?.Coin ?? "";
             await Ledger.ApplyAsync(c, t, new LedgerEntry(d.UserId, Currencies.Rm, credit, "crypto",
                 Title: $"加密货币充值 {amountText} {coin}", TitleKey: "server.finance.bill.crypto",
-                Params: new { amount = amountText, coin, network = d.Network },
+                Params: new { qty = amountText, coin, network = d.Network },
                 Method: d.AssetCode ?? $"{coin}-{d.Network}", RefType: "crypto", RefId: d.Id.ToString(CultureInfo.InvariantCulture),
                 AdminId: adminId, Note: note));
             await c.ExecuteAsync("""
@@ -266,7 +266,7 @@ public sealed class CryptoService(
             }, t);
             await Commissions.RecordAsync(c, t, cfg, d.UserId, "crypto", d.Id, credit);
             await notices.PushAsync(d.UserId, new NoticeInput("system", TitleKey: "server.finance.notice.cryptoCredited", BodyKey: "server.finance.notice.cryptoCreditedBody",
-                Params: new { amount = amountText, coin, network = d.Network, money = Money.ToRm(credit) }, ActionName: "fin-deposits"), c, t);
+                Params: new { qty = amountText, coin, network = d.Network, amount = Money.ToRm(credit) }, ActionName: "fin-deposits"), c, t);
             return new CreditResult(true, DepositStatus.Credited, null, credit);
         });
         if (result.Credited)
@@ -301,7 +301,7 @@ public sealed class CryptoService(
         };
         var min = d.AssetCode is null ? null : (await assets.FindAsync(d.AssetCode))?.MinDeposit.ToString("0.########", CultureInfo.InvariantCulture);
         await notices.PushAsync(d.UserId, new NoticeInput("system", TitleKey: key, BodyKey: key + "Body",
-            Params: new { amount, coin = d.Coin ?? "?", network = d.Network, n = d.Confirmations, required = d.Required, min }, ActionName: "fin-deposits"));
+            Params: new { qty = amount, coin = d.Coin ?? "?", network = d.Network, n = d.Confirmations, required = d.Required, min }, ActionName: "fin-deposits"));
         await PushAsync(id);
     }
 

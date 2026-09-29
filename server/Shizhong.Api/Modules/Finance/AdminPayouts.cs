@@ -87,7 +87,7 @@ public sealed partial class FinanceModule
                 await c.ExecuteAsync("UPDATE dbo.Withdrawals SET Status = 1, PayRef = @payRef, Note = @note, ReviewedBy = @adminId, ReviewedAt = SYSUTCDATETIME() WHERE Id = @id",
                     new { id, payRef, note = Clip(body.Note, 400), adminId = a.Id }, t);
                 await notices.PushAsync(userId, new NoticeInput("system", TitleKey: "server.finance.notice.withdrawPaid", BodyKey: "server.finance.notice.withdrawPaidBody",
-                    Params: new { amount = Money.ToRm(cents), net = Money.ToRm(net), reference = payRef }, ActionName: "fin-withdrawals"), c, t);
+                    Params: new { amount = Money.ToRm(cents), net = Money.ToRm(net).ToString("N2", CultureInfo.InvariantCulture), reference = payRef }, ActionName: "fin-withdrawals"), c, t);
             });
             await audit.WriteAsync(ctx, "withdraw.approve", "withdrawal:" + id, new { payRef, amount = Money.ToRm((long)w.AmountCents) });
             _ = realtime.ToUser((long)w.UserId, "state:refresh", new { keys = new[] { "wallet", "bills", "finance" } });
@@ -198,7 +198,7 @@ public sealed partial class FinanceModule
                     new { id, cents, note = Clip(body.Note, 400) is { Length: > 0 } n ? n : null, adminId = a.Id }, t);
                 await Commissions.RecordAsync(c, t, cfg, userId, "topup", id, cents);
                 await notices.PushAsync(userId, new NoticeInput("system", TitleKey: "server.finance.notice.topupCredited", BodyKey: "server.finance.notice.topupCreditedBody",
-                    Params: new { money = Money.ToRm(cents) }, ActionName: "wallet"), c, t);
+                    Params: new { amount = Money.ToRm(cents) }, ActionName: "wallet"), c, t);
             });
             await audit.WriteAsync(ctx, "topup.approve", "topup:" + id, new { rm = Money.ToRm(cents) });
             _ = realtime.ToUser((long)r0.UserId, "state:refresh", new { keys = new[] { "wallet", "bills", "finance" } });
@@ -218,7 +218,7 @@ public sealed partial class FinanceModule
                 new { id, reason, adminId = a.Id });
             if (n == 0) throw ApiError.Conflict("topup.notPending");
             await notices.PushAsync((long)r.UserId, new NoticeInput("system", TitleKey: "server.finance.notice.topupRejected", BodyKey: "server.finance.notice.topupRejectedBody",
-                Params: new { money = Money.ToRm((long)r.AmountCents), reason }, ActionName: "fin-topups"));
+                Params: new { amount = Money.ToRm((long)r.AmountCents), reason }, ActionName: "fin-topups"));
             await audit.WriteAsync(ctx, "topup.reject", "topup:" + id, new { reason });
             _ = realtime.ToUser((long)r.UserId, "state:refresh", new { keys = new[] { "finance" } });
             return Results.Ok(new { ok = true });
