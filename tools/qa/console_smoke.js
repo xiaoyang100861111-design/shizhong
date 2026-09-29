@@ -70,9 +70,19 @@ async function ensureAccounts(superToken) {
   for (const r of roles.filter(r => r.code !== 'super')) {
     const username = 'qa_' + r.code;
     if (r.code === 'merchant') {
-      if (!admins.some(a => a.username === username) && merchant)
+      const existing = admins.find(a => a.username === username);
+      if (!existing && merchant)
         await api(superToken, 'POST', `/api/admin/merchants/${merchant.id}/accounts`, { username, password: 'qa123456', name: 'QA 商家' });
-      accounts.push({ who: r.code, username, password: 'qa123456', merchantId: merchant?.id });
+      else if (existing && merchant && existing.merchantId !== merchant.id
+               && (await api(superToken, 'GET', `/api/admin/merchants/${existing.merchantId}`)).status === 404) {
+        // its shop was removed (test data regenerated): bind the account to an existing one
+        await api(superToken, 'PUT', `/api/admin/admins/${existing.id}`, {
+          name: existing.name, roleId: existing.roleId, dataScope: existing.dataScope, regions: existing.regions || [],
+          agentId: existing.agentId, merchantId: merchant.id, phone: existing.phone, status: existing.status ?? 0,
+        });
+      }
+      const bound = existing && (await api(superToken, 'GET', `/api/admin/merchants/${existing.merchantId}`)).status !== 404 ? existing.merchantId : merchant?.id;
+      accounts.push({ who: r.code, username, password: 'qa123456', merchantId: bound });
       continue;
     }
     if (!['operator', 'support', 'finance', 'auditor', 'readonly', 'agent'].includes(r.code)) continue;
