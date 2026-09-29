@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <div class="page-head"><h1>{{ t('desk.settings') }}</h1></div>
-    <ConfigForm :groups="['chat', 'money', 'call', 'support']" />
+    <ConfigForm :groups="['chat', 'chatplus', 'money', 'call', 'support']" />
   </div>
 </template>
 

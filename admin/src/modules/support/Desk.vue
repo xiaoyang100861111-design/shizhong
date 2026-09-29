@@ -53,14 +53,29 @@
             <div v-for="m in messages" :key="m.id" class="desk-msg" :class="{ mine: !m.fromMember && m.type !== 'system', sys: m.type === 'system' }">
               <template v-if="m.type === 'system'"><span class="desk-sys">{{ systemText(m) }}</span></template>
               <template v-else>
-                <div class="desk-bubble">
+                <div class="desk-bubble" :class="{ 'is-deleted': m.deletedAt }">
+                  <small v-if="m.fwd || m.forwarded" class="desk-fwd">{{ t('desk.forwarded', { name: m.fwd?.name || '' }) }}</small>
                   <el-image v-if="m.type === 'image' && m.media" :src="assetUrl(m.media)" class="desk-img" fit="cover" :preview-src-list="[assetUrl(m.media)]" preview-teleported />
+                  <video v-else-if="m.type === 'video' && m.media" :src="assetUrl(m.media)" :poster="m.poster ? assetUrl(m.poster) : undefined" class="desk-img" controls preload="none" />
+                  <div v-else-if="m.type === 'album'" class="desk-album">
+                    <template v-for="(it, i) in m.items || []" :key="i">
+                      <video v-if="it.kind === 'video'" :src="assetUrl(it.media)" :poster="it.poster ? assetUrl(it.poster) : undefined" controls preload="none" />
+                      <el-image v-else :src="assetUrl(it.media)" fit="cover" :preview-src-list="(m.items || []).filter(x => x.kind !== 'video').map(x => assetUrl(x.media))" preview-teleported />
+                    </template>
+                  </div>
                   <audio v-else-if="m.type === 'voice' && m.media" :src="assetUrl(m.media)" controls preload="none" />
                   <a v-else-if="m.type === 'file' && m.media" :href="assetUrl(m.media)" target="_blank" rel="noopener">📎 {{ m.name }}</a>
                   <span v-else class="pre">{{ bodyText(m) }}</span>
+                  <span v-if="m.caption" class="pre desk-caption">{{ m.caption }}</span>
+                </div>
+                <div v-if="m.reactions?.length" class="desk-reacts">
+                  <span v-for="r in m.reactions" :key="r.e" class="desk-react">{{ r.e }} {{ r.n }}</span>
                 </div>
                 <small class="muted desk-meta">
                   {{ m.fromMember ? t('desk.fromMember') : m.operator || (m.desk ? t('desk.desk') : m.author || t('desk.persona')) }} · {{ dateTime(m.time, true) }}
+                  <el-tag v-if="m.edited" size="small" type="info">{{ t('desk.edited') }}</el-tag>
+                  <el-tag v-if="m.deletedAt" size="small" type="danger">{{ t('desk.deleted', { time: dateTime(m.deletedAt, true) }) }}</el-tag>
+                  <el-tag v-else-if="m.expiresAt" size="small" type="warning">{{ t('desk.expires', { time: dateTime(m.expiresAt, true) }) }}</el-tag>
                 </small>
               </template>
             </div>
@@ -222,6 +237,10 @@ function bodyText(m) {
       return t('desk.msg.voice', { n: m.duration || 1 });
     case 'image':
       return t('desk.msg.image');
+    case 'video':
+      return t('desk.msg.video');
+    case 'album':
+      return t('desk.msg.album', { n: (m.items || []).length });
     case 'file':
       return t('desk.msg.file', { name: m.name || '' });
     case 'location':
@@ -319,6 +338,13 @@ onBeforeUnmount(() => {
 .desk-bubble { background: var(--el-fill-color-light); padding: 8px 12px; border-radius: 12px; word-break: break-word; }
 .desk-msg.mine .desk-bubble { background: var(--el-color-primary-light-9); }
 .desk-img { max-width: 220px; max-height: 220px; border-radius: 8px; }
+.desk-album { display: grid; grid-template-columns: repeat(3, 72px); gap: 3px; }
+.desk-album > * { width: 72px; height: 72px; border-radius: 4px; object-fit: cover; }
+.desk-caption { display: block; margin-top: 4px; }
+.desk-fwd { display: block; margin-bottom: 2px; color: var(--el-color-primary); }
+.desk-bubble.is-deleted { opacity: 0.6; text-decoration: line-through; }
+.desk-reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.desk-react { padding: 0 6px; border-radius: 10px; background: var(--el-fill-color); font-size: 12px; }
 .desk-meta { margin-top: 2px; font-size: 11px; }
 .desk-compose { border-top: 1px solid var(--el-border-color-lighter); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .desk-actions { display: flex; gap: 8px; align-items: center; }

@@ -82,6 +82,7 @@
     file: '<path d="M14 2.5H6a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5z"/><path d="M14 2.5v6h6"/>',
     image: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/>',
     open: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    round: '<circle cx="12" cy="12" r="9"/><path d="M9 9.5h4.5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zM14.5 11.2l2-1.2v4l-2-1.2"/>',
   };
   const svg = (name, cls = '') => `<svg class="ico tg-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[name] || ''}</svg>`;
 
@@ -390,7 +391,8 @@
     if (!items.length) return null;
     if (msgKind(m) === 'video' && m.round) {
       const it = items[0];
-      return `<div class="cx-bubble tg-media tg-round" data-tg-media="${esc(key)}"><button type="button" class="tg-cell tg-round-cell" data-tg-open="${esc(key)}" data-index="0" aria-label="${esc(t('tg.video.round', { time: clockText(it.duration) }))}">${thumbHTML(it)}<span class="tg-dur">${esc(clockText(it.duration))}</span></button>${m.uploading ? `<span class="tg-mosaic-ring">${ringHTML(m.progress, key)}</span>` : ''}</div>`;
+      const auto = autoplayOK(it) && !m.uploading ? ` data-autoplay="${esc(it.media || it.url)}"` : '';
+      return `<div class="cx-bubble tg-media tg-round" data-tg-media="${esc(key)}"><button type="button" class="tg-cell tg-round-cell" data-tg-open="${esc(key)}" data-index="0"${auto} aria-label="${esc(t('tg.video.round', { time: clockText(it.duration) }))}">${thumbHTML(it)}<span class="tg-dur">${esc(clockText(it.duration))}</span></button>${m.uploading ? `<span class="tg-mosaic-ring">${ringHTML(m.progress, key)}</span>` : ''}</div>`;
     }
     const width = Math.min(ALBUM_W, Math.round((window.innerWidth || 390) * 0.7));
     let cells;
@@ -492,7 +494,9 @@
     return hours <= 0 || nowMs() - I.timeOf(m) <= hours * 3600000;
   }
   function canDeleteForEveryone(view, item) {
-    if (!SERVER || !item.local) return false;
+    // Offline demo: "for everyone" is the prototype's recall (fresh own messages, "你撤回了一条消息 · 重新编辑").
+    if (!SERVER) return I.canRecall(item);
+    if (!item.local) return false;
     const m = item.m;
     if (m.pending || MONEY.includes(msgKind(m)) || ['gift', 'system', 'recalled'].includes(msgKind(m))) return false;
     if (view.info.kind === 'group' && isGroupAdmin(view)) return true;
@@ -759,7 +763,7 @@
   async function deleteDialog(view, keys) {
     const items = keys.map(k => I.findItem(view, k)).filter(Boolean);
     if (!items.length) return;
-    const everyone = SERVER && items.every(it => canDeleteForEveryone(view, it));
+    const everyone = items.every(it => canDeleteForEveryone(view, it));
     const n = items.length;
     const allOwn = items.every(it => isOwn(it.m));
     const buttons = [];
@@ -781,6 +785,8 @@
   }
   async function removeMessages(view, keys, everyone) {
     const chatId = view.chatId;
+    if (!SERVER && everyone) return keys.forEach(key => I.recall(view, key));
+    if (!SERVER && keys.length === 1) return I.removeMessage(view, keys[0]); // with its undo toast
     if (!SERVER) {
       const hideKeys = [];
       const ok = I.commitChats([chatId], () => {
@@ -1483,7 +1489,7 @@
     requestAnimationFrame(() => el.querySelector('.tg-pick-caption')?.focus({ preventScroll: true }));
   }
 
-  async function sendAlbum(view, entries, caption) {
+  async function sendAlbum(view, entries, caption, { round = false } = {}) {
     const chatId = view.chatId;
     const single = entries.length === 1;
     const type = single ? entries[0].kind : 'album';
@@ -1502,7 +1508,7 @@
           }
           items.push(item);
         }
-        const record = single ? { type, ...items[0] } : { type: 'album', items };
+        const record = single ? { type, ...items[0], ...(round ? { round: true } : {}) } : { type: 'album', items };
         delete record.kind;
         if (caption) record.caption = caption;
         I.append(chatId, record);
@@ -1514,7 +1520,7 @@
     }
     const clientId = SZ.uid('c');
     const local = { id: clientId, clientId, self: true, pending: true, uploading: true, progress: 0, time: nowMs(), type, caption: caption || undefined };
-    if (single) Object.assign(local, localItems[0]);
+    if (single) Object.assign(local, localItems[0], round ? { round: true } : {});
     else local.items = localItems;
     delete local.kind;
     I.upsert(chatId, local);
@@ -1543,7 +1549,7 @@
         items.push(item);
       }
       if (job.cancelled) return;
-      const body = single ? { type, ...items[0], name: entries[0].file.name } : { type: 'album', items };
+      const body = single ? { type, ...items[0], name: entries[0].file.name, ...(round ? { round: true } : {}) } : { type: 'album', items };
       if (caption) body.caption = caption;
       body.clientId = clientId;
       if (view.quote) {
@@ -2066,6 +2072,7 @@
   }
   /** Before sending: the members still mentioned in the text. */
   function decorate(view, record) {
+    setTimeout(() => view.input && saveDraft(view), 0); // sent: the draft is gone
     if (view.info.kind !== 'group' || !view.tgMentions?.size) return;
     const text = record.text || record.caption || '';
     const ids = [...view.tgMentions].filter(([name]) => text.includes('@' + name)).map(([, id]) => id);
@@ -2255,17 +2262,197 @@
     });
   }
 
+  // ------------------------------------------------------------------ round video messages (视频消息)
+  const roundSupported = () => !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+  function addRoundTool(view) {
+    if (!roundSupported() || !['friend', 'group'].includes(view.info.kind) || !view.toolsPanel) return;
+    view.toolsPanel.insertAdjacentHTML(
+      'beforeend',
+      `<button type="button" class="cx-tool" data-tg-tool="round"><span class="cx-tool-ico">${svg('round')}</span><span class="cx-tool-label">${esc(t('tg.round.tool'))}</span></button>`
+    );
+    view.toolsPanel.addEventListener('click', e => {
+      if (!e.target.closest('[data-tg-tool="round"]')) return;
+      I.closePanels(view);
+      openRoundRecorder(view);
+    });
+  }
+  function recorderType() {
+    for (const type of ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'])
+      if (window.MediaRecorder?.isTypeSupported?.(type)) return type;
+    return '';
+  }
+  async function openRoundRecorder(view) {
+    if (!SZ.requireLogin(t('chat.loginReason'))) return;
+    const max = Math.min(60, cfgNum('chat.voiceMaxSeconds', 60));
+    const c = 2 * Math.PI * 49;
+    let stream = null;
+    let rec = null;
+    let chunks = [];
+    let started = 0;
+    let timer = 0;
+    let result = null;
+    let resultURL = '';
+    const layer = SZ.overlay.open({
+      kind: 'raw',
+      mode: 'push',
+      meta: { kind: 'screen', cxChat: view.chatId },
+      html: `<section class="full-screen tg-roundrec" role="dialog" aria-modal="true" aria-label="${esc(t('tg.round.title'))}" tabindex="-1" data-state="wait"><header class="tg-roundrec-bar">${act('close', '', icon('close'), 'icon-button', `aria-label="${esc(t('common.close'))}"`)}<b>${esc(t('tg.round.title'))}</b><span class="tg-roundrec-time num">0:00</span></header><div class="tg-roundrec-stage"><div class="tg-roundrec-circle"><video class="tg-roundrec-live" muted playsinline autoplay></video><video class="tg-roundrec-preview" playsinline loop hidden></video><svg class="tg-roundrec-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="49" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${c.toFixed(1)}"/></svg></div><p class="tg-roundrec-hint" role="status" aria-live="polite">${esc(t('tg.round.preparing'))}</p></div><footer class="tg-roundrec-foot"><button type="button" class="btn btn-secondary tg-roundrec-again" hidden>${esc(t('tg.round.again'))}</button><button type="button" class="tg-roundrec-rec" disabled aria-label="${esc(t('tg.round.hold'))}"><span></span></button><button type="button" class="btn btn-primary tg-roundrec-send" hidden>${esc(t('common.send'))}</button></footer></section>`,
+      onClose: () => {
+        clearInterval(timer);
+        if (rec && rec.state !== 'inactive') {
+          rec.onstop = null;
+          try {
+            rec.stop();
+          } catch (_) {}
+        }
+        stream?.getTracks().forEach(tr => tr.stop());
+        if (resultURL) URL.revokeObjectURL(resultURL);
+      },
+    });
+    const el = layer.el;
+    const $ = sel => el.querySelector(sel);
+    const hint = text => ($('.tg-roundrec-hint').textContent = text);
+    const setRingP = p => $('.tg-roundrec-ring circle').setAttribute('stroke-dashoffset', (c * (1 - clamp(p, 0, 1))).toFixed(1));
+    const recBtn = $('.tg-roundrec-rec');
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }, audio: true });
+    } catch (e) {
+      hint(t('tg.round.denied'));
+      return;
+    }
+    if (!el.isConnected) return stream.getTracks().forEach(tr => tr.stop());
+    $('.tg-roundrec-live').srcObject = stream;
+    recBtn.disabled = false;
+    el.dataset.state = 'ready';
+    hint(t('tg.round.ready', { n: max }));
+    const start = () => {
+      if (rec || !stream) return;
+      chunks = [];
+      const type = recorderType();
+      rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 900000 } : undefined);
+      rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+      rec.onstop = finished;
+      rec.start(250);
+      started = performance.now();
+      el.dataset.state = 'rec';
+      hint(t('tg.round.recording'));
+      timer = setInterval(() => {
+        const s = (performance.now() - started) / 1000;
+        $('.tg-roundrec-time').textContent = clockText(s);
+        setRingP(s / max);
+        if (s >= max) stop();
+      }, 100);
+    };
+    const stop = () => {
+      if (!rec || rec.state === 'inactive') return;
+      clearInterval(timer);
+      rec.stop();
+    };
+    function finished() {
+      const seconds = (performance.now() - started) / 1000;
+      const blob = new Blob(chunks, { type: (rec?.mimeType || 'video/webm').split(';')[0] });
+      rec = null;
+      if (seconds < 1 || !blob.size) {
+        el.dataset.state = 'ready';
+        setRingP(0);
+        return hint(t('tg.round.tooShort'));
+      }
+      result = { blob, seconds };
+      if (resultURL) URL.revokeObjectURL(resultURL);
+      resultURL = URL.createObjectURL(blob);
+      const pv = $('.tg-roundrec-preview');
+      pv.src = resultURL;
+      pv.hidden = false;
+      pv.play().catch(() => {});
+      $('.tg-roundrec-live').hidden = true;
+      el.dataset.state = 'done';
+      $('.tg-roundrec-again').hidden = false;
+      $('.tg-roundrec-send').hidden = false;
+      hint(t('tg.round.recorded', { time: clockText(seconds) }));
+    }
+    // Hold to record (release sends to preview); a tap toggles, so it also works with a keyboard.
+    let pressAt = 0;
+    recBtn.addEventListener('pointerdown', e => {
+      if (el.dataset.state !== 'ready') return;
+      pressAt = performance.now();
+      try {
+        recBtn.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      start();
+    });
+    recBtn.addEventListener('pointerup', () => {
+      if (pressAt && performance.now() - pressAt > 450) stop();
+      pressAt = 0;
+    });
+    recBtn.addEventListener('click', () => {
+      if (el.dataset.state === 'rec' && !pressAt && performance.now() - started > 450) stop();
+      else if (el.dataset.state === 'ready') start();
+    });
+    el.addEventListener('click', async e => {
+      if (e.target.closest('.tg-roundrec-again')) {
+        result = null;
+        const pv = $('.tg-roundrec-preview');
+        pv.pause();
+        pv.hidden = true;
+        $('.tg-roundrec-live').hidden = false;
+        $('.tg-roundrec-again').hidden = true;
+        $('.tg-roundrec-send').hidden = true;
+        $('.tg-roundrec-time').textContent = '0:00';
+        setRingP(0);
+        el.dataset.state = 'ready';
+        hint(t('tg.round.ready', { n: max }));
+        return;
+      }
+      if (!e.target.closest('.tg-roundrec-send') || !result) return;
+      const file = new File([result.blob], 'round.webm', { type: result.blob.type || 'video/webm' });
+      const entry = { file, kind: 'video', url: URL.createObjectURL(file), w: 0, h: 0, duration: result.seconds };
+      const info = await videoInfo(file);
+      Object.assign(entry, { w: info.w, h: info.h, duration: info.duration || result.seconds, poster: info.poster });
+      if (info.poster) entry.posterUrl = URL.createObjectURL(info.poster);
+      SZ.overlay.close({ layer, force: true });
+      sendAlbum(view, [entry], '', { round: true });
+    });
+  }
+
+  // ------------------------------------------------------------------ drafts per chat (this device, survive reloads)
+  const draftKey = chatId => `sz:tg:draft:${SZ.session.accountId || 'guest'}:${chatId}`;
+  function loadDraft(view) {
+    if (view.input.value) return;
+    try {
+      const text = localStorage.getItem(draftKey(view.chatId));
+      if (!text) return;
+      view.input.value = text;
+      I.syncComposer(view);
+    } catch (_) {}
+  }
+  function saveDraft(view) {
+    try {
+      const text = view.tgEdit ? view.tgEdit.before || '' : view.input.value;
+      if (text.trim()) localStorage.setItem(draftKey(view.chatId), text.slice(0, 4000));
+      else localStorage.removeItem(draftKey(view.chatId));
+    } catch (_) {}
+  }
+
   // ------------------------------------------------------------------ hooks called by chat-tools.js
   function bind(view) {
     view.tgReadAt = Number(state.chatReads?.[view.chatId]) || 0;
     bindGestures(view);
+    addRoundTool(view);
+    loadDraft(view);
     paintPinBar(view);
     paintSchedBar(view);
     paintHeaderTimer(view);
     paintMentionBadge(view);
     watchAutoplay(view);
+    let draftTimer = 0;
+    view.input.addEventListener('input', () => {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => saveDraft(view), 600);
+    });
+    view.form.addEventListener('submit', () => setTimeout(() => saveDraft(view), 0));
   }
   function teardown(view) {
+    saveDraft(view);
     view.tgIO?.disconnect();
     view.tgIO = null;
     if (view.tgEdit) cancelEdit(view, false);

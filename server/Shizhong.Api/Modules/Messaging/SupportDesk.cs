@@ -103,6 +103,7 @@ public static class SupportDesk
             var admins = (await c.QueryAsync<(long Id, string Name)>("SELECT Id, Name FROM dbo.AdminUsers WHERE Id IN @ids",
                 new { ids = rows.Where(r => r.AdminId != null).Select(r => r.AdminId!.Value).Distinct().DefaultIfEmpty(-1).ToArray() })).ToDictionary(x => x.Id, x => x.Name);
             var member = await c.ExecuteScalarAsync<long?>($"SELECT {MemberExpr} FROM dbo.Conversations c WHERE c.Id = @id", new { id });
+            var reactions = await ChatFeatures.ReactionsAsync(c, rows.Select(r => r.Id));
             return Results.Ok(new
             {
                 items = rows.Select(r =>
@@ -113,6 +114,9 @@ public static class SupportDesk
                     v["dbId"] = r.Id;
                     if (r.AdminId is { } adminId) v["operator"] = admins.GetValueOrDefault(adminId, "#" + adminId);
                     if (r.RecalledAt != null) v["recalledText"] = r.Text;
+                    // Moderation keeps seeing messages deleted for everyone / by the auto-delete timer.
+                    if (r.DeletedAt != null) v["deletedAt"] = Json.Ms(r.DeletedAt.Value);
+                    if (ChatFeatures.ReactionsJson(reactions.GetValueOrDefault(r.Id), 0) is { } rx) v["reactions"] = rx;
                     return v;
                 }),
                 more = rows.Count == 60,

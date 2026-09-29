@@ -1662,6 +1662,107 @@
   font-size: var(--fs-14);
 }
 
+/* ---------------------------------------------------------------- round video recorder */
+.full-screen.tg-roundrec {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  background: var(--c-immersive-bg);
+  color: var(--c-immersive-text);
+}
+.tg-roundrec-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: calc(var(--safe-top) + 4px) var(--sp-3) 4px var(--sp-1);
+}
+.tg-roundrec-bar .icon-button {
+  color: inherit;
+}
+.tg-roundrec-bar b {
+  flex: 1;
+}
+.tg-roundrec-time {
+  font-family: var(--font-num), var(--font-sans);
+}
+.tg-roundrec-stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+}
+.tg-roundrec-circle {
+  position: relative;
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+}
+.tg-roundrec-circle video {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  border-radius: 50%;
+  background: #000;
+  object-fit: cover;
+}
+.tg-roundrec-live {
+  transform: scaleX(-1);
+}
+.tg-roundrec-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.tg-roundrec-ring circle {
+  fill: none;
+  stroke: var(--c-brand);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+}
+.tg-roundrec-hint {
+  margin: 0;
+  color: var(--c-immersive-text-2);
+  font-size: var(--fs-14);
+  text-align: center;
+}
+.tg-roundrec-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-6);
+  min-height: 120px;
+  padding: var(--sp-4) var(--sp-4) calc(var(--sp-6) + var(--safe-bottom));
+}
+.tg-roundrec-rec {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  touch-action: none;
+}
+.tg-roundrec-rec span {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--c-brand);
+  transition: all var(--dur-2) var(--ease-out);
+}
+.tg-roundrec[data-state='rec'] .tg-roundrec-rec span {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.tg-roundrec[data-state='done'] .tg-roundrec-rec,
+.tg-roundrec-rec:disabled {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tg-ctx *,
   .tg-reacts.is-new .tg-chip,

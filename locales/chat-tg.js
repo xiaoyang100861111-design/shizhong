@@ -166,6 +166,18 @@ SZ_I18N.extend('zh-CN', {
     viewer: {
       count: '{i} / {n}',
     },
+    round: {
+      tool: '视频消息',
+      title: '录制视频消息',
+      preparing: '正在打开前置摄像头…',
+      ready: '按住红色按钮录制（最长 {n} 秒），或点一下开始、再点一下结束',
+      recording: '正在录制，松开或再点一下结束',
+      recorded: '已录制 {time}，可以发送或重录',
+      tooShort: '录制时间太短',
+      denied: '无法使用摄像头或麦克风，请在浏览器设置中允许',
+      hold: '录制',
+      again: '重录',
+    },
   },
   server: {
     error: {
@@ -361,6 +373,18 @@ SZ_I18N.extend('en', {
     },
     viewer: {
       count: '{i} of {n}',
+    },
+    round: {
+      tool: 'Video message',
+      title: 'Record a video message',
+      preparing: 'Opening the front camera…',
+      ready: 'Hold the red button to record (up to {n}s), or tap to start and tap again to stop',
+      recording: 'Recording — release or tap again to stop',
+      recorded: 'Recorded {time}. Send it or record again.',
+      tooShort: 'Too short',
+      denied: "Can't use the camera or microphone. Allow them in the browser settings.",
+      hold: 'Record',
+      again: 'Record again',
     },
   },
   server: {

@@ -103,7 +103,7 @@
     const paintTime = () => {
       const d = Number.isFinite(video.duration) ? video.duration : 0;
       cur.textContent = clock(video.currentTime);
-      dur.textContent = clock(d);
+      dur.textContent = clock(Math.round(d));
       if (!seeking && d) range.value = String(Math.round((video.currentTime / d) * 1000));
       range.style.setProperty('--tgv-p', (d ? (video.currentTime / d) * 100 : 0) + '%');
       if (d && video.buffered.length) buffered.style.width = (video.buffered.end(video.buffered.length - 1) / d) * 100 + '%';

@@ -162,8 +162,8 @@
         "wait": 300
       },
       {
-        "expect": "!!SZ.overlay.$('[data-action=cx-m-recall]') && !!SZ.overlay.$('[data-action=cx-m-quote]')",
-        "msg": "menu offers recall and reply for a fresh own message"
+        "expect": "!!SZ.overlay.$('.tg-ctx [data-tg-mi=reply]') && !!SZ.overlay.$('.tg-ctx [data-tg-mi=delete]') && !!SZ.overlay.$('.tg-ctx [data-tg-pick]')",
+        "msg": "Telegram-style menu offers reactions, reply and delete (recall) for a fresh own message"
       }
     ]
   },
@@ -184,7 +184,7 @@
         "wait": 300
       },
       {
-        "click": "[data-action=cx-m-quote]"
+        "click": "[data-tg-mi=reply]"
       },
       {
         "expect": "!document.querySelector('.cx-quote-bar').hidden",
@@ -227,7 +227,13 @@
         "wait": 300
       },
       {
-        "click": "[data-action=cx-m-recall]"
+        "click": "[data-tg-mi=delete]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": ".tg-alert-btn[data-tg-alert=all]"
       },
       {
         "wait": 300
@@ -258,7 +264,13 @@
         "wait": 300
       },
       {
-        "click": "[data-action=cx-m-delete]"
+        "click": "[data-tg-mi=delete]"
+      },
+      {
+        "wait": 300
+      },
+      {
+        "click": ".tg-alert-btn[data-tg-alert=me]"
       },
       {
         "wait": 300
@@ -299,7 +311,7 @@
         "wait": 300
       },
       {
-        "click": "[data-action=cx-m-forward]"
+        "click": "[data-tg-mi=forward]"
       },
       {
         "wait": 300
@@ -308,13 +320,13 @@
         "shot": "picker"
       },
       {
-        "click": "[data-action=cx-fwd][data-id=support]"
+        "click": "[data-tg-target=support]"
       },
       {
         "wait": 300
       },
       {
-        "click": "[data-sz-confirm='1']"
+        "click": ".tg-fwd-send"
       },
       {
         "wait": 500
@@ -1294,7 +1306,7 @@
         "wait": 800
       },
       {
-        "expect": "!!SZ.overlay.$('[data-action=cx-m-quote]')",
+        "expect": "!!SZ.overlay.$('.tg-ctx [data-tg-mi=reply]')",
         "msg": "long-press opens the message menu"
       },
       {

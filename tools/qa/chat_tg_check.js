@@ -71,6 +71,7 @@ async function call(method, p, body, { token, admin } = {}) {
 
 async function open(browser, phone, label) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'zh-CN', hasTouch: false });
+  await ctx.grantPermissions(['camera', 'microphone'], { origin: BASE });
   const page = await ctx.newPage();
   page.errors = [];
   page.on('pageerror', e => page.errors.push(e.message));
@@ -240,7 +241,9 @@ async function pickFiles(page, tool, files) {
 
 (async () => {
   require('fs').mkdirSync(SHOTS, { recursive: true });
-  const browser = await playwright.chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await playwright.chromium.launch({
+    args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+  });
   const A = await open(browser, A_PHONE, 'A');
   const B = await open(browser, B_PHONE, 'B');
   const a = A.page;
@@ -506,6 +509,25 @@ async function pickFiles(page, tool, files) {
     await b.waitForTimeout(300);
     await shot(b, 'video-player');
     await b.keyboard.press('Escape');
+  });
+
+  // ------------------------------------------------------------ 9b. round video message (front camera, fake device in CI)
+  await step('round video', async () => {
+    await a.click('.cx-screen .cx-more');
+    await a.click('[data-tg-tool="round"]');
+    await a.waitForSelector('.tg-roundrec[data-state="ready"]', { timeout: 10000 });
+    await a.click('.tg-roundrec-rec');
+    await a.waitForSelector('.tg-roundrec[data-state="rec"]');
+    await a.waitForTimeout(2600);
+    await shot(a, 'round-recording');
+    await a.click('.tg-roundrec-rec');
+    await a.waitForSelector('.tg-roundrec[data-state="done"]', { timeout: 5000 });
+    await a.click('.tg-roundrec-send');
+    const rid = await (await a.waitForFunction(() => [...document.querySelectorAll('.cx-screen .cx-row.is-self[data-mid^="m"] .tg-round')].pop()?.closest('.cx-row').dataset.mid, null, { timeout: 30000 })).jsonValue();
+    await waitRow(b, rid);
+    check(await row(b, rid).locator('.tg-round').count() === 1, 'B gets a round video message');
+    await b.waitForTimeout(1500);
+    await shot(b, 'round');
   });
 
   // ------------------------------------------------------------ 10. file with progress, download
