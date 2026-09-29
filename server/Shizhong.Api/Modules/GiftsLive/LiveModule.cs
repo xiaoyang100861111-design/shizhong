@@ -209,7 +209,7 @@ public sealed class LiveModule : IModule
             var (txId, income) = await db.TxAsync(async (c, t) =>
             {
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, -total, "live-gift", "直播送礼", "srvlive.bill.liveGift",
-                    new { name = gift.LiveName ?? gift.Name, host = host.Name, qty }, "beans", "live", id.ToString()));
+                    new { name = gift.LiveName ?? gift.Name, id = gift.Id, host = host.Name, qty }, "beans", "live", id.ToString()));
                 var tx = await c.ExecuteScalarAsync<long>("""
                     INSERT INTO dbo.GiftTransactions(Kind, UserId, ToUserId, GiftId, Quantity, UnitBeans, TotalBeans, PaidBeans, RefId, ComboId, ComboN)
                     OUTPUT inserted.Id VALUES ('live', @Id, @HostId, @GiftId, @qty, @Beans, @total, @total, @ref, @comboId, @n)
@@ -246,7 +246,7 @@ public sealed class LiveModule : IModule
             await db.TxAsync(async (c, t) =>
             {
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, -total, kind == "live" ? "live-gift" : "call", kind == "live" ? "直播送礼" : "通话送礼",
-                    kind == "live" ? "srvlive.bill.liveGift" : "srvlive.bill.callGift", new { name = gift.LiveName ?? gift.Name, host = host.Name, qty }, "beans", "demo", personaId));
+                    kind == "live" ? "srvlive.bill.liveGift" : "srvlive.bill.callGift", new { name = gift.LiveName ?? gift.Name, id = gift.Id, host = host.Name, qty }, "beans", "demo", personaId));
                 await c.ExecuteAsync("""
                     INSERT INTO dbo.GiftTransactions(Kind, UserId, ToUserId, GiftId, Quantity, UnitBeans, TotalBeans, PaidBeans, RefId)
                     VALUES (@kind, @Id, @host, @GiftId, @qty, @Beans, @total, @total, @ref)

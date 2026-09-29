@@ -1339,6 +1339,12 @@ function flowsBillTitle(b) {
     const chatId = flowsBillChat(b);
     const who = chatId && typeof chatInfo === 'function' ? chatInfo(chatId) : null;
     if (who?.name) params.name = who.name;
+    // Gift bills carry the gift's source-language name: show it in the current language (by gift id).
+    if (params.id && /^srvlive\.bill\.(gift|liveGift|callGift)/.test(b.i18n.key)) {
+      const live = /liveGift|callGift/.test(b.i18n.key);
+      const localized = (live && window.ShizhongLive?.giftName?.(params.id)) || tc('gifts', params.id, 'name', '');
+      if (localized) params.name = localized;
+    }
     return t(b.i18n.key, params);
   }
   const kind = flowsBillKind(b);
