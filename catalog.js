@@ -137,6 +137,46 @@
     ];
     for (const r of records || []) if (r && r.id != null && !map.has(r.id)) map.set(r.id, r);
   };
+  /**
+   * Server mode: person records the people chunk may not have (members who joined later, blocked people,
+   * chat peers) come as state.socialPeople or from /api/people/<id>; they join the same people list.
+   */
+  C.installPeople = records => {
+    const fresh = [];
+    for (const r of records || []) {
+      if (!r?.id) continue;
+      const known = C.personById.get(r.id);
+      if (known) Object.assign(known, r);
+      else fresh.push(r);
+    }
+    if (!fresh.length) return 0;
+    preparePeople(fresh);
+    people.push(...fresh);
+    C.index('people', fresh);
+    C.dataVersion = (C.dataVersion || 0) + 1;
+    return fresh.length;
+  };
+  const personTasks = new Map();
+  C.ensurePerson = id => {
+    id = String(id || '');
+    if (!id || C.personById.has(id)) return Promise.resolve(C.personById.get(id) || null);
+    if (!SZ.server || !SZ.session.isLoggedIn) return Promise.resolve(null);
+    if (!personTasks.has(id))
+      personTasks.set(
+        id,
+        SZ.api
+          .get('people/' + encodeURIComponent(id))
+          .then(res => {
+            if (res?.person) C.installPeople([res.person]);
+            return C.personById.get(id) || null;
+          })
+          .catch(() => {
+            personTasks.delete(id);
+            return null;
+          })
+      );
+    return personTasks.get(id);
+  };
   const findService = id => C.serviceById.get(id) || null;
   const findPerson = id => C.personById.get(id) || null;
   const findGroup = id => C.groupById.get(id) || state.groups.find(g => g.id === id) || null;
@@ -208,6 +248,13 @@
   prepareServices(services);
   preparePeople(people);
   preparePosts(basePosts);
+  if (SZ.server) {
+    const installSocial = () => Array.isArray(state?.socialPeople) && C.installPeople(state.socialPeople);
+    SZ.bootTasks.push(installSocial);
+    SZ.on('state:server', keys => {
+      if (Array.isArray(keys) && keys.includes('socialPeople') && installSocial()) C.markTabStale?.();
+    });
+  }
   C.index('services', services);
   C.index('people', people);
   C.index('groups', defaultGroups);
@@ -245,7 +292,7 @@
   /** Demo account only: seed sample orders, follows and groups once per data version. */
   function installDemoState() {
     ensureState();
-    if (!SZ.session.isDemo || state.demoVersion === DEMO_VERSION) return;
+    if (SZ.server || !SZ.session.isDemo || state.demoVersion === DEMO_VERSION) return;
     const known = new Set(state.orders.map(o => o.id));
     const seeds = JSON.parse(JSON.stringify(demoData.orders || [])).filter(o => !known.has(o.id));
     state.orders.push(...seeds);
@@ -464,8 +511,8 @@
     const topic = own ? td('catalog.topic', post.topic || '') : txt('posts', post, 'topic');
     const text = own ? post.text || '' : txt('posts', post, 'text');
     const privateOnly = ['仅自己', 'private', 'self'].includes(post.visibility);
-    const count = postComments(post.id).length;
-    return `<article class="checkout-post" data-post-id="${esc(post.id)}"><header class="checkout-post-head">${act(own ? 'edit-profile' : 'person', own ? '' : author.id, avatar, 'checkout-post-avatar', `aria-label="${esc(t('catalog.person.viewProfile', { name: author.name }))}"`)}<div class="checkout-post-author"><h3>${html(author.name)}</h3><p>${postTime(post)}${place ? ` · ${html(place)}` : ''}</p></div>${own ? (privateOnly ? `<span class="tag">${esc(t('catalog.post.private'))}</span>` : '') : followButton(author.id, true)}</header>${text ? `<p class="checkout-post-text">${html(text).replace(/\n/g, '<br>')}</p>` : ''}${photo ? act('photo', post.id, img(photo, topic || t('catalog.post.photo')), 'checkout-post-photo', `aria-label="${esc(t('catalog.post.openPhoto'))}"`) : ''}${topic ? `<p class="checkout-post-topic">#${html(topic)}</p>` : ''}<footer class="checkout-post-actions">${likeButton(post)}${act('comments', post.id, `${icon('chat')}<span>${esc(count ? number(count) : t('catalog.post.comment'))}</span>`, 'checkout-post-action', `data-comments="${esc(post.id)}" aria-label="${esc(t('catalog.post.commentsLabel', { n: number(count) }))}"`)}${own ? '' : act('greet', author.id, `${icon('chat')}<span>${esc(t('catalog.person.greet'))}</span>`, 'checkout-post-action checkout-post-greet')}</footer></article>`;
+    const count = commentCount(post);
+    return `<article class="checkout-post" data-post-id="${esc(post.id)}"><header class="checkout-post-head">${act(own ? 'edit-profile' : 'person', own ? '' : author.id, avatar, 'checkout-post-avatar', `aria-label="${esc(t('catalog.person.viewProfile', { name: author.name }))}"`)}<div class="checkout-post-author"><h3>${html(author.name)}</h3><p>${postTime(post)}${place ? ` · ${html(place)}` : ''}</p></div>${own ? `${post.pending ? `<span class="tag tag-warning">${esc(t('server.social.pending'))}</span>` : ''}${privateOnly ? `<span class="tag">${esc(t('catalog.post.private'))}</span>` : ''}` : followButton(author.id, true)}</header>${text ? `<p class="checkout-post-text">${html(text).replace(/\n/g, '<br>')}</p>` : ''}${photo ? act('photo', post.id, img(photo, topic || t('catalog.post.photo')), 'checkout-post-photo', `aria-label="${esc(t('catalog.post.openPhoto'))}"`) : ''}${topic ? `<p class="checkout-post-topic">#${html(topic)}</p>` : ''}<footer class="checkout-post-actions">${likeButton(post)}${act('comments', post.id, `${icon('chat')}<span>${esc(count ? number(count) : t('catalog.post.comment'))}</span>`, 'checkout-post-action', `data-comments="${esc(post.id)}" aria-label="${esc(t('catalog.post.commentsLabel', { n: number(count) }))}"`)}${own ? '' : act('greet', author.id, `${icon('chat')}<span>${esc(t('catalog.person.greet'))}</span>`, 'checkout-post-action checkout-post-greet')}</footer></article>`;
   }
   const groupName = g => txt('groups', g, 'name');
   function groupAvatar(g, size = 48) {
@@ -517,6 +564,13 @@
   }
   function conversationMessages(id) {
     id = String(id || '');
+    // Server mode: the server keeps the history (demo conversations included); a group page of a group the
+    // visitor has not joined previews the chunk's last lines.
+    if (SZ.server && (Array.isArray(state.messages[id]) || !findGroup(id)?.messages)) {
+      return (Array.isArray(state.messages[id]) ? state.messages[id] : [])
+        .map(m => ({ ...m, time: normalizeTime(m.time) }))
+        .sort((a, b) => a.time - b.time);
+    }
     const group = findGroup(id);
     const person = findPerson(id);
     const at = offset => DEMO_NOW - (Number(offset) || 0) * 60000;
@@ -548,7 +602,7 @@
       });
     }
     const samples =
-      person && window.ShizhongFriends?.demoMessages ? window.ShizhongFriends.demoMessages(id) : [];
+      person && !SZ.server && window.ShizhongFriends?.demoMessages ? window.ShizhongFriends.demoMessages(id) : [];
     if (samples.length && !history.length)
       history.push({
         id: `demo-${id}-hello`,
@@ -665,7 +719,7 @@
   }
   function contactPeople() {
     const ids = new Set([...Object.keys(state.messages || {}), ...state.greeted]);
-    if (SZ.session.isDemo) {
+    if (SZ.session.isDemo && !SZ.server) {
       for (const id of demoData.contactIds || []) ids.add(id);
       for (const id of Object.keys(demoData.conversations || {})) ids.add(id);
       for (const id of ['p1', 'p2', 'p3']) ids.add(id);
@@ -691,6 +745,7 @@
     return people.filter(
       p =>
         !state.blocked.includes(p.id) &&
+        !p.member &&
         (ui.liveTab === 'private' ? p.liveMode === 'private' : p.liveMode !== 'private') &&
         (!topic || p.topic === topic)
     );
@@ -817,8 +872,12 @@
   const visiblePeople = () => people.filter(p => !state.blocked.includes(p.id));
   function filteredPeople() {
     let items = visiblePeople();
-    if (ui.socialFilter === 'nearby')
-      items = items.filter(isLocal).sort((a, b) => a.distanceKm - b.distanceKm);
+    if (ui.socialFilter === 'nearby') {
+      const radius = Number(SZ.config('social.nearbyKm', 0)) || 0;
+      items = items
+        .filter(p => isLocal(p) && !(radius && p.member && p.distanceKm > radius))
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+    }
     if (ui.cityFilter !== 'all') items = items.filter(p => p.city === ui.cityFilter);
     if (ui.interestFilter !== 'all') items = items.filter(p => p.tags.includes(ui.interestFilter));
     return items;
@@ -885,6 +944,7 @@
     return posts;
   }
   function feedBody() {
+    refreshFeed();
     const posts = feedPosts();
     const chips = chipGroup(
       [
@@ -1061,7 +1121,8 @@
     }`;
   }
   function groupsBody() {
-    let groups = [...state.groups, ...defaultGroups];
+    const seen = new Set();
+    let groups = [...state.groups, ...defaultGroups].filter(g => g && !seen.has(g.id) && seen.add(g.id));
     if (catalogUI.groupScope === 'mine') groups = groups.filter(g => state.joined.includes(g.id));
     const chips = chipGroup(
       [
@@ -1731,6 +1792,9 @@
     });
   }
   function personDetail(id) {
+    if (SZ.server && SZ.session.isLoggedIn && id !== SZ.server.me?.id)
+      SZ.api.post('people/' + encodeURIComponent(id) + '/visit').catch(() => {});
+    if (SZ.server && !findPerson(id)) return C.ensurePerson(id).then(() => demand(profileChunks(id, true), () => drawPersonDetail(id)));
     return demand(profileChunks(id, true), () => drawPersonDetail(id));
   }
 
@@ -1768,11 +1832,86 @@
         recent.length
           ? `<div class="checkout-group-preview">${recent.map(m => `<p><b>${html(m.self ? selfName() : m.author || t('catalog.group.member'))}</b>${html(messagePreview(m))}</p>`).join('')}</div>`
           : `<p class="checkout-muted">${esc(t('catalog.group.quiet'))}</p>`
-      }</section>${joined ? act('leave-group', id, esc(t('catalog.group.leave')), 'btn btn-ghost btn-block checkout-danger-text') : ''}</div><div class="checkout-bottom-bar">${act(joined ? 'chat' : 'join-group', id, esc(joined ? t('catalog.group.open') : t('catalog.group.join')), 'btn btn-lg btn-primary checkout-cta')}</div>`,
+      }</section>${
+        SZ.server && joined
+          ? `<div class="checkout-person-secondary">${act('catalog-group-members', id, esc(t('server.social.groupMembers')), 'btn btn-sm btn-ghost')}${act('catalog-report', 'group:' + id, esc(t('server.social.reportGroup')), 'btn btn-sm btn-ghost')}</div>`
+          : SZ.server && SZ.session.isLoggedIn
+            ? `<div class="checkout-person-secondary">${act('catalog-report', 'group:' + id, esc(t('server.social.reportGroup')), 'btn btn-sm btn-ghost')}</div>`
+            : ''
+      }${joined ? act('leave-group', id, esc(t('catalog.group.leave')), 'btn btn-ghost btn-block checkout-danger-text') : ''}</div><div class="checkout-bottom-bar">${act(joined ? 'chat' : 'join-group', id, esc(joined ? t('catalog.group.open') : t('catalog.group.join')), 'btn btn-lg btn-primary checkout-cta')}</div>`,
     });
   }
   function groupDetail(id) {
     return demand(['people', 'groups'], () => drawGroupDetail(id));
+  }
+  // ---------------------------------------------------------------- server mode: group members & management
+  const roleLabel = role => t('server.social.role.' + (role || 'member'));
+  async function groupMembersScreen(id, mode = 'push') {
+    let res;
+    try {
+      res = await SZ.api.get('groups/' + encodeURIComponent(id) + '/members');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    C.installPeople((res.items || []).map(x => x.person).filter(Boolean));
+    const mine = res.myRole;
+    const rank = { owner: 2, admin: 1, member: 0 };
+    const g = findGroup(id);
+    const rows = (res.items || [])
+      .map(x => {
+        const p = x.self ? null : findPerson(x.id);
+        const avatar = x.self ? img(selfPhoto(), '', 'avatar avatar-40') : p ? avatarHTML(p, 40) : img('ui/avatar-default.svg', '', 'avatar avatar-40');
+        const name = x.self ? selfName() : p ? personName(p) : x.id;
+        const tools = [];
+        if (!x.self && mine && rank[mine] > rank[x.role])
+          tools.push(act('catalog-group-kick', id + '|' + x.id, esc(t('server.social.kick')), 'btn btn-ghost btn-sm checkout-danger-text'));
+        if (!x.self && mine === 'owner')
+          tools.push(act('catalog-group-role', id + '|' + x.id + '|' + (x.role === 'admin' ? 'member' : 'admin'), esc(t(x.role === 'admin' ? 'server.social.unsetAdmin' : 'server.social.setAdmin')), 'btn btn-ghost btn-sm'));
+        return `<div class="list-row checkout-member-row">${x.self ? avatar : act('person', x.id, avatar, 'checkout-member-av')}<span class="list-row-main"><b>${html(name)}</b> ${x.role !== 'member' ? `<span class="tag">${esc(roleLabel(x.role))}</span>` : ''}</span>${tools.join('')}</div>`;
+      })
+      .join('');
+    const manage = [
+      mine === 'owner' || mine === 'admin' ? act('catalog-group-edit', id, esc(t('server.social.editGroup')), 'btn btn-secondary btn-sm') : '',
+      mine === 'owner' ? act('catalog-group-dissolve', id, esc(t('server.social.dissolve')), 'btn btn-ghost btn-sm checkout-danger-text') : '',
+    ].join('');
+    return SZ.overlay.open({
+      kind: 'screen',
+      mode,
+      title: t('server.social.groupMembers'),
+      className: 'checkout-ui checkout-screen',
+      meta: { groupId: id, view: 'group-members' },
+      html: `<div class="checkout-screen-body">${countLine(tn('catalog.group.members', res.count || 0))}${manage ? `<div class="checkout-person-secondary">${manage}</div>` : ''}<div class="list">${rows}</div>${g ? '' : ''}</div>`,
+    });
+  }
+  function editGroupSheet(id) {
+    const g = findGroup(id);
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('server.social.editGroup'),
+      className: 'checkout-ui checkout-sheet checkout-form-sheet',
+      html: `<form data-catalog-form="group-edit" novalidate><label class="form-group"><span class="form-label">${esc(t('catalog.group.name'))}</span><input class="field" name="name" maxlength="${Number(SZ.config('social.groupNameMax', 40)) || 40}" required value="${esc(g ? groupName(g) : '')}"></label><label class="form-group"><span class="form-label">${esc(t('catalog.group.desc'))}</span><textarea class="field" name="desc" maxlength="${Number(SZ.config('social.groupDescMax', 300)) || 300}">${esc(g ? txt('groups', g, 'desc') : '')}</textarea></label><button type="submit" class="btn btn-lg btn-primary btn-block">${esc(t('common.save'))}</button></form>`,
+    });
+    layer.el.addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.target));
+      try {
+        const res = await SZ.api.patch('groups/' + encodeURIComponent(id), { name: String(data.name || '').trim(), desc: String(data.desc || '').trim() });
+        const known = findGroup(id);
+        if (known && res?.group) Object.assign(known, { name: res.group.name, desc: res.group.desc });
+        SZ.overlay.close({ layer, force: true });
+        toast(t('common.saved'), { type: 'success' });
+      } catch (e) {
+        SZ.api.fail(e);
+      }
+    });
+  }
+  async function refreshMembersScreen(id) {
+    const layer = SZ.overlay.layers().find(l => l.meta.groupId === id && l.meta.view === 'group-members');
+    if (layer) {
+      await SZ.overlay.close({ layer, force: true });
+      groupMembersScreen(id);
+    }
   }
   function createGroup() {
     if (!SZ.requireLogin(t('catalog.login.group'))) return;
@@ -1803,6 +1942,23 @@
         return toast(t('catalog.form.required'), { type: 'error' });
       }
       const location = window.ShizhongRegions?.readForm?.(form);
+      if (SZ.server) {
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        SZ.api
+          .act('POST', 'groups', { name, desc, city: location?.cityName || data.city || state.city, location })
+          .then(res => {
+            SZ.overlay.close({ layer, force: true });
+            if (ui.page === 'comms') render();
+            toast(t('catalog.group.created'), { type: 'success' });
+            openChat(res.group.id);
+          })
+          .catch(e => {
+            submit.disabled = false;
+            SZ.api.fail(e);
+          });
+        return;
+      }
       const id = 'g' + Date.now().toString(36);
       const group = {
         id,
@@ -1831,10 +1987,71 @@
 
   // ------------------------------------------------------------------ comments & photo
   function commentRow(c) {
-    const person = c.person ? findPerson(c.person) : null;
+    const person = c.person && !c.self ? findPerson(c.person) : null;
     const name = c.self ? selfName() : !person ? c.name || c.author || selfName() : personName(person);
-    const photo = person ? avatarHTML(person, 32) : img(selfPhoto(), '', 'avatar avatar-32');
-    return `<div class="checkout-comment">${photo}<div><p class="checkout-comment-name">${html(name)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}</p><p>${html(c.text)}</p></div></div>`;
+    const photo = person
+      ? avatarHTML(person, 32)
+      : img(c.self || !c.person ? selfPhoto() : c.photo || 'ui/avatar-default.svg', '', 'avatar avatar-32');
+    const remove = SZ.server && c.id && c.canDelete ? act('catalog-comment-delete', String(c.id), esc(t('server.social.deleteComment')), 'btn btn-ghost btn-sm checkout-comment-delete') : '';
+    const pending = c.pending ? ` <span class="tag tag-warning">${esc(t('server.social.pending'))}</span>` : '';
+    return `<div class="checkout-comment"${c.id ? ` data-comment-id="${esc(c.id)}"` : ''}>${photo}<div><p class="checkout-comment-name">${html(name)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}${pending}</p><p>${html(c.text)}</p>${remove}</div></div>`;
+  }
+  // ---------------------------------------------------------------- server mode: comments, feed refresh
+  const serverComments = new Map(); // postId -> comments from /api/posts/<id>/comments
+  function commentCount(post) {
+    if (!post) return 0;
+    if (SZ.server) return serverComments.has(post.id) ? serverComments.get(post.id).length : Number(post.commentCount) || 0;
+    return postComments(post.id).length;
+  }
+  function serverCommentView(c, post) {
+    const en = !SZ_I18N.isSource && String(SZ_I18N.locale).startsWith('en');
+    return {
+      ...c,
+      text: en && c.textEn ? c.textEn : c.text,
+      canDelete: c.self || post?.person === 'self',
+    };
+  }
+  async function loadServerComments(id) {
+    const res = await SZ.api.get('posts/' + encodeURIComponent(id) + '/comments');
+    const post = findPost(id);
+    serverComments.set(id, (res?.items || []).map(c => serverCommentView(c, post)));
+    if (post && typeof res?.count === 'number') post.commentCount = res.count;
+    return serverComments.get(id);
+  }
+  let feedCheckedAt = 0;
+  /** Server mode: new posts and fresh like / comment counts while the app stays open. */
+  function refreshFeed(force = false) {
+    if (!SZ.server || (!force && Date.now() - feedCheckedAt < 15000)) return;
+    feedCheckedAt = Date.now();
+    SZ.api
+      .get('posts')
+      .then(res => {
+        if (res?.en && !SZ_I18N.isSource) SZ_I18N.addContent('en', 'posts', res.en);
+        let changed = false;
+        const fresh = [];
+        for (const item of res?.items || []) {
+          if (state.blocked.includes(item.person)) continue;
+          const known = C.postById.get(item.id);
+          if (known) {
+            if (known.likes !== item.likes || known.commentCount !== item.commentCount) {
+              known.likes = item.likes;
+              known.commentCount = item.commentCount;
+              changed = true;
+            }
+          } else fresh.push(item);
+        }
+        if (fresh.length) {
+          preparePosts(fresh);
+          basePosts.unshift(...fresh);
+          C.index('posts', fresh);
+          basePosts.sort((a, b) => (b.at || 0) - (a.at || 0));
+          changed = true;
+        }
+        if (!changed) return;
+        C.dataVersion = (C.dataVersion || 0) + 1;
+        if (ui.page === 'social' && ui.socialTab === 'feed' && !SZ.overlay.depth()) render();
+      })
+      .catch(() => {});
   }
   function commentsList(id) {
     const items = postComments(id);
@@ -1843,13 +2060,66 @@
       : emptyState('chat', t('catalog.comments.empty'), t('catalog.comments.emptyText'));
   }
   function syncComments(id) {
-    const n = postComments(id).length;
+    const n = SZ.server ? commentCount(findPost(id)) : postComments(id).length;
     for (const btn of document.querySelectorAll(`[data-comments="${CSS.escape(id)}"]`)) {
       btn.querySelector('span').textContent = n ? number(n) : t('catalog.post.comment');
       btn.setAttribute('aria-label', t('catalog.post.commentsLabel', { n: number(n) }));
     }
   }
+  function drawServerComments(id) {
+    const post = findPost(id);
+    const own = post?.person === 'self';
+    const list = () => {
+      const items = serverComments.get(id);
+      if (!items) return skeleton('row', 3);
+      return items.length
+        ? items.map(commentRow).join('')
+        : emptyState('chat', t('catalog.comments.empty'), t('catalog.comments.emptyText'));
+    };
+    const report = SZ.session.isLoggedIn && post && !own ? act('catalog-report', 'post:' + id, esc(t('server.social.reportPost')), 'btn btn-ghost btn-sm checkout-report-post') : '';
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: tn('catalog.comments.title', commentCount(post)),
+      className: 'checkout-ui checkout-sheet checkout-comments-sheet',
+      meta: { postId: id, view: 'comments' },
+      html: `<div data-part="comments" class="checkout-comments">${list()}</div>${report}<form class="checkout-comment-form" data-catalog-form="comment"><input class="field" name="text" maxlength="${Number(SZ.config('social.commentMax', 300)) || 300}" autocomplete="off" aria-label="${esc(t('catalog.comments.label'))}" placeholder="${esc(t('catalog.comments.placeholder'))}"><button type="submit" class="btn btn-primary btn-sm">${esc(t('common.send'))}</button></form>`,
+    });
+    const redraw = () => {
+      if (!layer.el.isConnected) return;
+      layer.el.querySelector('[data-part="comments"]').innerHTML = list();
+      SZ.overlay.setTitle(tn('catalog.comments.title', commentCount(findPost(id))), layer);
+      syncComments(id);
+    };
+    layer.meta.redraw = redraw;
+    loadServerComments(id).then(redraw, e => SZ.api.fail(e));
+    layer.el.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!SZ.requireLogin(t('catalog.login.comment'))) return;
+      const input = event.target.elements.text;
+      const text = input.value.trim();
+      if (!text) return input.focus();
+      const button = event.target.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        const res = await SZ.api.post('posts/' + encodeURIComponent(id) + '/comments', { text });
+        const items = serverComments.get(id) || [];
+        items.push(serverCommentView(res.comment, findPost(id)));
+        serverComments.set(id, items);
+        const p = findPost(id);
+        if (p && typeof res.count === 'number') p.commentCount = res.count;
+        input.value = '';
+        if (res.pending) toast(t('server.social.commentPending'));
+        redraw();
+      } catch (e) {
+        SZ.api.fail(e);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    return layer;
+  }
   function drawComments(id) {
+    if (SZ.server) return drawServerComments(id);
     const layer = SZ.overlay.open({
       kind: 'sheet',
       title: tn('catalog.comments.title', postComments(id).length),
@@ -1936,7 +2206,29 @@
     });
     return ok ? on : null;
   }
-  function toggleFollow(id) {
+  /** Server mode: follows / likes / blocks are server state (POST|DELETE /api/follows|blocks/<id>, posts/<id>/like). */
+  async function serverToggle(method, path, reason) {
+    if (!SZ.requireLogin(reason)) return null;
+    try {
+      return await SZ.api.act(method, path);
+    } catch (e) {
+      SZ.api.fail(e);
+      return null;
+    }
+  }
+  async function toggleFollow(id) {
+    if (SZ.server) {
+      const was = state.follows.includes(id);
+      const res = await serverToggle(was ? 'DELETE' : 'POST', 'follows/' + encodeURIComponent(id), t('catalog.login.follow'));
+      if (!res) return;
+      syncToggle('follow', id);
+      markTabStale();
+      toast(!was ? t('catalog.person.followed') : t('catalog.person.unfollowed'), {
+        type: !was ? 'success' : 'info',
+        action: !was ? null : { label: t('common.undo'), run: () => toggleFollow(id) },
+      });
+      return;
+    }
     const on = toggleIn('follows', id, t('catalog.login.follow'));
     if (on === null) return;
     syncToggle('follow', id);
@@ -1946,7 +2238,17 @@
       action: on ? null : { label: t('common.undo'), run: () => toggleFollow(id) },
     });
   }
-  function toggleLike(id) {
+  async function toggleLike(id) {
+    if (SZ.server) {
+      const was = state.likes.includes(id);
+      const res = await serverToggle(was ? 'DELETE' : 'POST', 'posts/' + encodeURIComponent(id) + '/like', t('catalog.login.like'));
+      if (!res) return;
+      // likes on the card = everyone else's; the visitor's own like is added from state.likes.
+      const post = findPost(id);
+      if (post && typeof res.likes === 'number') post.likes = res.likes - (res.liked ? 1 : 0);
+      syncToggle('like', id);
+      return;
+    }
     if (toggleIn('likes', id, t('catalog.login.like')) === null) return;
     syncToggle('like', id);
   }
@@ -1972,7 +2274,9 @@
       danger: true,
     });
     if (!ok) return;
-    if (
+    if (SZ.server) {
+      if (!(await serverToggle('POST', 'blocks/' + encodeURIComponent(id), t('catalog.login.block')))) return;
+    } else if (
       !SZ.store.commit(s => {
         if (!s.blocked.includes(id)) s.blocked.push(id);
       })
@@ -1987,10 +2291,12 @@
     toast(t('catalog.person.blocked'), {
       action: {
         label: t('common.undo'),
-        run: () => {
-          SZ.store.commit(s => {
-            s.blocked = s.blocked.filter(x => x !== id);
-          });
+        run: async () => {
+          if (SZ.server) await serverToggle('DELETE', 'blocks/' + encodeURIComponent(id), t('catalog.login.block'));
+          else
+            SZ.store.commit(s => {
+              s.blocked = s.blocked.filter(x => x !== id);
+            });
           render();
         },
       },
@@ -2044,13 +2350,24 @@
   function statList(id) {
     if (id === 'saved') return savedServices();
     if (!['follows', 'fans', 'visitors'].includes(id)) return false;
-    demand(['people'], () => {
+    demand(['people'], async () => {
+      let serverItems = null;
+      if (SZ.server && SZ.session.isLoggedIn && id !== 'follows') {
+        try {
+          const res = await SZ.api.get('people/lists/' + id);
+          C.installPeople(res?.items || []);
+          serverItems = (res?.items || []).map(p => findPerson(p.id)).filter(Boolean);
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      }
       const items =
-        id === 'follows'
+        serverItems ||
+        (id === 'follows'
           ? state.follows.map(findPerson).filter(p => p && !state.blocked.includes(p.id))
           : SZ.session.isDemo
             ? (demoData.people || people).filter((_, i) => (id === 'fans' ? i % 4 === 1 : i % 6 === 2))
-            : [];
+            : []);
       SZ.overlay.open({
         kind: 'screen',
         title: t(`catalog.stat.${id}`),
@@ -2245,7 +2562,13 @@
     contacts: () => toCommsTab('contacts'),
     'join-group': async id => {
       if (!SZ.requireLogin(t('catalog.login.group'))) return;
-      if (
+      if (SZ.server) {
+        try {
+          await SZ.api.act('POST', 'groups/' + encodeURIComponent(id) + '/join');
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (
         !SZ.store.commit(s => {
           if (!s.joined.includes(id)) s.joined.push(id);
         })
@@ -2265,8 +2588,14 @@
         confirmText: t('catalog.group.leaveConfirm'),
         danger: true,
       });
-      if (
-        !ok ||
+      if (!ok) return;
+      if (SZ.server) {
+        try {
+          await SZ.api.act('POST', 'groups/' + encodeURIComponent(id) + '/leave');
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (
         !SZ.store.commit(s => {
           s.joined = s.joined.filter(x => x !== id);
         })
@@ -2278,6 +2607,61 @@
       toast(t('catalog.group.left'));
     },
     'create-group': () => createGroup(),
+    'catalog-group-members': id => groupMembersScreen(id),
+    'catalog-group-edit': id => editGroupSheet(id),
+    'catalog-group-kick': async id => {
+      const [gid, pid] = id.split('|');
+      const p = findPerson(pid);
+      const ok = await SZ.confirm({ title: t('server.social.kickTitle', { name: p ? personName(p) : pid }), message: t('server.social.kickText'), confirmText: t('server.social.kick'), danger: true });
+      if (!ok) return;
+      try {
+        await SZ.api.post(`groups/${encodeURIComponent(gid)}/members/${encodeURIComponent(pid)}/kick`);
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      toast(t('server.social.kicked'));
+      refreshMembersScreen(gid);
+    },
+    'catalog-group-role': async id => {
+      const [gid, pid, role] = id.split('|');
+      try {
+        await SZ.api.post(`groups/${encodeURIComponent(gid)}/members/${encodeURIComponent(pid)}/role`, { role });
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      refreshMembersScreen(gid);
+    },
+    'catalog-group-dissolve': async id => {
+      const ok = await SZ.confirm({ title: t('server.social.dissolveTitle'), message: t('server.social.dissolveText'), confirmText: t('server.social.dissolve'), danger: true });
+      if (!ok) return;
+      try {
+        await SZ.api.act('DELETE', 'groups/' + encodeURIComponent(id));
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      const layers = SZ.overlay.layers().filter(l => l.meta.groupId === id || l.meta.chatId === id);
+      for (const layer of layers.reverse()) await SZ.overlay.close({ layer, force: true });
+      render();
+      toast(t('server.social.dissolved'));
+    },
+    'catalog-comment-delete': async (id, el) => {
+      const layer = SZ.overlay.of(el);
+      const postId = layer?.meta.postId;
+      try {
+        const res = await SZ.api.del('comments/' + encodeURIComponent(id));
+        const items = (serverComments.get(postId) || []).filter(c => String(c.id) !== String(id));
+        serverComments.set(postId, items);
+        const p = findPost(postId);
+        if (p && typeof res?.count === 'number') p.commentCount = res.count;
+        layer?.meta.redraw?.();
+      } catch (e) {
+        SZ.api.fail(e);
+      }
+    },
+    'catalog-report': id => {
+      const at = id.indexOf(':');
+      window.ShizhongReports?.open?.({ targetType: id.slice(0, at), targetId: id.slice(at + 1) });
+    },
     'load-more': (id, el) => loadMore(id, el),
     'load-retry': () => {
       C.clearFailures();

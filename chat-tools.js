@@ -11,20 +11,45 @@
  * Hidden demo messages ("delete for me"): state.chatHidden[chatId] = ['d3', …].
  */
 (function () {
-  const RECALL_MS = 2 * 60000;
-  const EXPIRE_MS = 24 * 3600000;
+  /*
+   * Server mode (SZ.server): messages are real. state.messages / chatReads / chatPeerReads are projected by
+   * the server; sending posts to /api/chats/<id>/messages, delivery / typing / read receipts / recalls arrive
+   * over SZ.realtime, money moves through the server ledger, calls ring the other person. The demo replies,
+   * demo unread counts and client-side settlement below only run in the offline demo.
+   */
+  const SERVER = !!SZ.server;
+  const cfgNum = (key, fallback) => Number(SZ.config(key, fallback)) || fallback;
+  const RECALL_MS = cfgNum('chat.recallSeconds', 120) * 1000;
+  const EXPIRE_MS = cfgNum('chat.packetExpireMinutes', 1440) * 60000;
   const GAP_MS = 5 * 60000; // a time divider appears after this much silence
   const RUN_MS = 2 * 60000; // consecutive bubbles from one sender are grouped within this window
-  const DEMO_UNREAD = { support: 1, p1: 2 }; // the demo account starts with these unread
+  const DEMO_UNREAD = SERVER ? {} : { support: 1, p1: 2 }; // the demo account starts with these unread
+  // Limits: the console's settings in server mode, the prototype's values otherwise.
   const LIMIT = {
-    image: 10 * 1048576,
-    file: 20 * 1048576,
-    images: 9,
-    packetMax: 20000, // RM 200.00 per red packet
-    packetCount: 100,
-    transferMax: 5000000, // RM 50,000.00
-    voice: 60,
+    image: cfgNum('chat.imageMaxMb', 10) * 1048576,
+    file: cfgNum('chat.fileMaxMb', 20) * 1048576,
+    images: cfgNum('chat.imagesMax', 9),
+    packetMax: Math.round(cfgNum('chat.packetMax', 200) * 100), // RM 200.00 per red packet
+    packetCount: cfgNum('chat.packetCountMax', 100),
+    transferMax: Math.round(cfgNum('chat.transferMax', 50000) * 100), // RM 50,000.00
+    voice: cfgNum('chat.voiceMaxSeconds', 60),
+    text: cfgNum('chat.textMax', 2000),
+    note: cfgNum('chat.noteMax', 40),
   };
+  const myId = () => SZ.server?.me?.id || SZ.session.account?.id || '';
+  const isEnglish = () => !SZ_I18N.isSource && String(SZ_I18N.locale || '').startsWith('en');
+  /** Display text of a message: server replies carry an i18n key, imported history its English, desk texts a setting. */
+  function msgText(m) {
+    if (!m) return '';
+    if (m.i18n?.key && t.has?.(m.i18n.key)) return t(m.i18n.key, m.i18n.params || {});
+    if (m.i18nConfig) {
+      const v = SZ.config(m.i18nConfig, null);
+      const text = v && (isEnglish() ? v.en || v.zh : v.zh || v.en);
+      if (text) return text;
+    }
+    if (m.textEn && isEnglish()) return m.textEn;
+    return m.text || '';
+  }
   const EMOJI = [
     '😀', '😄', '😂', '🥹', '😊', '😍', '🥰', '😘', '😎', '🤔', '😴', '😭',
     '😅', '🙃', '😮', '🤗', '👍', '👏', '🙏', '🤝', '👌', '💪', '🫶', '❤️',
@@ -84,6 +109,7 @@
       '<path d="M16 16v1.5a2.5 2.5 0 0 1-2.5 2.5H4.5A2.5 2.5 0 0 1 2 17.5v-10A2.5 2.5 0 0 1 4.5 5M9 5h4.5A2.5 2.5 0 0 1 16 7.5V11l6-4v11M3 3l18 18"/>',
     download: '<path d="M12 3v13m-5-5 5 5 5-5M4 20h16"/>',
     lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
     wallpaper:
       '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/>',
   };
@@ -310,7 +336,7 @@
     return info.person?.activeText ? lc('people', info.person, 'activeText') : t('chat.status.away');
   }
   function initialText(info) {
-    if (info.kind === 'support') return t('chat.support.welcome');
+    if (info.kind === 'support') return msgText({ i18nConfig: SERVER ? 'chat.supportWelcome' : '', text: t('chat.support.welcome') });
     if (info.person)
       return info.person.friendMessage
         ? lc('profiles', info.person, 'friendMessage')
@@ -375,11 +401,23 @@
     for (const id of ids) total += unread(id);
     return total;
   }
+  const readPosts = new Map(); // chatId -> pending server read marker (debounced)
   function markRead(chatId) {
     ensureState();
     if (!chatId) return;
     const had = unread(chatId);
-    state.chatReads[chatId] = Date.now();
+    const list = state.messages[chatId] || [];
+    const latest = list.length ? Number(list[list.length - 1]?.time) || 0 : 0;
+    state.chatReads[chatId] = Math.max(Date.now(), latest);
+    if (SERVER && SZ.session.isLoggedIn && (had || !readPosts.has(chatId))) {
+      clearTimeout(readPosts.get(chatId));
+      readPosts.set(
+        chatId,
+        setTimeout(() => {
+          SZ.api.post('chats/' + encodeURIComponent(chatId) + '/read', { at: state.chatReads[chatId] }).catch(() => {});
+        }, 400)
+      );
+    }
     if (!state.readChats.includes(chatId)) state.readChats.push(chatId); // legacy readers
     SZ.store.saveSoon();
     if (had) listDirty = true;
@@ -424,16 +462,31 @@
       case 'system':
         return systemText(m);
       default:
-        return m.text || '';
+        return msgText(m);
     }
   }
   function systemText(m) {
-    if (!m.sys) return m.text || '';
+    if (!m.sys) return msgText(m);
     const p = m.sys.person ? personById(m.sys.person) : null;
-    return t(m.sys.key, {
-      name: p ? personName(p) : m.sys.name || '',
-      amount: m.sys.cents != null ? money(m.sys.cents) : '',
-    });
+    const name = p ? personName(p) : m.sys.name || '';
+    const amount = m.sys.cents != null ? money(m.sys.cents) : '';
+    // Server lines about money read differently for the sender, the taker and everyone else.
+    if (['packetClaim', 'transferAccept', 'transferReturn'].includes(m.sys.key)) {
+      const s = m.sys.sender ? personById(m.sys.sender) : null;
+      const sender = s ? personName(s) : m.sys.senderName || '';
+      const mine = myId();
+      if (m.sys.key === 'packetClaim') {
+        if (m.sys.sender === mine) return t('chat.system.packetClaimed', { name });
+        if (m.sys.person === mine) return t('server.chat.sys.youClaimed', { name: sender });
+        return t('server.chat.sys.claimed', { name, sender });
+      }
+      if (m.sys.key === 'transferAccept')
+        return m.sys.sender === mine ? t('chat.system.transferAccepted', { name }) : t('server.chat.sys.youAccepted');
+      return m.sys.sender === mine
+        ? t('server.chat.sys.transferReturned', { name, amount })
+        : t('server.chat.sys.youReturned', { amount });
+    }
+    return t(m.sys.key, { name, amount });
   }
   function cardName(m) {
     const p = m.personId ? personById(m.personId) : null;
@@ -443,6 +496,8 @@
   // ------------------------------------------------------------------ bubbles
   function tickHTML(m, ctx) {
     if (!m.self || m.type === 'recalled' || m.type === 'system') return '';
+    if (m.pending)
+      return `<span class="cx-tick" data-state="sending" role="img" aria-label="${esc(t('server.chat.sending'))}">${ico('check')}</span>`;
     const read = ctx.info.kind !== 'group' && timeOf(m, ctx.now) <= ctx.readUntil;
     return `<span class="cx-tick" data-state="${read ? 'read' : 'sent'}" role="img" aria-label="${esc(t(read ? 'chat.msg.read' : 'chat.msg.sent'))}">${ico(read ? 'checks' : 'check')}</span>`;
   }
@@ -459,11 +514,12 @@
   function moneyStatus(m) {
     const claims = Array.isArray(m.claims) ? m.claims : [];
     if (m.type === 'transfer') {
-      if (m.status === 'received') return t('chat.money.transferAccepted');
+      if (m.status === 'received') return m.self ? t('chat.money.transferAccepted') : t('server.chat.money.transferTaken');
       if (m.status === 'refunded') return t('chat.money.transferRefunded');
       return m.self ? t('chat.money.transferPending') : t('chat.money.transferIncoming');
     }
     if (m.status === 'refunded') return t('chat.money.packetRefunded');
+    if (!m.self && m.mine != null) return t('server.chat.money.youGot', { amount: money(m.mine) });
     if ((m.count || 1) > 1) {
       if (m.status === 'received') return t('chat.money.packetAllOpened');
       return t('chat.money.packetProgress', { n: claims.length, total: m.count });
@@ -475,7 +531,7 @@
     const id = esc(key);
     switch (m.type) {
       case 'emoji':
-        return `<div class="cx-bubble cx-b-emoji" tabindex="0"><span class="cx-text">${esc(m.text)}</span></div>`;
+        return `<div class="cx-bubble cx-b-emoji" tabindex="0"><span class="cx-text">${esc(msgText(m))}</span></div>`;
       case 'image': {
         const ratio = m.w > 0 && m.h > 0 ? m.w / m.h : 1;
         const w = ratio >= 1 ? 220 : clamp(Math.round(260 * ratio), 120, 220);
@@ -514,12 +570,16 @@
           ? t('chat.call.duration', { time: clock(m.duration || 0) })
           : m.missed
             ? t('chat.call.noAnswerShort')
-            : t('chat.call.cancelled');
+            : m.outcome === 'declined'
+              ? t('server.chat.call.declinedShort')
+              : m.outcome === 'busy'
+                ? t('server.chat.call.busyShort')
+                : t('chat.call.cancelled');
         const canCall = ctx.info.kind === 'friend';
         return `<button type="button" class="cx-bubble cx-b-call${m.connected ? '' : ' is-missed'}" data-action="${canCall ? 'cx-call' : 'cx-noop'}" data-id="${m.video ? 'video' : 'voice'}" aria-label="${esc(t(m.video ? 'chat.preview.videoCall' : 'chat.preview.voiceCall') + ' · ' + label)}">${ico(m.video ? 'video' : 'phone')}<span>${esc(label)}</span></button>`;
       }
       default:
-        return `<div class="cx-bubble cx-b-text" tabindex="0">${quoteHTML(m)}<span class="cx-text">${esc(m.text || '')}</span></div>`;
+        return `<div class="cx-bubble cx-b-text" tabindex="0">${quoteHTML(m)}<span class="cx-text">${esc(msgText(m))}</span></div>`;
     }
   }
   function avatarHTML(m, ctx) {
@@ -533,7 +593,7 @@
       }
     }
     const p = m.person ? personById(m.person) : ctx.info.person;
-    const photo = p ? avatarSource(p) : ctx.info.photo;
+    const photo = p ? avatarSource(p) : (m.person && m.photo) || ctx.info.photo;
     const img = `<img class="avatar avatar-32" ${imgSrc(photo)} alt="" loading="lazy">`;
     return p
       ? act(
@@ -666,7 +726,7 @@
       <div class="cx-quote-bar" hidden><span class="cx-quote-mark" aria-hidden="true">${ico('reply')}</span><div class="cx-quote-text"><b></b><span></span></div>${act('cx-quote-cancel', '', icon('close'), 'icon-button', `aria-label="${esc(t('chat.composer.cancelQuote'))}"`)}</div>
       <div class="cx-bar">
         ${act('cx-voice', '', ico('voice'), 'icon-button cx-mode', `aria-label="${esc(t('chat.composer.voiceMode'))}" aria-pressed="false"`)}
-        <div class="cx-input-wrap"><textarea class="cx-input" name="text" rows="1" maxlength="2000" placeholder="${esc(t('chat.composer.placeholder'))}" aria-label="${esc(t('chat.composer.label'))}" enterkeyhint="send" autocomplete="off"></textarea><button type="button" class="cx-hold" data-action="cx-hold" hidden aria-label="${esc(t('chat.composer.holdLabel'))}">${esc(t('chat.composer.hold'))}</button></div>
+        <div class="cx-input-wrap"><textarea class="cx-input" name="text" rows="1" maxlength="${LIMIT.text}" placeholder="${esc(t('chat.composer.placeholder'))}" aria-label="${esc(t('chat.composer.label'))}" enterkeyhint="send" autocomplete="off"></textarea><button type="button" class="cx-hold" data-action="cx-hold" hidden aria-label="${esc(t('chat.composer.holdLabel'))}">${esc(t('chat.composer.hold'))}</button></div>
         ${act('cx-emoji', '', ico('smile'), 'icon-button cx-emoji-btn', `aria-label="${esc(t('chat.composer.emoji'))}" aria-expanded="false"`)}
         ${act('cx-more', '', ico('plus'), 'icon-button cx-more', `aria-label="${esc(t('chat.composer.more'))}" aria-expanded="false"`)}
         <button type="submit" class="cx-send" hidden aria-label="${esc(t('common.send'))}">${ico('send')}</button>
@@ -743,7 +803,7 @@
   const TYPING_ROW = `<div class="cx-row cx-typing" hidden aria-hidden="true"><span class="cx-av"></span><div class="cx-col"><div class="cx-line"><div class="cx-bubble cx-b-typing"><i></i><i></i><i></i></div></div></div></div>`;
   function makeCtx(view) {
     const now = Date.now();
-    let readUntil = 0;
+    let readUntil = SERVER ? Number(state.chatPeerReads?.[view.chatId]) || 0 : 0;
     for (const { m } of view.items)
       if (!m.self && m.type !== 'system') readUntil = Math.max(readUntil, timeOf(m, now));
     return { info: view.info, now, readUntil };
@@ -765,7 +825,11 @@
         }
       }
     }
-    let html = `<p class="cx-note">${esc(t('chat.log.demoNote'))}</p>`;
+    let html = SERVER
+      ? (state.messages[view.chatId] || []).length >= cfgNum('chat.historyPerChat', 50) && !view.noMore
+        ? `<button type="button" class="btn btn-ghost btn-sm cx-older" data-action="cx-older">${esc(t('server.chat.older'))}</button>`
+        : ''
+      : `<p class="cx-note">${esc(t('chat.log.demoNote'))}</p>`;
     let prev = null;
     if (!view.items.length) {
       const text = initialText(view.info);
@@ -968,6 +1032,7 @@
     syncComposer(view);
     bind(view);
     markRead(chatId);
+    openOnServer(view);
     requestAnimationFrame(() => {
       const divider = view.log.querySelector('.cx-divider-new');
       if (divider && divider.offsetTop > view.log.clientHeight / 2) {
@@ -1033,7 +1098,7 @@
   function insertEmoji(view, emoji) {
     const input = view.input;
     if (view.voiceMode) setVoiceMode(view, false, false);
-    if (input.value.length + emoji.length > 2000) return;
+    if (input.value.length + emoji.length > LIMIT.text) return;
     const start = input.selectionStart ?? input.value.length;
     const end = input.selectionEnd ?? start;
     input.setRangeText(emoji, start, end, 'end');
@@ -1068,6 +1133,13 @@
     state.messages[chatId].push(m);
     if (m.self) state.chatReads[chatId] = Math.max(state.chatReads[chatId] || 0, m.time);
   }
+  /** Server mode: state.messages is server-owned (never saved by the app), so no rollback bookkeeping. */
+  function commitServer(mutate) {
+    ensureState();
+    mutate();
+    listDirty = true;
+    return true;
+  }
   function afterAppend(chatId, m, { reply = true } = {}) {
     const view = views.get(chatId);
     if (view?.el.isConnected) appendRow(view, m);
@@ -1079,7 +1151,7 @@
         refreshList();
       }
     } else emitUnread(chatId);
-    if (m.self && reply && !['call', 'system', 'recalled'].includes(m.type)) scheduleReply(chatId, m);
+    if (!SERVER && m.self && reply && !['call', 'system', 'recalled'].includes(m.type)) scheduleReply(chatId, m);
     SZ.emit('chat:message', { chatId, message: m });
   }
   /**
@@ -1090,6 +1162,7 @@
   function append(chatId, message, opts = {}) {
     if (!chatId || !message) return null;
     ensureState();
+    if (SERVER) return appendServer(String(chatId), message);
     const m = { id: SZ.uid('m'), self: true, type: 'text', time: Date.now(), ...message };
     if (!m.text) m.text = summary(m);
     if (!commitChats([chatId], () => pushMessage(chatId, m))) return null;
@@ -1105,6 +1178,216 @@
     applyWallpaper(view);
     renderLog(view, { keepScroll: !stick });
     if (stick) scrollToBottom(view);
+  }
+
+  // ------------------------------------------------------------------ server mode: sending, delivery, receipts
+  const SENDABLE = ['text', 'emoji', 'image', 'voice', 'file', 'location', 'contact'];
+  const chatPath = chatId => 'chats/' + encodeURIComponent(chatId);
+  /** A message typed here: shown at once (pending), confirmed or dropped when the server answers. */
+  function appendServer(chatId, message) {
+    const type = message.type || 'text';
+    if (message.self === false || !SENDABLE.includes(type)) {
+      // Gifts, call records and system lines are written by the server (IChat) and arrive over realtime.
+      return { id: SZ.uid('m'), time: Date.now(), ...message, type, self: message.self !== false, transient: true };
+    }
+    const clientId = SZ.uid('c');
+    const m = { self: true, time: Date.now(), ...message, type, id: clientId, clientId, pending: true };
+    if (!m.text) m.text = summary(m);
+    commitServer(() => pushMessage(chatId, m));
+    afterAppend(chatId, m, { reply: false });
+    const body = { ...message, type, clientId };
+    for (const k of ['self', 'time', 'id', 'demo', 'transcript', 'photo', 'city']) delete body[k];
+    SZ.api
+      .post(chatPath(chatId) + '/messages', body)
+      .then(res => res?.message && upsert(chatId, res.message))
+      .catch(e => {
+        dropLocal(chatId, clientId);
+        SZ.api.fail(e);
+      });
+    return m;
+  }
+  /** Insert or replace a server message (matching the pending copy by clientId). */
+  function upsert(chatId, raw, { quiet = false } = {}) {
+    if (!chatId || !raw?.id) return null;
+    ensureState();
+    const m = { ...raw };
+    const list = state.messages[chatId] || (state.messages[chatId] = []);
+    let i = list.findIndex(x => x && x.id === m.id);
+    if (i < 0 && m.clientId) i = list.findIndex(x => x && x.clientId === m.clientId && x.id !== m.id);
+    if (i >= 0) {
+      list[i] = m;
+      for (let j = list.length - 1; j >= 0; j--) if (j !== i && list[j]?.id === m.id) list.splice(j, 1);
+      listDirty = true;
+      refreshView(chatId);
+      emitUnread(chatId);
+      return m;
+    }
+    list.push(m);
+    if (list.length > 1 && timeOf(m) < timeOf(list[list.length - 2])) list.sort((a, b) => timeOf(a) - timeOf(b));
+    if (!m.self) clearReply(chatId); // their message ends the typing indicator
+    listDirty = true;
+    if (quiet) refreshView(chatId);
+    else if (list[list.length - 1] === m) afterAppend(chatId, m, { reply: false });
+    else {
+      refreshView(chatId);
+      emitUnread(chatId);
+    }
+    return m;
+  }
+  function dropLocal(chatId, id) {
+    const list = state.messages[chatId];
+    const i = Array.isArray(list) ? list.findIndex(x => x && x.id === id) : -1;
+    if (i < 0) return;
+    list.splice(i, 1);
+    listDirty = true;
+    refreshView(chatId);
+  }
+  function refreshView(chatId) {
+    const view = views.get(chatId);
+    if (!view?.el.isConnected) return;
+    const stick = nearBottom(view);
+    renderLog(view, { keepScroll: !stick });
+    if (stick) scrollToBottom(view);
+  }
+  /** Members who joined after the people list loaded: fetch them once, then redraw. */
+  function ensureKnown(chatId, m) {
+    const ids = [m?.person, /^(g|support$|merchant:)/.test(chatId) ? '' : chatId].filter(Boolean);
+    for (const id of ids)
+      if (!personById(id) && window.ShizhongCatalog?.ensurePerson)
+        window.ShizhongCatalog.ensurePerson(id).then(p => {
+          if (!p) return;
+          const view = views.get(chatId);
+          if (view?.el.isConnected) {
+            syncHeader(view);
+            refreshView(chatId);
+          }
+          listDirty = true;
+          refreshList();
+        });
+  }
+  if (SERVER) {
+    SZ.realtime.on('chat:message', payload => {
+      const { chatId, message } = payload || {};
+      if (!chatId || !message || blocked(chatId)) return;
+      ensureKnown(chatId, message);
+      upsert(chatId, message);
+    });
+    SZ.realtime.on('chat:update', payload => {
+      const { chatId, message } = payload || {};
+      if (!chatId || !message) return;
+      if (!(state.messages[chatId] || []).some(x => x?.id === message.id)) return upsert(chatId, message, { quiet: true });
+      upsert(chatId, message);
+      const view = views.get(chatId);
+      if (view?.pay === undefined && view?.el.isConnected) refreshMoneySheet(view, message.id);
+    });
+    SZ.realtime.on('chat:typing', payload => {
+      const { chatId, person, name } = payload || {};
+      if (!chatId || blocked(chatId)) return;
+      const job = replyJobs.get(chatId) || { timers: [], typing: false };
+      job.timers.forEach(clearTimeout);
+      job.timers = [setTimeout(() => clearReply(chatId), 5000)];
+      replyJobs.set(chatId, job);
+      const p = person ? personById(person) : null;
+      setTyping(chatId, true, p ? personName(p) : name || '');
+    });
+    SZ.realtime.on('chat:read', payload => {
+      const { chatId, at } = payload || {};
+      if (!chatId || !at) return;
+      state.chatPeerReads = state.chatPeerReads || {};
+      state.chatPeerReads[chatId] = Math.max(Number(state.chatPeerReads[chatId]) || 0, at);
+      const view = views.get(chatId);
+      if (!view?.el.isConnected || view.info.kind === 'group') return;
+      view.ctx.readUntil = Math.max(view.ctx.readUntil || 0, at);
+      for (const item of view.items)
+        if (item.m.self && !item.m.pending && timeOf(item.m) <= at) {
+          const tick = view.log.querySelector(`.cx-row[data-mid="${CSS.escape(item.key)}"] .cx-tick`);
+          if (tick) setTick(tick, true);
+        }
+    });
+    SZ.realtime.on('chat:readSelf', payload => {
+      const { chatId, at } = payload || {};
+      if (!chatId || !at) return;
+      state.chatReads[chatId] = Math.max(Number(state.chatReads[chatId]) || 0, at);
+      listDirty = true;
+      emitUnread(chatId);
+      refreshList();
+    });
+    SZ.realtime.on('chat:hidden', payload => payload?.chatId && dropLocal(payload.chatId, payload.id));
+    SZ.realtime.on('chat:cleared', payload => {
+      if (!payload?.chatId) return;
+      state.messages[payload.chatId] = [];
+      listDirty = true;
+      refreshView(payload.chatId);
+      emitUnread(payload.chatId);
+    });
+    // Missed anything while offline: re-read the conversations.
+    SZ.on('realtime:reconnected', () => SZ.api.refresh(['messages', 'chatReads', 'chatPeerReads']).catch(() => {}));
+    SZ.on('state:server', keys => {
+      if (!Array.isArray(keys) || !keys.some(k => ['messages', 'chatReads', 'chatPeerReads'].includes(k))) return;
+      ensureState();
+      for (const chatId of views.keys()) refreshView(chatId);
+      for (const chatId of Object.keys(state.messages)) emitUnread(chatId);
+      listDirty = true;
+      refreshList();
+    });
+  }
+  /** Support / merchant chats start on the server (welcome message) the first time they are opened. */
+  function openOnServer(view) {
+    if (!SERVER || !['support', 'merchant'].includes(view.info.kind) || (state.messages[view.chatId] || []).length) return;
+    SZ.api
+      .post(chatPath(view.chatId) + '/open')
+      .then(res => {
+        if (!Array.isArray(res?.messages)) return;
+        for (const m of res.messages) upsert(view.chatId, m, { quiet: true });
+        markRead(view.chatId);
+      })
+      .catch(() => {});
+  }
+  /** Older history (server mode keeps the latest messages of each chat in state). */
+  async function loadOlder(view, button) {
+    const list = state.messages[view.chatId] || [];
+    const first = list.find(m => m && !m.pending);
+    if (!first) return;
+    if (button) button.disabled = true;
+    try {
+      const res = await SZ.api.get(chatPath(view.chatId) + '/messages', { before: first.id, limit: 50 });
+      const have = new Set(list.map(m => m?.id));
+      const older = (res?.items || []).filter(m => !have.has(m.id));
+      state.messages[view.chatId] = [...older, ...list];
+      view.noMore = !res?.more;
+      const log = view.log;
+      const before = log.scrollHeight - log.scrollTop;
+      renderLog(view);
+      log.scrollTop = log.scrollHeight - before;
+    } catch (e) {
+      SZ.api.fail(e);
+      if (button?.isConnected) button.disabled = false;
+    }
+  }
+  /** A short tone as a voice note (the "sample" when no microphone is available). */
+  function toneWav(seconds = 2) {
+    const rate = 8000;
+    const n = rate * seconds;
+    const buf = new ArrayBuffer(44 + n * 2);
+    const v = new DataView(buf);
+    const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF');
+    v.setUint32(4, 36 + n * 2, true);
+    str(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true);
+    v.setUint32(28, rate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    str(36, 'data');
+    v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+      const fade = Math.min(1, i / 400, (n - i) / 400);
+      v.setInt16(44 + i * 2, Math.sin((2 * Math.PI * 523 * i) / rate) * 6000 * fade, true);
+    }
+    return new Blob([buf], { type: 'audio/wav' });
   }
 
   // ------------------------------------------------------------------ demo replies
@@ -1318,6 +1601,7 @@
   }
   /** Red packets / transfers nobody took within 24 hours go back to the wallet. */
   function settleExpired(chatId) {
+    if (SERVER) return; // the server refunds expired money (PacketExpiryWorker)
     const now = Date.now();
     const expired = (state.messages[chatId] || []).filter(
       m =>
@@ -1375,7 +1659,7 @@
       html,
       className: 'cx-sheet ' + (opts.cls || ''),
       mode: opts.mode || 'auto',
-      meta: { cxChat: view.chatId },
+      meta: { cxChat: view.chatId, ...(opts.meta || {}) },
       onClose: opts.onClose,
     });
   }
@@ -1425,6 +1709,20 @@
     });
     if (!ok) return;
     const chatId = view.chatId;
+    if (SERVER) {
+      try {
+        await SZ.api.post(chatPath(chatId) + '/clear');
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      state.messages[chatId] = [];
+      listDirty = true;
+      closeMenu(view);
+      refreshView(chatId);
+      emitUnread(chatId);
+      toast(t('chat.clear.done'), { type: 'success' });
+      return;
+    }
     const keys = visibleItems(chatId)
       .filter(i => !i.local)
       .map(i => i.key);
@@ -1446,7 +1744,7 @@
     switch (m.type || 'text') {
       case 'text':
       case 'emoji':
-        return m.text || '';
+        return msgText(m);
       case 'file':
       case 'image':
         return m.name || '';
@@ -1529,7 +1827,11 @@
   function canRecall(item) {
     const m = item.m;
     return (
-      item.local && m.self && FORWARDABLE.includes(m.type || 'text') && Date.now() - timeOf(m) <= RECALL_MS
+      item.local &&
+      m.self &&
+      !m.pending &&
+      FORWARDABLE.includes(m.type || 'text') &&
+      Date.now() - timeOf(m) <= RECALL_MS
     );
   }
   function openMessageMenu(view, key) {
@@ -1544,6 +1846,9 @@
       row('reply', t('chat.menu.quote'), 'cx-m-quote', key, '', false),
       FORWARDABLE.includes(type) ? row('forward', t('chat.menu.forward'), 'cx-m-forward', key) : '',
       canRecall(item) ? row('recall', t('chat.menu.recall'), 'cx-m-recall', key, '', false) : '',
+      SERVER && !m.self && !m.desk && item.local
+        ? row('flag', t('server.chat.report'), 'cx-m-report', key, '', false)
+        : '',
       row('trash', t('chat.menu.delete'), 'cx-m-delete', key, 'danger', false),
     ].join('');
     const preview = `<div class="cx-menu-preview"><span class="cx-menu-author">${esc(authorName(m, view.ctx))} · ${esc(SZ.fmt.time(timeOf(m)))}</span><p>${esc(excerpt(summary(m), 120))}</p></div>`;
@@ -1590,6 +1895,16 @@
     const media = record.media;
     const original = record.text;
     const type = record.type || 'text';
+    if (SERVER) {
+      SZ.api
+        .post('messages/' + encodeURIComponent(key) + '/recall')
+        .then(res => {
+          if (type === 'text' && original) recalledText.set(key, original);
+          if (res?.message) upsert(view.chatId, res.message);
+        })
+        .catch(e => SZ.api.fail(e));
+      return;
+    }
     const ok = commitChats([view.chatId], () => {
       const live = localMessage(view.chatId, key);
       for (const k of Object.keys(live)) if (!['id', 'self', 'time'].includes(k)) delete live[k];
@@ -1605,6 +1920,25 @@
     const item = findItem(view, key);
     if (!item) return;
     const chatId = view.chatId;
+    if (SERVER) {
+      if (item.m.pending) return;
+      dropLocal(chatId, key);
+      SZ.api.del('messages/' + encodeURIComponent(key)).catch(e => {
+        upsert(chatId, item.m, { quiet: true });
+        SZ.api.fail(e);
+      });
+      toast(t('chat.menu.deleted'), {
+        action: {
+          label: t('common.undo'),
+          run: () =>
+            SZ.api
+              .post('messages/' + encodeURIComponent(key) + '/unhide')
+              .then(res => res?.message && upsert(chatId, res.message, { quiet: true }))
+              .catch(e => SZ.api.fail(e)),
+        },
+      });
+      return;
+    }
     let index = -1;
     let removed = null;
     const ok = commitChats([chatId], () => {
@@ -1711,6 +2045,20 @@
     });
     if (!ok) return;
     const m = item.m;
+    if (SERVER) {
+      try {
+        const res = await SZ.api.post(chatPath(targetId) + '/messages', { forwardFrom: item.key, clientId: SZ.uid('c') });
+        if (res?.message) upsert(targetId, res.message, { quiet: !views.get(targetId) });
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      closeMenu(view);
+      toast(t('chat.forward.done', { name: target.name }), {
+        type: 'success',
+        action: { label: t('chat.forward.open'), run: () => open(targetId) },
+      });
+      return;
+    }
     const record = { type: m.type || 'text', text: m.text || '', forwarded: true };
     for (const k of [
       'name',
@@ -1794,7 +2142,7 @@
       if (file.size > (kind === 'image' ? LIMIT.image : LIMIT.file)) {
         toast(
           t(kind === 'image' ? 'chat.image.tooLarge' : 'chat.file.tooLarge', {
-            n: kind === 'image' ? 10 : 20,
+            n: Math.round((kind === 'image' ? LIMIT.image : LIMIT.file) / 1048576),
           }),
           {
             type: 'error',
@@ -1970,6 +2318,11 @@
   }
   function sendSampleVoice(view) {
     if (!SZ.requireLogin(t('chat.loginReason'))) return false;
+    // Server mode: a real (short tone) recording, so the other side can play it too.
+    if (SERVER) {
+      sendVoice(view, { blob: toneWav(2), mime: 'audio/wav', seconds: 2 });
+      return true;
+    }
     return !!append(view.chatId, {
       type: 'voice',
       demo: true,
@@ -2233,10 +2586,10 @@
             : ''
         }
         <label class="form-group"><span class="form-label cx-amount-label">${esc(amountLabel)}</span><span class="cx-amount-field"><span class="cx-currency" aria-hidden="true">RM</span><input class="field num" name="amount" inputmode="decimal" autocomplete="off" maxlength="12" required placeholder="0.00" value="${esc(draft.amount || '')}"></span></label>
-        <label class="form-group"><span class="form-label">${esc(t(packet ? 'chat.money.greeting' : 'chat.money.note'))} <span class="cx-optional">${esc(t('common.optional'))}</span></span><input class="field" name="note" maxlength="40" autocomplete="off" placeholder="${esc(t(packet ? 'chat.money.defaultNote' : 'chat.money.notePlaceholder'))}" value="${esc(draft.note || '')}"></label>
+        <label class="form-group"><span class="form-label">${esc(t(packet ? 'chat.money.greeting' : 'chat.money.note'))} <span class="cx-optional">${esc(t('common.optional'))}</span></span><input class="field" name="note" maxlength="${LIMIT.note}" autocomplete="off" placeholder="${esc(t(packet ? 'chat.money.defaultNote' : 'chat.money.notePlaceholder'))}" value="${esc(draft.note || '')}"></label>
         <p class="form-hint">${esc(t('chat.money.balance', { amount: money(walletCents()) }))}</p>
         <p class="form-error" role="alert" hidden></p>
-        <p class="caption cx-sheet-note">${esc(t('chat.money.demoNote'))}</p>
+        <p class="caption cx-sheet-note">${esc(t(SERVER ? 'server.chat.money.realNote' : 'chat.money.demoNote'))}</p>
         ${foot(`<button type="submit" class="btn btn-primary btn-lg btn-block">${esc(t(packet ? 'chat.money.packetNext' : 'chat.money.transferNext'))}</button>`)}
       </form>`,
       { mode }
@@ -2304,7 +2657,7 @@
     sheet(
       view,
       t(packet ? 'chat.money.confirmPacket' : 'chat.money.confirmTransfer'),
-      `<div class="cx-pay"><img class="avatar avatar-56" ${imgSrc(view.info.photo)} alt=""><p class="cx-pay-to">${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name }))}</p><strong class="cx-pay-amount num">${esc(money(p.cents))}</strong>${detail ? `<p class="caption">${esc(detail)}</p>` : ''}<p class="cx-pay-note">${esc(p.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p></div><dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.payWith'))}</dt><dd>${esc(t('chat.money.method'))}</dd></div><div><dt>${esc(t('chat.money.balanceAfter'))}</dt><dd class="num">${esc(money(walletCents() - p.cents))}</dd></div></dl><p class="caption cx-sheet-note">${esc(t(packet ? 'chat.money.expiryNote' : 'chat.money.transferExpiryNote'))}</p>${foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-pay" data-id="${esc(p.id)}">${esc(t('chat.money.pay', { amount: money(p.cents) }))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-pay-edit">${esc(t('chat.money.edit'))}</button>`)}`,
+      `<div class="cx-pay"><img class="avatar avatar-56" ${imgSrc(view.info.photo)} alt=""><p class="cx-pay-to">${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name }))}</p><strong class="cx-pay-amount num">${esc(money(p.cents))}</strong>${detail ? `<p class="caption">${esc(detail)}</p>` : ''}<p class="cx-pay-note">${esc(p.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p></div><dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.payWith'))}</dt><dd>${esc(t(SERVER ? 'server.chat.money.method' : 'chat.money.method'))}</dd></div><div><dt>${esc(t('chat.money.balanceAfter'))}</dt><dd class="num">${esc(money(walletCents() - p.cents))}</dd></div></dl><p class="caption cx-sheet-note">${esc(t(packet ? 'chat.money.expiryNote' : 'chat.money.transferExpiryNote'))}</p>${foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-pay" data-id="${esc(p.id)}">${esc(t('chat.money.pay', { amount: money(p.cents) }))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-pay-edit">${esc(t('chat.money.edit'))}</button>`)}`,
       { mode: 'replace' }
     );
   }
@@ -2328,6 +2681,32 @@
     p.done = true;
     if (button) button.disabled = true;
     const packet = p.kind === 'envelope';
+    if (SERVER) {
+      // The server draws lucky shares, debits the wallet (ledger) and delivers the packet.
+      const normal = p.mode === 'normal' && p.count > 1;
+      const amount = (normal ? Math.floor(p.cents / p.count) : p.cents) / 100;
+      SZ.api
+        .act('POST', chatPath(view.chatId) + '/packets', {
+          kind: p.kind,
+          amount,
+          count: p.count,
+          mode: p.mode,
+          note: p.note,
+          clientId: p.id,
+        })
+        .then(res => {
+          view.pay = null;
+          closeMenu(view);
+          if (res?.message) upsert(view.chatId, res.message);
+          toast(t(packet ? 'chat.money.packetSent' : 'chat.money.transferSent'), { type: 'success' });
+        })
+        .catch(e => {
+          p.done = false;
+          if (button?.isConnected) button.disabled = false;
+          SZ.api.fail(e);
+        });
+      return;
+    }
     const now = Date.now();
     const m = {
       id: p.id,
@@ -2375,7 +2754,7 @@
     afterAppend(view.chatId, m);
     toast(t(packet ? 'chat.money.packetSent' : 'chat.money.transferSent'), { type: 'success' });
   }
-  function moneyDetail(view, key) {
+  function moneyDetail(view, key, mode = 'auto') {
     settleExpired(view.chatId);
     const m = localMessage(view.chatId, key) || findItem(view, key)?.m;
     if (!m) return;
@@ -2384,9 +2763,22 @@
     const claimRows = claims
       .map(c => {
         const p = personById(c.person);
-        return `<li class="list-row"><img class="avatar avatar-32" ${imgSrc(p ? avatarSource(p) : view.info.photo)} alt=""><span class="cx-target-main"><strong>${esc(p ? personName(p) : view.info.name)}</strong><small>${esc(SZ.fmt.time(c.at))}</small></span><span class="row-value num">${esc(money(c.cents))}</span></li>`;
+        const name = p ? personName(p) : c.name || view.info.name;
+        const photo = p ? avatarSource(p) : c.photo || view.info.photo;
+        const me = SERVER && c.person === myId();
+        return `<li class="list-row${me ? ' is-me' : ''}"><img class="avatar avatar-32" ${imgSrc(photo)} alt=""><span class="cx-target-main"><strong>${esc(me ? t('chat.msg.you') : name)}</strong><small>${esc(SZ.fmt.time(c.at))}</small></span><span class="row-value num">${esc(money(c.cents))}</span></li>`;
       })
       .join('');
+    // Server mode: the receiving side opens red packets and accepts or returns transfers here.
+    const open = SERVER && !m.self && m.status === 'pending' && (m.expiresAt || Infinity) > Date.now();
+    const actions = !open
+      ? ''
+      : packet
+        ? m.mine == null
+          ? foot(`<button type="button" class="btn btn-primary btn-lg btn-block cx-open-packet" data-action="cx-claim" data-id="${esc(key)}">${esc(t('server.chat.money.open'))}</button>`)
+          : ''
+        : foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-accept" data-id="${esc(key)}">${esc(t('server.chat.money.accept'))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-return" data-id="${esc(key)}">${esc(t('server.chat.money.return'))}</button>`);
+    const got = SERVER && m.mine != null ? `<p class="cx-pay-got num">${esc(t('server.chat.money.youGot', { amount: money(m.mine) }))}</p>` : '';
     const left = (m.expiresAt || timeOf(m) + EXPIRE_MS) - Date.now();
     const statusCls = m.status === 'received' ? 'tag-success' : m.status === 'refunded' ? '' : 'tag-warning';
     const who = m.self
@@ -2395,8 +2787,34 @@
     sheet(
       view,
       t(packet ? 'chat.money.packetDetail' : 'chat.money.transferDetail'),
-      `<div class="cx-pay"><span class="cx-money-ico is-large ${packet ? 'is-packet' : 'is-transfer'}" aria-hidden="true">${ico(packet ? 'envelope' : 'transfer')}</span><p class="cx-pay-to">${esc(who)}</p><strong class="cx-pay-amount num">${esc(money(m.cents))}</strong><p class="cx-pay-note">${esc(m.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p><span class="tag ${statusCls}">${esc(moneyStatus(m))}</span></div>${claimRows ? `<h3 class="cx-sheet-sub">${esc(t('chat.money.claims', { n: claims.length, total: m.count || 1 }))}</h3><ul class="list cx-claims">${claimRows}</ul>` : ''}<dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.sentAt'))}</dt><dd>${esc(SZ.fmt.dateTime(timeOf(m)))}</dd></div>${m.status === 'refunded' && m.refundedCents ? `<div><dt>${esc(t('chat.money.refundedAmount'))}</dt><dd class="num">${esc(money(m.refundedCents))}</dd></div>` : ''}<div><dt>${esc(t('chat.money.reference'))}</dt><dd class="cx-mono">${esc(m.id)}</dd></div></dl>${m.status === 'pending' && left > 0 ? `<p class="caption cx-sheet-note">${esc(t('chat.money.expiresIn', { time: SZ.fmt.relative(Date.now() + left) }))}</p>` : ''}`
+      `<div class="cx-pay"><span class="cx-money-ico is-large ${packet ? 'is-packet' : 'is-transfer'}" aria-hidden="true">${ico(packet ? 'envelope' : 'transfer')}</span><p class="cx-pay-to">${esc(who)}</p><strong class="cx-pay-amount num">${esc(money(m.cents))}</strong><p class="cx-pay-note">${esc(m.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p>${got}<span class="tag ${statusCls}">${esc(moneyStatus(m))}</span></div>${claimRows ? `<h3 class="cx-sheet-sub">${esc(t('chat.money.claims', { n: claims.length, total: m.count || 1 }))}</h3><ul class="list cx-claims">${claimRows}</ul>` : ''}<dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.sentAt'))}</dt><dd>${esc(SZ.fmt.dateTime(timeOf(m)))}</dd></div>${m.status === 'refunded' && m.refundedCents ? `<div><dt>${esc(t('chat.money.refundedAmount'))}</dt><dd class="num">${esc(money(m.refundedCents))}</dd></div>` : ''}<div><dt>${esc(t('chat.money.reference'))}</dt><dd class="cx-mono">${esc(m.id)}</dd></div></dl>${m.status === 'pending' && left > 0 ? `<p class="caption cx-sheet-note">${esc(t('chat.money.expiresIn', { time: SZ.fmt.relative(Date.now() + left) }))}</p>` : ''}${actions}`,
+      { mode, meta: { cxMoney: key } }
     );
+  }
+  /** Server mode: a money card changed (claimed, accepted, refunded) while its detail sheet is open. */
+  function refreshMoneySheet(view, key) {
+    const top = SZ.overlay.top();
+    if (top?.meta?.cxMoney === key && top.meta.cxChat === view.chatId) moneyDetail(view, key, 'replace');
+  }
+  async function settleMoney(view, key, action, button) {
+    if (!SZ.requireLogin(t('chat.loginReason'))) return;
+    if (button) button.disabled = true;
+    try {
+      const res = await SZ.api.act('POST', 'packets/' + encodeURIComponent(key) + '/' + action);
+      if (res?.message) upsert(view.chatId, res.message);
+      toast(
+        t(action === 'claim' ? 'server.chat.money.claimed' : action === 'accept' ? 'server.chat.money.accepted' : 'server.chat.money.returned', {
+          amount: money(res?.cents || 0),
+        }),
+        { type: action === 'return' ? 'info' : 'success' }
+      );
+      moneyDetail(view, key, 'replace');
+    } catch (e) {
+      if (button?.isConnected) button.disabled = false;
+      SZ.api.fail(e);
+      if (['money.empty', 'money.expired', 'money.alreadyClaimed', 'money.settled'].includes(e?.code))
+        SZ.api.get('packets/' + encodeURIComponent(key)).then(r => r?.message && upsert(view.chatId, r.message)).catch(() => {});
+    }
   }
 
   // ------------------------------------------------------------------ location
@@ -2675,6 +3093,204 @@
       const off = layer.el.querySelector('.cx-call-self-off');
       if (off) off.hidden = !on;
     }
+    if (liveCall?.room && liveCall.layer === layer && (what === 'mic' || what === 'camera'))
+      liveCall.room.mute(what === 'mic' ? 'audio' : 'video', on);
+  }
+
+  // ------------------------------------------------------------------ server mode: real calls (signalling + SZ.rtc media)
+  let liveCall = null; // { id, chatId, video, role, status, layer, timers, room, acceptedHere, ended }
+  const CALL_END_TEXT = {
+    declined: 'server.chat.call.declined',
+    cancelled: 'chat.call.cancelled',
+    missed: 'chat.call.noAnswer',
+    busy: 'server.chat.call.busy',
+    ended: 'server.chat.call.ended',
+  };
+  async function startCallServer(view, video) {
+    const info = view.info;
+    if (info.kind !== 'friend') return;
+    if (!SZ.requireLogin(t('chat.loginReason'))) return;
+    if (liveCall) return toast(t('server.chat.call.inCall'));
+    if (SZ.config('call.enabled', true) === false) return toast(t('server.error.call.disabled'), { type: 'error' });
+    closePanels(view);
+    stopPlayback();
+    let res;
+    try {
+      res = await SZ.api.post('calls', { chatId: view.chatId, video });
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    if (res?.call?.status === 'busy') return toast(t('server.chat.call.busy'), { type: 'error' });
+    openCallScreen(res.call, view.chatId, 'caller');
+  }
+  function callStatusText(c) {
+    if (c.status === 'connected') return clock(c.started ? (Date.now() - c.started) / 1000 : 0);
+    if (c.status === 'ringing')
+      return c.role === 'caller' ? t('chat.call.calling') : t(c.video ? 'server.chat.call.incomingVideo' : 'server.chat.call.incomingVoice');
+    return t(CALL_END_TEXT[c.status] || 'server.chat.call.ended');
+  }
+  function callControls(c) {
+    if (c.status === 'ringing' && c.role === 'callee')
+      return `<button type="button" class="cx-call-btn is-end" data-action="cx-call-decline"><span class="cx-call-circle">${ico('end')}</span><span class="cx-call-label">${esc(t('server.chat.call.decline'))}</span></button><button type="button" class="cx-call-btn is-accept" data-action="cx-call-accept"><span class="cx-call-circle">${icon(c.video ? 'video' : 'phone')}</span><span class="cx-call-label">${esc(t('server.chat.call.accept'))}</span></button>`;
+    return `<button type="button" class="cx-call-btn" data-action="cx-call-toggle" data-id="mic" aria-pressed="false"><span class="cx-call-circle">${ico('micOff')}</span><span class="cx-call-label">${esc(t('chat.call.mute'))}</span></button>${
+      c.video
+        ? `<button type="button" class="cx-call-btn" data-action="cx-call-toggle" data-id="camera" aria-pressed="false"><span class="cx-call-circle">${ico('videoOff')}</span><span class="cx-call-label">${esc(t('chat.call.cameraOff'))}</span></button>`
+        : `<button type="button" class="cx-call-btn" data-action="cx-call-toggle" data-id="speaker" aria-pressed="false"><span class="cx-call-circle">${icon('volume')}</span><span class="cx-call-label">${esc(t('chat.call.speaker'))}</span></button>`
+    }<button type="button" class="cx-call-btn is-end" data-action="close"><span class="cx-call-circle">${ico('end')}</span><span class="cx-call-label">${esc(t('chat.call.end'))}</span></button>`;
+  }
+  function openCallScreen(call, chatId, role) {
+    const info = peer(chatId);
+    const other = role === 'caller' ? call.callee : call.caller;
+    const photo = info.person ? avatarSource(info.person) : other?.photo || info.photo;
+    const name = info.person ? info.name : other?.name || info.name;
+    const c = { id: call.id, chatId, video: !!call.video, role, status: call.status, timers: [], room: null, started: 0, ended: false };
+    liveCall = c;
+    const titleId = SZ.uid('cx-call');
+    c.layer = SZ.overlay.open({
+      kind: 'raw',
+      mode: 'push',
+      meta: { kind: 'screen', cxChat: chatId, call: true, callId: call.id },
+      html: `<section class="full-screen cx-call${c.video ? ' is-video' : ''} is-real" role="dialog" aria-modal="true" aria-labelledby="${titleId}" tabindex="-1" data-call-id="${esc(call.id)}">
+        <img class="cx-call-bg" ${imgSrc(photo)} alt="">
+        <video class="cx-call-remote" autoplay playsinline hidden></video>
+        <div class="cx-call-scrim" aria-hidden="true"></div>
+        <div class="cx-call-top"><span class="cx-call-badge">${ico('lock')}<span>${esc(t(c.video ? 'server.chat.call.video' : 'server.chat.call.voice'))}</span></span></div>
+        <div class="cx-call-peer"><span class="cx-call-avatar"><img ${imgSrc(photo)} alt=""></span><h2 id="${titleId}">${esc(name)}</h2><p class="cx-call-status num" role="status"></p><p class="cx-call-note caption" hidden></p></div>
+        ${c.video ? `<div class="cx-call-self"><video class="cx-call-local" autoplay playsinline muted hidden></video><img ${imgSrc(state.profile?.photo || 'logo.png')} alt="${esc(t('chat.call.selfView'))}"><span class="cx-call-self-off" hidden>${ico('videoOff')}</span></div>` : ''}
+        <div class="cx-call-audio" hidden></div>
+        <div class="cx-call-controls"></div>
+      </section>`,
+      onClose: () => hangUp(c),
+    });
+    drawCall(c);
+    c.timers.push(setInterval(() => c.status === 'connected' && drawStatus(c), 1000));
+    return c;
+  }
+  function drawStatus(c) {
+    const el = c.layer?.el.querySelector('.cx-call-status');
+    if (el) el.textContent = callStatusText(c);
+  }
+  function drawCall(c) {
+    if (!c.layer?.el.isConnected) return;
+    c.layer.el.querySelector('.cx-call').classList.toggle('is-connected', c.status === 'connected');
+    c.layer.el.querySelector('.cx-call-controls').innerHTML = callControls(c);
+    drawStatus(c);
+  }
+  function callNote(c, text) {
+    const el = c.layer?.el.querySelector('.cx-call-note');
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
+  /** Media: Cloudflare Realtime through SZ.rtc; without it the call stays on the avatar screen with a note. */
+  async function startMedia(c) {
+    let status = { configured: false };
+    try {
+      status = await SZ.rtc.status();
+    } catch (_) {}
+    if (c.ended) return;
+    if (!status.configured) return callNote(c, t('server.chat.call.noMedia'));
+    try {
+      c.room = await SZ.rtc.join('call:' + c.id, {
+        audio: true,
+        video: c.video,
+        onTrack(track, pub, stream) {
+          if (!c.layer?.el.isConnected) return;
+          if (track.kind === 'video') {
+            const v = c.layer.el.querySelector('.cx-call-remote');
+            v.srcObject = stream;
+            v.hidden = false;
+          } else {
+            const a = document.createElement('audio');
+            a.autoplay = true;
+            a.srcObject = stream;
+            c.layer.el.querySelector('.cx-call-audio').append(a);
+          }
+        },
+      });
+      if (c.ended) return c.room.leave().catch(() => {});
+      const local = c.layer?.el.querySelector('.cx-call-local');
+      if (local && c.room.localStream) {
+        local.srcObject = c.room.localStream;
+        local.hidden = false;
+      }
+      callNote(c, '');
+    } catch (e) {
+      callNote(c, SZ.api.errorText(e));
+    }
+  }
+  function setCallStatus(c, status) {
+    if (c.ended) return;
+    c.status = status;
+    if (status === 'connected') {
+      c.started = c.started || Date.now();
+      drawCall(c);
+      startMedia(c);
+      return;
+    }
+    if (status !== 'ringing') {
+      c.ended = true;
+      drawCall(c);
+      finishCall(c);
+      c.timers.push(setTimeout(() => c.layer?.el.isConnected && SZ.overlay.close({ layer: c.layer, force: true }), 1400));
+    }
+  }
+  function finishCall(c) {
+    c.room?.leave?.().catch?.(() => {});
+    c.room = null;
+    if (liveCall === c) liveCall = null;
+  }
+  /** Closing the call screen hangs up (cancel while ringing, decline an incoming call). */
+  function hangUp(c) {
+    c.timers.forEach(id => {
+      clearTimeout(id);
+      clearInterval(id);
+    });
+    if (!c.ended) {
+      c.ended = true;
+      const action = c.status === 'ringing' ? (c.role === 'caller' ? 'cancel' : 'decline') : 'hangup';
+      SZ.api.post('calls/' + c.id + '/' + action).catch(() => {});
+    }
+    finishCall(c);
+  }
+  async function answerCall(c, accept) {
+    if (!c || c.ended) return;
+    if (!accept) {
+      SZ.overlay.close({ layer: c.layer, force: true });
+      return;
+    }
+    c.acceptedHere = true;
+    try {
+      const res = await SZ.api.post('calls/' + c.id + '/accept');
+      if (res?.call?.status === 'connected') setCallStatus(c, 'connected');
+      else if (res?.call) setCallStatus(c, res.call.status);
+    } catch (e) {
+      SZ.api.fail(e);
+      SZ.overlay.close({ layer: c.layer, force: true });
+    }
+  }
+  if (SERVER) {
+    SZ.realtime.on('call:ring', payload => {
+      const call = payload?.call;
+      if (!call || liveCall || blocked(call.caller?.id)) return;
+      const chatId = payload.chatId || call.caller?.id;
+      const show = () => openCallScreen(call, chatId, 'callee');
+      if (!personById(chatId) && window.ShizhongCatalog?.ensurePerson) window.ShizhongCatalog.ensurePerson(chatId).finally(show);
+      else show();
+    });
+    const onCallEvent = status => payload => {
+      const call = payload?.call;
+      const c = liveCall;
+      if (!call || !c || c.id !== call.id) return;
+      if (status === 'connected' && c.role === 'callee' && !c.acceptedHere) {
+        // Answered on another device.
+        c.ended = true;
+        return SZ.overlay.close({ layer: c.layer, force: true });
+      }
+      setCallStatus(c, status);
+    };
+    SZ.realtime.on('call:accepted', onCallEvent('connected'));
+    for (const s of ['declined', 'cancelled', 'missed', 'ended', 'busy']) SZ.realtime.on('call:' + s, onCallEvent(s));
   }
 
   // ------------------------------------------------------------------ events
@@ -2685,7 +3301,14 @@
       e.stopPropagation();
       sendText(view);
     });
-    input.addEventListener('input', () => syncComposer(view));
+    input.addEventListener('input', () => {
+      syncComposer(view);
+      // Server mode: tell the other side we are typing (at most every 3 s).
+      if (SERVER && input.value.trim() && Date.now() - (view.typingSent || 0) > 3000 && view.info.kind !== 'support') {
+        view.typingSent = Date.now();
+        SZ.realtime.command('chat.typing', { chatId: view.chatId }).catch(() => {});
+      }
+    });
     input.addEventListener('focus', () => closePanels(view));
     input.addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
@@ -2818,7 +3441,7 @@
         return pickFiles(view, tool);
       case 'videoCall':
       case 'voiceCall':
-        return startCall(view, tool === 'videoCall');
+        return SERVER ? startCallServer(view, tool === 'videoCall') : startCall(view, tool === 'videoCall');
       case 'envelope':
       case 'transfer':
         return moneyForm(view, tool);
@@ -2872,7 +3495,24 @@
           copyText(view.copyValue || '').then(ok => toast(t(ok ? 'common.copied' : 'chat.menu.copyFailed')))
         );
       case 'cx-call':
-        return view && startCall(view, id === 'video');
+        return view && (SERVER ? startCallServer(view, id === 'video') : startCall(view, id === 'video'));
+      case 'cx-call-accept':
+        return answerCall(liveCall, true);
+      case 'cx-call-decline':
+        return answerCall(liveCall, false);
+      case 'cx-claim':
+        return view && settleMoney(view, id, 'claim', el);
+      case 'cx-accept':
+        return view && settleMoney(view, id, 'accept', el);
+      case 'cx-return':
+        return view && settleMoney(view, id, 'return', el);
+      case 'cx-older':
+        return view && loadOlder(view, el);
+      case 'cx-m-report': {
+        closeMenu(view);
+        if (!view) return;
+        return window.ShizhongReports?.open?.({ targetType: 'message', targetId: id, personId: findItem(view, id)?.m.person || '' });
+      }
       case 'cx-call-toggle':
         return toggleCall(el, id);
       case 'cx-pay':
@@ -2937,8 +3577,7 @@
       case 'cx-m-copy': {
         const item = findItem(view, id);
         closeMenu(view);
-        if (item)
-          copyText(item.m.text || '').then(ok => toast(t(ok ? 'common.copied' : 'chat.menu.copyFailed')));
+        if (item) copyText(msgText(item.m)).then(ok => toast(t(ok ? 'common.copied' : 'chat.menu.copyFailed')));
         return;
       }
       case 'cx-m-quote': {
@@ -3042,5 +3681,8 @@
     /** One-line text for a message (list previews, notifications). */
     preview: summary,
     isOpen: chatId => !!views.get(chatId)?.el.isConnected,
+    /** Server mode: put a message the server returned (greeting, gift…) into its chat. */
+    ingest: (chatId, message) => upsert(String(chatId), message),
+    text: msgText,
   };
 })();
