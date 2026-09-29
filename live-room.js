@@ -556,7 +556,7 @@
     return `${media}<div class="lr-shade" aria-hidden="true"></div>
       <header class="lr-top">
         <div class="lr-host">
-          <button type="button" class="lr-host-main" data-action="lr-user" data-id="${esc(id)}" aria-label="${esc(t('live.card.open', { name }))}">${img(avatarOf(host), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lr-title-${r.uid}">${esc(name)}</strong><span class="lr-likes num">${esc(t('live.room.likes', { count: compact(likes) }))}</span></span></button>
+          <button type="button" class="lr-host-main" data-action="lr-user" data-id="${esc(id)}" aria-label="${esc(t('live.card.open', { name }))}">${img(avatarOf(host), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lr-title-${r.uid}">${SZ.vname(esc(name), host, 13)}</strong><span class="lr-likes num">${esc(t('live.room.likes', { count: compact(likes) }))}</span></span></button>
           ${followButton(id, 'lr-follow lr-follow-pill')}
         </div>
         <button type="button" class="lr-viewers" data-action="lr-audience" aria-label="${esc(t('live.audience.open', { count: fmt().number(r.watch) }))}"><span class="lr-faces" aria-hidden="true">${faces.map(p => img(avatarOf(p))).join('')}</span><span class="lr-viewer-count num">${esc(compact(r.watch))}</span></button>
@@ -1350,7 +1350,7 @@
     const stats = p.self
       ? ''
       : `<dl class="lr-card-stats"><div><dt>${esc(t('live.card.followers'))}</dt><dd class="num">${esc(compact(followers))}</dd></div><div><dt>${esc(t('live.card.following'))}</dt><dd class="num">${esc(fmt().number(88 + (seed % 460)))}</dd></div><div><dt>${esc(t('live.card.likes'))}</dt><dd class="num">${esc(compact(followers * 3 + (seed % 300)))}</dd></div></dl>`;
-    const body = `<div class="lr-card-head">${img(avatarOf(p), '', 'avatar avatar-72')}<div class="lr-card-name"><h3>${esc(name)} ${levelChip(id)}</h3>${meta ? `<p>${esc(meta)}</p>` : ''}${status}</div></div>${stats}${bio ? `<p class="lr-card-bio">${esc(bio)}</p>` : ''}${
+    const body = `<div class="lr-card-head">${img(avatarOf(p), '', 'avatar avatar-72')}<div class="lr-card-name"><h3>${SZ.vname(esc(name), p.self ? 'self' : p, 15)} ${levelChip(id)}</h3>${meta ? `<p>${esc(meta)}</p>` : ''}${status}</div></div>${stats}${bio ? `<p class="lr-card-bio">${esc(bio)}</p>` : ''}${
       tags.length
         ? `<div class="lr-card-tags">${tags
             .slice(0, 4)

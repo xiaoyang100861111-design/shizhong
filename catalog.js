@@ -523,7 +523,7 @@
     return `<div class="checkout-person">${act('person', p.id, `${avatarHTML(p, 56)}${p.online ? '<span class="checkout-online-dot" aria-hidden="true"></span>' : ''}`, 'checkout-person-avatar', 'tabindex="-1" aria-hidden="true"')}<div class="checkout-person-head">${act(
       'person',
       p.id,
-      `<span class="checkout-person-name">${html(name)}</span>${p.age ? `<span class="checkout-person-age">${esc(t('catalog.person.age', { n: p.age }))}</span>` : ''}`,
+      `<span class="checkout-person-name">${SZ.vname(html(name), p, 15)}</span>${p.age ? `<span class="checkout-person-age">${esc(t('catalog.person.age', { n: p.age }))}</span>` : ''}`,
       'checkout-person-link',
       `aria-label="${esc(t('catalog.person.viewProfile', { name }))}"`
     )}<p class="checkout-person-status"><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span><span aria-hidden="true">·</span><span>${html(personPlace(p))}</span></p></div>${act('greet', p.id, esc(greeted ? t('catalog.person.message') : t('catalog.person.greet')), 'btn btn-sm btn-tonal checkout-person-cta')}<div class="checkout-person-body"><p class="checkout-person-bio">${html(txt('people', p, 'bio'))}</p>${tags.length ? `<div class="checkout-tags">${tags.map(tag => `<span class="tag">${html(tag)}</span>`).join('')}</div>` : ''}</div></div>`;
@@ -566,7 +566,7 @@
     const text = own ? post.text || '' : txt('posts', post, 'text');
     const privateOnly = ['仅自己', 'private', 'self'].includes(post.visibility);
     const count = commentCount(post);
-    return `<article class="checkout-post" data-post-id="${esc(post.id)}"><header class="checkout-post-head">${act(own ? 'edit-profile' : 'person', own ? '' : author.id, avatar, 'checkout-post-avatar', `aria-label="${esc(t('catalog.person.viewProfile', { name: author.name }))}"`)}<div class="checkout-post-author"><h3>${html(author.name)}</h3><p>${postTime(post)}${place ? ` · ${html(place)}` : ''}</p></div>${own ? `${post.pending ? `<span class="tag tag-warning">${esc(t('server.social.pending'))}</span>` : ''}${privateOnly ? `<span class="tag">${esc(t('catalog.post.private'))}</span>` : ''}` : followButton(author.id, true)}</header>${text ? `<p class="checkout-post-text">${html(text).replace(/\n/g, '<br>')}</p>` : ''}${photo ? act('photo', post.id, img(photo, topic || t('catalog.post.photo')), 'checkout-post-photo', `aria-label="${esc(t('catalog.post.openPhoto'))}"`) : ''}${topic ? `<p class="checkout-post-topic">#${html(topic)}</p>` : ''}<footer class="checkout-post-actions">${likeButton(post)}${act('comments', post.id, `${icon('chat')}<span>${esc(count ? number(count) : t('catalog.post.comment'))}</span>`, 'checkout-post-action', `data-comments="${esc(post.id)}" aria-label="${esc(t('catalog.post.commentsLabel', { n: number(count) }))}"`)}${own ? '' : act('greet', author.id, `${icon('chat')}<span>${esc(t('catalog.person.greet'))}</span>`, 'checkout-post-action checkout-post-greet')}</footer></article>`;
+    return `<article class="checkout-post" data-post-id="${esc(post.id)}"><header class="checkout-post-head">${act(own ? 'edit-profile' : 'person', own ? '' : author.id, avatar, 'checkout-post-avatar', `aria-label="${esc(t('catalog.person.viewProfile', { name: author.name }))}"`)}<div class="checkout-post-author"><h3>${SZ.vname(html(author.name), own ? 'self' : author.person)}</h3><p>${postTime(post)}${place ? ` · ${html(place)}` : ''}</p></div>${own ? `${post.pending ? `<span class="tag tag-warning">${esc(t('server.social.pending'))}</span>` : ''}${privateOnly ? `<span class="tag">${esc(t('catalog.post.private'))}</span>` : ''}` : followButton(author.id, true)}</header>${text ? `<p class="checkout-post-text">${html(text).replace(/\n/g, '<br>')}</p>` : ''}${photo ? act('photo', post.id, img(photo, topic || t('catalog.post.photo')), 'checkout-post-photo', `aria-label="${esc(t('catalog.post.openPhoto'))}"`) : ''}${topic ? `<p class="checkout-post-topic">#${html(topic)}</p>` : ''}<footer class="checkout-post-actions">${likeButton(post)}${act('comments', post.id, `${icon('chat')}<span>${esc(count ? number(count) : t('catalog.post.comment'))}</span>`, 'checkout-post-action', `data-comments="${esc(post.id)}" aria-label="${esc(t('catalog.post.commentsLabel', { n: number(count) }))}"`)}${own ? '' : act('greet', author.id, `${icon('chat')}<span>${esc(t('catalog.person.greet'))}</span>`, 'checkout-post-action checkout-post-greet')}</footer></article>`;
   }
   const groupName = g => txt('groups', g, 'name');
   function groupAvatar(g, size = 48) {
@@ -597,7 +597,7 @@
     return act(
       'room',
       p.id,
-      `${img(p.photo, '')}<span class="checkout-live-top"><span class="checkout-live-pill">${liveBars()}${esc(t('catalog.live.badge'))}</span><span class="checkout-live-viewers">${esc(tn('catalog.live.viewers', liveViewers(p), { viewers: fmt().compact(liveViewers(p)) }))}</span></span><span class="checkout-live-bottom"><span class="checkout-live-title">${html(title)}</span><span class="checkout-live-host">${html(name)} · ${html(cityName(p.city))}</span>${topic ? `<span class="checkout-live-topic">${html(topic)}</span>` : ''}</span>`,
+      `${img(p.photo, '')}<span class="checkout-live-top"><span class="checkout-live-pill">${liveBars()}${esc(t('catalog.live.badge'))}</span><span class="checkout-live-viewers">${esc(tn('catalog.live.viewers', liveViewers(p), { viewers: fmt().compact(liveViewers(p)) }))}</span></span><span class="checkout-live-bottom"><span class="checkout-live-title">${html(title)}</span><span class="checkout-live-host">${html(name)}${SZ.vbadge(p, 12)} · ${html(cityName(p.city))}</span>${topic ? `<span class="checkout-live-topic">${html(topic)}</span>` : ''}</span>`,
       'checkout-live-card',
       `aria-label="${esc(t('catalog.live.enter', { name, title }))}"`
     );
@@ -605,7 +605,7 @@
   /** 1:1 card used only when the private module is not loaded (also a global for old callers). */
   function privateCard(p) {
     const name = personName(p);
-    return `<article class="checkout-private-card">${act('person', p.id, img(p.photo, name), 'checkout-private-photo')}<div class="checkout-private-body"><h3>${html(name)}</h3><p>${html(txt('people', p, 'theme'))}</p><p class="caption">${html(txt('people', p, 'language'))}</p><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span></div></article>`;
+    return `<article class="checkout-private-card">${act('person', p.id, img(p.photo, name), 'checkout-private-photo')}<div class="checkout-private-body"><h3>${SZ.vname(html(name), p)}</h3><p>${html(txt('people', p, 'theme'))}</p><p class="caption">${html(txt('people', p, 'language'))}</p><span class="checkout-status${p.online ? ' is-online' : ''}">${html(onlineLabel(p))}</span></div></article>`;
   }
 
   // ------------------------------------------------------------------ messages data
@@ -786,11 +786,11 @@
     if (state.readChats.includes(id) || state.messages[id]?.length) return 0;
     return id === 'support' ? 1 : id === 'p1' && SZ.session.isDemo ? 2 : 0;
   }
-  function chatListRow(id, { avatar, name, preview, time, unread }) {
+  function chatListRow(id, { avatar, name, preview, time, unread, person = null }) {
     return act(
       'chat',
       id,
-      `<span class="checkout-row-avatar">${avatar}</span><span class="checkout-row-main"><span class="checkout-row-head"><span class="checkout-row-title">${html(name)}</span>${time ? `<time>${esc(fmt().stamp(time))}</time>` : ''}</span><span class="checkout-row-line"><span class="checkout-row-text">${html(preview)}</span>${unread ? `<span class="badge" role="img" aria-label="${esc(tn('catalog.chat.unread', unread))}">${unread > 99 ? '99+' : unread}</span>` : ''}</span></span>`,
+      `<span class="checkout-row-avatar">${avatar}</span><span class="checkout-row-main"><span class="checkout-row-head"><span class="checkout-row-title">${person ? SZ.vname(html(name), person) : html(name)}</span>${time ? `<time>${esc(fmt().stamp(time))}</time>` : ''}</span><span class="checkout-row-line"><span class="checkout-row-text">${html(preview)}</span>${unread ? `<span class="badge" role="img" aria-label="${esc(tn('catalog.chat.unread', unread))}">${unread > 99 ? '99+' : unread}</span>` : ''}</span></span>`,
       'checkout-row'
     );
   }
@@ -1162,6 +1162,7 @@
         html: chatListRow(p.id, {
           avatar: avatarHTML(p, 48),
           name: personName(p),
+          person: p,
           preview: last
             ? messagePreview(last)
             : txt('profiles', p, 'friendMessage') || txt('people', p, 'bio'),
@@ -1892,7 +1893,7 @@
     const topics = contentList('profiles', p, 'callTopics');
     const hero =
       window.ShizhongFriends?.profileHero?.(p) ||
-      `<div class="checkout-profile-hero">${img(p.photo, name)}<div class="checkout-profile-title"><h2>${html(name)}</h2><p>${html([p.age ? t('catalog.person.age', { n: p.age }) : '', cityName(p.city), onlineLabel(p)].filter(Boolean).join(' · '))}</p></div></div>`;
+      `<div class="checkout-profile-hero">${img(p.photo, name)}<div class="checkout-profile-title"><h2>${SZ.vname(html(name), p, 18)}</h2><p>${html([p.age ? t('catalog.person.age', { n: p.age }) : '', cityName(p.city), onlineLabel(p)].filter(Boolean).join(' · '))}</p></div></div>`;
     const rows = [
       [t('catalog.person.city'), `${cityName(p.city)}${p.area ? ' · ' + txt('people', p, 'area') : ''}`],
       [t('catalog.person.work'), txt('people', p, 'occupation') || t('catalog.person.workDefault')],
@@ -1926,7 +1927,7 @@
     const joined = state.joined.includes(id);
     const members = groupMembers(g).map(findPerson).filter(Boolean);
     const self = joined
-      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${html(selfName())}</span></span>`
+      ? `<span class="checkout-member">${img(selfPhoto(), '', 'avatar avatar-48')}<span>${SZ.vname(html(selfName()), 'self', 12)}</span></span>`
       : '';
     const rules = contentList('groups', g, 'rules');
     const recent = conversationMessages(id).slice(-4);
@@ -1945,7 +1946,7 @@
       html: `<div class="checkout-screen-body"><div class="checkout-group-head">${groupAvatar(g, 64)}<div><h2 class="checkout-detail-title">${html(groupName(g))}</h2><p class="checkout-muted">${html(meta)}</p></div></div><p class="checkout-description">${html(txt('groups', g, 'desc'))}</p><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.meetup'))}</h3><p class="checkout-muted">${html(txt('groups', g, 'meetup') || t('catalog.group.meetupDefault'))}</p><h3 class="checkout-block-title">${esc(t('catalog.group.rules'))}</h3>${bulletList(rules.length ? rules : [t('catalog.group.ruleDefault')], 'check')}</section><section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.group.people'))}</h3><div class="checkout-member-strip">${self}${members
         .slice(0, 12)
         .map(p =>
-          act('person', p.id, `${avatarHTML(p, 48)}<span>${html(personName(p))}</span>`, 'checkout-member')
+          act('person', p.id, `${avatarHTML(p, 48)}<span>${SZ.vname(html(personName(p)), p, 12)}</span>`, 'checkout-member')
         )
         .join(
           ''
@@ -1955,7 +1956,7 @@
           : `<p class="checkout-muted">${esc(t('catalog.group.quiet'))}</p>`
       }</section>${
         SZ.server && joined
-          ? `<div class="checkout-person-secondary">${act('catalog-group-members', id, esc(t('server.social.groupMembers')), 'btn btn-sm btn-ghost')}${act('catalog-report', 'group:' + id, esc(t('server.social.reportGroup')), 'btn btn-sm btn-ghost')}</div>`
+          ? `<div class="checkout-person-secondary">${act('catalog-group-invite', id, esc(t('server.invite.action')), 'btn btn-sm btn-ghost')}${act('catalog-group-members', id, esc(t('server.social.groupMembers')), 'btn btn-sm btn-ghost')}${act('catalog-report', 'group:' + id, esc(t('server.social.reportGroup')), 'btn btn-sm btn-ghost')}</div>`
           : SZ.server && SZ.session.isLoggedIn
             ? `<div class="checkout-person-secondary">${act('catalog-report', 'group:' + id, esc(t('server.social.reportGroup')), 'btn btn-sm btn-ghost')}</div>`
             : ''
@@ -1988,10 +1989,11 @@
           tools.push(act('catalog-group-kick', id + '|' + x.id, esc(t('server.social.kick')), 'btn btn-ghost btn-sm checkout-danger-text'));
         if (!x.self && mine === 'owner')
           tools.push(act('catalog-group-role', id + '|' + x.id + '|' + (x.role === 'admin' ? 'member' : 'admin'), esc(t(x.role === 'admin' ? 'server.social.unsetAdmin' : 'server.social.setAdmin')), 'btn btn-ghost btn-sm'));
-        return `<div class="list-row checkout-member-row">${x.self ? avatar : act('person', x.id, avatar, 'checkout-member-av')}<span class="list-row-main"><b>${html(name)}</b> ${x.role !== 'member' ? `<span class="tag">${esc(roleLabel(x.role))}</span>` : ''}</span>${tools.join('')}</div>`;
+        return `<div class="list-row checkout-member-row">${x.self ? avatar : act('person', x.id, avatar, 'checkout-member-av')}<span class="list-row-main"><b>${SZ.vname(html(name), x.self ? 'self' : p || x.id)}</b> ${x.role !== 'member' ? `<span class="tag">${esc(roleLabel(x.role))}</span>` : ''}</span>${tools.join('')}</div>`;
       })
       .join('');
     const manage = [
+      mine ? act('catalog-group-invite', id, `${icon('plususer')}<span>${esc(t('server.invite.action'))}</span>`, 'btn btn-tonal btn-sm') : '',
       mine === 'owner' || mine === 'admin' ? act('catalog-group-edit', id, esc(t('server.social.editGroup')), 'btn btn-secondary btn-sm') : '',
       mine === 'owner' ? act('catalog-group-dissolve', id, esc(t('server.social.dissolve')), 'btn btn-ghost btn-sm checkout-danger-text') : '',
     ].join('');
@@ -2000,7 +2002,7 @@
       mode,
       title: t('server.social.groupMembers'),
       className: 'checkout-ui checkout-screen',
-      meta: { groupId: id, view: 'group-members' },
+      meta: { groupId: id, view: 'group-members', memberIds: (res.items || []).map(x => (x.self ? SZ.server?.me?.id : x.id)).filter(Boolean) },
       html: `<div class="checkout-screen-body">${countLine(tn('catalog.group.members', res.count || 0))}${manage ? `<div class="checkout-person-secondary">${manage}</div>` : ''}<div class="list">${rows}</div>${g ? '' : ''}</div>`,
     });
   }
@@ -2026,6 +2028,83 @@
         SZ.api.fail(e);
       }
     });
+  }
+  // ---------------------------------------------------------------- server mode: invite friends to a group (拉人)
+  async function groupInviteSheet(id) {
+    let memberIds = SZ.overlay.layers().find(l => l.meta.groupId === id && l.meta.view === 'group-members')?.meta.memberIds;
+    if (!memberIds) {
+      try {
+        const res = await SZ.api.get('groups/' + encodeURIComponent(id) + '/members');
+        memberIds = (res.items || []).map(x => (x.self ? SZ.server?.me?.id : x.id)).filter(Boolean);
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+    }
+    const inGroup = new Set(memberIds);
+    const friends = contactPeople()
+      .filter(p => p.id !== SZ.server?.me?.id)
+      .map(p => ({ p, name: personName(p), member: inGroup.has(p.id) }))
+      .sort((a, b) => a.member - b.member || a.name.localeCompare(b.name, SZ_I18N.intl));
+    const row = ({ p, name, member }) =>
+      `<li data-search="${esc((name + ' ' + (p.name || '') + ' ' + (p.displayId || '')).toLowerCase())}"><label class="szi-row${member ? ' is-disabled' : ''}"><input type="checkbox" name="people" value="${esc(p.id)}"${member ? ' checked disabled' : ''}>${avatarHTML(p, 40)}<span class="szi-main"><span class="szi-name">${SZ.vname(html(name), p)}</span><span class="szi-sub">${esc(member ? t('server.invite.inGroup') : [cityName(p.city), onlineLabel(p)].filter(Boolean).join(' · '))}</span></span></label></li>`;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'auto', // replaces the chat menu sheet when opened from there
+      title: t('server.invite.title'),
+      className: 'checkout-ui checkout-sheet sz-invite',
+      meta: { groupId: id, view: 'group-invite' },
+      html: friends.length
+        ? `<form class="szi-form" novalidate><div class="szi-search"><input class="field" type="search" name="q" autocomplete="off" placeholder="${esc(t('server.invite.search'))}" aria-label="${esc(t('server.invite.search'))}"></div><ul class="szi-list">${friends.map(row).join('')}</ul><p class="szi-empty" data-part="nomatch" hidden>${esc(t('server.invite.noMatch'))}</p><p class="szi-note">${esc(t('server.invite.note'))}</p><div class="sheet-footer"><button type="submit" class="btn btn-primary btn-lg" disabled>${esc(t('server.invite.confirm'))}</button></div></form>`
+        : `<p class="szi-empty">${esc(t('server.invite.empty'))}</p><div class="sheet-footer">${act('add-friend', '', esc(t('catalog.comms.addFriend')), 'btn btn-secondary btn-lg')}</div>`,
+    });
+    const form = layer.el.querySelector('.szi-form');
+    if (!form) return layer;
+    const submit = form.querySelector('[type=submit]');
+    const picked = () => [...form.querySelectorAll('input[name=people]:checked:not(:disabled)')].map(i => i.value);
+    const update = () => {
+      const n = picked().length;
+      submit.disabled = !n;
+      submit.textContent = n ? t('server.invite.confirmN', { n }) : t('server.invite.confirm');
+    };
+    form.addEventListener('change', update);
+    form.q.addEventListener('input', () => {
+      const q = form.q.value.trim().toLowerCase();
+      let shown = 0;
+      for (const li of form.querySelectorAll('.szi-list > li')) {
+        const hit = !q || li.dataset.search.includes(q);
+        li.hidden = !hit;
+        if (hit) shown++;
+      }
+      form.querySelector('[data-part=nomatch]').hidden = shown > 0;
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const people = picked();
+      if (!people.length) return;
+      submit.disabled = true;
+      let res;
+      try {
+        res = await SZ.api.act('POST', 'groups/' + encodeURIComponent(id) + '/invite', { people });
+      } catch (e) {
+        update();
+        return SZ.api.fail(e);
+      }
+      const added = (res?.added || []).length;
+      const counts = {};
+      for (const s of res?.skipped || []) counts[s.reason] = (counts[s.reason] || 0) + 1;
+      const reasons = Object.entries(counts)
+        .map(([k, n]) => (t.has('server.invite.reason.' + k) ? t('server.invite.reason.' + k, { n }) : ''))
+        .filter(Boolean)
+        .join(t('server.invite.reasonSep'));
+      const skipped = (res?.skipped || []).length;
+      const text = [added ? tn('server.invite.done', added) : t('server.invite.none'), skipped ? t('server.invite.skipped', { n: skipped, reasons }) : '']
+        .filter(Boolean)
+        .join(' · ');
+      await SZ.overlay.close({ layer, force: true });
+      toast(text, { type: added ? 'success' : 'info', duration: skipped ? 4200 : 2400 });
+      if (added) refreshMembersScreen(id);
+    });
+    return layer;
   }
   async function refreshMembersScreen(id) {
     const layer = SZ.overlay.layers().find(l => l.meta.groupId === id && l.meta.view === 'group-members');
@@ -2115,7 +2194,7 @@
       : img(c.self || !c.person ? selfPhoto() : c.photo || 'ui/avatar-default.svg', '', 'avatar avatar-32');
     const remove = SZ.server && c.id && c.canDelete ? act('catalog-comment-delete', String(c.id), esc(t('server.social.deleteComment')), 'btn btn-ghost btn-sm checkout-comment-delete') : '';
     const pending = c.pending ? ` <span class="tag tag-warning">${esc(t('server.social.pending'))}</span>` : '';
-    return `<div class="checkout-comment"${c.id ? ` data-comment-id="${esc(c.id)}"` : ''}>${photo}<div><p class="checkout-comment-name">${html(name)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}${pending}</p><p>${html(c.text)}</p>${remove}</div></div>`;
+    return `<div class="checkout-comment"${c.id ? ` data-comment-id="${esc(c.id)}"` : ''}>${photo}<div><p class="checkout-comment-name">${SZ.vname(html(name), c.self ? 'self' : person || c.person || null, 13)}${c.at ? ` <time class="caption">${esc(fmt().relative(c.at))}</time>` : ''}${pending}</p><p>${html(c.text)}</p>${remove}</div></div>`;
   }
   // ---------------------------------------------------------------- server mode: comments, feed refresh
   const serverComments = new Map(); // postId -> comments from /api/posts/<id>/comments
@@ -2753,6 +2832,7 @@
     'create-group': () => createGroup(),
     'catalog-group-members': id => groupMembersScreen(id),
     'catalog-group-edit': id => editGroupSheet(id),
+    'catalog-group-invite': id => groupInviteSheet(id),
     'catalog-group-kick': async id => {
       const [gid, pid] = id.split('|');
       const p = findPerson(pid);

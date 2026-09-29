@@ -1,0 +1,370 @@
+/*
+ * Server-mode risk control UI: the slider security check (core/captcha.js), the Blue V badge (core/verified.js)
+ * and the "invite friends to the group" picker (catalog.js). Only tokens from core/tokens.css.
+ */
+
+/* ---------- slider check ---------- */
+.sz-captcha .sheet-body {
+  padding-bottom: calc(var(--sp-5) + var(--safe-bottom));
+}
+.sz-captcha {
+  max-width: 440px;
+  margin: 0 auto;
+}
+@media (min-width: 441px) {
+  .sz-captcha {
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+}
+.szc-hint {
+  margin: 0 0 var(--sp-3);
+  color: var(--c-text-2);
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+}
+.szc-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+  box-shadow: inset 0 0 0 1px var(--c-border);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.szc-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+.szc-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 17.5%;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  will-change: left;
+}
+.szc-stage.is-loading .szc-bg,
+.szc-stage.is-loading .szc-piece {
+  visibility: hidden;
+}
+.szc-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 3px solid var(--c-border-strong);
+  border-top-color: var(--c-brand);
+  border-radius: 50%;
+  opacity: 0;
+  animation: szc-spin 0.8s linear infinite;
+}
+.szc-stage.is-loading .szc-spinner {
+  opacity: 1;
+}
+.szc-result {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: rgba(23, 117, 70, 0.9);
+  color: #fff;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  transform: translateY(100%);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.sz-captcha.szc-ok .szc-result {
+  transform: none;
+}
+.szc-result .ico {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.4;
+}
+.szc-msg[data-tone='ok'] {
+  visibility: hidden;
+}
+.sz-captcha.szc-bad .szc-piece {
+  animation: szc-shake 0.42s var(--ease-in-out);
+}
+
+.szc-track {
+  position: relative;
+  height: var(--control-h);
+  margin-top: var(--sp-4);
+  border-radius: var(--r-full);
+  background: var(--c-surface-2);
+  box-shadow: inset 0 0 0 1px var(--c-border);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  outline: none;
+}
+.szc-track:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--c-border), var(--focus-ring);
+}
+.szc-track[aria-disabled='true'] {
+  cursor: default;
+}
+.sz-captcha.szc-dragging .szc-track {
+  cursor: grabbing;
+}
+.szc-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: var(--r-full);
+  background: var(--c-info-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-info) 45%, transparent);
+}
+.szc-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-4) 0 calc(var(--control-h) + var(--sp-2));
+  color: var(--c-text-3);
+  font-size: var(--fs-14);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: opacity var(--dur-2);
+}
+.sz-captcha.szc-moved .szc-label {
+  opacity: 0;
+}
+.sz-captcha:not(.szc-moved):not(.szc-bad) .szc-fill {
+  opacity: 0;
+}
+.szc-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  border-radius: 50%;
+  background: var(--c-surface);
+  color: var(--c-info);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--c-border);
+  pointer-events: none;
+}
+.szc-handle .ico {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.2;
+}
+.sz-captcha:not(.szc-dragging) .szc-handle,
+.sz-captcha:not(.szc-dragging) .szc-fill,
+.sz-captcha:not(.szc-dragging) .szc-piece {
+  transition-property: transform, width, left;
+  transition-duration: var(--dur-2);
+  transition-timing-function: var(--ease-out);
+}
+.sz-captcha.szc-ok .szc-fill {
+  background: var(--c-success-soft);
+  box-shadow: inset 0 0 0 1px var(--c-success);
+}
+.sz-captcha.szc-ok .szc-handle {
+  background: var(--c-success);
+  color: #fff;
+}
+.sz-captcha.szc-bad .szc-fill {
+  background: var(--c-danger-soft);
+  box-shadow: inset 0 0 0 1px var(--c-danger);
+}
+.sz-captcha.szc-bad .szc-handle {
+  background: var(--c-danger-fill);
+  color: #fff;
+}
+.szc-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  min-height: var(--control-h-sm);
+}
+.szc-msg {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--c-text-3);
+  font-size: var(--fs-13);
+  line-height: var(--lh-snug);
+}
+.szc-msg[data-tone='bad'] {
+  color: var(--c-danger);
+}
+.szc-msg[data-tone='ok'] {
+  color: var(--c-success);
+}
+.szc-refresh {
+  flex: none;
+  gap: var(--sp-1);
+  color: var(--c-text-2);
+}
+.szc-refresh .ico {
+  width: 18px;
+  height: 18px;
+}
+@keyframes szc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes szc-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20% {
+    translate: -7px;
+  }
+  40% {
+    translate: 6px;
+  }
+  60% {
+    translate: -4px;
+  }
+  80% {
+    translate: 3px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sz-captcha.szc-bad .szc-piece {
+    animation: none;
+  }
+}
+
+/* ---------- Blue V (蓝V) ---------- */
+.sz-vbadge {
+  display: inline-block;
+  flex: none;
+  width: var(--vb-size, 14px);
+  height: var(--vb-size, 14px);
+  margin-inline-start: 3px;
+  vertical-align: -0.12em;
+  line-height: 0;
+}
+.sz-vbadge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* a verified name: the text keeps its ellipsis, the badge always stays visible */
+.sz-vname {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: bottom;
+}
+.sz-vname-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sz-vname > .sz-vbadge {
+  vertical-align: 0;
+}
+
+/* ---------- invite friends to a group ---------- */
+.sz-invite .sheet-body {
+  padding-bottom: 0;
+}
+.szi-search {
+  position: sticky;
+  top: var(--appbar-h);
+  z-index: var(--z-sticky);
+  margin: 0 calc(-1 * var(--sp-5));
+  padding: 0 var(--sp-5) var(--sp-2);
+  background: var(--c-surface);
+}
+.szi-search .field {
+  width: 100%;
+}
+.szi-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.szi-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 60px;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--c-border);
+  cursor: pointer;
+}
+.szi-row:last-child {
+  border-bottom: 0;
+}
+.szi-row input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--c-brand);
+}
+.szi-row .avatar {
+  flex: none;
+}
+.szi-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.szi-name {
+  overflow: hidden;
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.szi-sub {
+  overflow: hidden;
+  color: var(--c-text-3);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.szi-row.is-disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.szi-empty {
+  padding: var(--sp-8) 0;
+  color: var(--c-text-3);
+  font-size: var(--fs-14);
+  text-align: center;
+}
+.szi-note {
+  margin: var(--sp-2) 0 0;
+  color: var(--c-text-3);
+  font-size: var(--fs-12);
+}

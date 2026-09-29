@@ -1189,16 +1189,24 @@
         if (err.code === 'auth.notFound') {
           errorWithAction(emailError, t('auth.email.notFound'), t('auth.email.createInstead'), 'to-create');
           invalid(input, true);
-        } else if (err.code === 'auth.wrongPassword') {
+        } else if (err.code === 'auth.wrongPassword' || err.code === 'auth.wrongPasswordPlain') {
           invalid(pw, true);
           pw.select();
-          showError(pwError, tn('auth.email.wrongPassword', Number(err.extra?.left) || 0));
+          showError(pwError, wrongPasswordText(err));
         } else showError(pwError, SZ.api.errorText(err));
       });
     }
     setTab(tab);
     focusSoon(layer, email ? '#' + id + '-pw' : '#' + id);
     return layer;
+  }
+
+  /** Server answer to a failed sign-in: "N tries left" only while a lock rule is in force (left is sent). */
+  function wrongPasswordText(err) {
+    const left = err?.extra?.left;
+    if (err?.code === 'auth.wrongPassword' && left !== null && left !== undefined && Number.isFinite(Number(left)))
+      return Number(left) > 0 ? tn('auth.email.wrongPassword', Number(left)) : t('server.error.auth.wrongPasswordLocked');
+    return SZ.api.errorText(err);
   }
 
   // ------------------------------------------------------------------ server mode: phone password
@@ -1229,12 +1237,10 @@
       SZ.api.post('auth/login', { phone: phone || null, email: email || null, password: pw.value }).then(enterServerSession, err => {
         unbusy(button);
         submit.disabled = !pw.value;
+        if (err?.code === 'risk.captchaCancelled') return showError(error, SZ.api.errorText(err));
         invalid(pw, true);
         pw.select();
-        showError(
-          error,
-          err.code === 'auth.wrongPassword' ? tn('auth.email.wrongPassword', Number(err.extra?.left) || 0) : SZ.api.errorText(err)
-        );
+        showError(error, wrongPasswordText(err));
       });
     });
     focusSoon(layer, '#' + id);

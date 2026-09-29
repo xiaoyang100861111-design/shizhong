@@ -2141,7 +2141,7 @@ function greet(id) {
       kind: 'sheet',
       title: t('flows.greet.title', { name }),
       body: () =>
-        `<form class="flows-form"><div class="flows-person-card">${flowsAvatar(avatarSource(p), 48)}<div><strong>${esc(name)}</strong><p>${esc((Array.isArray(tags) ? tags : []).slice(0, 3).join(' · '))}</p></div></div><div class="flows-chips flows-suggestions" role="group" aria-label="${esc(t('flows.greet.suggestions'))}">${suggestions.map((s, i) => act('greeting-text', s, esc(s), 'chip', `aria-pressed="${i === 0}"`)).join('')}</div>${field(t('flows.greet.message'), 'message', 'textarea', t('flows.greet.placeholder'), true, suggestions[0], { maxlength: Number(SZ.config('social.greetMax', 200)) || 200, rows: 3, counter: true })}${formNote(t('flows.greet.note'))}${submitButton(t('flows.greet.send'))}</form>`,
+        `<form class="flows-form"><div class="flows-person-card">${flowsAvatar(avatarSource(p), 48)}<div><strong>${SZ.vname(esc(name), p)}</strong><p>${esc((Array.isArray(tags) ? tags : []).slice(0, 3).join(' · '))}</p></div></div><div class="flows-chips flows-suggestions" role="group" aria-label="${esc(t('flows.greet.suggestions'))}">${suggestions.map((s, i) => act('greeting-text', s, esc(s), 'chip', `aria-pressed="${i === 0}"`)).join('')}</div>${field(t('flows.greet.message'), 'message', 'textarea', t('flows.greet.placeholder'), true, suggestions[0], { maxlength: Number(SZ.config('social.greetMax', 200)) || 200, rows: 3, counter: true })}${formNote(t('flows.greet.note'))}${submitButton(t('flows.greet.send'))}</form>`,
       async form(data, form, layer) {
         if (SZ.server) {
           try {
@@ -2208,7 +2208,7 @@ function flowsFriendsBody() {
     .map(r => {
       const p = flowsPerson(r.personId);
       const name = p ? personName(p) : r.personId;
-      return `<li class="list-row flows-person">${flowsAvatar(p ? avatarSource(p) : '', 48)}<span class="list-row-main"><span class="flows-row-label">${esc(name)}</span><small class="flows-row-sub">${esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.ts))}</small></span><span class="flows-person-actions">${act('flows-friend-ignore', r.id, t('flows.friends.ignore'), 'btn btn-secondary btn-sm', `aria-label="${esc(t('flows.friends.ignoreAria', { name }))}"`)}${act('accept-friend', r.id, t('flows.friends.accept'), 'btn btn-primary btn-sm', `aria-label="${esc(t('flows.friends.acceptAria', { name }))}"`)}</span></li>`;
+      return `<li class="list-row flows-person">${flowsAvatar(p ? avatarSource(p) : '', 48)}<span class="list-row-main"><span class="flows-row-label">${SZ.vname(esc(name), p || r.personId)}</span><small class="flows-row-sub">${esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.ts))}</small></span><span class="flows-person-actions">${act('flows-friend-ignore', r.id, t('flows.friends.ignore'), 'btn btn-secondary btn-sm', `aria-label="${esc(t('flows.friends.ignoreAria', { name }))}"`)}${act('accept-friend', r.id, t('flows.friends.accept'), 'btn btn-primary btn-sm', `aria-label="${esc(t('flows.friends.acceptAria', { name }))}"`)}</span></li>`;
     })
     .join('');
   const outRows = outgoing
@@ -2219,7 +2219,7 @@ function flowsFriendsBody() {
       const end = accepted
         ? act('chat', p.id, t('flows.friends.message'), 'btn btn-tonal btn-sm')
         : `<span class="tag tag-warning">${t('flows.friends.pending')}</span>`;
-      return `<li class="list-row flows-person">${accepted ? flowsAvatar(avatarSource(p), 48) : `<span class="flows-person-placeholder">${icon('user')}</span>`}<span class="list-row-main"><span class="flows-row-label">${esc(title)}</span><small class="flows-row-sub">${accepted ? t('flows.friends.acceptedSub', { account: esc(r.account) }) : esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.acceptedAt || r.ts))}</small></span>${end}</li>`;
+      return `<li class="list-row flows-person">${accepted ? flowsAvatar(avatarSource(p), 48) : `<span class="flows-person-placeholder">${icon('user')}</span>`}<span class="list-row-main"><span class="flows-row-label">${accepted ? SZ.vname(esc(title), p) : esc(title)}</span><small class="flows-row-sub">${accepted ? t('flows.friends.acceptedSub', { account: esc(r.account) }) : esc(flowsRequestMessage(r))}</small><small class="caption">${esc(SZ.fmt.relative(r.acceptedAt || r.ts))}</small></span>${end}</li>`;
     })
     .join('');
   return `${flowsSection(t('flows.friends.incoming'), incoming.length ? `<ul class="list flows-people">${inRows}</ul>` : `<p class="caption flows-section-note">${t('flows.friends.noIncoming')}</p>`)}${outgoing.length ? flowsSection(t('flows.friends.outgoing'), `<ul class="list flows-people">${outRows}</ul>`) : ''}`;

@@ -347,7 +347,7 @@
       <div class="gf-hero-cover">${cover({ ...d, action: 'gift-sticker' })}<button type="button" class="gf-cover-edit" data-action="gift-studio">${icon('edit')}<span>${esc(t('gifts.hero.decorate'))}</span></button></div>
       <div class="gf-hero-body">
         <div class="gf-hero-top"><div class="gf-hero-avatar">${charmed(avatarEl, d.avatarFrameId, 'hero')}</div><button type="button" class="btn btn-secondary btn-sm gf-hero-edit" data-action="edit-profile">${icon('edit')}<span>${esc(t('gifts.hero.edit'))}</span></button></div>
-        <div class="gf-hero-name-row"><h2 class="gf-hero-name"${nameLang(name)}>${esc(name)}</h2>${vip}</div>
+        <div class="gf-hero-name-row"><h2 class="gf-hero-name"${nameLang(name)}>${SZ.vname(esc(name), 'self', 18)}</h2>${vip}</div>
         <p class="gf-hero-meta">${idLine}<span class="gf-hero-city">${icon('pin')}<span>${esc(city)}</span></span></p>
         ${bio ? `<p class="gf-hero-bio"${nameLang(bio)}>${esc(bio)}</p>` : ''}
         <div class="me-stats gf-hero-stats">${stats.map(([id, n, text]) => `<button type="button" class="me-stat" data-action="stat" data-id="${id}"><strong class="num">${esc(SZ.fmt.compact(n))}</strong><span>${esc(text)}</span></button>`).join('')}</div>
