@@ -318,6 +318,7 @@ public sealed partial class CommerceModule
         g.MapGet("/merchants/settlements/{id:long}/orders", async (long id, HttpContext ctx, Db db) =>
         {
             var a = ctx.RequireAdmin();
+            if (a.Scope != Scopes.Merchant && !a.Can("merchants.view") && !a.Can("merchants.settle")) throw ApiError.Forbidden("admin.noPermission");
             var mid = await db.ExecuteScalarAsync<long?>("SELECT MerchantId FROM dbo.MerchantSettlements WHERE Id = @id", new { id }) ?? throw ApiError.NotFound("merchants.settlementNotFound");
             if (a.Scope == Scopes.Merchant) { if (a.MerchantId != mid) throw ApiError.NotFound("merchants.settlementNotFound"); }
             else { if (!a.Can("merchants.view") && !a.Can("merchants.settle")) throw ApiError.Forbidden("admin.noPermission"); await EnsureMerchantInScopeAsync(db, a, mid); }
