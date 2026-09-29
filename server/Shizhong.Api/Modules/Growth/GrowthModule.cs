@@ -219,6 +219,9 @@ public sealed partial class GrowthModule : IModule
                 }
                 return true;
             case "post":
+                // dbo.Posts has no DeletedAt: Status 3 = deleted by the author (social module)
+                if (await c.ExecuteScalarAsync<int?>("SELECT COL_LENGTH('dbo.Posts', 'Status')") is not null)
+                    return await c.ExecuteScalarAsync<int>("SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.Posts WHERE UserId = @userId AND Status <> 3) THEN 1 ELSE 0 END", new { userId }) == 1;
                 return await OwnsRowAsync(c, userId, ["Posts", "Moments", "FeedPosts"], ["UserId", "AuthorId", "OwnerId"], "DeletedAt")
                        || await StateHasAsync(c, userId, "$.posts", "$.person", "self");
             case "address":
