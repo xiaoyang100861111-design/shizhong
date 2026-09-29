@@ -1333,7 +1333,8 @@
   }
   /** Support / merchant chats start on the server (welcome message) the first time they are opened. */
   function openOnServer(view) {
-    if (!SERVER || !['support', 'merchant'].includes(view.info.kind) || (state.messages[view.chatId] || []).length) return;
+    if (!SERVER || !SZ.session.isLoggedIn || !['support', 'merchant'].includes(view.info.kind) || (state.messages[view.chatId] || []).length)
+      return; // guests only see the (read-only) screen
     SZ.api
       .post(chatPath(view.chatId) + '/open')
       .then(res => {
