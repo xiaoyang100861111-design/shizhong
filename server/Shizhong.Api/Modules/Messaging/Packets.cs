@@ -89,17 +89,17 @@ public static class Packets
             await using var c2 = await db.OpenAsync();
             if (result.Conv != null)
             {
-                await chat.DeliverAsync(result.Id, "chat:message", user.Id);
+                await chat.DeliverAsync(result.Id, "chat:message", user.Id, conn: c2);
                 if (result.Conv.Kind == ConvKinds.Direct)
                 {
                     var peer = result.Conv.UserA == user.Id ? result.Conv.UserB!.Value : result.Conv.UserA!.Value;
                     await notices.PushAsync(peer, new NoticeInput("social", TitleKey: kind == 0 ? "server.social.notice.packetTitle" : "server.social.notice.transferTitle",
-                        BodyKey: "server.social.notice.moneyBody", Params: new { name = user.Name, amount = Money.ToRm(cents) }, ActionName: "chat", ActionId: user.PublicId, Silent: true));
+                        BodyKey: "server.social.notice.moneyBody", Params: new { name = user.Name, amount = Money.ToRm(cents) }, ActionName: "chat", ActionId: user.PublicId, Silent: true), c2);
                 }
             }
             var view = await MessagingApi.OneViewAsync(c2, result.Id, user);
             _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(user.Id, "chat:message", new { chatId, message = view });
-            return Results.Ok(new { message = view, state = await states.ProjectKeysAsync(user, "wallet", "bills") });
+            return Results.Ok(new { message = view, state = await states.ProjectKeysAsync(user, c2, "wallet", "bills") });
         }).RequireRateLimiting("write");
 
         g.MapGet("/packets/{id}", async (string id, HttpContext ctx, Db db, ChatService chat) =>
@@ -195,7 +195,7 @@ public static class Packets
         {
             cents,
             message = await MessagingApi.OneViewAsync(c2, mid, user),
-            state = await states.ProjectKeysAsync(user, "wallet", "bills"),
+            state = await states.ProjectKeysAsync(user, c2, "wallet", "bills"),
         });
     }
 

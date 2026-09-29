@@ -44,7 +44,7 @@ public static class MessagingApi
             var (type, text, msg, mediaRef) = await BuildAsync(c, chat, user, body, cfg, filter, media);
             var id = await chat.InsertAsync(c, null, conv, user.Id, null, type, text, msg, mediaRef, clientId);
             await TouchContactAsync(c, conv, user.Id);
-            await chat.DeliverAsync(id, "chat:message", user.Id);
+            await chat.DeliverAsync(id, "chat:message", user.Id, conn: c);
             // The sender's other devices get it too (the calling device already has it from the response).
             var view = await OneViewAsync(c, id, user);
             _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(user.Id, "chat:message",
@@ -64,7 +64,7 @@ public static class MessagingApi
             if (!existed)
             {
                 var first = await c.QueryFirstOrDefaultAsync<long?>("SELECT TOP 1 Id FROM dbo.Messages WHERE ConversationId = @Id ORDER BY Id", new { conv.Id });
-                if (first is { } mid) await chat.DeliverAsync(mid);
+                if (first is { } mid) await chat.DeliverAsync(mid, conn: c);
             }
             var rows = await ChatState.RecentAsync(c, user.Id, [conv.Id], 50);
             return Results.Ok(new { chatId, messages = await ChatState.ViewsAsync(c, rows, user.Id, user.PublicId) });
@@ -164,7 +164,7 @@ public static class MessagingApi
             await c.ExecuteAsync("UPDATE dbo.Messages SET RecalledAt = SYSUTCDATETIME() WHERE Id = @mid", new { mid });
             if (r.MediaRef is { } refId && refId.StartsWith("media:"))
                 await c.ExecuteAsync("UPDATE dbo.Media SET DeletedAt = SYSUTCDATETIME() WHERE PublicId = @pid", new { pid = refId[6..] });
-            await chat.DeliverAsync(mid, "chat:update");
+            await chat.DeliverAsync(mid, "chat:update", conn: c);
             return Results.Ok(new { message = await OneViewAsync(c, mid, user) });
         });
 

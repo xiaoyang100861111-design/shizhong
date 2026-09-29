@@ -111,7 +111,7 @@ public static class SocialAdmin
             if (status != 0 && post.Status == 0 || status == 0 && post.Status == 1)
                 await notices.PushAsync(post.UserId, new NoticeInput("system",
                     TitleKey: status == 0 ? "server.social.notice.postApproved" : "server.social.notice.postRemoved",
-                    BodyKey: status == 0 ? null : "server.social.notice.postRemovedBody", Params: new { reason = body.Reason ?? "" }));
+                    BodyKey: status == 0 ? null : "server.social.notice.postRemovedBody", Params: new { reason = body.Reason ?? "" }), c);
             await audit.WriteAsync(ctx, "content.post", "post:" + id, new { before = post.Status, after = status, body.Reason });
             return Results.Ok(new { ok = true });
         });
@@ -345,13 +345,13 @@ public static class SocialAdmin
                     status = "resolved";
                     if (action == "warn")
                         await notices.PushAsync(sid, new NoticeInput("system", TitleKey: "server.social.notice.warnTitle", BodyKey: "server.social.notice.warnBody",
-                            Params: new { reason = reply }));
+                            Params: new { reason = reply }), c);
                     else if (action == "mute")
                     {
                         var hours = Math.Clamp(body.Hours ?? 24, 1, 24 * 365);
                         await c.ExecuteAsync("UPDATE dbo.Users SET MutedUntil = DATEADD(HOUR, @hours, SYSUTCDATETIME()) WHERE Id = @sid", new { hours, sid });
                         await notices.PushAsync(sid, new NoticeInput("system", TitleKey: "server.social.notice.mutedTitle", BodyKey: "server.social.notice.mutedBody",
-                            Params: new { hours, reason = reply }));
+                            Params: new { hours, reason = reply }), c);
                     }
                     else
                     {
@@ -378,7 +378,7 @@ public static class SocialAdmin
                     case "group": await c.ExecuteAsync("UPDATE dbo.Groups SET Status = 1 WHERE PublicId = @tid", new { tid = t.TargetId }); break;
                     case "message" when Messaging.MessagingApi.ParseId(t.TargetId) is { } mid:
                         await c.ExecuteAsync("UPDATE dbo.Messages SET RecalledAt = ISNULL(RecalledAt, SYSUTCDATETIME()) WHERE Id = @mid", new { mid });
-                        await ctx.RequestServices.GetRequiredService<Messaging.ChatService>().DeliverAsync(mid, "chat:update");
+                        await ctx.RequestServices.GetRequiredService<Messaging.ChatService>().DeliverAsync(mid, "chat:update", conn: c);
                         break;
                 }
             }
@@ -388,7 +388,7 @@ public static class SocialAdmin
             await notices.PushAsync(t.UserId, new NoticeInput("system",
                 TitleKey: t.Kind == "feedback" ? "server.social.notice.feedbackReplied" : "server.social.notice.reportHandled",
                 BodyKey: reply.Length > 0 ? "server.social.notice.replyBody" : status == "rejected" ? "server.social.notice.reportRejectedBody" : "server.social.notice.reportResolvedBody",
-                Params: new { reply }, ActionName: "feedback-status", ActionId: "t" + id));
+                Params: new { reply }, ActionName: "feedback-status", ActionId: "t" + id), c);
             _ = realtime.ToUser(t.UserId, "state:refresh", new { keys = new[] { "feedback" } });
             await audit.WriteAsync(ctx, "reports.handle", "ticket:" + id, new { action, status, body.Hours, body.HideContent, reply });
             return Results.Ok(new { ok = true, status });

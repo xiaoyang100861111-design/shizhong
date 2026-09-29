@@ -69,9 +69,7 @@ public sealed class LiveModule : IModule
                 FROM dbo.LiveSessions s JOIN dbo.Users u ON u.Id = s.HostId WHERE s.Status = 0 ORDER BY s.StartedAt DESC
                 """)).ToList();
             // hosts who blocked this viewer (or were blocked by them) are not listed
-            var hidden = new HashSet<long>();
-            foreach (var hostId in rows.Select(r => r.HostId).Distinct())
-                if (hostId != me.Id && await social.BlockedAsync(me.Id, hostId)) hidden.Add(hostId);
+            var hidden = await social.BlockedAmongAsync(c, me.Id, rows.Select(r => r.HostId));
             rows = rows.Where(r => !hidden.Contains(r.HostId)).ToList();
             var levels = await vip.LevelsAsync(c, rows.Select(r => r.HostId));
             return Results.Ok(new
@@ -159,7 +157,7 @@ public sealed class LiveModule : IModule
             await using var c = await db.OpenAsync();
             var s = await LiveAsync(c, id);
             // A viewer the host blocked (or who blocked the host) cannot write into that room.
-            if (s.HostId != user.Id && await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId))
+            if (s.HostId != user.Id && await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId, c))
                 throw ApiError.Forbidden("live.blocked");
             var kind = s.HostId == user.Id ? "host" : "chat";
             var commentId = await c.ExecuteScalarAsync<long>("""
@@ -200,12 +198,15 @@ public sealed class LiveModule : IModule
             await using var lookup = await db.OpenAsync();
             var s = await LiveAsync(lookup, id);
             if (s.HostId == user.Id) throw ApiError.BadRequest("live.ownRoom");
-            if (await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId)) throw ApiError.Forbidden("gifts.blocked");
+            if (await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId, lookup)) throw ApiError.Forbidden("gifts.blocked");
             var host = await People.ByIdAsync(lookup, s.HostId) ?? throw ApiError.NotFound("live.notFound");
             var total = gift.Beans * qty;
             var share = await lookup.ExecuteScalarAsync<decimal?>("SELECT LiveShare FROM dbo.HostProfiles WHERE UserId = @HostId", new { s.HostId })
                         ?? (decimal)cfg.Get<double>("live.hostShare", 0.5);
             var combo = rooms.Combo(id, user.Id, gift.Id, qty, cfg.Int("live.comboMs", 3000));
+            // Never hold a pooled connection while the transaction waits for the host's row: a gift burst in one room
+            // would otherwise take every connection in the pool and starve itself (load test: pool timeouts at ~100 senders).
+            await lookup.CloseAsync();
             var (txId, income) = await db.TxAsync(async (c, t) =>
             {
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, -total, "live-gift", "直播送礼", "srvlive.bill.liveGift",
@@ -214,14 +215,17 @@ public sealed class LiveModule : IModule
                     INSERT INTO dbo.GiftTransactions(Kind, UserId, ToUserId, GiftId, Quantity, UnitBeans, TotalBeans, PaidBeans, RefId, ComboId, ComboN)
                     OUTPUT inserted.Id VALUES ('live', @Id, @HostId, @GiftId, @qty, @Beans, @total, @total, @ref, @comboId, @n)
                     """, new { user.Id, s.HostId, GiftId = gift.Id, qty, gift.Beans, total, @ref = id.ToString(), comboId = combo.Id, n = combo.N }, t);
-                var amount = await Earnings.HoldAsync(c, t, cfg, s.HostId, host.Kind, "live", id.ToString(), user.Id, tx, total, math.CentsOf(total), share);
-                await c.ExecuteAsync("UPDATE dbo.LiveSessions SET GiftBeans = GiftBeans + @total, IncomeCents = IncomeCents + @amount WHERE Id = @id", new { total, amount, id }, t);
                 await c.ExecuteAsync("UPDATE dbo.FanClubMembers SET Points = Points + @total WHERE HostId = @HostId AND UserId = @Id", new { total, s.HostId, user.Id }, t);
                 await vip.AddXpAsync(c, t, user.Id, "live", total);
+                // The rows every sender in the room shares (host wallet, session) go last, so they stay locked only until the commit.
+                var amount = await Earnings.HoldAsync(c, t, cfg, s.HostId, host.Kind, "live", id.ToString(), user.Id, tx, total, math.CentsOf(total), share);
+                await c.ExecuteAsync("UPDATE dbo.LiveSessions SET GiftBeans = GiftBeans + @total, IncomeCents = IncomeCents + @amount WHERE Id = @id", new { total, amount, id }, t);
                 return (tx, amount);
             });
+            await lookup.OpenAsync();
             var me = await PersonAsync(lookup, vip, user.Id, s.HostId);
             var sessionBeans = await lookup.ExecuteScalarAsync<long>("SELECT GiftBeans FROM dbo.LiveSessions WHERE Id = @id", new { id });
+            await lookup.CloseAsync();
             var payload = new
             {
                 sessionId = id, id = "gt" + txId, comboId = combo.Id, n = combo.N, giftId = gift.Id, quantity = qty, total, user = me,
@@ -243,6 +247,7 @@ public sealed class LiveModule : IModule
             if (host is null || host.Kind != UserKinds.Persona) throw ApiError.NotFound("live.notFound");
             var total = gift.Beans * qty;
             var kind = body.Context == "private" ? "private" : "live";
+            await lookup.CloseAsync(); // see live gifts: no pooled connection held across the transaction
             await db.TxAsync(async (c, t) =>
             {
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, -total, kind == "live" ? "live-gift" : "call", kind == "live" ? "直播送礼" : "通话送礼",
@@ -290,7 +295,7 @@ public sealed class LiveModule : IModule
                   INSERT INTO dbo.FanClubMembers(HostId, UserId) VALUES (@host, @Id)
                 """, new { host = host.Id, user.Id });
             if (added > 0) await c.ExecuteAsync("UPDATE dbo.LiveSessions SET NewFans = NewFans + 1 WHERE HostId = @host AND Status = 0", new { host = host.Id });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "live") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "live") });
         });
         g.MapDelete("/hosts/{publicId}/fanclub", async (string publicId, HttpContext ctx, Db db, StateService states) =>
         {
@@ -307,7 +312,7 @@ public sealed class LiveModule : IModule
                 IF NOT EXISTS (SELECT 1 FROM dbo.LiveReminders WHERE HostId = @host AND UserId = @Id)
                   INSERT INTO dbo.LiveReminders(HostId, UserId) VALUES (@host, @Id)
                 """, new { host = host.Id, user.Id });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "live") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "live") });
         });
         g.MapDelete("/hosts/{publicId}/reminder", async (string publicId, HttpContext ctx, Db db, StateService states) =>
         {
@@ -394,7 +399,7 @@ public sealed class LiveModule : IModule
             SELECT s.Id, s.HostId, s.Title, s.Topic, s.Cover, s.Status, s.StartedAt, s.Likes, s.GiftBeans, {People.Columns.Replace("u.Id,", "")}
             FROM dbo.LiveSessions s JOIN dbo.Users u ON u.Id = s.HostId WHERE s.Id = @id
             """, new { id }) ?? throw ApiError.NotFound("live.notFound");
-        if (r.HostId != me.Id && await services.GetRequiredService<SocialGraph>().BlockedAsync(me.Id, r.HostId)) throw ApiError.Forbidden("live.blocked");
+        if (r.HostId != me.Id && await services.GetRequiredService<SocialGraph>().BlockedAsync(me.Id, r.HostId, c)) throw ApiError.Forbidden("live.blocked");
         var comments = (await c.QueryAsync<(long Id, long UserId, string Kind, string Text, DateTime CreatedAt)>(
             "SELECT TOP (30) Id, UserId, Kind, Text, CreatedAt FROM dbo.LiveComments WHERE SessionId = @id ORDER BY Id DESC", new { id })).Reverse().ToList();
         var people = await PeopleAsync(c, vip, comments.Select(x => x.UserId).Append(r.HostId), r.HostId);
@@ -576,8 +581,12 @@ public sealed class LiveTopic : IHubTopic
                 MERGE dbo.LiveViews AS v USING (SELECT @id AS SessionId, @me AS UserId) AS x ON v.SessionId = x.SessionId AND v.UserId = x.UserId
                 WHEN MATCHED THEN UPDATE SET LastAt = SYSUTCDATETIME()
                 WHEN NOT MATCHED THEN INSERT(SessionId, UserId) VALUES (@id, @me);
+                -- Count first, then update: counting inside the UPDATE held the session row while waiting for other viewers'
+                -- new LiveViews rows, whose inserts wait for that row (foreign key) — deadlocks when many viewers enter at
+                -- once (load test). Viewers only grows, so a concurrent join that counted earlier cannot lower it.
+                DECLARE @viewers INT = (SELECT COUNT(*) FROM dbo.LiveViews WHERE SessionId = @id);
                 UPDATE dbo.LiveSessions SET PeakViewers = CASE WHEN PeakViewers < @count THEN @count ELSE PeakViewers END,
-                       Viewers = (SELECT COUNT(*) FROM dbo.LiveViews WHERE SessionId = @id) WHERE Id = @id;
+                       Viewers = CASE WHEN Viewers < @viewers THEN @viewers ELSE Viewers END WHERE Id = @id;
                 """, new { id, me = user.Id, count });
             var vip = services.GetRequiredService<VipService>();
             var person = await LiveModule.PersonAsync(c, vip, user.Id, hostId);

@@ -220,18 +220,33 @@ public sealed class SocialGraph(Db db)
         catch (SqlException) { return 0; }
     }
 
-    /// <summary>True when either user blocked the other.</summary>
-    public async Task<bool> BlockedAsync(long a, long b)
+    /// <summary>True when either user blocked the other. Pass the caller's open connection (never open a second one while holding it).</summary>
+    public async Task<bool> BlockedAsync(long a, long b, SqlConnection? c = null)
     {
         var s = await ShapeAsync("Blocks");
         if (s is null) return false;
+        var sql = $"SELECT COUNT(*) FROM dbo.Blocks WHERE ([{s.Value.From}] = @a AND [{s.Value.To}] = @b) OR ([{s.Value.From}] = @b AND [{s.Value.To}] = @a)";
         try
         {
-            return await db.ExecuteScalarAsync<int>($"""
-                SELECT COUNT(*) FROM dbo.Blocks WHERE ([{s.Value.From}] = @a AND [{s.Value.To}] = @b) OR ([{s.Value.From}] = @b AND [{s.Value.To}] = @a)
-                """, new { a, b }) > 0;
+            return (c is null ? await db.ExecuteScalarAsync<int>(sql, new { a, b }) : await c.ExecuteScalarAsync<int>(sql, new { a, b })) > 0;
         }
         catch (SqlException) { return false; }
+    }
+
+    /// <summary>Of <paramref name="others"/>, the users who blocked <paramref name="me"/> or were blocked by them (one query).</summary>
+    public async Task<HashSet<long>> BlockedAmongAsync(SqlConnection c, long me, IEnumerable<long> others)
+    {
+        var s = await ShapeAsync("Blocks");
+        var ids = others.Where(o => o != me).Distinct().ToArray();
+        if (s is null || ids.Length == 0) return [];
+        try
+        {
+            return (await c.QueryAsync<long>($"""
+                SELECT [{s.Value.To}] FROM dbo.Blocks WHERE [{s.Value.From}] = @me AND [{s.Value.To}] IN @ids
+                UNION SELECT [{s.Value.From}] FROM dbo.Blocks WHERE [{s.Value.To}] = @me AND [{s.Value.From}] IN @ids
+                """, new { me, ids })).ToHashSet();
+        }
+        catch (SqlException) { return []; }
     }
 }
 

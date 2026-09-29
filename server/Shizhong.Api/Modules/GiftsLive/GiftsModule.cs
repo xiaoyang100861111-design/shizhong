@@ -136,7 +136,8 @@ public sealed class GiftsModule : IModule
             await using var lookup = await db.OpenAsync();
             var to = await People.ByPublicIdAsync(lookup, body.To) ?? throw ApiError.NotFound("gifts.recipientNotFound");
             if (to.Id == user.Id) throw ApiError.BadRequest("gifts.toSelf");
-            if (await social.BlockedAsync(user.Id, to.Id)) throw ApiError.Forbidden("gifts.blocked");
+            if (await social.BlockedAsync(user.Id, to.Id, lookup)) throw ApiError.Forbidden("gifts.blocked");
+            await lookup.CloseAsync(); // no pooled connection held while the transaction waits for locks (pool starvation under bursts)
             var chat = ctx.RequestServices.GetService<IChat>();
             var result = await db.TxAsync(async (c, t) =>
             {

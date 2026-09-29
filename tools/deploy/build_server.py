@@ -60,7 +60,7 @@ WEB_CONFIG = """<?xml version="1.0" encoding="utf-8"?>
 
 PRODUCTION_SETTINGS = """{
   "ConnectionStrings": {
-    "Main": "Server=127.0.0.1;Database=shizhong;User Id=shizhong_app;Password=CHANGE_ME;TrustServerCertificate=True;Encrypt=True"
+    "Main": "Server=127.0.0.1;Database=shizhong;User Id=shizhong_app;Password=CHANGE_ME;TrustServerCertificate=True;Encrypt=True;Max Pool Size=200"
   },
   "Logging": { "LogLevel": { "Default": "Warning", "Microsoft.Hosting.Lifetime": "Information", "Shizhong": "Information" } }
 }

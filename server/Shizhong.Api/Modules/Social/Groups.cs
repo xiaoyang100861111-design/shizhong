@@ -138,7 +138,7 @@ public static class GroupsApi
             });
             await using var c2 = await db.OpenAsync();
             var row = await RequireAsync(c2, publicId);
-            return Results.Ok(new { group = View(row, [user.PublicId], null, 2), state = await states.ProjectKeysAsync(user, "joined", "groups") });
+            return Results.Ok(new { group = View(row, [user.PublicId], null, 2), state = await states.ProjectKeysAsync(user, c2, "joined", "groups") });
         }).RequireRateLimiting("write");
 
         g.MapGet("/{id}", async (string id, HttpContext ctx, Db db) =>
@@ -192,7 +192,7 @@ public static class GroupsApi
             var members = (await c.QueryAsync<long>("SELECT UserId FROM dbo.GroupMembers WHERE GroupId = @Id", new { row.Id })).ToList();
             await c.ExecuteAsync("UPDATE dbo.Groups SET Status = 2 WHERE Id = @Id; DELETE FROM dbo.GroupMembers WHERE GroupId = @Id", new { row.Id });
             _ = realtime.ToUsers(members, "state:refresh", new { keys = new[] { "joined", "groups", "messages" } });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "joined", "groups") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "joined", "groups") });
         });
 
         g.MapPost("/{id}/join", async (string id, HttpContext ctx, Db db, ConfigService cfg, ChatService chat, StateService states, Realtime realtime) =>
@@ -217,7 +217,7 @@ public static class GroupsApi
             await using var c = await db.OpenAsync();
             var row = await RequireAsync(c, id);
             var role = await RoleAsync(c, row.Id, user.Id);
-            if (role is null) return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "joined", "groups") });
+            if (role is null) return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "joined", "groups") });
             await c.ExecuteAsync("DELETE FROM dbo.GroupMembers WHERE GroupId = @Id AND UserId = @uid", new { row.Id, uid = user.Id });
             if (role == 2)
             {
@@ -227,7 +227,7 @@ public static class GroupsApi
                 else await c.ExecuteAsync("UPDATE dbo.Groups SET OwnerId = @next WHERE Id = @Id; UPDATE dbo.GroupMembers SET Role = 2 WHERE GroupId = @Id AND UserId = @next", new { row.Id, next });
             }
             await SystemAsync(c, chat, row.Id, $"{user.Name} 退出了群聊", new JsonObject { ["key"] = "server.chat.sys.left", ["name"] = user.Name, ["person"] = user.PublicId });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "joined", "groups") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "joined", "groups") });
         });
 
         g.MapGet("/{id}/members", async (string id, HttpContext ctx, Db db) =>

@@ -60,7 +60,7 @@ public sealed class VipModule : IModule
                 WHEN MATCHED THEN UPDATE SET Theme = ISNULL(@theme, Theme), EntranceEnabled = ISNULL(@entrance, EntranceEnabled), UpdatedAt = SYSUTCDATETIME()
                 WHEN NOT MATCHED THEN INSERT(UserId, Theme, EntranceEnabled) VALUES (@Id, ISNULL(@theme, 'gold'), ISNULL(@entrance, 1));
                 """, new { user.Id, theme, entrance = body.EntranceEnabled });
-            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "vip") });
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "vip") });
         });
 
         g.MapGet("/levels", async (string? ids, Db db, VipService vip) =>

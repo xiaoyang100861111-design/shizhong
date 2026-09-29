@@ -26,10 +26,13 @@ public static class ChatState
             LEFT JOIN dbo.ChatStates s ON s.ConversationId = c.Id AND s.UserId = @userId
             LEFT JOIN dbo.Users pu ON c.Kind = 1 AND pu.Id = CASE WHEN c.UserA = @userId THEN c.UserB ELSE c.UserA END
             LEFT JOIN dbo.ChatStates ps ON c.Kind = 1 AND ps.ConversationId = c.Id AND ps.UserId = pu.Id
-            WHERE c.LastAt IS NOT NULL AND (
-                 (c.Kind = 1 AND (c.UserA = @userId OR c.UserB = @userId))
-              OR (c.Kind = 2 AND g.Status = 0 AND EXISTS (SELECT 1 FROM dbo.GroupMembers gm WHERE gm.GroupId = c.GroupId AND gm.UserId = @userId))
-              OR (c.Kind IN (3, 4) AND c.OwnerId = @userId))
+            WHERE c.LastAt IS NOT NULL AND c.Id IN (
+                -- one index seek per kind instead of an OR over the whole table (boot / state load)
+                SELECT Id FROM dbo.Conversations WHERE Kind = 1 AND UserA = @userId
+                UNION ALL SELECT Id FROM dbo.Conversations WHERE Kind = 1 AND UserB = @userId
+                UNION ALL SELECT gc.Id FROM dbo.GroupMembers gm JOIN dbo.Groups gg ON gg.Id = gm.GroupId AND gg.Status = 0
+                          JOIN dbo.Conversations gc ON gc.Kind = 2 AND gc.GroupId = gm.GroupId WHERE gm.UserId = @userId
+                UNION ALL SELECT Id FROM dbo.Conversations WHERE Kind IN (3, 4) AND OwnerId = @userId)
             ORDER BY c.LastAt DESC
             """, new { userId }, t);
 
@@ -44,22 +47,31 @@ public static class ChatState
     /// <summary>Recent messages of the given conversations visible to the user (not hidden, after "clear"), oldest first.</summary>
     public static async Task<List<MsgRow>> RecentAsync(SqlConnection c, long userId, IEnumerable<long> convIds, int per, SqlTransaction? t = null)
     {
-        var ids = convIds.ToArray();
+        var ids = convIds.Distinct().ToArray();
         var list = new List<MsgRow>();
         foreach (var chunk in ids.Chunk(300))
+        {
+            // The newest {per} of each conversation by an index seek (not a scan of every message of busy groups). The ids come
+            // in as a VALUES list, not from dbo.Conversations: under READ COMMITTED a nested loop keeps the lock on its outer row
+            // while it reads the inner one, and a new message inserts into Messages first and then updates its conversation row —
+            // reading the conversation rows here deadlocked with members joining / writing to a busy group (load test).
+            var args = new DynamicParameters(new { userId });
+            var values = string.Join(", ", chunk.Select((id, i) => { args.Add("c" + i, id); return $"(@c{i})"; }));
             list.AddRange(await c.QueryAsync<MsgRow>($"""
                 SELECT x.Id, x.ConversationId, x.SenderId, x.AdminId, x.Type, x.Text, x.Body, x.MediaRef, x.ClientId, x.RecalledAt, x.CreatedAt,
                        u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind
-                FROM (
-                    SELECT m.*, ROW_NUMBER() OVER (PARTITION BY m.ConversationId ORDER BY m.Id DESC) AS rn
+                FROM (VALUES {values}) AS cv(Id)
+                LEFT JOIN dbo.ChatStates s ON s.ConversationId = cv.Id AND s.UserId = @userId
+                CROSS APPLY (
+                    SELECT TOP ({per}) m.Id, m.ConversationId, m.SenderId, m.AdminId, m.Type, m.Text, m.Body, m.MediaRef, m.ClientId, m.RecalledAt, m.CreatedAt
                     FROM dbo.Messages m
-                    LEFT JOIN dbo.ChatStates s ON s.ConversationId = m.ConversationId AND s.UserId = @userId
-                    WHERE m.ConversationId IN @chunk AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
+                    WHERE m.ConversationId = cv.Id AND (s.ClearedAt IS NULL OR m.CreatedAt > s.ClearedAt)
                       AND NOT EXISTS (SELECT 1 FROM dbo.MessageHides h WHERE h.UserId = @userId AND h.MessageId = m.Id)
+                    ORDER BY m.Id DESC
                 ) x LEFT JOIN dbo.Users u ON u.Id = x.SenderId
-                WHERE x.rn <= {per}
                 ORDER BY x.ConversationId, x.Id
-                """, new { chunk, userId }, t));
+                """, args, t));
+        }
         return list;
     }
 

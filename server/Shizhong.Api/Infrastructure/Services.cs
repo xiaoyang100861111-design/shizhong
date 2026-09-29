@@ -319,6 +319,15 @@ public sealed class StateService(Db db, IServiceProvider services)
     public async Task<JsonObject> ProjectKeysAsync(CurrentUser user, params string[] keys)
     {
         await using var c = await db.OpenAsync();
+        return await ProjectKeysAsync(user, c, keys);
+    }
+
+    /// <summary>
+    /// Same, on the caller's open connection. Handlers that still hold a connection must use this overload: taking a second
+    /// pooled connection while holding one starves the pool under load (every request holds one and waits for another).
+    /// </summary>
+    public async Task<JsonObject> ProjectKeysAsync(CurrentUser user, SqlConnection c, params string[] keys)
+    {
         var doc = new JsonObject();
         var ctx = new StateContext(user.Id, user.PublicId, user.Kind, doc, c, services);
         foreach (var module in ModuleRegistry.All.Where(m => m.OwnedStateKeys.Intersect(keys).Any()))

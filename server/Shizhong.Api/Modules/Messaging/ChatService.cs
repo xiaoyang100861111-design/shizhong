@@ -126,10 +126,15 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
         return conv;
     }
 
+    /// <summary>
+    /// Insert a conversation; when a concurrent request created it first (two members messaging / gifting each other for the
+    /// first time at the same moment), use theirs. A duplicate-key error does not doom the transaction, and the other insert
+    /// is committed by the time it is raised, so the select inside the same transaction finds it.
+    /// </summary>
     static async Task<long> InsertConvAsync(SqlConnection c, SqlTransaction? t, string insert, object args, string select)
     {
         try { return await c.ExecuteScalarAsync<long>(insert, args, t); }
-        catch (SqlException e) when (e.IsDuplicate() && t is null) { return await c.ExecuteScalarAsync<long>(select, args); }
+        catch (SqlException e) when (e.IsDuplicate()) { return await c.ExecuteScalarAsync<long>(select, args, t); }
     }
 
     /// <summary>User ids who receive messages of a conversation.</summary>
@@ -250,11 +255,13 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
     }
 
     /// <summary>Push a message (new or changed) to every member's devices, each with their own chatId and view.</summary>
-    public async Task DeliverAsync(long messageId, string evt = "chat:message", long? exceptUser = null)
+    /// <param name="conn">The caller's open connection, if it holds one (never take a second pooled connection while holding one).</param>
+    public async Task DeliverAsync(long messageId, string evt = "chat:message", long? exceptUser = null, SqlConnection? conn = null)
     {
         try
         {
-            await using var c = await db.OpenAsync();
+            await using var own = conn is null ? await db.OpenAsync() : null;
+            var c = conn ?? own!;
             var r = await RowAsync(c, messageId);
             // Written in a caller's transaction that has not committed yet (only visible without blocking
             // when the database reads committed snapshots): look again for a few seconds.
