@@ -35,6 +35,28 @@
   const REVIEW_TAGS = ['onTime', 'professional', 'value', 'friendly', 'tidy', 'again'];
   const CANCEL_REASONS = ['plans', 'mistake', 'better', 'slow', 'else'];
   const BANKS = ['Maybank2u', 'CIMB Clicks', 'Public Bank', 'RHB Now', 'Hong Leong Connect'];
+  /*
+   * Server mode: the backend prices and records every order (checkout.* / orders.* settings in the console);
+   * the constants above are the prototype defaults and stay the fallback, so the offline demo is unchanged.
+   */
+  const SERVER = !!SZ.server;
+  const goodsCats = () => SZ.config('checkout.goodsCats', GOODS);
+  const addressCats = () => SZ.config('checkout.addressCats', ADDRESS_CATS);
+  const feeTable = () => SZ.config('checkout.fees', FEES);
+  const slotList = () => SZ.config('checkout.slots', SLOTS);
+  const reviewTags = () => SZ.config('orders.reviewTags', REVIEW_TAGS);
+  const cancelReasons = () => SZ.config('orders.cancelReasons', CANCEL_REASONS);
+  const maxHours = () => Number(SZ.config('checkout.maxHours', 12)) || 12;
+  const maxQty = () => Number(SZ.config('checkout.maxQty', 99)) || 99;
+  const leadMinutes = () => Number(SZ.config('checkout.leadMinutes', 30)) || 0;
+  /** [{ id, enabled }] — offline every method is a simulated approval; online only enabled ones can be chosen. */
+  function payMethods() {
+    const list = SERVER ? SZ.config('checkout.payMethods', null) : null;
+    if (!Array.isArray(list)) return PAY_METHODS.map(id => ({ id, enabled: true }));
+    return list.filter(m => m && PAY_METHODS.includes(m.id)).map(m => ({ id: m.id, enabled: m.enabled !== false }));
+  }
+  /** Online, only the wallet is connected in this release; other methods show "coming soon". */
+  const methodUsable = id => payMethods().some(m => m.id === id && m.enabled) && (!SERVER || id === 'wallet');
   const fmt = () => SZ.fmt;
   const money = n => fmt().money(n, { cents: true });
   const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
@@ -70,7 +92,7 @@
     if (s.type === 'job' || s.cat === 'jobs') return 'job';
     if (s.cat === 'visa') return 'enquiry';
     if (s.cat === 'phone') return phonePlan(s).consultation ? 'enquiry' : 'topup';
-    if (s.type === 'goods' || GOODS.includes(s.cat)) return 'goods';
+    if (s.type === 'goods' || goodsCats().includes(s.cat)) return 'goods';
     return 'service';
   }
   function orderFlow(o) {
@@ -85,7 +107,7 @@
   const qtyKind = s =>
     s.cat === 'phone'
       ? null
-      : GOODS.includes(s.cat) || s.type === 'goods'
+      : goodsCats().includes(s.cat) || s.type === 'goods'
         ? 'qty'
         : /小时/.test(String(s.unit || ''))
           ? 'hours'
@@ -269,9 +291,15 @@
   }
   const timeOptions = () => {
     const out = [];
-    for (let h = 8; h <= 21; h++)
-      for (const m of ['00', '30'])
-        if (!(h === 21 && m === '30')) out.push(String(h).padStart(2, '0') + ':' + m);
+    const minutes = v => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || ''));
+      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    };
+    const start = minutes(SZ.config('checkout.timeStart', '08:00')) ?? 480;
+    const end = minutes(SZ.config('checkout.timeEnd', '21:00')) ?? 1260;
+    const step = Math.max(5, Number(SZ.config('checkout.timeStep', 30)) || 30);
+    for (let at = start; at <= end && out.length < 400; at += step)
+      out.push(String(Math.floor(at / 60)).padStart(2, '0') + ':' + String(at % 60).padStart(2, '0'));
     return out.map(v => [v, v]);
   };
 
@@ -470,7 +498,7 @@
           ),
         })
       );
-    if (ADDRESS_CATS.includes(cat))
+    if (addressCats().includes(cat))
       parts.push(
         field('address', t('catalog.field.address'), {
           required: true,
@@ -578,7 +606,7 @@
 
   // ------------------------------------------------------------------ confirm order
   function feeFor(cat, subtotal) {
-    const rule = FEES[cat];
+    const rule = feeTable()[cat];
     if (!rule) return { kind: '', amount: 0 };
     return {
       kind: rule.kind,
@@ -594,7 +622,10 @@
     const fee = feeFor(m.cat, subtotal);
     const list = coupons(subtotal, m.cat);
     if (m.couponId === undefined)
-      m.couponId = list?.length ? list.slice().sort((a, b) => b.amount - a.amount)[0].id : '';
+      m.couponId =
+        list?.length && SZ.config('checkout.autoCoupon', true) !== false
+          ? list.slice().sort((a, b) => b.amount - a.amount)[0].id
+          : '';
     const coupon = list?.find(c => c.id === m.couponId) || null;
     if (!coupon) m.couponId = '';
     const discount = coupon ? round2(Math.min(Number(coupon.amount), subtotal + fee.amount)) : 0;
@@ -607,7 +638,7 @@
       .map(({ s, qty }, index) => {
         const kind = qtyKind(s);
         const stepper = kind
-          ? `<div class="checkout-stepper" role="group" aria-label="${esc(t(kind === 'hours' ? 'catalog.confirm.hoursLabel' : 'catalog.confirm.qtyLabel', { name: C.serviceName(s) }))}"><button type="button" class="icon-button" data-checkout="qty" data-index="${index}" data-delta="-1" aria-label="${esc(t('catalog.confirm.less'))}"${qty <= 1 ? ' disabled' : ''}>−</button><output aria-live="polite">${esc(kind === 'hours' ? tn('catalog.confirm.hours', qty) : String(qty))}</output><button type="button" class="icon-button" data-checkout="qty" data-index="${index}" data-delta="1" aria-label="${esc(t('catalog.confirm.more'))}"${qty >= (kind === 'hours' ? 12 : 99) ? ' disabled' : ''}>+</button></div>`
+          ? `<div class="checkout-stepper" role="group" aria-label="${esc(t(kind === 'hours' ? 'catalog.confirm.hoursLabel' : 'catalog.confirm.qtyLabel', { name: C.serviceName(s) }))}"><button type="button" class="icon-button" data-checkout="qty" data-index="${index}" data-delta="-1" aria-label="${esc(t('catalog.confirm.less'))}"${qty <= 1 ? ' disabled' : ''}>−</button><output aria-live="polite">${esc(kind === 'hours' ? tn('catalog.confirm.hours', qty) : String(qty))}</output><button type="button" class="icon-button" data-checkout="qty" data-index="${index}" data-delta="1" aria-label="${esc(t('catalog.confirm.more'))}"${qty >= (kind === 'hours' ? maxHours() : maxQty()) ? ' disabled' : ''}>+</button></div>`
           : '';
         return `<div class="checkout-line">${C.img(s.image, '', 'checkout-thumb')}<div class="checkout-line-main"><p class="checkout-summary-title">${html(C.serviceName(s))}</p><p class="caption">${html(C.storeName(s))}</p>${C.priceHTML(s)}</div>${stepper}</div>`;
       })
@@ -616,11 +647,11 @@
   function scheduleHTML(m) {
     if (m.flow === 'topup') return '';
     if (m.flow === 'goods')
-      return `<section class="checkout-block"><h3 class="checkout-block-title" id="checkout-slot-title">${esc(t('catalog.confirm.deliveryTime'))}</h3><div class="checkout-word-list" role="radiogroup" aria-labelledby="checkout-slot-title">${SLOTS.map(id => `<button type="button" class="chip" role="radio" aria-checked="${m.slot === id}" data-checkout="slot" data-value="${id}">${esc(t(`catalog.slot.${id}`))}</button>`).join('')}</div></section>`;
+      return `<section class="checkout-block"><h3 class="checkout-block-title" id="checkout-slot-title">${esc(t('catalog.confirm.deliveryTime'))}</h3><div class="checkout-word-list" role="radiogroup" aria-labelledby="checkout-slot-title">${slotList().map(id => `<button type="button" class="chip" role="radio" aria-checked="${m.slot === id}" data-checkout="slot" data-value="${id}">${esc(t(`catalog.slot.${id}`))}</button>`).join('')}</div></section>`;
     return `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.confirm.when'))}</h3><div class="form-row">${field('date', t('catalog.field.date'), { type: 'date', required: true, value: m.date, attrs: `min="${fmt().date(Date.now(), 'iso')}" data-checkout-input="date"` })}${field('time', t('catalog.field.time'), { options: timeOptions(), value: m.time, attrs: 'data-checkout-input="time"' })}</div><p class="form-hint">${esc(t('catalog.confirm.whenHint'))}</p></section>`;
   }
   function addressHTML(m) {
-    if (!ADDRESS_CATS.includes(m.cat)) return '';
+    if (!addressCats().includes(m.cat)) return '';
     const list = savedAddresses();
     const manual = m.addressId === 'manual' || !list.length;
     const options = list
@@ -629,7 +660,7 @@
           `<button type="button" class="checkout-address" role="radio" aria-checked="${m.addressId === String(a.id)}" data-checkout="address" data-value="${esc(a.id)}"><span class="checkout-radio" aria-hidden="true"></span><span><span class="checkout-address-name">${html(a.name || (typeof profileName === 'function' ? profileName() : state.profile.name))}${a.phone ? ` · ${esc(a.phone)}` : ''}</span><span class="checkout-address-line">${html(addressLine(a))}</span></span></button>`
       )
       .join('');
-    return `<section class="checkout-block"><div class="section-header"><h3 class="checkout-block-title" id="checkout-address-title">${esc(GOODS.includes(m.cat) ? t('catalog.confirm.deliverTo') : t('catalog.confirm.serviceAddress'))}</h3>${act('addresses', '', esc(t('catalog.confirm.manageAddresses')), 'btn btn-ghost btn-sm checkout-view-all')}</div>${
+    return `<section class="checkout-block"><div class="section-header"><h3 class="checkout-block-title" id="checkout-address-title">${esc(goodsCats().includes(m.cat) ? t('catalog.confirm.deliverTo') : t('catalog.confirm.serviceAddress'))}</h3>${act('addresses', '', esc(t('catalog.confirm.manageAddresses')), 'btn btn-ghost btn-sm checkout-view-all')}</div>${
       list.length
         ? `<div class="checkout-addresses" role="radiogroup" aria-labelledby="checkout-address-title">${options}<button type="button" class="checkout-address" role="radio" aria-checked="${manual}" data-checkout="address" data-value="manual"><span class="checkout-radio" aria-hidden="true"></span><span class="checkout-address-name">${esc(t('catalog.confirm.otherAddress'))}</span></button></div>`
         : ''
@@ -699,16 +730,18 @@
   }
   function payHTML(m, sum) {
     const balance = Number(state.wallet) || 0;
-    return `<section class="checkout-block"><h3 class="checkout-block-title" id="checkout-pay-title">${esc(t('catalog.pay.title'))}</h3><div class="list checkout-methods" role="radiogroup" aria-labelledby="checkout-pay-title">${PAY_METHODS.map(
-      id => {
+    return `<section class="checkout-block"><h3 class="checkout-block-title" id="checkout-pay-title">${esc(t('catalog.pay.title'))}</h3><div class="list checkout-methods" role="radiogroup" aria-labelledby="checkout-pay-title">${payMethods().map(
+      ({ id }) => {
         const short = id === 'wallet' && balance < sum.payable;
-        const note =
-          id === 'wallet'
+        const off = !methodUsable(id);
+        const note = off
+          ? t('commerce.real.comingSoon')
+          : id === 'wallet'
             ? short
               ? t('catalog.pay.walletShort', { balance: money(balance) })
               : t('catalog.pay.walletBalance', { balance: money(balance) })
             : t(`catalog.pay.hint.${id}`);
-        return `<button type="button" class="list-row checkout-method" role="radio" aria-checked="${m.method === id}" data-checkout="method" data-value="${id}"${short ? ' aria-disabled="true"' : ''}><span class="checkout-method-icon checkout-method-${id}" aria-hidden="true">${icon(METHOD_ICONS[id])}</span><span class="list-row-main"><span class="checkout-row-title">${esc(methodLabel(id))}</span><span class="checkout-row-sub">${esc(note)}</span></span><span class="checkout-radio" aria-hidden="true"></span></button>`;
+        return `<button type="button" class="list-row checkout-method" role="radio" aria-checked="${m.method === id}" data-checkout="method" data-value="${id}"${short || off ? ' aria-disabled="true"' : ''}${off ? ' data-off="true"' : ''}><span class="checkout-method-icon checkout-method-${id}" aria-hidden="true">${icon(METHOD_ICONS[id])}</span><span class="list-row-main"><span class="checkout-row-title">${esc(methodLabel(id))}</span><span class="checkout-row-sub">${esc(note)}</span></span><span class="checkout-radio" aria-hidden="true"></span></button>`;
       }
     ).join('')}</div></section>`;
   }
@@ -768,21 +801,21 @@
       address: draft.form?.address || '',
     };
     const sum0 = totals(m);
-    m.method = (Number(state.wallet) || 0) >= sum0.payable ? 'wallet' : 'tng';
+    m.method = (Number(state.wallet) || 0) >= sum0.payable || !methodUsable('tng') ? 'wallet' : 'tng';
     const layer = SZ.overlay.open({
       kind: 'screen',
       mode: 'push',
       title: t('catalog.confirm.title'),
       className: 'checkout-ui checkout-screen checkout-confirm',
       meta: { checkout: true, view: 'confirm' },
-      html: `<div class="checkout-screen-body"><section class="checkout-block checkout-lines" data-part="items">${itemsHTML(m)}</section>${scheduleHTML(m)}${addressHTML(m)}${Object.keys(m.form).length ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.confirm.details'))}</h3>${factsHTML(m.form)}</section>` : ''}<section class="checkout-block list checkout-list" data-part="coupon">${couponHTML(m, sum0)}</section><div data-part="pay">${payHTML(m, sum0)}</div><div data-part="totals">${totalsHTML(m, sum0)}</div><p class="checkout-footnote">${esc(t('catalog.confirm.demoNote'))}</p></div><div class="checkout-bottom-bar checkout-pay-bar" data-part="bar">${barHTML(m, sum0)}</div>`,
+      html: `<div class="checkout-screen-body"><section class="checkout-block checkout-lines" data-part="items">${itemsHTML(m)}</section>${scheduleHTML(m)}${addressHTML(m)}${Object.keys(m.form).length ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.confirm.details'))}</h3>${factsHTML(m.form)}</section>` : ''}<section class="checkout-block list checkout-list" data-part="coupon">${couponHTML(m, sum0)}</section><div data-part="pay">${payHTML(m, sum0)}</div><div data-part="totals">${totalsHTML(m, sum0)}</div><p class="checkout-footnote">${esc(SERVER ? t('commerce.real.confirmNote') : t('catalog.confirm.demoNote'))}</p></div><div class="checkout-bottom-bar checkout-pay-bar" data-part="bar">${barHTML(m, sum0)}</div>`,
     });
     const $ = sel => layer.el.querySelector(sel);
     const refresh = () => {
       const sum = totals(m);
       $('[data-part="items"]').innerHTML = itemsHTML(m);
       $('[data-part="coupon"]').innerHTML = couponHTML(m, sum);
-      if (m.method === 'wallet' && (Number(state.wallet) || 0) < sum.payable) m.method = 'tng';
+      if (m.method === 'wallet' && (Number(state.wallet) || 0) < sum.payable && methodUsable('tng')) m.method = 'tng';
       $('[data-part="pay"]').innerHTML = payHTML(m, sum);
       $('[data-part="totals"]').innerHTML = totalsHTML(m, sum);
       $('[data-part="bar"]').innerHTML = barHTML(m, sum);
@@ -804,7 +837,7 @@
       const kind = el.dataset.checkout;
       if (kind === 'qty') {
         const item = m.items[Number(el.dataset.index)];
-        const max = qtyKind(item.s) === 'hours' ? 12 : 99;
+        const max = qtyKind(item.s) === 'hours' ? maxHours() : maxQty();
         item.qty = Math.max(1, Math.min(max, item.qty + Number(el.dataset.delta)));
         refresh();
         layer.el
@@ -826,6 +859,7 @@
         input.required = !manual.hidden;
         if (!manual.hidden) input.focus();
       } else if (kind === 'method') {
+        if (el.dataset.off === 'true') return toast(t('commerce.real.comingSoon'));
         if (el.getAttribute('aria-disabled') === 'true')
           return toast(t('catalog.pay.walletShortToast'), {
             action: { label: t('catalog.pay.topUp'), run: () => SZ.actions.dispatch('recharge') },
@@ -890,11 +924,11 @@
     const input = layer.el.querySelector('[data-checkout-input="date"]');
     if (!m.date || !Number.isFinite(at))
       return showError(input, t('catalog.form.requiredField')), input.focus(), true;
-    if (at < Date.now() + 30 * 60000) return showError(input, t('catalog.form.tooSoon')), input.focus(), true;
+    if (at < Date.now() + leadMinutes() * 60000) return showError(input, t('catalog.form.tooSoon')), input.focus(), true;
     return false;
   }
   function chosenAddress(layer, m) {
-    if (!ADDRESS_CATS.includes(m.cat)) return { ok: true };
+    if (!addressCats().includes(m.cat)) return { ok: true };
     if (m.addressId !== 'manual') {
       const a = savedAddresses().find(x => String(x.id) === m.addressId);
       if (a)
@@ -922,7 +956,13 @@
     if (!address.ok) return toast(t('catalog.form.fixErrors'), { type: 'error' });
     const sum = refresh();
     if (m.method === 'wallet' && (Number(state.wallet) || 0) < sum.payable)
-      return toast(t('catalog.pay.walletShortToast'), { type: 'error' });
+      return toast(
+        t('catalog.pay.walletShortToast'),
+        SERVER
+          ? { type: 'error', action: { label: t('catalog.pay.topUp'), run: () => SZ.actions.dispatch('recharge') } }
+          : { type: 'error' }
+      );
+    if (SERVER) return placeOnServer(layer, m, sum, address);
     placing = true;
     try {
       if (sum.payable > 0 && m.method !== 'wallet' && !(await authorise(m.method, sum.payable))) return;
@@ -1008,8 +1048,45 @@
       placing = false;
     }
   }
+  /** Server mode: the backend re-prices, charges the wallet and creates the order (and its notice). */
+  async function placeOnServer(layer, m, sum, address) {
+    placing = true;
+    const cta = layer.el.querySelector('[data-checkout="place"]');
+    if (cta) {
+      cta.disabled = true;
+      cta.textContent = t('commerce.real.placing');
+    }
+    try {
+      const body = {
+        items: m.items.map(({ s: item, qty }) => ({ id: item.id, qty })),
+        form: m.form,
+        method: sum.payable > 0 ? m.method : 'none',
+        couponId: sum.coupon?.id || '',
+        fromCart: !!m.draft.fromCart,
+        expectedPayable: sum.payable,
+      };
+      if (m.flow === 'goods') body.slot = m.slot;
+      else if (m.flow === 'service') Object.assign(body, { date: m.date, time: m.time });
+      if (address.address) Object.assign(body, { addressId: address.addressId || 'manual', address: address.address });
+      const res = await SZ.api.act('POST', 'orders', body);
+      syncCartBadges();
+      await finishPlacement(res.order, { quiet: true });
+    } catch (e) {
+      SZ.api.fail(e);
+      if (e?.code === 'orders.priceChanged' || e?.code === 'orders.couponInvalid') {
+        m.couponId = undefined;
+        if (layer.el.isConnected) refresh();
+      }
+    } finally {
+      placing = false;
+      if (cta?.isConnected) {
+        cta.disabled = false;
+        refresh();
+      }
+    }
+  }
   /** Close the form/confirm/cart layers, show the result and tell the notice centre. */
-  async function finishPlacement(order) {
+  async function finishPlacement(order, { quiet = false } = {}) {
     const layers = SZ.overlay
       .layers()
       .filter(l => l.meta.checkout)
@@ -1018,6 +1095,7 @@
     syncCartBadges();
     C.markTabStale?.();
     successSheet(order);
+    if (quiet) return; // server mode: the backend already wrote the notice
     const flow = orderFlow(order);
     // Keys + params (not only text) so the notice centre shows them in the language of the day.
     const titleKey = `catalog.notice.placed.${isPaidFlow(flow) ? 'paid' : flow}`;
@@ -1052,7 +1130,18 @@
     });
   }
   /** Enquiry, job application and open requests: no payment, straight to the order list. */
+  async function placeFreeOnServer({ flow, cat, service, data }) {
+    try {
+      const res = await SZ.api.act('POST', 'orders/free', { flow, cat, serviceId: service?.id || '', data });
+      await finishPlacement(res.order, { quiet: true });
+      return res.order;
+    } catch (e) {
+      SZ.api.fail(e);
+      return null;
+    }
+  }
   function placeFree({ flow, cat, service, data }) {
+    if (SERVER) return placeFreeOnServer({ flow, cat, service, data });
     const now = Date.now();
     const order = {
       id: newOrderId(),
@@ -1116,6 +1205,7 @@
     return ok ? order : null;
   }
   function confirmOrder(id, source = 'merchant') {
+    if (SERVER) return;
     const o = findOrder(id);
     if (!o || orderStatus(o) !== 'pending') return;
     const flow = orderFlow(o);
@@ -1155,7 +1245,8 @@
   // Merchant side is simulated while the app is open: confirm 10–20 s after ordering, start
   // delivery shortly after confirming goods, start service at the booked time.
   function tick() {
-    if (document.hidden || !state?.orders) return;
+    // Server mode: confirmation and delivery are driven by the backend (merchant console / auto-confirm).
+    if (SERVER || document.hidden || !state?.orders) return;
     const now = Date.now();
     for (const o of state.orders) {
       if (o.demoSeed) continue;
@@ -1174,8 +1265,23 @@
     if (!o) return;
     const status = orderStatus(o);
     if (!['pending', 'confirmed'].includes(status)) return toast(t('catalog.cancel.notAllowed'));
-    const refund = o.paid && o.payable > 0 ? o.payable : 0;
-    const soon = status === 'confirmed' && scheduledAt(o) && scheduledAt(o) - Date.now() < 2 * 3600000;
+    const windowHours = Number(SZ.config('orders.cancelWindowHours', 2)) || 0;
+    const soon = status === 'confirmed' && scheduledAt(o) && scheduledAt(o) - Date.now() < windowHours * 3600000;
+    // Server mode: late cancellation may be blocked or charged (orders.* settings); the backend has the final say.
+    const blocked = SERVER && soon && SZ.config('orders.lateCancelAllowed', true) === false;
+    const fee = SERVER && soon && o.paid ? lateFee(o.payable) : 0;
+    const refund = o.paid && o.payable > 0 ? Math.max(0, round2(o.payable - (o.refunded || 0) - fee)) : 0;
+    const rule = !SERVER
+      ? t(status === 'pending' ? 'catalog.cancel.rulePending' : soon ? 'catalog.cancel.ruleSoon' : 'catalog.cancel.ruleConfirmed')
+      : status === 'pending'
+        ? t('catalog.cancel.rulePending')
+        : blocked
+          ? t('commerce.real.ruleBlocked', { hours: windowHours })
+          : soon
+            ? fee
+              ? t('commerce.real.ruleSoon', { hours: windowHours, fee: money(fee) })
+              : t('commerce.real.ruleSoonFree', { hours: windowHours })
+            : t('commerce.real.ruleConfirmed', { hours: windowHours });
     let reason = '';
     const layer = SZ.overlay.open({
       kind: 'sheet',
@@ -1183,7 +1289,7 @@
       title: t('catalog.cancel.title'),
       className: 'checkout-ui checkout-sheet checkout-cancel-sheet',
       meta: { view: 'cancel', orderId: id },
-      html: `<p class="checkout-muted">${esc(t(status === 'pending' ? 'catalog.cancel.rulePending' : soon ? 'catalog.cancel.ruleSoon' : 'catalog.cancel.ruleConfirmed'))}</p><h3 class="checkout-block-title" id="checkout-cancel-reason">${esc(t('catalog.cancel.reason'))}</h3><div class="checkout-word-list" role="radiogroup" aria-labelledby="checkout-cancel-reason">${CANCEL_REASONS.map(r => `<button type="button" class="chip" role="radio" aria-checked="false" data-reason="${r}">${esc(t(`catalog.cancel.reasons.${r}`))}</button>`).join('')}</div>${refund ? `<div class="checkout-refund">${icon('wallet')}<span>${esc(t('catalog.cancel.refund', { amount: money(refund) }))}</span></div>` : ''}<div class="button-row checkout-sheet-actions">${act('close', '', esc(t('catalog.cancel.keep')), 'btn btn-secondary')}<button type="button" class="btn btn-danger" data-cancel-confirm disabled>${esc(t('catalog.cancel.confirm'))}</button></div>`,
+      html: `<p class="checkout-muted">${esc(rule)}</p><h3 class="checkout-block-title" id="checkout-cancel-reason">${esc(t('catalog.cancel.reason'))}</h3><div class="checkout-word-list" role="radiogroup" aria-labelledby="checkout-cancel-reason">${cancelReasons().map(r => `<button type="button" class="chip" role="radio" aria-checked="false" data-reason="${r}">${esc(t(`catalog.cancel.reasons.${r}`))}</button>`).join('')}</div>${refund ? `<div class="checkout-refund">${icon('wallet')}<span>${esc(t('catalog.cancel.refund', { amount: money(refund) }))}</span></div>` : ''}<div class="button-row checkout-sheet-actions">${act('close', '', esc(t('catalog.cancel.keep')), 'btn btn-secondary')}<button type="button" class="btn btn-danger" data-cancel-confirm disabled>${esc(t('catalog.cancel.confirm'))}</button></div>`,
     });
     layer.el.addEventListener('click', event => {
       const chip = event.target.closest('[data-reason]');
@@ -1191,10 +1297,11 @@
         reason = chip.dataset.reason;
         for (const c of layer.el.querySelectorAll('[data-reason]'))
           c.setAttribute('aria-checked', String(c === chip));
-        layer.el.querySelector('[data-cancel-confirm]').disabled = false;
+        layer.el.querySelector('[data-cancel-confirm]').disabled = blocked;
         return;
       }
-      if (!event.target.closest('[data-cancel-confirm]') || !reason) return;
+      if (!event.target.closest('[data-cancel-confirm]') || !reason || blocked) return;
+      if (SERVER) return cancelOnServer(layer, id, reason);
       const now = Date.now();
       const ok = SZ.store.commit(s => {
         const order = s.orders.find(x => x.id === id);
@@ -1230,7 +1337,54 @@
       });
     });
   }
-  function completeOrder(id) {
+  /** Late-cancel fee as the backend computes it (orders.lateCancelFeeRate / lateCancelFeeMin). */
+  function lateFee(payable) {
+    const rate = Number(SZ.config('orders.lateCancelFeeRate', 0)) || 0;
+    const min = Number(SZ.config('orders.lateCancelFeeMin', 0)) || 0;
+    if (rate <= 0 && min <= 0) return 0;
+    return Math.min(payable, Math.max(min, round2(payable * rate)));
+  }
+  async function cancelOnServer(layer, id, reason) {
+    const button = layer.el.querySelector('[data-cancel-confirm]');
+    if (button) button.disabled = true;
+    try {
+      const res = await SZ.api.act('POST', 'orders/' + encodeURIComponent(id) + '/cancel', { reason });
+      SZ.overlay.close({ layer, force: true });
+      refreshOrderViews(id);
+      C.markTabStale?.();
+      const refund = Number(res.refund) || 0;
+      const fee = Number(res.fee) || 0;
+      toast(
+        fee
+          ? t('commerce.real.doneRefundFee', { amount: money(refund), fee: money(fee) })
+          : refund
+            ? t('catalog.cancel.doneRefund', { amount: money(refund) })
+            : t('catalog.cancel.done'),
+        { type: 'success' }
+      );
+    } catch (e) {
+      if (button) button.disabled = false;
+      SZ.api.fail(e);
+    }
+  }
+  async function completeOrder(id) {
+    if (SERVER) {
+      const o = findOrder(id);
+      if (!o || !['confirmed', 'serving'].includes(orderStatus(o))) return;
+      try {
+        await SZ.api.act('POST', 'orders/' + encodeURIComponent(id) + '/complete');
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      refreshOrderViews(id);
+      C.markTabStale?.();
+      toast(t('catalog.order.completedToast'), { type: 'success' });
+      if (o.serviceId && isPaidFlow(orderFlow(o))) reviewSheet(id);
+      return;
+    }
+    return completeOrderLocal(id);
+  }
+  function completeOrderLocal(id) {
     const o = findOrder(id);
     if (!o || !['confirmed', 'serving'].includes(orderStatus(o))) return;
     if (!advance(id, 'done', 'customer')) return;
@@ -1258,7 +1412,7 @@
       title: t('catalog.review.title'),
       className: 'checkout-ui checkout-sheet checkout-review-sheet',
       meta: { view: 'review', orderId: id },
-      html: `<form data-catalog-form="review" novalidate>${formSummary(s)}<div class="checkout-star-field"><div class="checkout-stars-input" role="radiogroup" aria-label="${esc(t('catalog.review.ratingLabel'))}" data-part="stars">${starButtons()}</div><p class="checkout-star-text" data-part="star-text" aria-live="polite">${esc(t(`catalog.review.level.${rating}`))}</p></div><h3 class="checkout-block-title">${esc(t('catalog.review.tagsTitle'))}</h3><div class="checkout-word-list" role="group" aria-label="${esc(t('catalog.review.tagsTitle'))}">${REVIEW_TAGS.map(tag => `<button type="button" class="chip" aria-pressed="false" data-tag="${tag}">${esc(t(`catalog.review.tag.${tag}`))}</button>`).join('')}</div>${field('text', t('catalog.review.text'), { type: 'textarea', placeholder: t('catalog.review.placeholder') })}<button type="submit" class="btn btn-lg btn-primary btn-block">${esc(t('catalog.review.submit'))}</button></form>`,
+      html: `<form data-catalog-form="review" novalidate>${formSummary(s)}<div class="checkout-star-field"><div class="checkout-stars-input" role="radiogroup" aria-label="${esc(t('catalog.review.ratingLabel'))}" data-part="stars">${starButtons()}</div><p class="checkout-star-text" data-part="star-text" aria-live="polite">${esc(t(`catalog.review.level.${rating}`))}</p></div><h3 class="checkout-block-title">${esc(t('catalog.review.tagsTitle'))}</h3><div class="checkout-word-list" role="group" aria-label="${esc(t('catalog.review.tagsTitle'))}">${reviewTags().map(tag => `<button type="button" class="chip" aria-pressed="false" data-tag="${tag}">${esc(t(`catalog.review.tag.${tag}`))}</button>`).join('')}</div>${field('text', t('catalog.review.text'), { type: 'textarea', placeholder: t('catalog.review.placeholder') })}<button type="submit" class="btn btn-lg btn-primary btn-block">${esc(t('catalog.review.submit'))}</button></form>`,
     });
     layer.el.addEventListener('click', event => {
       const star = event.target.closest('[data-star]');
@@ -1277,9 +1431,25 @@
         chip.setAttribute('aria-pressed', String(on));
       }
     });
-    layer.el.addEventListener('submit', event => {
+    layer.el.addEventListener('submit', async event => {
       event.preventDefault();
       const text = String(event.target.elements.text.value || '').trim();
+      if (SERVER) {
+        const button = event.target.querySelector('[type="submit"]');
+        if (button) button.disabled = true;
+        try {
+          await SZ.api.act('POST', 'orders/' + encodeURIComponent(id) + '/review', { stars: rating, tags: [...tags], text });
+        } catch (e) {
+          if (button) button.disabled = false;
+          return SZ.api.fail(e);
+        }
+        SZ.overlay.close({ layer, force: true });
+        C.dataVersion++;
+        C.refreshReviews?.(s.id);
+        refreshOrderViews(id);
+        toast(t('catalog.review.thanks'), { type: 'success' });
+        return;
+      }
       const review = {
         id: SZ.uid('r'),
         orderId: id,
@@ -1459,6 +1629,7 @@
     const method =
       o.payMethod && o.payMethod !== 'none' ? methodLabel(o.payMethod) : t('catalog.pay.offline');
     rows.push([t('catalog.order.method'), method]);
+    if (o.cancelFee) rows.push([t('commerce.order.cancelFee'), money(o.cancelFee)]);
     if (o.refunded) rows.push([t('catalog.order.refunded'), money(o.refunded), 'checkout-discount']);
     return `<dl class="checkout-breakdown">${rows.map(([k, v, cls]) => `<div class="${cls || ''}"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}<div class="checkout-breakdown-total"><dt>${esc(o.paid ? t('catalog.order.paid') : t('catalog.order.estimate'))}</dt><dd>${esc(money(o.payable ?? o.total))}</dd></div></dl>`;
   }
@@ -1484,8 +1655,11 @@
           : '';
       })
       .join('');
-    const demo =
-      status === 'pending' && !o.demoSeed
+    const demo = SERVER
+      ? status === 'pending' && !o.demoSeed
+        ? `<div class="checkout-demo-row"><span class="caption">${esc(t('commerce.real.pendingHint'))}</span></div>`
+        : ''
+      : status === 'pending' && !o.demoSeed
         ? `<div class="checkout-demo-row"><span class="caption">${esc(t('catalog.order.demoHint'))}</span>${act('confirm-order', o.id, esc(t('catalog.order.simulate')), 'btn btn-ghost btn-sm')}</div>`
         : status === 'pending'
           ? `<div class="checkout-demo-row">${act('confirm-order', o.id, esc(t('catalog.order.simulate')), 'btn btn-ghost btn-sm')}</div>`
@@ -1520,7 +1694,7 @@
       o.review
         ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.order.yourReview'))}</h3>${C.stars(o.review.stars)}</section>`
         : ''
-    }<section class="checkout-block"><dl class="checkout-facts"><div><dt>${esc(t('catalog.order.number'))}</dt><dd>${esc(o.id)}</dd></div><div><dt>${esc(t('catalog.order.created'))}</dt><dd>${esc(fmt().dateTime(o.createdAt))}</dd></div></dl></section>${demo}<p class="checkout-footnote">${esc(o.demoSeed ? t('catalog.order.seedNote') : t('catalog.order.demoNote'))}</p></div><div class="checkout-bottom-bar">${contact}${orderActions(o)}</div>`;
+    }<section class="checkout-block"><dl class="checkout-facts"><div><dt>${esc(t('catalog.order.number'))}</dt><dd>${esc(o.id)}</dd></div><div><dt>${esc(t('catalog.order.created'))}</dt><dd>${esc(fmt().dateTime(o.createdAt))}</dd></div></dl></section>${demo}<p class="checkout-footnote">${esc(SERVER ? (o.demoSeed ? t('commerce.real.seedNote') : t('commerce.real.orderNote')) : o.demoSeed ? t('catalog.order.seedNote') : t('catalog.order.demoNote'))}</p></div><div class="checkout-bottom-bar">${contact}${orderActions(o)}</div>`;
   }
   function orderDetail(id) {
     const o = findOrder(id);
@@ -1563,7 +1737,7 @@
   const cartCount = () => Object.values(state.cart || {}).reduce((n, q) => n + (Number(q) || 0), 0);
   function cartButton(cat = '') {
     const n = cartCount();
-    if (cat === 'home' ? !n : !GOODS.includes(cat) && !n) return '';
+    if (cat === 'home' ? !n : !goodsCats().includes(cat) && !n) return '';
     return act(
       'catalog-cart',
       '',
@@ -1581,12 +1755,25 @@
     for (const el of document.querySelectorAll('[data-cart-label]'))
       el.setAttribute('aria-label', tn('catalog.cart.label', n));
   }
-  function addToCart(id, qty = 1, quiet = false) {
+  /** Server mode: the cart lives on the server (state.cart comes back with each change). */
+  async function cartOnServer(method, id, qty) {
+    if (!SZ.requireLogin(t('catalog.login.order'))) return false;
+    try {
+      await SZ.api.act(method, 'cart/' + encodeURIComponent(id), { qty });
+      return true;
+    } catch (e) {
+      SZ.api.fail(e);
+      return false;
+    }
+  }
+  async function addToCart(id, qty = 1, quiet = false) {
     const s = C.findService(id);
     if (!s || flowOf(s) !== 'goods') return;
-    if (
+    if (SERVER) {
+      if (!(await cartOnServer('POST', id, qty))) return;
+    } else if (
       !SZ.store.commit(st => {
-        st.cart[id] = Math.min(99, (Number(st.cart[id]) || 0) + qty);
+        st.cart[id] = Math.min(maxQty(), (Number(st.cart[id]) || 0) + qty);
       })
     )
       return;
@@ -1625,7 +1812,7 @@
         return `<section class="checkout-cart-group" aria-labelledby="checkout-cart-${gi}"><h3 class="checkout-block-title" id="checkout-cart-${gi}">${icon('bag')}${html(C.storeName(g.store))}</h3>${g.items
           .map(
             ({ s, qty }) =>
-              `<div class="checkout-line">${C.img(s.image, '', 'checkout-thumb')}<div class="checkout-line-main"><p class="checkout-summary-title">${html(C.serviceName(s))}</p>${C.priceHTML(s)}</div><div class="checkout-stepper" role="group" aria-label="${esc(t('catalog.confirm.qtyLabel', { name: C.serviceName(s) }))}"><button type="button" class="icon-button" data-cart="dec" data-id="${esc(s.id)}" aria-label="${esc(qty > 1 ? t('catalog.confirm.less') : t('catalog.cart.remove'))}">−</button><output>${qty}</output><button type="button" class="icon-button" data-cart="inc" data-id="${esc(s.id)}" aria-label="${esc(t('catalog.confirm.more'))}"${qty >= 99 ? ' disabled' : ''}>+</button></div></div>`
+              `<div class="checkout-line">${C.img(s.image, '', 'checkout-thumb')}<div class="checkout-line-main"><p class="checkout-summary-title">${html(C.serviceName(s))}</p>${C.priceHTML(s)}</div><div class="checkout-stepper" role="group" aria-label="${esc(t('catalog.confirm.qtyLabel', { name: C.serviceName(s) }))}"><button type="button" class="icon-button" data-cart="dec" data-id="${esc(s.id)}" aria-label="${esc(qty > 1 ? t('catalog.confirm.less') : t('catalog.cart.remove'))}">−</button><output>${qty}</output><button type="button" class="icon-button" data-cart="inc" data-id="${esc(s.id)}" aria-label="${esc(t('catalog.confirm.more'))}"${qty >= maxQty() ? ' disabled' : ''}>+</button></div></div>`
           )
           .join(
             ''
@@ -1647,7 +1834,7 @@
       meta: { checkout: true, view: 'cart' },
       html: `<div data-part="cart">${cartHTML()}</div><p class="checkout-footnote">${esc(t('catalog.cart.note'))}</p>`,
     });
-    layer.el.addEventListener('click', event => {
+    layer.el.addEventListener('click', async event => {
       const el = event.target.closest('[data-cart]');
       if (!el) return;
       const action = el.dataset.cart;
@@ -1658,9 +1845,11 @@
       }
       const id = el.dataset.id;
       const current = Number(state.cart[id]) || 0;
-      const next = action === 'inc' ? Math.min(99, current + 1) : current - 1;
+      const next = action === 'inc' ? Math.min(maxQty(), current + 1) : current - 1;
       const s = C.findService(id);
-      if (
+      if (SERVER) {
+        if (!(await cartOnServer('PUT', id, Math.max(0, next)))) return;
+      } else if (
         !SZ.store.commit(st => {
           if (next > 0) st.cart[id] = next;
           else delete st.cart[id];
@@ -1718,8 +1907,28 @@
       return true;
     });
 
-  migrateOrders();
-  SZ.on('boot:ready', migrateOrders);
+  // Server mode: orders arrive normalised from the backend (and state.orders is not saved by the app).
+  if (!SERVER) {
+    migrateOrders();
+    SZ.on('boot:ready', migrateOrders);
+  }
+  // Server mode: the backend changed orders / the cart (merchant confirmed, delivery started, refund…).
+  SZ.on('state:server', keys => {
+    if (!Array.isArray(keys)) return;
+    if (keys.includes('cart')) syncCartBadges();
+    if (!keys.includes('orders')) return;
+    for (const layer of SZ.overlay.layers()) {
+      if (layer.meta.view === 'order') {
+        const o = findOrder(layer.meta.orderId);
+        const box = layer.el.querySelector('[data-part="order"]');
+        if (o && box) box.innerHTML = orderDetailHTML(o);
+      } else if (layer.meta.view === 'orders') {
+        const box = layer.el.querySelector('[data-part="orders"]');
+        if (box) box.innerHTML = ordersBody(layer.meta.filter || 'all');
+      }
+    }
+    C.markTabStale?.();
+  });
 
   Object.assign(C, {
     flowOf,

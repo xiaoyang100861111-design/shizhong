@@ -1,0 +1,51 @@
+// 商家管理: applications from the app (Tickets kind 'merchant') → merchant + optional console login (role 'merchant'),
+// merchant list / profile / commission, settlements (completed orders older than N days) and payouts.
+export default {
+  menu: 'merchants',
+  order: 20,
+  icon: 'OfficeBuilding',
+  title: { zh: '商家管理', en: 'Merchants' },
+  routes: [
+    { path: '/merchants', component: () => import('./MerchantList.vue'), meta: { title: { zh: '商家列表', en: 'Merchants' }, perm: 'merchants.view' }, menu: true },
+    { path: '/merchants/applications', component: () => import('./Applications.vue'), meta: { title: { zh: '入驻申请', en: 'Applications' }, perm: 'merchants.view' }, menu: true },
+    { path: '/merchants/settlements', component: () => import('./Settlements.vue'), meta: { title: { zh: '商家结算', en: 'Settlements' }, perm: 'merchants.view' }, menu: true },
+    { path: '/merchants/:id', component: () => import('./MerchantDetail.vue'), meta: { title: { zh: '商家详情', en: 'Merchant' }, perm: 'merchants.view' } },
+    { path: '/merchants-settings', component: () => import('./MerchantSettings.vue'), meta: { title: { zh: '抽成与结算规则', en: 'Commission rules' }, perm: 'system.config' }, menu: true },
+  ],
+  messages: {
+    zh: {
+      mc: {
+        title: '商家列表', add: '新建商家', edit: '编辑商家', q: '名称 / 联系人 / 电话 / 编号', name: '商家名称', area: '区域', contact: '联系人', logo: 'Logo', about: '介绍',
+        license: '资质', agent: '归属代理', rate: '平台抽成', rateHint: '留空使用默认 {rate}', autoConfirm: '接单方式', autoFollow: '跟随系统设置', autoOn: '自动确认',
+        autoOff: '手动确认', loginOptional: '商家后台登录账号（选填）', username: '登录账号', password: '登录密码', services: '上架 / 商品', orders: '订单', pendingN: '{n} 待确认',
+        gmv30: '30 天成交', unpaid: '待打款', rateFootnote: '* 使用默认抽成比例', profile: '店铺资料', applicant: '申请人', unsettled: '待结算金额', logins: '后台账号',
+        lastLogin: '最后登录', resetPwd: '重置密码', newPwd: '新密码（至少 6 位）', loginHint: '商家用这些账号登录 /admin，只能看到自己店铺的商品、订单、售后和结算。',
+        addLogin: '添加后台账号', generate: '生成结算单', generateAll: '为所有商家生成结算单', generated: '已生成 {n} 张结算单', settlements: '商家结算', mySettlements: '我的结算',
+        settleRule: '订单完成满 N 天（抽成与结算规则中设置，默认 7 天）后可结算：结算额 = 订单金额 − 退款，扣除平台抽成后线下打款给商家。', period: '订单完成时间',
+        gross: '订单金额', commissionCol: '平台抽成', net: '应付商家', toPay: '待打款', paidOut: '已打款', markPaid: '标记已打款', reference: '打款流水号 / 备注',
+        referenceHint: '确认已线下打款 {amount}？可填写银行流水号。', settlementOrders: '结算单 #{id} 的订单', doneAt: '完成时间',
+        applications: '入驻申请', appQ: '商家名称 / 申请人 / 电话', appStatus: { received: '待审核', processing: '审核中', resolved: '已通过', rejected: '已驳回' },
+        approve: '通过', reject: '驳回', markProcessing: '标记审核中', approveTitle: '通过入驻申请并创建商家', replyToApplicant: '回复申请人',
+        approveReplyHint: '留空使用默认通知文案', approved: '已创建商家', rejectHint: '驳回原因（会通知申请人）',
+        settings: '抽成与结算规则', settingsSub: '默认抽成比例、结算周期、是否开放入驻申请。单个商家的抽成在商家资料里设置。',
+      },
+    },
+    en: {
+      mc: {
+        title: 'Merchants', add: 'New merchant', edit: 'Edit merchant', q: 'Name / contact / phone / no.', name: 'Shop name', area: 'Area', contact: 'Contact', logo: 'Logo', about: 'About',
+        license: 'Licence', agent: 'Agent', rate: 'Commission', rateHint: 'Empty = default {rate}', autoConfirm: 'Order confirmation', autoFollow: 'Follow system setting', autoOn: 'Automatic',
+        autoOff: 'Manual', loginOptional: 'Shop console login (optional)', username: 'Username', password: 'Password', services: 'Listed / all', orders: 'Orders', pendingN: '{n} pending',
+        gmv30: 'GMV (30 d)', unpaid: 'To pay', rateFootnote: '* default commission', profile: 'Profile', applicant: 'Applicant', unsettled: 'Not yet settled', logins: 'Console logins',
+        lastLogin: 'Last sign-in', resetPwd: 'Reset password', newPwd: 'New password (6+ chars)', loginHint: 'Shops sign in at /admin with these and only see their own products, orders, after-sales and settlements.',
+        addLogin: 'Add console login', generate: 'Create settlement', generateAll: 'Create settlements for all shops', generated: '{n} settlements created', settlements: 'Settlements', mySettlements: 'My settlements',
+        settleRule: 'Orders completed at least N days ago (see commission rules; default 7) are settled: order total − refunds, minus commission, paid out offline.', period: 'Completed',
+        gross: 'Orders', commissionCol: 'Commission', net: 'Payable', toPay: 'To pay', paidOut: 'Paid', markPaid: 'Mark paid', reference: 'Transfer reference / note',
+        referenceHint: 'Confirm {amount} was paid out? Add the bank reference.', settlementOrders: 'Orders of settlement #{id}', doneAt: 'Completed',
+        applications: 'Applications', appQ: 'Shop / applicant / phone', appStatus: { received: 'New', processing: 'Reviewing', resolved: 'Approved', rejected: 'Rejected' },
+        approve: 'Approve', reject: 'Reject', markProcessing: 'Mark reviewing', approveTitle: 'Approve and create the merchant', replyToApplicant: 'Reply to applicant',
+        approveReplyHint: 'Empty = default message', approved: 'Merchant created', rejectHint: 'Reason (sent to the applicant)',
+        settings: 'Commission rules', settingsSub: 'Default commission, settlement period and whether applications are open. Per-shop commission is on the merchant profile.',
+      },
+    },
+  },
+};

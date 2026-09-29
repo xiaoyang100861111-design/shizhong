@@ -115,6 +115,7 @@
   /** Sample rating blended with the visitor's own reviews (the sample weighs more for busy services). */
   function serviceRating(s) {
     const base = Number(s.rating) || 4.6;
+    if (SZ.server) return base; // the backend already blends every real review into the listed rating
     const own = userReviews(s.id);
     if (!own.length) return base;
     const votes = Math.max((s.reviews || []).length, Math.min(Math.round((s.salesCount || 0) / 10), 60), 5);
@@ -205,6 +206,59 @@
       p.text = String(p.text || '').replace(/<br\s*\/?>/g, '\n');
     }
   }
+  // ------------------------------------------------------------------ server mode: categories & banners from the console
+  /*
+   * With the backend, data/catalog-index.js is built from the database and also carries
+   * SHIZHONG_DEMO.commerce = { categories, banners } (bilingual). Categories replace the app.js lists in
+   * place (so every module that reads categories / moreCategories sees the console's order and names).
+   */
+  const SERVER = !!SZ.server;
+  const commerceData = () => (SERVER && demoData.commerce) || null;
+  const pickLang = v => (v && typeof v === 'object' ? (SZ_I18N.isSource ? v.zh : v.en) || v.zh || v.en || '' : v || '');
+  function applyServerCategories() {
+    const list = commerceData()?.categories;
+    if (!Array.isArray(list) || !list.length) return;
+    const zh = { cat: {}, catHint: {} };
+    const en = { cat: {}, catHint: {} };
+    const shellZh = {};
+    const shellEn = {};
+    for (const c of list) {
+      zh.cat[c.id] = c.name.zh;
+      zh.catHint[c.id] = c.hint.zh;
+      en.cat[c.id] = c.name.en || c.name.zh;
+      en.catHint[c.id] = c.hint.en || c.hint.zh;
+      shellZh[c.id] = { name: zh.cat[c.id], hint: zh.catHint[c.id] };
+      shellEn[c.id] = { name: en.cat[c.id], hint: en.catHint[c.id] };
+      if (c.image) FALLBACK_IMAGES[c.id] = c.image;
+    }
+    SZ_I18N.extend('zh-CN', { catalog: zh, shell: { cat: shellZh } });
+    SZ_I18N.extend('en', { catalog: en, shell: { cat: shellEn } });
+    const make = c => ({
+      id: c.id,
+      icon: c.icon,
+      color: c.color,
+      bg: c.bg,
+      badge: c.badge || '',
+      get name() {
+        return t(`shell.cat.${c.id}.name`);
+      },
+      get hint() {
+        return t(`shell.cat.${c.id}.hint`);
+      },
+    });
+    categories.splice(0, categories.length, ...list.filter(c => c.home).map(make));
+    moreCategories.splice(0, moreCategories.length, ...list.filter(c => !c.home).map(make));
+    // English detail packs for categories added in the console (data/i18n/en/services-<id>.js).
+    const meta = SZ_I18N.available?.().find(m => m.code === 'en');
+    if (meta && Array.isArray(meta.content)) {
+      const extra = list.map(c => 'services-' + c.id).filter(k => !meta.content.includes(k));
+      if (extra.length) SZ_I18N.register({ code: 'en', content: [...meta.content, ...extra] }, {});
+    }
+  }
+  applyServerCategories();
+  const homeBanners = () => (commerceData()?.banners || []).filter(b => b.position === 'home');
+  const findBanner = id => (commerceData()?.banners || []).find(b => String(b.id) === String(id)) || null;
+
   prepareServices(services);
   preparePeople(people);
   preparePosts(basePosts);
@@ -246,8 +300,9 @@
   function installDemoState() {
     ensureState();
     if (!SZ.session.isDemo || state.demoVersion === DEMO_VERSION) return;
+    // Server mode: the demo account's sample orders are imported by the backend (state.orders is server-owned).
     const known = new Set(state.orders.map(o => o.id));
-    const seeds = JSON.parse(JSON.stringify(demoData.orders || [])).filter(o => !known.has(o.id));
+    const seeds = SZ.server ? [] : JSON.parse(JSON.stringify(demoData.orders || [])).filter(o => !known.has(o.id));
     state.orders.push(...seeds);
     state.follows = [...new Set([...state.follows, ...(demoData.seedFollowIds || [])])];
     state.joined = [...new Set([...state.joined, ...(demoData.seedGroupIds || [])])];
@@ -335,7 +390,7 @@
    * Paged lists: first page rendered inline, "load more" appends in place (no full re-render).
    * The list is looked up inside the layer holding the button, so the same list can be stacked.
    */
-  function pagedList(key, items, draw, layout = 'checkout-grid', pageSize = 20) {
+  function pagedList(key, items, draw, layout = 'checkout-grid', pageSize = Number(SZ.config('catalog.pageSize', 20)) || 20) {
     const token = 'list-' + stableHash(key).toString(36);
     const limit = Math.min(pageLimits.get(key) || pageSize, items.length);
     listPages.set(token, { key, items, draw, pageSize, limit });
@@ -725,7 +780,7 @@
     const filter = ui.homeFilter;
     return cached('home:' + filter + ':' + locationKey(), () => {
       let items = catalogueServices();
-      if (filter === 'deals') items = items.filter(s => s.type === 'goods' && s.price < 35);
+      if (filter === 'deals') items = items.filter(s => s.type === 'goods' && s.price < Number(SZ.config('catalog.dealsMax', 35)));
       if (filter === 'nearby') items = items.filter(s => s.type === 'service' && isLocal(s));
       items = sortServices(items, filter === 'rating' ? 'rating' : 'recommended');
       if (filter === 'recommended') {
@@ -771,7 +826,26 @@
       )
       .join('')}</nav>`;
   }
+  /** Server mode: the console's banners (image, bilingual copy, action). */
+  function serverBanner(b) {
+    const sub = abroad() ? pickLang(b.subAbroad) || pickLang(b.sub) : pickLang(b.sub);
+    const cta = pickLang(b.cta);
+    return act(
+      'commerce-banner',
+      String(b.id),
+      `<img ${imageAttrs(b.image)} alt="" fetchpriority="high" decoding="async"><span class="checkout-banner-copy">${pickLang(b.kicker) ? `<span class="checkout-banner-kicker">${esc(pickLang(b.kicker))}</span>` : ''}<span class="checkout-banner-title">${esc(pickLang(b.title))}</span>${sub ? `<span class="checkout-banner-sub">${esc(sub)}</span>` : ''}${cta ? `<span class="checkout-banner-cta">${esc(cta)}${icon('chevron')}</span>` : ''}</span>`,
+      'checkout-banner'
+    );
+  }
   function homeBanner() {
+    if (commerceData()) {
+      const list = homeBanners();
+      if (!list.length) return '';
+      // Several live banners scroll sideways (one per view); a single one looks exactly like the prototype.
+      return `<div class="checkout-banner-wrap"${list.length > 1 ? ' style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory"' : ''}>${list
+        .map(b => (list.length > 1 ? `<div style="flex:0 0 100%;scroll-snap-align:start">${serverBanner(b)}</div>` : serverBanner(b)))
+        .join('')}</div>`;
+    }
     return `<div class="checkout-banner-wrap">${act(
       'campaign',
       '',
@@ -811,7 +885,7 @@
               'all-services',
               t('catalog.home.browseAll')
             )
-    }</section><p class="checkout-footnote">${esc(t('catalog.demoFootnote'))}</p></section>`;
+    }</section><p class="checkout-footnote">${esc(SZ.server ? t('commerce.real.footnote') : t('catalog.demoFootnote'))}</p></section>`;
   }
 
   const visiblePeople = () => people.filter(p => !state.blocked.includes(p.id));
@@ -1318,6 +1392,16 @@
     const texts = contentList('services', s, 'reviewTexts');
     const authors = contentList('services', s, 'reviewAuthors');
     const samples = (s.reviews || []).map((r, i) => ({ ...r, text: texts[i] || r.text, author: authors[i] || r.author }));
+    if (SZ.server) {
+      // Server mode: the chunk holds the listed samples followed by real member reviews (newest first after sorting);
+      // the member's own reviews come from state (fresh right after posting) and are not repeated.
+      const own = userReviews(s.id).map(r => ({ ...r, own: true }));
+      const ownIds = new Set(own.map(r => r.id));
+      const me = SZ.session.account?.id;
+      const when = r => Number(r.at) || Date.parse(r.date || '') || 0;
+      const others = samples.filter(r => !ownIds.has(r.id) && !(r.real && me && r.uid === me)).sort((a, b) => when(b) - when(a));
+      return [...own, ...others];
+    }
     return [...userReviews(s.id).map(r => ({ ...r, own: true })), ...samples];
   }
   function reviewItem(r) {
@@ -1326,7 +1410,7 @@
     const tags = (r.tags || [])
       .map(id => `<span class="tag">${esc(t(`catalog.review.tag.${id}`))}</span>`)
       .join('');
-    return `<article class="checkout-review"><header><span class="checkout-review-author">${html(author || t('catalog.review.anonymous'))}${r.own ? ` <span class="tag tag-brand">${esc(t('catalog.review.yours'))}</span>` : ''}</span>${stars(r.stars)}</header>${tags ? `<div class="checkout-tags">${tags}</div>` : ''}${r.text ? `<p>${html(r.text)}</p>` : ''}${when ? `<time class="caption">${esc(when)}</time>` : ''}</article>`;
+    return `<article class="checkout-review"><header><span class="checkout-review-author">${html(author || t('catalog.review.anonymous'))}${r.own ? ` <span class="tag tag-brand">${esc(t('catalog.review.yours'))}</span>` : ''}</span>${stars(r.stars)}</header>${tags ? `<div class="checkout-tags">${tags}</div>` : ''}${r.text ? `<p>${html(r.text)}</p>` : ''}${r.reply ? `<p class="caption">${html(t('commerce.review.reply', { text: r.reply }))}</p>` : ''}${when ? `<time class="caption">${esc(when)}</time>` : ''}</article>`;
   }
   function reviewsSection(s) {
     const items = allReviews(s);
@@ -1358,6 +1442,8 @@
     const facts = job
       ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.requirements'))}</h3>${bulletList(s.requirements ? contentList('services', s, 'requirements') : includes, 'check')}${s.benefits?.length ? `<h3 class="checkout-block-title">${esc(t('catalog.detail.benefits'))}</h3>${bulletList(contentList('services', s, 'benefits'), 'check')}` : ''}`
       : `<h3 class="checkout-block-title">${esc(t('catalog.detail.included'))}</h3>${includes.length ? bulletList(includes, 'check') : `<p class="checkout-muted">${esc(t('catalog.detail.includedDefault'))}</p>`}<h3 class="checkout-block-title">${esc(t('catalog.detail.excluded'))}</h3>${s.excludes?.length ? bulletList(contentList('services', s, 'excludes'), 'close') : `<p class="checkout-muted">${esc(t('catalog.detail.excludedDefault'))}</p>`}${s.pricingNote ? `<p class="checkout-note">${html(txt('services', s, 'pricingNote'))}</p>` : ''}`;
+    // Server mode: listings with tracked stock (stock = null means unlimited).
+    const soldOut = SZ.server && s.stock === 0;
     const cart =
       flow === 'goods'
         ? act(
@@ -1380,7 +1466,7 @@
               .map(i => `<li>${icon('check')}<span>${html(i)}</span></li>`)
               .join('')}</ul>`
           : ''
-      }<div class="checkout-store">${img(s.image, '', 'checkout-store-thumb')}<div class="checkout-store-main"><p class="checkout-store-name">${html(storeName(s))}</p><p class="caption">${esc(t('catalog.detail.demoMerchant'))}</p></div></div>${
+      }<div class="checkout-store">${img(s.image, '', 'checkout-store-thumb')}<div class="checkout-store-main"><p class="checkout-store-name">${html(storeName(s))}</p><p class="caption">${esc(SZ.server ? t('commerce.real.merchant') : t('catalog.detail.demoMerchant'))}</p></div></div>${
         description
           ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(job ? t('catalog.detail.aboutJob') : t('catalog.detail.about'))}</h3><p class="checkout-description" data-clamp="true">${html(description)}</p>${description.length > 90 ? act('catalog-expand', '', esc(t('catalog.detail.showMore')), 'btn btn-ghost btn-sm checkout-expand', 'aria-expanded="false"') : ''}${untranslated ? `<p class="checkout-note">${esc(t('catalog.detail.originalLanguage'))}</p>` : ''}</section>`
           : ''
@@ -1388,7 +1474,7 @@
         s.notice || s.faq?.length
           ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(txt('services', s, 'notice'))}</p>` : ''}${faqItems(s).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
           : ''
-      }<div data-part="reviews">${reviewsSection(s)}</div><p class="checkout-footnote">${esc(t('catalog.detail.demoNote'))}</p></div><div class="checkout-bottom-bar">${act('service-chat', id, `${icon('chat')}<span>${esc(t('catalog.detail.askShort'))}</span>`, 'checkout-bar-icon')}${cart}${act('book-service', id, esc(t(`catalog.detail.cta.${flow}`)), 'btn btn-lg btn-primary checkout-cta')}</div>`,
+      }<div data-part="reviews">${reviewsSection(s)}</div><p class="checkout-footnote">${esc(SZ.server ? t('commerce.real.detailNote') : t('catalog.detail.demoNote'))}</p></div><div class="checkout-bottom-bar">${act('service-chat', id, `${icon('chat')}<span>${esc(t('catalog.detail.askShort'))}</span>`, 'checkout-bar-icon')}${soldOut ? '' : cart}${soldOut ? `<button type="button" class="btn btn-lg btn-primary checkout-cta" disabled>${esc(t('commerce.real.soldOut'))}</button>` : act('book-service', id, esc(t(`catalog.detail.cta.${flow}`)), 'btn btn-lg btn-primary checkout-cta')}</div>`,
     });
   }
   function serviceDetail(id) {
@@ -1424,16 +1510,22 @@
       html: `<div class="checkout-screen-body">${countLine(tn('catalog.count.services', items.length))}${items.length ? pagedList(key, items, productCard) : empty}</div>`,
     });
   }
-  function campaign() {
-    const picks = catalogueServices().filter(
-      s =>
-        ['guide', 'food', 'car', 'travel'].includes(s.cat) && (abroad() ? s.countryCode === 'MY' : isLocal(s))
-    );
+  /** Server mode: a banner picks its own services (ids), its categories, or the configured default categories. */
+  function campaign(bannerId = '') {
+    const banner = commerceData() ? (bannerId ? findBanner(bannerId) : homeBanners()[0]) || null : null;
+    const ids = banner?.ids?.length ? new Set(banner.ids) : null;
+    const cats = banner?.cats?.length ? banner.cats : SZ.config('catalog.campaignCats', ['guide', 'food', 'car', 'travel']);
+    const picks = ids
+      ? catalogueServices().filter(s => ids.has(s.id))
+      : catalogueServices().filter(
+          s => cats.includes(s.cat) && (abroad() ? s.countryCode === 'MY' : isLocal(s))
+        );
+    const title = banner ? pickLang(banner.title) : t('catalog.home.bannerTitle');
     return SZ.overlay.open({
       kind: 'screen',
       title: t('catalog.campaign.title'),
       className: 'checkout-ui checkout-screen',
-      html: `<div class="checkout-campaign-hero">${img('hero.png', t('catalog.campaign.imageAlt'))}</div><div class="checkout-screen-body"><h2 class="checkout-detail-title">${esc(t('catalog.home.bannerTitle'))}</h2><p class="checkout-lead">${esc(abroad() ? t('catalog.campaign.leadAbroad') : t('catalog.campaign.lead', { city: cityName(catalogCity()) }))}</p>${countLine(tn('catalog.count.services', picks.length))}${picks.length ? pagedList('campaign:' + locationKey(), picks, productCard) : emptyState('pin', t('catalog.campaign.empty'), t('catalog.campaign.emptyText'), 'city', t('catalog.home.changeCity'))}</div>`,
+      html: `<div class="checkout-campaign-hero">${img(banner?.image || 'hero.png', t('catalog.campaign.imageAlt'))}</div><div class="checkout-screen-body"><h2 class="checkout-detail-title">${esc(title)}</h2><p class="checkout-lead">${esc(abroad() ? t('catalog.campaign.leadAbroad') : t('catalog.campaign.lead', { city: cityName(catalogCity()) }))}</p>${countLine(tn('catalog.count.services', picks.length))}${picks.length ? pagedList('campaign:' + (bannerId || '') + locationKey(), picks, productCard) : emptyState('pin', t('catalog.campaign.empty'), t('catalog.campaign.emptyText'), 'city', t('catalog.home.changeCity'))}</div>`,
     });
   }
   const allServices = () =>
@@ -1456,6 +1548,26 @@
 
   // ------------------------------------------------------------------ search
   const searchCache = new Map();
+  /*
+   * Server mode: services are searched on the server (names, shops, areas, categories and full descriptions in
+   * both languages); results are ids in rank order, drawn from the local index. The local match shows at once
+   * while the server answers.
+   */
+  const useServerSearch = () => SERVER && SZ.config('catalog.serverSearch', true) !== false;
+  const serverHits = new Map();
+  function serverSearch(query, remember) {
+    const key = tokenize(query).join(' ');
+    if (!key || !useServerSearch()) return Promise.resolve(false);
+    if (serverHits.has(key) && !remember) return Promise.resolve(false);
+    return SZ.api
+      .get('catalog/search', { q: query, city: catalogCity(), limit: 1000, log: remember ? 1 : '' })
+      .then(res => {
+        if (serverHits.size > 50) serverHits.clear();
+        serverHits.set(key, Array.isArray(res?.ids) ? res.ids : []);
+        return true;
+      })
+      .catch(() => false);
+  }
   function tokenize(query) {
     return String(query || '')
       .toLowerCase()
@@ -1549,7 +1661,9 @@
     const tokens = tokenize(query);
     const r = { services: [], people: [], groups: [], posts: [], messages: [] };
     if (!tokens.length) return r;
-    if (scope !== 'chats')
+    const hits = scope !== 'chats' && useServerSearch() ? serverHits.get(tokens.join(' ')) : null;
+    if (hits) r.services = hits.map(findService).filter(s => s && !s.legacy);
+    else if (scope !== 'chats')
       r.services = rankServices(
         catalogueServices().filter(s => matchAll(searchText(s), tokens)),
         tokens
@@ -1585,7 +1699,7 @@
     const tokens = tokenize(query);
     if (!tokens.length) {
       const history = state.searchHistory.slice(0, 10);
-      const hot = t('catalog.search.hotWords').split('|').filter(Boolean);
+      const hot = (SERVER ? pickLang(SZ.config('catalog.hotWords', null)) || t('catalog.search.hotWords') : t('catalog.search.hotWords')).split('|').map(w => w.trim()).filter(Boolean);
       return `${history.length ? `<section class="checkout-result-group"><div class="section-header"><h3 class="checkout-block-title">${esc(t('catalog.search.recent'))}</h3>${act('catalog-search-clear', '', esc(t('catalog.search.clearHistory')), 'btn btn-ghost btn-sm')}</div><div class="checkout-word-list">${history.map(q => act('catalog-search-word', q, html(q), 'chip')).join('')}</div></section>` : ''}${scope === 'chats' ? '' : `<section class="checkout-result-group"><h3 class="checkout-block-title">${esc(t('catalog.search.popular'))}</h3><div class="checkout-word-list">${hot.map(q => act('catalog-search-word', q, esc(q), 'chip')).join('')}</div></section>`}`;
     }
     const r = searchResults(query, scope);
@@ -1622,7 +1736,7 @@
           )
         : ''
     }${resultSection('s-srv:' + k, t('catalog.search.services'), r.services, productCard, 'checkout-grid', 6)}${
-      scope !== 'chats' && !C.isLoaded(['search']) && !C.hasFailed(['search'])
+      scope !== 'chats' && !useServerSearch() && !C.isLoaded(['search']) && !C.hasFailed(['search'])
         ? `<p class="checkout-note">${esc(t('catalog.search.deeper'))}</p>`
         : ''
     }${resultSection('s-msg:' + k, t('catalog.search.messages'), r.messages, messageRow, 'checkout-list', 5, scope === 'chats' && wait(['conversations']))}${resultSection('s-ppl:' + k, t('catalog.search.people'), r.people, personRow, 'checkout-people', 5, wait(['people']))}${resultSection('s-grp:' + k, t('catalog.search.groups'), r.groups, g => groupRow(g, true), 'checkout-list', 5, wait(['groups']))}${
@@ -1668,7 +1782,11 @@
       if (!tokenize(q).length) return;
       if (remember) rememberSearch(q);
       const keys = scope === 'chats' ? ['people', 'groups', 'conversations'] : ['people', 'groups', 'posts'];
-      if (remember && scope !== 'chats') keys.push('search');
+      if (remember && scope !== 'chats' && !useServerSearch()) keys.push('search');
+      if (scope !== 'chats')
+        serverSearch(q, remember).then(changed => {
+          if (changed && layer.el.isConnected && current === q) results.innerHTML = searchBody(q, scope);
+        });
       // Index results show at once; people, groups, posts and descriptions join as they load.
       for (const key of keys)
         C.ensure([key]).then(
@@ -1950,8 +2068,19 @@
     if (toggleIn('likes', id, t('catalog.login.like')) === null) return;
     syncToggle('like', id);
   }
-  function toggleSave(id) {
-    const on = toggleIn('saved', id, t('catalog.login.save'));
+  async function saveOnServer(id) {
+    if (!SZ.requireLogin(t('catalog.login.save'))) return null;
+    const on = !state.saved.includes(id);
+    try {
+      await SZ.api.act(on ? 'POST' : 'DELETE', 'favorites/' + encodeURIComponent(id));
+    } catch (e) {
+      SZ.api.fail(e);
+      return null;
+    }
+    return on;
+  }
+  async function toggleSave(id) {
+    const on = SZ.server ? await saveOnServer(id) : toggleIn('saved', id, t('catalog.login.save'));
     if (on === null) return;
     syncToggle('save', id);
     markTabStale();
@@ -2213,7 +2342,19 @@
     category: id => categoryPage(id),
     service: id => serviceDetail(id),
     'all-services': () => allServices(),
-    campaign: () => campaign(),
+    campaign: id => campaign(id),
+    // Server mode: a console banner (campaign / category / service / search / external link).
+    'commerce-banner': id => {
+      const b = findBanner(id);
+      if (!b) return campaign();
+      const target = b.action || {};
+      if (target.name === 'category' && target.id) return categoryPage(target.id);
+      if (target.name === 'service' && target.id) return serviceDetail(target.id);
+      if (target.name === 'search') return openSearch(String(target.id || ''), 'all');
+      if (target.name === 'url' && /^https:\/\//.test(target.id || '')) return void window.open(target.id, '_blank', 'noopener');
+      if (target.name === 'none') return;
+      return campaign(b.id);
+    },
     'save-service': id => toggleSave(id),
     saved: () => savedServices(),
     person: id => personDetail(id),
