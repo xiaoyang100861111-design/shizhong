@@ -37,6 +37,8 @@
     note: cfgNum('chat.noteMax', 40),
   };
   const myId = () => SZ.server?.me?.id || SZ.session.account?.id || '';
+  /** [tg hook] Telegram-style features (chat-tg.js): menu, reactions, albums, video, files, pins… — optional. */
+  const TG = () => window.ShizhongChatTG || null;
   const isEnglish = () => !SZ_I18N.isSource && String(SZ_I18N.locale || '').startsWith('en');
   /** Display text of a message: server replies carry an i18n key, imported history its English, desk texts a setting. */
   function msgText(m) {
@@ -442,6 +444,8 @@
 
   // ------------------------------------------------------------------ summaries (previews, quotes, menu)
   function summary(m) {
+    const tgText = TG()?.summary?.(m); // [tg hook] video / album / captions
+    if (tgText) return tgText;
     switch (m.type) {
       case 'image':
         return t('chat.preview.photo');
@@ -471,6 +475,8 @@
   }
   function systemText(m) {
     if (!m.sys) return msgText(m);
+    const tgLine = TG()?.systemText?.(m); // [tg hook] pins, auto-delete timer lines
+    if (tgLine) return tgLine;
     const p = m.sys.person ? personById(m.sys.person) : null;
     const name = p ? personName(p) : m.sys.name || '';
     const amount = m.sys.cents != null ? money(m.sys.cents) : '';
@@ -520,7 +526,7 @@
     if (!m.self || m.type === 'recalled' || m.type === 'system') return '';
     if (m.pending)
       return `<span class="cx-tick" data-state="sending" role="img" aria-label="${esc(t('server.chat.sending'))}">${ico('check')}</span>`;
-    const read = ctx.info.kind !== 'group' && timeOf(m, ctx.now) <= ctx.readUntil;
+    const read = (ctx.info.kind !== 'group' || (SERVER && TG())) && timeOf(m, ctx.now) <= ctx.readUntil; // [tg hook] group ticks
     return `<span class="cx-tick" data-state="${read ? 'read' : 'sent'}" role="img" aria-label="${esc(t(read ? 'chat.msg.read' : 'chat.msg.sent'))}">${ico(read ? 'checks' : 'check')}</span>`;
   }
   function setTick(el, read) {
@@ -551,6 +557,8 @@
   }
   function bubbleHTML(m, key, ctx) {
     const id = esc(key);
+    const tgBubble = TG()?.bubble?.(m, key, ctx); // [tg hook] album, video, file, captioned photo
+    if (tgBubble) return tgBubble;
     switch (m.type) {
       case 'emoji':
         return `<div class="cx-bubble cx-b-emoji" tabindex="0"><span class="cx-text">${esc(msgText(m))}</span></div>`;
@@ -601,7 +609,7 @@
         return `<button type="button" class="cx-bubble cx-b-call${m.connected ? '' : ' is-missed'}" data-action="${canCall ? 'cx-call' : 'cx-noop'}" data-id="${m.video ? 'video' : 'voice'}" aria-label="${esc(t(m.video ? 'chat.preview.videoCall' : 'chat.preview.voiceCall') + ' · ' + label)}">${ico(m.video ? 'video' : 'phone')}<span>${esc(label)}</span></button>`;
       }
       default:
-        return `<div class="cx-bubble cx-b-text" tabindex="0">${quoteHTML(m)}<span class="cx-text">${esc(msgText(m))}</span></div>`;
+        return `<div class="cx-bubble cx-b-text" tabindex="0">${quoteHTML(m)}<span class="cx-text">${TG()?.textHTML?.(m, ctx) ?? esc(msgText(m))}</span>${TG()?.textTail?.(m) || ''}</div>`; // [tg hook] mentions, 已编辑
     }
   }
   function avatarHTML(m, ctx) {
@@ -685,7 +693,7 @@
     const mid = item.key ? ` data-mid="${esc(item.key)}"` : ' data-initial="true"';
     return (
       out +
-      `<div class="cx-row${cls}"${mid} data-type="${esc(type)}">${avatar}<div class="cx-col">${author}<div class="cx-line">${bubble}${tickHTML(m, ctx)}</div></div></div>`
+      `<div class="cx-row${cls}"${mid} data-type="${esc(type)}">${avatar}<div class="cx-col">${author}${TG()?.rowTop?.(m, item.key, ctx) || ''}<div class="cx-line">${bubble}${tickHTML(m, ctx)}</div>${TG()?.rowBottom?.(m, item.key, ctx) || ''}</div></div>` // [tg hook] forwarded-from, reactions
     );
   }
   function prevOf(m, prev, ctx) {
@@ -871,6 +879,7 @@
     setTypingUI(view, !!replyJobs.get(view.chatId)?.typing);
     if (keepScroll) log.scrollTop = top;
     if (view.search) runSearch(view, view.search.q, true);
+    TG()?.afterRender?.(view); // [tg hook] pinned bar, selection, autoplay
   }
   function nearBottom(view, slack = 96) {
     const log = view.log;
@@ -891,7 +900,7 @@
     view.last = prevOf(m, view.last, view.ctx);
     if (!m.self && m.type !== 'system') {
       view.ctx.readUntil = Math.max(view.ctx.readUntil, timeOf(m));
-      if (view.info.kind !== 'group')
+      if (view.info.kind !== 'group' || (SERVER && TG())) // [tg hook] group ticks
         for (const tick of view.log.querySelectorAll('.cx-tick[data-state="sent"]')) setTick(tick, true);
     }
     if (stick) requestAnimationFrame(() => scrollToBottom(view, true));
@@ -900,6 +909,7 @@
       view.jumpBtn.hidden = false;
       view.jumpBtn.querySelector('.cx-jump-count').textContent = String(view.newWhileAway);
     }
+    TG()?.afterAppend?.(view, m); // [tg hook]
   }
   /** Replace one bubble in place (status changes on money cards etc.). */
   function updateBubble(view, id) {
@@ -1053,6 +1063,7 @@
     }
     syncComposer(view);
     bind(view);
+    TG()?.bind?.(view); // [tg hook] gestures, pinned bar, selection, scheduled bar
     markRead(chatId);
     openOnServer(view);
     requestAnimationFrame(() => {
@@ -1065,6 +1076,7 @@
     return layer;
   }
   function teardown(view) {
+    TG()?.teardown?.(view); // [tg hook]
     if (views.get(view.chatId) === view) views.delete(view.chatId);
     const text = view.input?.value || '';
     if (text.trim()) drafts.set(view.chatId, text);
@@ -1136,12 +1148,14 @@
     if (view.voiceMode) setVoiceMode(view, false, false);
     view.input.focus();
   }
-  function sendText(view) {
+  function sendText(view, extra) {
     const text = view.input.value.trim();
     if (!text) return;
     if (!SZ.requireLogin(t('chat.loginReason'))) return;
-    const record = { type: isEmojiOnly(text) ? 'emoji' : 'text', text };
+    if (TG()?.send?.(view, text)) return; // [tg hook] editing a sent message
+    const record = { type: isEmojiOnly(text) ? 'emoji' : 'text', text, ...(extra || {}) };
     if (view.quote) record.quote = view.quote;
+    TG()?.decorate?.(view, record); // [tg hook] @mentions
     if (!append(view.chatId, record)) return;
     view.input.value = '';
     setQuote(view, null);
@@ -1318,7 +1332,7 @@
       state.chatPeerReads = state.chatPeerReads || {};
       state.chatPeerReads[chatId] = Math.max(Number(state.chatPeerReads[chatId]) || 0, at);
       const view = views.get(chatId);
-      if (!view?.el.isConnected || view.info.kind === 'group') return;
+      if (!view?.el.isConnected || (view.info.kind === 'group' && !TG())) return; // [tg hook] group ticks
       view.ctx.readUntil = Math.max(view.ctx.readUntil || 0, at);
       for (const item of view.items)
         if (item.m.self && !item.m.pending && timeOf(item.m) <= at) {
@@ -1719,6 +1733,7 @@
       info.kind === 'friend' || info.kind === 'support'
         ? row('settings', t('chat.menu.settings'), 'chat-options', info.id)
         : '',
+      TG()?.menuRows?.(view) || '', // [tg hook] auto-delete timer, pinned, scheduled
     ].join('');
     sheet(
       view,
@@ -1861,6 +1876,7 @@
     );
   }
   function openMessageMenu(view, key) {
+    if (TG()?.openMenu) return TG().openMenu(view, key); // [tg hook] Telegram-style long-press menu
     const item = findItem(view, key);
     if (!item) return;
     const m = item.m;
@@ -3469,6 +3485,7 @@
     switch (tool) {
       case 'image':
       case 'file':
+        if (TG()?.pick) return TG().pick(view, tool); // [tg hook] album preview, file progress
         return pickFiles(view, tool);
       case 'videoCall':
       case 'voiceCall':
@@ -3715,5 +3732,13 @@
     /** Server mode: put a message the server returned (greeting, gift…) into its chat. */
     ingest: (chatId, message) => upsert(String(chatId), message),
     text: msgText,
+    /** [tg hook] internals for chat-tg.js (Telegram-style features). Not a public API. */
+    _tg: {
+      SERVER, LIMIT, views, ico, PATHS, esc: s => esc(s), money, bytes, extOf, excerpt, clamp, imgSrc, isEmojiOnly, timeOf, msgText, summary,
+      authorName, personById, peer, findItem, localMessage, visibleItems, ensureState, commitChats, append, upsert, dropLocal, refreshView,
+      renderLog, updateBubble, scrollToBottom, nearBottom, markRead, emitUnread, setQuote, quoteFrom, copyText, sheet, foot, row, closeMenu,
+      closePanels, syncComposer, sendText, forwardTargets, targetRows, searchField, loadOlder, removeMessage, recall, canRecall, chatPath,
+      imageSize, open, blocked, myId, setListDirty: () => (listDirty = true), refreshList,
+    },
   };
 })();
