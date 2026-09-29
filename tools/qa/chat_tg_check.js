@@ -137,7 +137,17 @@ async function settle(page) {
     { timeout: 5000, polling: 50 }
   );
 }
-async function longPress(page, id) {
+async function longPress(page, id, attempt = 0) {
+  try {
+    await pressOnce(page, id);
+  } catch (e) {
+    if (attempt >= 2) throw e;
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(500); // the log re-rendered (new messages arrived): try again
+    await longPress(page, id, attempt + 1);
+  }
+}
+async function pressOnce(page, id) {
   await row(page, id).locator('.cx-bubble').first().scrollIntoViewIfNeeded();
   await settle(page);
   const box = await row(page, id).locator('.cx-bubble').first().boundingBox();
