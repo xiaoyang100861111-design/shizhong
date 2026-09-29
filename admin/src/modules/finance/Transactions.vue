@@ -55,7 +55,7 @@ import Pager from '../../components/Pager.vue';
 import AgentSelect from '../../components/AgentSelect.vue';
 import { useFinList } from './finList';
 
-const kinds = ['recharge', 'crypto', 'withdraw', 'order', 'refund', 'grant', 'adjust', 'checkin', 'task', 'gift', 'live-gift', 'exchange', 'envelope', 'transfer', 'call', 'income'];
+const kinds = ['recharge', 'crypto', 'withdraw', 'order', 'refund', 'grant', 'adjust', 'task', 'gift', 'live-gift', 'exchange', 'envelope', 'transfer', 'call', 'income', 'checkin']; // 'checkin': historical bills of the removed daily check-in
 const kindLabel = k => (t('fin.kinds.' + k) === 'fin.kinds.' + k ? k : t('fin.kinds.' + k));
 const list = useFinList('finance/transactions', { q: '', currency: 'RM', kind: '', direction: '', agentId: null, range: null });
 const fmt = v => (list.filters.currency === 'BEAN' ? number(v) : money(v));

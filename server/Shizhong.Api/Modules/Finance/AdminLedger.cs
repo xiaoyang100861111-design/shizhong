@@ -195,7 +195,6 @@ public sealed partial class FinanceModule
             var withdrawals = await c.QueryAsync("SELECT TOP 30 * FROM dbo.Withdrawals WHERE UserId = @id ORDER BY Id DESC", new { id });
             var topups = await c.QueryAsync("SELECT TOP 30 * FROM dbo.TopupRequests WHERE UserId = @id ORDER BY Id DESC", new { id });
             var accounts = await c.QueryAsync("SELECT Id, Kind, Provider, AccountName, AccountNo, CreatedAt FROM dbo.PayoutAccounts WHERE UserId = @id AND DeletedAt IS NULL", new { id });
-            var checkins = await c.QueryAsync("SELECT TOP 30 Day, Streak, Reward FROM dbo.CheckIns WHERE UserId = @id ORDER BY Day DESC", new { id });
             var claims = await c.QueryAsync("SELECT Task, Period, Reward, CreatedAt FROM dbo.TaskClaims WHERE UserId = @id ORDER BY CreatedAt DESC", new { id });
             return Results.Ok(new
             {
@@ -206,7 +205,6 @@ public sealed partial class FinanceModule
                 }),
                 deposits = deposits.Select(CryptoService.View), withdrawals = withdrawals.Select(WithdrawalView), topups = topups.Select(TopupView),
                 accounts = accounts.Select(AccountView),
-                checkins = checkins.Select(x => new { day = ((DateTime)x.Day).ToString("yyyy-MM-dd"), streak = (int)x.Streak, reward = (long)x.Reward }),
                 claims = claims.Select(x => new { task = (string)x.Task, period = (string)x.Period, reward = (long)x.Reward, at = Json.Ms((DateTime)x.CreatedAt) }),
             });
         });

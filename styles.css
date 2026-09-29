@@ -740,43 +740,6 @@ select {
 .me-section .shortcut-grid {
   row-gap: var(--sp-2);
 }
-.me-checkin {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--c-accent-soft);
-  box-shadow: none;
-}
-.me-checkin-icon {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--c-accent);
-  color: var(--c-on-accent);
-}
-.me-checkin-icon .ico {
-  width: 22px;
-  height: 22px;
-}
-.me-checkin-text {
-  flex: 1;
-  min-width: 0;
-}
-.me-checkin h2 {
-  font-size: var(--fs-15);
-  font-weight: var(--fw-semibold);
-}
-.me-checkin p {
-  color: var(--c-text-2);
-  font-size: var(--fs-13);
-}
-.me-checkin .btn {
-  flex-shrink: 0;
-}
 .me-list .row-value {
   max-width: 50%;
 }

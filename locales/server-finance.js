@@ -59,8 +59,6 @@ SZ_I18N.extend('zh-CN', {
       'finance.reasonRequired': '请填写原因',
       'finance.nothingSelected': '请先选择记录',
       'finance.commissionNotOpen': '这笔佣金已处理',
-      'checkin.disabled': '签到暂时关闭',
-      'checkin.already': '今天已经签到过了',
       'tasks.unknown': '任务不存在',
       'tasks.notDone': '任务还没有完成',
       'member.disabled': '会员体验暂未开放',
@@ -98,6 +96,7 @@ SZ_I18N.extend('zh-CN', {
     },
     growth: {
       bill: {
+        // check-in was removed; these two label the historical bean bills it left in the ledger
         checkin: '每日签到（第 {n} 天）',
         checkinBonus: '连续签到 7 天奖励',
         task: { profile: '完善个人资料奖励', post: '发布第一条动态奖励', address: '保存常用地址奖励' },
@@ -334,8 +333,6 @@ SZ_I18N.extend('en', {
       'finance.reasonRequired': 'Enter a reason.',
       'finance.nothingSelected': 'Select at least one record.',
       'finance.commissionNotOpen': 'This commission has already been handled.',
-      'checkin.disabled': 'Check-in is switched off for now.',
-      'checkin.already': 'You have already checked in today.',
       'tasks.unknown': 'Unknown task.',
       'tasks.notDone': "This task isn't done yet.",
       'member.disabled': 'The membership trial is not available.',
@@ -373,6 +370,7 @@ SZ_I18N.extend('en', {
     },
     growth: {
       bill: {
+        // check-in was removed; these two label the historical bean bills it left in the ledger
         checkin: 'Daily check-in (day {n})',
         checkinBonus: '7-day check-in bonus',
         task: { profile: 'Profile completed', post: 'First post', address: 'First saved address' },

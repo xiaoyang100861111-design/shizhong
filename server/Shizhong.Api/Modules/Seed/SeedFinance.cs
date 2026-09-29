@@ -86,7 +86,6 @@ public sealed partial class SeedGenerator
     readonly List<Withdrawal> withdrawals = [];
     readonly Dictionary<long, PayoutAcc> payoutAccounts = [];
     readonly List<Commission> commissions = [];
-    readonly SeedTable checkins = new("CheckIns", ("UserId", typeof(long)), ("Day", typeof(DateTime)), ("Streak", typeof(int)), ("Reward", typeof(long)), ("CreatedAt", typeof(DateTime)));
     readonly List<(SUser U, string Task, long Reward, DateTime At, Coupon? Coupon)> taskClaims = [];
     readonly List<(SUser U, DateTime At)> memberClaims = [];
     const string SeedKeyId = "5eed7e57";
@@ -239,36 +238,6 @@ public sealed partial class SeedGenerator
     // ------------------------------------------------------------------ growth, deposits that did not credit, withdrawals, adjustments
     void BuildGrowthAndFinancePlans()
     {
-        // Daily check-ins (Malaysian calendar), 7-day cycles.
-        var reward = cfg.Long("checkin.reward", 10);
-        var bonus = cfg.Long("checkin.bonus", 50);
-        foreach (var u in members.Append(demo))
-        {
-            var p = u.IsDemo ? 0.9 : Math.Min(0.85, 0.05 + 0.1 * u.Act);
-            if (!u.IsDemo && Chance(0.25)) continue;
-            var first = DateOnly.FromDateTime(SeedClock.Local(Max(u.RegAt, T.Start)));
-            var last = DateOnly.FromDateTime(SeedClock.Local(u.IsDemo ? T.Now : u.LastSeen));
-            var streak = 0;
-            for (var day = first; day <= last; day = day.AddDays(1))
-            {
-                var keep = streak > 0 ? Math.Min(0.96, p + 0.3) : p * 0.8;
-                if (u.IsDemo && day == last) keep = 1;
-                if (!Chance(keep)) { streak = 0; continue; }
-                streak++;
-                var dayStart = SeedClock.Utc(day.ToDateTime(TimeOnly.MinValue));
-                var at = T.Pick(R, Max(dayStart, u.RegAt.AddMinutes(1)), Min(dayStart.AddDays(1).AddSeconds(-1), u.IsDemo ? T.Now : u.LastSeen.AddHours(2)));
-                if (at > T.Now) break;
-                var extra = streak % 7 == 0 ? bonus : 0;
-                var total = reward + extra;
-                checkins.Add(u.Id, day.ToDateTime(TimeOnly.MinValue), streak, total, at);
-                var n = streak;
-                var date = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                At(at, () => Post(u, "BEAN", total, at, "checkin", extra > 0 ? "连续签到 7 天" : "每日签到", extra > 0 ? "server.growth.bill.checkinBonus" : "server.growth.bill.checkin",
-                    new { n }, null, "checkin", () => date));
-            }
-        }
-        Summary["checkIns"] = checkins.Count;
-
         // One-off tasks: complete profile, first post, first address.
         foreach (var u in members.Where(m => m.Avatar != null && Chance(0.8)))
             Task(u, "profile", cfg.Long("tasks.profileReward", 20), After(u.RegAt, 3, 60 * 24 * 2), "完善个人资料奖励");

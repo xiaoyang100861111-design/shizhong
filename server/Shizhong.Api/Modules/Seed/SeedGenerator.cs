@@ -198,7 +198,7 @@ public sealed partial class SeedGenerator
         BuildChats();
         Step("体验账号", 50);
         BuildDemo();
-        Step("签到、任务、充值与提现", 53);
+        Step("任务、充值与提现", 53);
         BuildGrowthAndFinancePlans();
         Step("工单", 56);
         BuildTickets();

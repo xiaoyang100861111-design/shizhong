@@ -108,7 +108,8 @@ public static class SeedCleaner
         DELETE FROM dbo.CryptoCursors WHERE AddressId IN (SELECT Id FROM #caddr);
         DELETE FROM dbo.CryptoDeposits WHERE Id IN {K("CryptoDeposits")} OR UserId IN (SELECT Id FROM #su);
         DELETE FROM dbo.CryptoAddresses WHERE Id IN (SELECT Id FROM #caddr);
-        DELETE FROM dbo.CheckIns WHERE UserId IN (SELECT Id FROM #su);
+        -- dbo.CheckIns: the removed daily check-in's history table (kept by 0202, no longer written)
+        IF OBJECT_ID(N'dbo.CheckIns', N'U') IS NOT NULL EXEC(N'DELETE FROM dbo.CheckIns WHERE UserId IN (SELECT Id FROM #su)');
         DELETE FROM dbo.TaskClaims WHERE UserId IN (SELECT Id FROM #su);
 
         -- risk control and Blue V (personas / members verified by the generator go back to unverified)
@@ -148,7 +149,7 @@ public static class SeedCleaner
 
         -- the demo account: generated personal rows go; wallet and VIP follow what is left of its ledger
         DECLARE @demo BIGINT = (SELECT TOP 1 Id FROM dbo.Users WHERE Kind = 2 ORDER BY Id);
-        DELETE FROM dbo.CheckIns WHERE UserId = @demo;
+        IF OBJECT_ID(N'dbo.CheckIns', N'U') IS NOT NULL EXEC(N'DELETE FROM dbo.CheckIns WHERE UserId = (SELECT TOP 1 Id FROM dbo.Users WHERE Kind = 2 ORDER BY Id)');
         DELETE FROM dbo.TaskClaims WHERE UserId = @demo;
         DELETE FROM dbo.GiftInventory WHERE UserId = @demo;
         DELETE FROM dbo.GiftDecorations WHERE UserId = @demo;
@@ -338,10 +339,6 @@ public static class SeedCleaner
             WHERE (t.TotalLimit IS NOT NULL AND (SELECT COUNT(*) FROM dbo.UserCoupons u WHERE u.TemplateId = t.Id) > t.TotalLimit)
                OR (t.PerUserLimit > 0 AND EXISTS (SELECT 1 FROM dbo.UserCoupons u WHERE u.TemplateId = t.Id GROUP BY u.UserId HAVING COUNT(*) > t.PerUserLimit))
             """, "SELECT COUNT(*) FROM dbo.CouponTemplates");
-        await Add("checkins.ledger", "签到奖励都有金豆流水", """
-            SELECT COUNT(*) FROM dbo.CheckIns c WHERE c.Reward > 0 AND NOT EXISTS (SELECT 1 FROM dbo.WalletTransactions t
-              WHERE t.UserId = c.UserId AND t.Kind = 'checkin' AND t.RefId = CONVERT(char(10), c.Day, 23) AND t.Amount = c.Reward)
-            """, "SELECT COUNT(*) FROM dbo.CheckIns");
         await Add("risk.events", "风控记录：场景、处理方式都合法，会员存在", $"""
             SELECT COUNT(*) FROM dbo.RiskEvents e
             WHERE e.Action NOT IN ('captcha', 'block', 'lock', 'mute', 'fail', 'pass')
@@ -380,7 +377,7 @@ public static class SeedCleaner
                    (SELECT COUNT(*) FROM dbo.LiveSessions) AS liveSessions, (SELECT COUNT(*) FROM dbo.GiftTransactions) AS giftTransactions, (SELECT COUNT(*) FROM dbo.HostEarnings) AS hostEarnings,
                    (SELECT COUNT(*) FROM dbo.PrivateCalls) AS privateCalls, (SELECT COUNT(*) FROM dbo.CryptoDeposits) AS cryptoDeposits, (SELECT COUNT(*) FROM dbo.TopupRequests) AS topups,
                    (SELECT COUNT(*) FROM dbo.Withdrawals) AS withdrawals, (SELECT COUNT(*) FROM dbo.Tickets) AS tickets, (SELECT COUNT(*) FROM dbo.Notifications) AS notifications,
-                   (SELECT COUNT(*) FROM dbo.WalletTransactions) AS ledger, (SELECT COUNT(*) FROM dbo.CheckIns) AS checkIns, (SELECT COUNT(*) FROM dbo.AdminLogs) AS adminLogs,
+                   (SELECT COUNT(*) FROM dbo.WalletTransactions) AS ledger, (SELECT COUNT(*) FROM dbo.AdminLogs) AS adminLogs,
                    (SELECT COUNT(*) FROM dbo.RedPackets) AS redPackets, (SELECT COUNT(*) FROM dbo.AgentCommissions) AS commissions,
                    (SELECT COUNT(*) FROM dbo.Broadcasts) AS broadcasts, (SELECT COUNT(*) FROM dbo.Banners) AS banners, (SELECT COUNT(*) FROM dbo.CouponTemplates) AS couponTemplates,
                    (SELECT COUNT(*) FROM dbo.GiftBackgrounds) AS giftBackgrounds, (SELECT COUNT(*) FROM dbo.LiveSessions WHERE Status = 0) AS liveNow,

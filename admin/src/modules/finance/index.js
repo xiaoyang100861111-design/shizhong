@@ -27,7 +27,7 @@ export default {
         rm: '余额 RM', bean: '金豆', income: '收益 RM', balanceAfter: '变动后', title: '说明', method: '方式', ref: '关联', note: '备注',
         kinds: {
           recharge: '充值（人工/线下）', crypto: '加密货币充值', withdraw: '提现', order: '订单', refund: '退款', grant: '注册赠送', adjust: '调账',
-          checkin: '签到', task: '任务', gift: '礼物', 'live-gift': '直播礼物', exchange: '兑换', envelope: '红包', transfer: '转账', call: '通话', income: '收益',
+          checkin: '签到（已停用）', task: '任务', gift: '礼物', 'live-gift': '直播礼物', exchange: '兑换', envelope: '红包', transfer: '转账', call: '通话', income: '收益',
         },
         network: '网络', asset: '币种', amount: '数量', tx: '交易哈希', status: '状态', confirmations: '确认数', credit: '入账', rate: '汇率', fee: '手续费',
         simulated: '模拟', manual: '补单', onlySimulated: '只看模拟', onlyReal: '只看真实', attention: '待处理（低于最低/未识别/人工）',
@@ -69,7 +69,7 @@ export default {
           coin: '币种代码', saveRow: '保存', rules: '检测与汇率规则', apis: '区块链接口', needKey: '未填写 Etherscan API Key（下方「区块链接口」）',
         },
         settingsSub: '充值档位与限额、充值方式开关、线下转账说明、提现规则。',
-        tab: { addresses: '收款地址', deposits: '加密货币充值', withdrawals: '提现', topups: '线下充值', accounts: '收款账户', checkins: '签到', claims: '奖励领取' },
+        tab: { addresses: '收款地址', deposits: '加密货币充值', withdrawals: '提现', topups: '线下充值', accounts: '收款账户', claims: '奖励领取' },
       },
       err: {
         'crypto.xpubMissing': '请填写扩展公钥', 'crypto.mnemonicRejected': '不能填写助记词，请只填写扩展公钥（xpub / zpub）', 'crypto.xpubInvalid': '扩展公钥格式不正确',
@@ -88,7 +88,7 @@ export default {
         'withdraw.kindInvalid': '收款方式不正确', 'withdraw.providerRequired': '缺少银行/钱包/网络', 'withdraw.nameRequired': '缺少收款人', 'withdraw.bankNoInvalid': '银行账号不正确',
         'withdraw.phoneInvalid': '手机号不正确', 'withdraw.networkInvalid': '网络不正确', 'withdraw.addressInvalid': '地址不正确',
         'finance.reasonRequired': '请填写原因', 'finance.nothingSelected': '请先选择记录', 'finance.commissionNotOpen': '这笔佣金已处理',
-        'checkin.disabled': '签到已关闭', 'checkin.already': '今天已签到', 'tasks.unknown': '任务不存在', 'tasks.notDone': '任务未完成',
+        'tasks.unknown': '任务不存在', 'tasks.notDone': '任务未完成',
         'member.disabled': '会员已关闭', 'member.already': '已领取',
       },
     },
@@ -98,7 +98,7 @@ export default {
         rm: 'Balance RM', bean: 'Beans', income: 'Earnings RM', balanceAfter: 'After', title: 'Description', method: 'Method', ref: 'Reference', note: 'Note',
         kinds: {
           recharge: 'Top-up (manual/offline)', crypto: 'Crypto top-up', withdraw: 'Withdrawal', order: 'Order', refund: 'Refund', grant: 'Sign-up grant', adjust: 'Adjustment',
-          checkin: 'Check-in', task: 'Task', gift: 'Gift', 'live-gift': 'Live gift', exchange: 'Exchange', envelope: 'Red packet', transfer: 'Transfer', call: 'Call', income: 'Earnings',
+          checkin: 'Check-in (discontinued)', task: 'Task', gift: 'Gift', 'live-gift': 'Live gift', exchange: 'Exchange', envelope: 'Red packet', transfer: 'Transfer', call: 'Call', income: 'Earnings',
         },
         network: 'Network', asset: 'Asset', amount: 'Amount', tx: 'Tx hash', status: 'Status', confirmations: 'Confirmations', credit: 'Credited', rate: 'Rate', fee: 'Fee',
         simulated: 'Simulated', manual: 'Manual', onlySimulated: 'Simulated only', onlyReal: 'Real only', attention: 'Needs attention',
@@ -140,7 +140,7 @@ export default {
           coin: 'Coin', saveRow: 'Save', rules: 'Detection & rate rules', apis: 'Blockchain APIs', needKey: 'Etherscan API key missing (Blockchain APIs below)',
         },
         settingsSub: 'Top-up presets and limits, methods on/off, bank transfer instructions, withdrawal rules.',
-        tab: { addresses: 'Addresses', deposits: 'Crypto', withdrawals: 'Withdrawals', topups: 'Offline top-ups', accounts: 'Payout accounts', checkins: 'Check-ins', claims: 'Rewards' },
+        tab: { addresses: 'Addresses', deposits: 'Crypto', withdrawals: 'Withdrawals', topups: 'Offline top-ups', accounts: 'Payout accounts', claims: 'Rewards' },
       },
       err: {
         'crypto.xpubMissing': 'Enter the extended public key', 'crypto.mnemonicRejected': 'Never enter a recovery phrase; extended public keys only', 'crypto.xpubInvalid': 'Invalid extended public key',
@@ -159,7 +159,7 @@ export default {
         'withdraw.kindInvalid': 'Invalid payout method', 'withdraw.providerRequired': 'Bank / wallet / network missing', 'withdraw.nameRequired': 'Holder name missing', 'withdraw.bankNoInvalid': 'Invalid account number',
         'withdraw.phoneInvalid': 'Invalid phone', 'withdraw.networkInvalid': 'Invalid network', 'withdraw.addressInvalid': 'Invalid address',
         'finance.reasonRequired': 'Enter a reason', 'finance.nothingSelected': 'Select records first', 'finance.commissionNotOpen': 'Commission already handled',
-        'checkin.disabled': 'Check-in is off', 'checkin.already': 'Already checked in', 'tasks.unknown': 'Unknown task', 'tasks.notDone': 'Task not done',
+        'tasks.unknown': 'Unknown task', 'tasks.notDone': 'Task not done',
         'member.disabled': 'Membership is off', 'member.already': 'Already claimed',
       },
     },

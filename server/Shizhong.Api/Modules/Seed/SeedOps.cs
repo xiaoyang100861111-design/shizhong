@@ -73,7 +73,7 @@ public sealed partial class SeedGenerator
     {
         var keys = new (string Key, object Before, object After)[]
         {
-            ("checkin.bonus", 30, 50), ("withdraw.feePct", 1.5, 1), ("orders.cancelWindowHours", 3, 2), ("catalog.hotWords", "保洁|接机|咖啡", "保洁|接机|椰浆饭|咖啡|地陪|鲜花"),
+            ("tasks.profileReward", 10, 20), ("withdraw.feePct", 1.5, 1), ("orders.cancelWindowHours", 3, 2), ("catalog.hotWords", "保洁|接机|咖啡", "保洁|接机|椰浆饭|咖啡|地陪|鲜花"),
             ("live.hostShare", 0.45, 0.5), ("crypto.trc20.confirmations", 19, 20), ("chat.packetMax", 100, 200), ("recharge.amounts", new[] { 50, 100, 200 }, new[] { 20, 50, 100, 200, 500, 1000 }),
         };
         foreach (var (key, before, after) in keys)

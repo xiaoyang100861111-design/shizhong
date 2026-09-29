@@ -4,8 +4,8 @@ using Shizhong.Api.Infrastructure;
 namespace Shizhong.Api.Modules.Finance;
 
 /// <summary>
-/// Settings editor endpoints limited to some config groups, each guarded by a domain permission (e.g. the check-in
-/// rules by marketing.checkin), so finance / marketing staff can edit their own rules without system.config.
+/// Settings editor endpoints limited to some config groups, each guarded by a domain permission (e.g. the task
+/// rewards by marketing.tasks), so finance / marketing staff can edit their own rules without system.config.
 /// Same response shape as GET /api/admin/config (used by the console's &lt;ConfigForm endpoint="…"&gt;).
 /// </summary>
 public static class ScopedConfig
