@@ -231,6 +231,9 @@ async def run(args):
                     # the server session is a cookie: sign in / out through the API before the real load
                     if session == "demo":
                         setup.append("await fetch('/api/auth/demo',{method:'POST'})")
+                        # blocks persist on the server between scenarios: start each one without any
+                        setup.append("for (const id of ((await (await fetch('/api/state')).json()).state?.blocked || [])) "
+                                     "await fetch('/api/blocks/' + encodeURIComponent(id), {method:'DELETE'})")
                     elif session == "new":
                         setup.append("await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify("
                                      "{phone:'+60 1'+String(Math.floor(1e7+Math.random()*8e7)),password:'qa123456a',name:'QA',ageConfirmed:true,terms:true,city:'吉隆坡'})})")
@@ -252,7 +255,7 @@ async def run(args):
                 await cdp.drain(0.6)
                 steps_log, step_fail = [], []
                 steps = sc.get("serverSteps", sc.get("steps", [])) if args.server else sc.get("steps", [])
-                if args.server:  # the server's demo account talks to personas: p1–p3's chats (offline seed) → seeded ones
+                if args.server and sc["_file"] != "live.json":  # demo chats: p1–p3 (offline seed) → seeded persona chats
                     text = json.dumps(steps)
                     for legacy, persona in (("p1", "u0040"), ("p2", "u0058"), ("p3", "u0033")):
                         text = re.sub(r"\b%s\b" % legacy, persona, text)
