@@ -45,9 +45,12 @@ builder.Services.AddResponseCompression(o =>
 });
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
-    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Scheme (https behind Cloudflare / IIS) only from trusted proxies; the client IP is resolved by ClientIp.
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
     o.KnownNetworks.Clear();
     o.KnownProxies.Clear();
+    ClientIp.Configure(builder.Configuration);
+    foreach (var (net, bits) in ClientIp.Networks) o.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(net, bits));
 });
 builder.Services.AddRateLimiter(o =>
 {

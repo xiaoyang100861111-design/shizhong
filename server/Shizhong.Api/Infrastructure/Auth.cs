@@ -176,10 +176,8 @@ public static class HttpContextAuth
         return admin;
     }
 
-    public static string Ip(this HttpContext ctx) =>
-        ctx.Request.Headers["CF-Connecting-IP"].FirstOrDefault()
-        ?? ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
-        ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "";
+    /// <summary>Real client IP; forwarded headers only from trusted proxies (see ClientIp).</summary>
+    public static string Ip(this HttpContext ctx) => ClientIp.Of(ctx);
 
     public static string Platform(this HttpContext ctx)
     {
