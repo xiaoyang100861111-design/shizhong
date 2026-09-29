@@ -2016,6 +2016,8 @@
     "expect": "(document.querySelector('#bottom-nav [data-id=comms] .nav-badge')?.textContent||'').trim()===String(Math.min(99,ShizhongChat.unreadCount()))",
     "msg": "nav badge follows"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "injects a local incoming message; server mode: realtime_check.js delivers a real one live"
  }
 ]

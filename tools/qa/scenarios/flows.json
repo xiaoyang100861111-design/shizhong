@@ -302,7 +302,9 @@
    {
     "eval": "SZ.actions.dispatch('checkin'),true"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "follows flows-checkin (offline-only); server check-in: tools/qa/server_smoke.py"
  },
  {
   "name": "flows-tasks",
