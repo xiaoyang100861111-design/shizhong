@@ -13,3 +13,4 @@ server/**/bin/
 server/**/obj/
 server/**/appsettings.Local.json
 server/**/*.user
+
