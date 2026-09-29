@@ -142,8 +142,9 @@ def t_boot():
     ok(dt < 3.0, "demo boot payload under 3 s", f"{dt:.2f}s")
     ok(size < 3 * 1024 * 1024, "demo boot payload under 3 MB", size)
     st = d.state()
-    for key in ["wallet", "points", "bills", "orders", "coupons", "messages", "follows", "checkin", "gifts", "vip", "finance", "notices"]:
+    for key in ["wallet", "points", "bills", "orders", "coupons", "messages", "follows", "gifts", "vip", "finance", "notices"]:
         ok(key in st, f"demo state has '{key}'")
+    ok("checkin" not in st, "no check-in state (feature removed)")
     ok(len(st.get("orders", [])) > 0, "demo account has sample orders")
     ok(any((b.get("i18n") or {}).get("key") == "server.bill.demoGrant" for b in st["bills"]) or st["wallet"] > 0,
        "demo account has money to try checkout / gifts", st["wallet"])
@@ -348,13 +349,13 @@ def t_social_money():
 
 
 def t_finance():
-    print("· check-in, bean packs, top-up request, withdrawals (+ ownership)")
+    print("· no check-in, bean packs, top-up request, withdrawals (+ ownership)")
     u = register("财务")
     p0 = u.state()["points"]
-    r = u.post("/api/checkin")
-    ok(r.get("reward") == 10, "check-in +10", r)
-    u.post("/api/checkin", expect=409)
-    ok(u.state()["points"] == p0 + 10, "beans after check-in")
+    u.post("/api/checkin", expect=[404, 405])  # the daily check-in was removed
+    st = u.state()
+    ok(st["points"] == p0 and "checkin" not in st, "check-in gone: no beans, no state", st.get("points"))
+    ok(not any(k.startswith("checkin.") for k in u.get("/api/config")["config"]), "no check-in settings in the public config")
     packs = u.get("/api/beans/packs")
     if packs.get("packs"):
         p = min(packs["packs"], key=lambda x: x["price"])

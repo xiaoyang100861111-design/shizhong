@@ -11,7 +11,7 @@ remove the ones listed here.
 |---|---|---|
 | core | core/*, index.html, docs/*, tools/i18n.js, tools/qa/smoke.py | overlay chrome, toast/confirm, boot |
 | shell | app.js, styles.css, layout.css, avatar-media.css, catalog.css | bottom nav, desktop frame, Me page layout, shared helpers, all legacy component styling in styles.css/catalog.css |
-| flows | flows.js, flows.css | settings, language & theme, wallet & bills, recharge, check-in, tasks, coupons, addresses, notifications centre, edit profile, compose post, greet, friend requests, invite, merchant, feedback / after-sales / report, help, privacy, about, block list |
+| flows | flows.js, flows.css | settings, language & theme, wallet & bills, recharge, gold beans, tasks, coupons, addresses, notifications centre, edit profile, compose post, greet, friend requests, invite, merchant, feedback / after-sales / report, help, privacy, about, block list |
 | catalog | catalog.js, lazy.js, checkout.js, checkout.css | Home, category, service detail, request form, checkout, orders & order detail, reviews, search, Discover (people, feed, person detail, comments), Live tab list (public), Messages tab list (chats, groups, contacts), group detail; data layer (chatInfo, conversationMessages, demo data, chunk loading) |
 | chat | chat-tools.js, chat-tools.css | the chat screen itself (header, message log, all bubbles except gifts, composer, tools panel, voice/video call, red packet, transfer, location, name card, long-press menu, auto replies, read state) |
 | gifts | gift-data.js, gifts.js, gifts.css, friend-showcase.js/.css, personal-qr.js/.css | gift shop, gift detail, collection, studio (home decoration), gift picker, gift bubble, avatar charms, chat wallpapers, profile hero on Me, friends' showcase, personal QR card |
@@ -36,11 +36,10 @@ state, initialState, ui, people, services, categories, moreCategories, basePosts
 `unreadCount()` = `window.ShizhongChat?.unreadCount() ?? 0`.
 
 ### flows
-Globals kept: `field, selectField, summary, submitButton, formNote, uploadField, cities, greet, orderSuccess, notifications, settings, wallet, recharge, coupons, addresses, checkin, validateRequiredText, nextDate, menuAction` (legacy switch, fallback of SZ.actions).
+Globals kept: `field, selectField, summary, submitButton, formNote, uploadField, cities, greet, orderSuccess, notifications, settings, wallet, recharge, coupons, addresses, validateRequiredText, nextDate, menuAction` (legacy switch, fallback of SZ.actions).
 - `window.ShizhongNotices = { push({ type:'order'|'social'|'system'|'promo', title, body, action:{ name, id }, ts }), list(), unread(), markAllRead(), open() }`
 - `window.ShizhongCoupons = { all(), available(amountRM, category) → [{ id, title, amount, min, expiresAt }], use(id, orderId), release(id) }` (call use/release inside `SZ.store.commit`)
 - `window.ShizhongAddresses = { list(), get(id), defaultFor(city) }`
-- `window.ShizhongCheckin = { status() → { done, streak } , open() }`
 
 ### catalog
 Globals kept: `homePage, socialPage, livePage, commsPage, categoryPage, serviceDetail, requestForm, createOrder, orders, orderDetail, personDetail, personRow, groupDetail, groupRow, search, productCard, amount, chatInfo, conversationMessages, contactPeople, livePeople, pagedList, catalogUI, demoData, prepareServices, preparePeople, preparePosts, comments, demand, loadChunk, profileChunks, chatChunks, serviceChunks`.
@@ -94,7 +93,7 @@ Loaded by index.html before gift-data.js. `ShizhongGifts.giftArt()` and the live
   rendered as a complete `.message-line`. Routes `#gift/<id>`.
 - **personal QR**: `ShizhongPersonalQR.share()`, `copyId()`, `openPublic(card)`. Route `#u/<displayId>`.
 - **auth**: guard reasons `t('auth.reason.<key>')` with keys order, pay, post, comment, message, gift, follow, like, live, call,
-  wallet, greet, join, checkin, review, profile. Buttons may use `data-action="auth-login" data-id="<reasonKey>"`,
+  wallet, greet, join, review, profile. Buttons may use `data-action="auth-login" data-id="<reasonKey>"`,
   `auth-switch`, `auth-welcome`.
 - **flows**: bills `{ id, kind:'order'|'gift'|'chat-envelope'|'chat-transfer'|'chat-refund'|'recharge'…, title, amount, method,
   time: epochMs, i18n?: { key, params }, orderId? }`.

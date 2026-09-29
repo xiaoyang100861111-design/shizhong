@@ -205,7 +205,7 @@ public sealed partial class AdminModule
                         TitleKey: currency == Currencies.Bean ? "server.notice.beansAdjusted" : "server.notice.walletAdjusted",
                         BodyKey: "server.notice.adjustBody",
                         Params: new { amount = currency == Currencies.Bean ? amount : Money.ToRm(amount), reason },
-                        ActionName: currency == Currencies.Bean ? "checkin" : "wallet"), c, t);
+                        ActionName: currency == Currencies.Bean ? "points" : "wallet"), c, t);
                 return bal;
             });
             await audit.WriteAsync(ctx, "user.adjust", "user:" + id, new { currency, amount = body.Amount, kind, reason, after });

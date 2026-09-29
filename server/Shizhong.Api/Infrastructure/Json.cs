@@ -55,7 +55,7 @@ public static class Clock
     }
 
     public static DateTime Now => DateTime.UtcNow;
-    /// <summary>Calendar date in Malaysia (check-ins, daily limits).</summary>
+    /// <summary>Calendar date in Malaysia (daily limits).</summary>
     public static DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Malaysia));
     public static DateTime LocalMidnightUtc(DateOnly day) =>
         TimeZoneInfo.ConvertTimeToUtc(day.ToDateTime(TimeOnly.MinValue), Malaysia);

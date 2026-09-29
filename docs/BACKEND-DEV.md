@@ -45,7 +45,8 @@ public sealed class CommerceModule : IModule {
   (param `@scopeMerchantId`). Every admin list/detail/export of member or shop data MUST apply the scope.
 - **Money**: only through `Ledger.ApplyAsync(c, t, new LedgerEntry(userId, Currencies.Rm|Bean|Income, signedAmount, kind, Title, TitleKey, Params, Method, RefType, RefId))`
   inside the same transaction as the business row. It throws `wallet.insufficient` / `beans.insufficient`.
-  Kinds used by the platform: grant, adjust, recharge, crypto, order, refund, envelope, transfer, gift, withdraw, checkin, task, exchange, call, live-gift, income.
+  Kinds used by the platform: grant, adjust, recharge, crypto, order, refund, envelope, transfer, gift, withdraw, task, exchange, call, live-gift, income
+  (`checkin` only on historical bean bills: the daily check-in was removed; 0202 keeps the unused dbo.CheckIns table).
   `RefType` 'order' / 'chat' make bills link to orders / chats in the app.
 - **Notifications**: `Notices.PushAsync(userId, new NoticeInput("order", TitleKey: "...", BodyKey: "...", Params: new {...}, ActionName: "order-detail", ActionId: id), c, t)`
   — stored and pushed live. Keys must exist in the app's locales (prefer existing flows.* keys, else your server-<area> file).
@@ -129,7 +130,7 @@ public sealed class CommerceModule : IModule {
 |---|---|---|
 | Users, sessions, profile/city/location, notices, feedback (Tickets), wallet/points/bills projection, media, settings, RTC core | platform | `Ledger`, `Notices`, `Tickets`, `StateService`, `SZ.rtc`, `IRtcScope` |
 | Catalog (categories, banners, services, search, favorites, reviews), cart, addresses, orders, coupons, after-sales, merchants + shop console | commerce | `ICoupons.GrantAsync`, `IMerchantLookup`, `Tickets` kind 'merchant' / 'after-sales' |
-| RM money in/out: recharge page, crypto deposits (HD xpub), manual top-up, withdrawals (balance and income), check-in, tasks & rewards, membership, invites, agent commission | finance | `POST /api/...` only |
+| RM money in/out: recharge page, crypto deposits (HD xpub), manual top-up, withdrawals (balance and income), tasks & rewards, membership, invites, agent commission | finance | `POST /api/...` only |
 | People chunks (personas + members), follows, visitors, posts/likes/comments, greet, friend requests, contacts, groups, blocks, reports, conversations/messages (1:1, group, support, merchant), red packets, transfers, voice/video calls, support desk | social | `IChat.SendAsync` (gift / system / merchant messages), `POST /api/reports`, `POST/DELETE /api/follows/{id}`, `POST/DELETE /api/blocks/{id}`, state keys `follows`, `blocked` |
 | Gift catalog (beans), bean packs & RM→bean exchange, inventory, gifting, decoration/showcase/pendants/wallpapers, live rooms (Cloudflare), fan clubs, host earnings (INCOME), 1:1 video billing, VIP | gifts-live | `SZ.api` endpoints |
 

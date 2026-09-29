@@ -15,7 +15,6 @@ Scenarios (PASS/FAIL each):
   group-packet       lucky red packet with 50 shares, 100 members claim at once (each twice) → 50 claims, Σ = amount
   transfer-race      20 transfers; the recipient fires accept and return 5× each at once → exactly one wins
   withdrawals        10 parallel withdrawal requests → daily count (3) and daily amount limits hold; cancelled afterwards
-  checkin            fresh members check in 5× at once → one reward each
   task-claim         fresh member claims the address task 10× at once → one reward
   mixed-wallet       one member: orders + bean packs + red packets + withdrawals at once → never negative, balance = start − Σ
   post-burst         100 members like and comment on one post at once (+ double taps) → counters exact, no 500
@@ -361,19 +360,6 @@ async def withdrawals(ctx):
            f"frozen RM{wb['frozen']}, after cancel balance RM{wb2['balance']} frozen RM{wb2['frozen']}", st)
 
 
-async def checkin(ctx):
-    fresh = [await register(ctx.http, "压测签到%d" % i) for i in range(20)]
-    b0 = [(await wallet(a))["beans"] for a in fresh]
-    res, st = await burst([a.post("/api/checkin") for a in fresh for _ in range(5)])
-    bad = []
-    for i, a in enumerate(fresh):
-        okn = sum(1 for s, _, _ in res[i * 5:(i + 1) * 5] if s == 200)
-        gained = (await wallet(a))["beans"] - b0[i]
-        if okn != 1 or gained != 10:
-            bad.append((okn, gained))
-    report("checkin", not bad, f"20 fresh members × 5 check-ins at once: {len(bad)} wrong {bad[:3]}", st)
-
-
 async def task_claim(ctx):
     a = await register(ctx.http, "压测任务")
     await a.post("/api/addresses/", {"name": "压测", "phone": "+60 12-3456789", "address": "1 Jalan Load", "postcode": "50450", "city": "吉隆坡"})
@@ -444,7 +430,7 @@ async def post_burst(ctx):
 
 SCENARIOS = {
     "orders": orders_same_user, "orders-many": orders_many_users, "coupon": coupon_race, "beans": bean_packs, "live": live_gifts,
-    "cross": cross_gifts, "packet": group_packet, "transfer": transfer_race, "withdraw": withdrawals, "checkin": checkin,
+    "cross": cross_gifts, "packet": group_packet, "transfer": transfer_race, "withdraw": withdrawals,
     "task": task_claim, "mixed": mixed_wallet, "posts": post_burst,
 }
 

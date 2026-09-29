@@ -260,51 +260,25 @@
   ]
  },
  {
-  "name": "flows-checkin",
-  "hash": "me",
-  "setup": [
-   "(()=>{const k='sz:v2:state:demo';const s=JSON.parse(localStorage.getItem(k)||'{}');const iso=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Date.now()-86400000));s.checkin={streak:2,lastDate:iso,history:[iso]};localStorage.setItem(k,JSON.stringify(s));})()"
-  ],
-  "steps": [
-   {
-    "eval": "window.__pts=state.points; SZ.actions.dispatch('checkin'); true"
-   },
-   {
-    "shot": "before"
-   },
-   {
-    "click": ".flows-checkin [data-action=do-checkin]"
-   },
-   {
-    "expect": "state.checkin.lastDate===localDate() && state.checkin.streak===3",
-    "msg": "streak continued"
-   },
-   {
-    "expect": "state.points===window.__pts+10",
-    "msg": "10 beans added"
-   },
-   {
-    "expect": "document.querySelectorAll('.flows-day.is-done').length===3",
-    "msg": "3 days lit"
-   }
-  ],
-  "serverSkip": true,
-  "serverNote": "rewrites the streak history client-side; the server keeps the calendar"
- },
- {
-  "name": "flows-checkin-reload",
+  "name": "flows-beans",
   "hash": "me",
   "steps": [
    {
-    "expect": "typeof state.checkin==='object' && state.checkin.lastDate===localDate()",
-    "msg": "check-in survives reload"
+    "eval": "SZ.actions.dispatch('points'); true",
+    "settle": 900
    },
    {
-    "eval": "SZ.actions.dispatch('checkin'),true"
+    "shot": "beans"
+   },
+   {
+    "expect": "!!SZ.overlay.$('.flows-balance-amount') && !!SZ.overlay.$('[data-action=tasks]')",
+    "msg": "gold bean sheet: balance and tasks"
+   },
+   {
+    "expect": "!SZ.overlay.$('[data-action=do-checkin], .flows-week, .flows-day')",
+    "msg": "no check-in calendar"
    }
-  ],
-  "serverSkip": true,
-  "serverNote": "follows flows-checkin (offline-only); server check-in: tools/qa/server_smoke.py"
+  ]
  },
  {
   "name": "flows-tasks",
@@ -314,8 +288,8 @@
     "eval": "SZ.actions.dispatch('tasks'),true"
    },
    {
-    "expect": "document.querySelectorAll('.flows-task').length===5",
-    "msg": "five tasks"
+    "expect": "document.querySelectorAll('.flows-task').length===3 && !document.querySelector('.flows-task [data-action=checkin]')",
+    "msg": "three tasks, none about check-in"
    }
   ]
  },

@@ -30,7 +30,7 @@ pip install -r requirements.txt
 | --- | --- | --- |
 | `read_load.py` | 读接口逐个加压（10 → 50 → 100 → 200 并发）：启动数据 `/core/server.js`、`/api/state`、`/data/people.js`、各类 `/data/*.js`、商品搜索、钱包、流水、订单详情、动态、直播间列表、金豆包、配置；最后跑一个按真实比例混合的"App 流量" | `--levels 10,50,100,200 --seconds 10 --only boot,people --mixed-only` |
 | `write_load.py` | 写接口吞吐：钱包下单、买金豆、同一直播间送礼（所有人抢主播同一行）、分散到所有直播间送礼、直播评论、一对一聊天 | `--levels ... --users 300 --only gift-one-room` |
-| `money_race.py` | **资金并发正确性**（每项 PASS / FAIL）：同一人并发下单不超扣、多人并发下单、同一张券并发使用、并发买金豆、同一直播间并发送礼（主播收益、房间金豆）、互相送礼（死锁探测）、群红包 100 人抢 50 份、转账同时"收款 + 退回"、并发提现（每日次数 / 金额上限）、并发签到、并发领任务奖励、同一人各种扣款同时发生 | `--only orders,packet --members 100` |
+| `money_race.py` | **资金并发正确性**（每项 PASS / FAIL）：同一人并发下单不超扣、多人并发下单、同一张券并发使用、并发买金豆、同一直播间并发送礼（主播收益、房间金豆）、互相送礼（死锁探测）、群红包 100 人抢 50 份、转账同时"收款 + 退回"、并发提现（每日次数 / 金额上限）、并发领任务奖励、同一人各种扣款同时发生 | `--only orders,packet --members 100` |
 | `realtime_load.py` | SignalR 实时通道：600 个连接、400 人在同一直播间收评论 / 礼物（延迟、丢失）、200 对私聊、150 人群聊 | `--conns 600 --viewers 400 --only live,pairs` |
 | `admin_load.py` | 后台：仪表盘、会员列表（筛选 / 搜索）、订单、资金流水、对账、CSV 导出，先单独测，再在 App 并发 100 的同时测 | `--levels 2,10 --app-conc 100` |
 | `auth_load.py` | 登录：同一 IP 同时 40 次登录（应 30 次成功、其余 429）；再用不同 IP 测登录吞吐（BCrypt 很耗 CPU） | `--n 300 --conc 10,20,50` |

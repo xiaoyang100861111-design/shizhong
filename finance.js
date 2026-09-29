@@ -9,7 +9,7 @@
  *   fin-topup(s)        bank-transfer top-up request with receipt, and its history
  *   withdraw            withdrawal from the wallet balance or earnings; payout accounts; history
  *   fin-beans/income    gold bean and earnings statements
- *   do-checkin, tasks, claim-member, invite   server-verified rewards
+ *   tasks, claim-member, invite   server-verified rewards
  *
  * Public API: window.ShizhongFinance (walletSection, recharge, crypto, withdraw) and window.ShizhongTasks
  * (claim(task) — other areas call it after a first post / first address in server mode).
@@ -634,7 +634,7 @@
       () => SZ.api.get('wallet/transactions', { currency, limit: 100 }),
       data => {
         const head = beans
-          ? `<p class="flows-lead">${esc(t('flows.checkin.beans'))} <strong class="num">${esc(SZ.fmt.number(state.points))}</strong></p>`
+          ? `<p class="flows-lead">${esc(t('flows.beans.balance'))} <strong class="num">${esc(SZ.fmt.number(state.points))}</strong></p>`
           : `<p class="flows-lead">${esc(t('fin.wallet.incomeSub', { money: money(state.finance?.income) }))}${Number(state.finance?.incomePending) > 0 ? ' · ' + esc(t('fin.income.pending', { money: money(state.finance.incomePending) })) : ''}</p>`;
         return data.items?.length
           ? `${head}<ul class="list flows-bills">${data.items.map(b => statementRow(b, beans)).join('')}</ul>`
@@ -662,21 +662,7 @@
     return flowsSection(t('fin.wallet.more'), `${frozen}<div class="list fin-links">${rows}</div>`, 'fin-wallet-section');
   }
 
-  // ------------------------------------------------------------------ check-in, tasks, membership, invites
-  async function checkin() {
-    if (!SZ.requireLogin(t('flows.reason.checkin'))) return;
-    if (window.ShizhongCheckin?.status().done) return;
-    let res;
-    try {
-      res = await SZ.api.act('POST', 'checkin', {});
-    } catch (e) {
-      if (e.code === 'checkin.already') SZ.api.refresh(['checkin', 'points']).then(() => flowsRefresh('checkin', 'tasks'));
-      return SZ.api.fail(e);
-    }
-    flowsRefresh('checkin', 'tasks');
-    flowsRender();
-    toast(res.bonus ? t('flows.checkin.bonusDone', { n: res.reward }) : t('flows.checkin.done', { n: res.reward }), { type: 'success' });
-  }
+  // ------------------------------------------------------------------ tasks, membership, invites
   const Tasks = {
     /** Ask the server to verify a one-off task and grant its beans. Resolves to { points, state } or null. */
     async claim(task) {
@@ -749,15 +735,13 @@
   }
 
   // ------------------------------------------------------------------ actions
-  SZ.actions.register(['recharge', 'withdraw', 'do-checkin', 'claim-member', 'tasks', 'invite'], (action, id) => {
+  SZ.actions.register(['recharge', 'withdraw', 'claim-member', 'tasks', 'invite'], (action, id) => {
     if (!on()) return false;
     switch (action) {
       case 'recharge':
         return void recharge();
       case 'withdraw':
         return void openWithdraw();
-      case 'do-checkin':
-        return void checkin();
       case 'claim-member':
         return void claimMember();
       case 'tasks':
@@ -830,7 +814,7 @@
     });
     SZ.on('state:server', keys => {
       const k = Array.isArray(keys) ? keys : Object.keys(keys || {});
-      if (k.some(x => ['wallet', 'bills', 'finance', 'points'].includes(x))) flowsRefresh('wallet', 'checkin', 'tasks');
+      if (k.some(x => ['wallet', 'bills', 'finance', 'points'].includes(x))) flowsRefresh('wallet', 'points', 'tasks');
     });
   }
 

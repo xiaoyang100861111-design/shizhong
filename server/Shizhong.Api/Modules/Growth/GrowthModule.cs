@@ -9,8 +9,7 @@ using Shizhong.Api.Modules.Finance;
 namespace Shizhong.Api.Modules.Growth;
 
 /// <summary>
-/// Engagement rewards (§4.5): 7-day check-in cycle on the Malaysian calendar, one-off tasks verified against the
-/// database (complete profile, first post, first address), the membership trial with its coupon, and invites
+/// Engagement rewards (§4.5): one-off tasks verified against the database (complete profile, first post, first address), the membership trial with its coupon, and invites
 /// (list + optional reward, off by default). Rewards are gold beans through the Ledger; TaskClaims' primary key
 /// makes every reward single-use.
 /// </summary>
@@ -20,27 +19,22 @@ public sealed partial class GrowthModule : IModule
 
     public static readonly string[] OneOffTasks = ["profile", "post", "address"];
 
-    public IEnumerable<string> OwnedStateKeys => ["checkin", "member", "profileReward", "postReward", "addressReward"];
+    public IEnumerable<string> OwnedStateKeys => ["member", "profileReward", "postReward", "addressReward"];
 
     public IEnumerable<PermissionDef> Permissions => Perm.Menu("marketing", "营销", "Marketing", 40,
-        ("checkin", "签到规则与记录", "Check-in rules & records"),
         ("tasks", "任务奖励", "Task rewards"),
         ("member", "会员权益", "Membership"),
         ("invite", "邀请与邀请奖励", "Invites & invite rewards"));
 
     public IEnumerable<ConfigDef> Configs =>
     [
-        ConfigDef.GroupOf("checkin", "每日签到", "Daily check-in", "7 天一个周期：每天奖励金豆，第 7 天额外奖励；断签后重新从第 1 天开始（按马来西亚日期）"),
-        new("checkin.enabled", "checkin", true, "bool", "开放签到", "Check-in open", Public: true),
-        new("checkin.reward", "checkin", 10, "int", "每日签到金豆", "Beans per check-in", Public: true, Min: 0, Max: 100000),
-        new("checkin.bonus", "checkin", 50, "int", "连续第 7 天额外金豆", "Day-7 bonus beans", Public: true, Min: 0, Max: 1000000),
         ConfigDef.GroupOf("tasks", "任务中心", "Tasks"),
         new("tasks.profileReward", "tasks", 20, "int", "完善个人资料奖励金豆", "Complete profile (beans)", Public: true, Min: 0, Max: 1000000),
         new("tasks.profileFields", "tasks", new[] { "avatar", "bio" }, "list", "「资料完整」需要填写的项目（avatar / bio / name / city / interests）",
             "Fields a complete profile needs (avatar / bio / name / city / interests)", Public: true),
         new("tasks.postReward", "tasks", 10, "int", "发布第一条动态奖励金豆", "First post (beans)", Public: true, Min: 0, Max: 1000000),
         new("tasks.addressReward", "tasks", 10, "int", "保存第一个地址奖励金豆", "First address (beans)", Public: true, Min: 0, Max: 1000000),
-        new("tasks.hidden", "tasks", Array.Empty<string>(), "list", "隐藏的任务（checkin / streak / profile / post / address）", "Hidden tasks", Public: true),
+        new("tasks.hidden", "tasks", Array.Empty<string>(), "list", "隐藏的任务（profile / post / address）", "Hidden tasks", Public: true),
         ConfigDef.GroupOf("member", "会员", "Membership"),
         new("member.enabled", "member", true, "bool", "开放领取会员体验", "Membership trial open", Public: true),
         new("member.coupon", "member", "member", "string", "领取时发放的优惠券模板编码（留空不发）", "Coupon template granted (empty = none)"),
@@ -57,34 +51,6 @@ public sealed partial class GrowthModule : IModule
     public void Map(WebApplication app)
     {
         var api = app.MapGroup("/api").RequireUser();
-
-        api.MapPost("/checkin", async (HttpContext ctx, Db db, ConfigService cfg, StateService states) =>
-        {
-            var user = ctx.RequireUser();
-            if (!cfg.Bool("checkin.enabled", true)) throw ApiError.BadRequest("checkin.disabled");
-            var today = Clock.Today;
-            var (streak, reward, bonus) = (0, 0L, 0L);
-            try
-            {
-                await db.TxAsync(async (c, t) =>
-                {
-                    var last = await c.QueryFirstOrDefaultAsync<(DateTime Day, int Streak)>(
-                        "SELECT TOP 1 Day, Streak FROM dbo.CheckIns WITH (UPDLOCK, HOLDLOCK) WHERE UserId = @Id ORDER BY Day DESC", new { user.Id }, t);
-                    var lastDay = last.Streak > 0 ? DateOnly.FromDateTime(last.Day) : (DateOnly?)null;
-                    if (lastDay == today) throw ApiError.Conflict("checkin.already");
-                    streak = lastDay == today.AddDays(-1) ? last.Streak + 1 : 1;
-                    bonus = streak % 7 == 0 ? cfg.Long("checkin.bonus", 50) : 0;
-                    reward = cfg.Long("checkin.reward", 10) + bonus;
-                    await c.ExecuteAsync("INSERT INTO dbo.CheckIns(UserId, Day, Streak, Reward) VALUES (@Id, @day, @streak, @reward)",
-                        new { user.Id, day = today.ToDateTime(TimeOnly.MinValue), streak, reward }, t);
-                    if (reward > 0)
-                        await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Bean, reward, "checkin", bonus > 0 ? "连续签到 7 天" : "每日签到",
-                            bonus > 0 ? "server.growth.bill.checkinBonus" : "server.growth.bill.checkin", new { n = streak }, RefType: "checkin", RefId: today.ToString("yyyy-MM-dd")));
-                });
-            }
-            catch (SqlException e) when (e.IsDuplicate()) { throw ApiError.Conflict("checkin.already"); }
-            return Results.Ok(new { streak, reward, bonus, state = await states.ProjectKeysAsync(user, "checkin", "points") });
-        }).RequireRateLimiting("write");
 
         api.MapPost("/tasks/claim", async (HttpContext ctx, Db db, ConfigService cfg, StateService states, ClaimBody body) =>
         {
@@ -263,14 +229,6 @@ public sealed partial class GrowthModule : IModule
     public async Task ProjectAsync(StateContext ctx)
     {
         var c = ctx.Connection;
-        var days = (await c.QueryAsync<(DateTime Day, int Streak)>("SELECT TOP 60 Day, Streak FROM dbo.CheckIns WHERE UserId = @UserId ORDER BY Day DESC", new { ctx.UserId })).ToList();
-        var history = new JsonArray(days.OrderBy(d => d.Day).Select(d => (JsonNode)JsonValue.Create(d.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))!).ToArray());
-        ctx.State["checkin"] = new JsonObject
-        {
-            ["streak"] = days.Count > 0 ? days[0].Streak : 0,
-            ["lastDate"] = days.Count > 0 ? days[0].Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "",
-            ["history"] = history,
-        };
         var claims = (await c.QueryAsync<string>("SELECT Task FROM dbo.TaskClaims WHERE UserId = @UserId AND Period = 'once'", new { ctx.UserId })).ToHashSet();
         ctx.State["member"] = claims.Contains("member");
         ctx.State["profileReward"] = claims.Contains("profile");

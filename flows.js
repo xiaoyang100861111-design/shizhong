@@ -2,12 +2,12 @@
 /*
  * flows.js (owner: flows, see docs/CONTRACTS.md)
  * Account and everyday utility flows: settings, language & theme, wallet & bills, recharge,
- * check-in, tasks, coupons, addresses, notifications centre, edit profile, compose post, greet,
+ * gold beans, tasks, coupons, addresses, notifications centre, edit profile, compose post, greet,
  * friend requests, invite, merchant application, feedback / after-sales / report, help,
  * privacy policy, about & licences, block list. Also the shared form helpers other modules
  * render (field, selectField, summary, submitButton, formNote, uploadField).
  *
- * Public APIs: window.ShizhongNotices, ShizhongCoupons, ShizhongAddresses, ShizhongCheckin.
+ * Public APIs: window.ShizhongNotices, ShizhongCoupons, ShizhongAddresses.
  * Everything is registered through SZ.actions; menuAction at the end is only the legacy fallback
  * for actions other modules have not registered yet.
  */
@@ -539,7 +539,6 @@ function flowsUploadRemove(button) {
 }
 
 // ------------------------------------------------------------------ state (defaults + migration)
-initialState.checkin = { streak: 0, lastDate: '', history: [] };
 initialState.notices = [];
 initialState.friendRequests = { incoming: [], outgoing: [] };
 const FLOWS_SERVICE_LANGS = ['zh', 'en', 'ms', 'zh-en'];
@@ -599,20 +598,7 @@ function flowsMigrate(s = state) {
   if (!s.settings || typeof s.settings !== 'object') s.settings = {};
   if (typeof s.settings.notifications !== 'boolean') s.settings.notifications = true;
   if (typeof s.settings.nearby !== 'boolean') s.settings.nearby = true;
-  let c = s.checkin;
-  if (!c || typeof c !== 'object') {
-    const saved = flowsSavedValue('checkin');
-    if (saved && typeof saved === 'object' && !Array.isArray(saved)) c = saved;
-    else
-      c = /^\d{4}-\d{2}-\d{2}$/.test(String(c || ''))
-        ? { streak: 1, lastDate: c, history: [c] }
-        : { streak: 0, lastDate: '', history: [] };
-  }
-  s.checkin = {
-    streak: Math.max(0, Math.floor(Number(c.streak) || 0)),
-    lastDate: typeof c.lastDate === 'string' ? c.lastDate : '',
-    history: Array.isArray(c.history) ? c.history.filter(d => typeof d === 'string').slice(-60) : [],
-  };
+  delete s.checkin; // the daily check-in was removed; drop its old state
   const seen = new Set();
   s.coupons = (Array.isArray(s.coupons) ? s.coupons : [])
     .map(x => flowsCouponFrom(x))
@@ -645,10 +631,11 @@ function flowsMigrate(s = state) {
     s.profile.language = flowsServiceLangCode(s.profile.language);
 }
 {
-  const keys = ['settings', 'checkin', 'coupons', 'address', 'friendRequests', 'notices', 'profile'];
+  const keys = ['settings', 'coupons', 'address', 'friendRequests', 'notices', 'profile'];
   const before = JSON.stringify(keys.map(k => state[k]));
+  const hadOld = 'checkin' in state;
   flowsMigrate();
-  if (JSON.stringify(keys.map(k => state[k])) !== before) SZ.store.saveSoon();
+  if (hadOld || JSON.stringify(keys.map(k => state[k])) !== before) SZ.store.saveSoon();
 }
 
 // ------------------------------------------------------------------ notices API
@@ -810,32 +797,6 @@ window.ShizhongAddresses = {
     );
   },
   open: () => addresses(),
-};
-
-// ------------------------------------------------------------------ check-in API
-function flowsCheckinState() {
-  const c = state.checkin;
-  const today = localDate();
-  const yesterday = SZ.fmt.date(Date.now() - FLOWS_DAY, 'iso');
-  const done = c.lastDate === today;
-  const alive = done || c.lastDate === yesterday;
-  const streak = alive ? c.streak : 0;
-  // Position inside the current 7-day cycle: days already lit, and which box is today.
-  const lit = done ? ((streak - 1) % 7) + 1 : streak % 7;
-  return { done, streak, lit, todayIndex: done ? lit - 1 : lit };
-}
-const FLOWS_CHECKIN_REWARD = Number(SZ.config('checkin.reward', 10)) || 0;
-const FLOWS_CHECKIN_BONUS = Number(SZ.config('checkin.bonus', 50)) || 0;
-window.ShizhongCheckin = {
-  status() {
-    const s = flowsCheckinState();
-    return {
-      done: s.done,
-      streak: s.streak,
-      reward: s.todayIndex === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD,
-    };
-  },
-  open: () => checkin(),
 };
 
 // ------------------------------------------------------------------ shared markup
@@ -1385,7 +1346,7 @@ function flowsWalletBody() {
         'btn btn-ghost btn-sm flows-balance-restore'
       )
     : '';
-  const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t(SZ.server ? 'fin.wallet.note' : 'flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('checkin', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
+  const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t(SZ.server ? 'fin.wallet.note' : 'flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('points', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
   // Newest first by time: several modules write bills, not always in time order.
   const bills = state.bills
     .map((b, i) => [b, flowsBillTs(b) || 0, i])
@@ -1517,70 +1478,18 @@ async function flowsRechargeSubmit(data, form, layer) {
   flowsRender();
 }
 
-// ------------------------------------------------------------------ check-in & tasks
-function checkin() {
-  return flowsOpen('checkin', { kind: 'sheet', title: t('flows.checkin.title'), body: flowsCheckinBody });
+// ------------------------------------------------------------------ gold beans & tasks
+function flowsBeans() {
+  return flowsOpen('points', { kind: 'sheet', title: t('flows.beans.title'), body: flowsBeansBody });
 }
-function flowsCheckinBody() {
-  const s = flowsCheckinState();
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const done = i < s.lit;
-    const today = i === s.todayIndex;
-    const reward = i === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD;
-    const label = today ? t('time.today') : t('flows.checkin.day', { n: i + 1 });
-    const status = done ? t('flows.checkin.stateDone') : today ? t('flows.checkin.stateToday') : '';
-    return `<li class="flows-day${done ? ' is-done' : ''}${today ? ' is-today' : ''}${i === 6 ? ' is-bonus' : ''}"><span class="flows-sr">${esc([label, t('flows.checkin.rewardAria', { n: reward }), status].filter(Boolean).join(', '))}</span><span class="flows-day-label" aria-hidden="true">${label}</span><span class="flows-day-mark" aria-hidden="true">${done ? icon('check') : i === 6 ? icon('gift') : flowsIcon('medal')}</span><strong class="flows-day-reward num" aria-hidden="true">+${reward}</strong></li>`;
-  }).join('');
-  const reward = s.todayIndex === 6 ? FLOWS_CHECKIN_REWARD + FLOWS_CHECKIN_BONUS : FLOWS_CHECKIN_REWARD;
-  const streakText = s.streak ? tn('flows.checkin.streak', s.streak) : t('flows.checkin.noStreak');
-  return `<div class="flows-checkin-head"><div><p class="flows-checkin-streak">${streakText}</p><p class="flows-checkin-hint">${t('flows.checkin.bonusHint', { bonus: FLOWS_CHECKIN_BONUS })}</p></div><div class="flows-checkin-beans"><small>${t('flows.checkin.beans')}</small><strong class="num">${esc(SZ.fmt.compact(state.points))}</strong></div></div><ol class="flows-week" aria-label="${esc(t('flows.checkin.weekAria'))}">${days}</ol><div class="flows-cta flows-cta--stack">${act('do-checkin', '', s.done ? t('flows.checkin.doneToday') : t('flows.checkin.claim', { n: reward }), 'btn btn-accent btn-lg btn-block', s.done ? 'disabled' : '')}${act('tasks', '', t('flows.checkin.moreTasks'), 'btn btn-ghost btn-block')}</div>`;
-}
-function flowsDoCheckin() {
-  if (!SZ.requireLogin(t('flows.reason.checkin'))) return;
-  const before = flowsCheckinState();
-  if (before.done) return;
-  const today = localDate();
-  const streak = before.streak + 1;
-  const bonus = streak % 7 === 0 ? FLOWS_CHECKIN_BONUS : 0;
-  const reward = FLOWS_CHECKIN_REWARD + bonus;
-  if (
-    !SZ.store.commit(s => {
-      s.checkin.streak = streak;
-      s.checkin.lastDate = today;
-      s.checkin.history = [...s.checkin.history.filter(d => d !== today), today].slice(-60);
-      s.points += reward;
-    })
-  )
-    return;
-  flowsRefresh('checkin', 'tasks');
-  flowsRender();
-  toast(bonus ? t('flows.checkin.bonusDone', { n: reward }) : t('flows.checkin.done', { n: reward }), {
-    type: 'success',
-  });
+function flowsBeansBody() {
+  const statement = SZ.server ? act('fin-beans', '', `${flowsIcon('file')}${t('fin.wallet.beans')}`, 'btn btn-outline') : '';
+  return `<section class="flows-balance" aria-labelledby="flows-beans-label"><p class="flows-balance-label" id="flows-beans-label">${t('flows.beans.balance')}</p><p class="flows-balance-amount num">${esc(SZ.fmt.number(state.points))}</p><p class="flows-balance-note">${t('flows.beans.note')}</p><div class="flows-balance-actions">${act('tasks', '', `${flowsIcon('medal')}${t('flows.beans.tasks')}`, 'btn btn-primary')}${statement}</div></section>`;
 }
 function flowsTaskList() {
-  const c = flowsCheckinState();
   const hidden = SZ.config('tasks.hidden', []);
   const reward = (id, fallback) => Number(SZ.config(`tasks.${id}Reward`, fallback)) || 0;
   return [
-    {
-      id: 'checkin',
-      icon: 'calendar',
-      reward: FLOWS_CHECKIN_REWARD,
-      done: c.done,
-      progress: c.done ? 1 : 0,
-      total: 1,
-      action: 'checkin',
-    },
-    {
-      id: 'streak',
-      icon: 'medal',
-      reward: FLOWS_CHECKIN_BONUS,
-      done: c.lit === 7 && c.done,
-      progress: c.lit,
-      total: 7,
-      action: 'checkin',
-    },
     {
       id: 'profile',
       icon: 'user',
@@ -2888,9 +2797,7 @@ const FLOWS_ACTIONS = {
   wallet: () => wallet(),
   bills: () => wallet(),
   recharge: () => recharge(),
-  checkin: () => checkin(),
-  points: () => checkin(),
-  'do-checkin': () => flowsDoCheckin(),
+  points: () => flowsBeans(),
   tasks: () => flowsTasks(),
   coupons: () => coupons(),
   'use-coupon': id => flowsUseCoupon(id),

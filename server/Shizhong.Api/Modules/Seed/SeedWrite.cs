@@ -342,12 +342,11 @@ public sealed partial class SeedGenerator
         await W.InsertAsync(comTable);
         foreach (var g in commissions.Where(c => c.PaidAt != null).GroupBy(c => (c.AgentId, c.PayRef)))
             Audit(g.First().PaidBy ?? financeAdmins[0], "commission.pay", () => "agent:" + g.Key.AgentId, new { reference = g.Key.PayRef, count = g.Count(), amount = Money.ToRm(g.Sum(x => x.Cents)) }, g.First().PaidAt!.Value);
-        await W.InsertKeyedAsync(checkins, "UserId", "Day");
         var taskTable = new SeedTable("TaskClaims", ("UserId", typeof(long)), ("Task", typeof(string)), ("Period", typeof(string)), ("Reward", typeof(long)), ("Data", typeof(string)), ("CreatedAt", typeof(DateTime)));
         foreach (var (u, task, reward, at, coupon) in taskClaims)
             taskTable.Add(u.Id, task, "once", reward, coupon is null ? null : Json.Serialize(new { couponId = "c" + coupon.Id.Id }), at);
         await W.InsertKeyedAsync(taskTable, "UserId", "Task", "Period");
-        Wrote("充值、提现、签到");
+        Wrote("充值、提现、任务");
 
         // ---------------------------------------------------------------- inventory, decoration, VIP
         var invTable = new SeedTable("GiftInventory", ("UserId", typeof(long)), ("GiftId", typeof(string)), ("Quantity", typeof(int)), ("UpdatedAt", typeof(DateTime)));

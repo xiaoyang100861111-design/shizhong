@@ -10,6 +10,7 @@
         <el-table-column :label="t('growth.totalBeans')" width="140" align="right"><template #default="{ row }"><span class="num">{{ number(row.beans) }}</span></template></el-table-column>
       </el-table>
     </div>
+    <div class="panel"><h3 class="panel-title">{{ t('growth.beans') }}</h3><LineChart :series="[{ name: t('growth.beans'), points: stats.beans || [] }]" :height="220" /></div>
     <ConfigForm :groups="['tasks']" endpoint="growth/config" perm="marketing.tasks" />
     <ClaimsTable />
   </div>
@@ -21,6 +22,7 @@ import { api } from '../../core/api';
 import { t, pick } from '../../core/i18n';
 import { number } from '../../core/format';
 import ConfigForm from '../../components/ConfigForm.vue';
+import LineChart from '../../components/LineChart.vue';
 import ClaimsTable from './ClaimsTable.vue';
 
 const stats = ref({});

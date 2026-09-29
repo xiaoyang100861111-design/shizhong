@@ -42,12 +42,6 @@
         </el-table>
       </div>
       <div>
-        <h4>{{ t('fin.tab.checkins') }}</h4>
-        <el-table :data="d.checkins || []" size="small" empty-text="—" max-height="260">
-          <el-table-column prop="day" :label="t('fin.day')" width="110" />
-          <el-table-column prop="streak" label="Streak" width="80" />
-          <el-table-column prop="reward" :label="t('fin.bean')" />
-        </el-table>
         <h4>{{ t('fin.tab.claims') }}</h4>
         <el-table :data="d.claims || []" size="small" empty-text="—">
           <el-table-column prop="task" :label="t('fin.kind')" width="90" />

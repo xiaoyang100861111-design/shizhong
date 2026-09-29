@@ -52,7 +52,7 @@ server/
 | Notifications | Notifications | written by the server on order/social events |
 | Social (real users) | Follows, Posts, PostLikes, PostComments, FriendRequests, Blocks, Reports | the 600 fictional people stay client-side demo content |
 | Messaging (real users) | Conversations, ConversationMembers, Messages, EnvelopeClaims | direct + group chats between registered users; polling `GET /api/chat/sync?since=` |
-| Gifts, live, 1:1, VIP | GiftInventory, GiftTransactions, CheckIns | gifting charges the wallet server-side; VIP xp = beans gifted |
+| Gifts, live, 1:1, VIP | GiftInventory, GiftTransactions | gifting charges the wallet server-side; VIP xp = beans gifted |
 
 ## 4. Client integration (server mode)
 
@@ -76,5 +76,5 @@ Without a backend (file:// or no `/api/config`) everything behaves exactly as v2
    notifications, wallet recharge/bills — server + client wiring (catalog/checkout/flows).
 3. **Social & messaging & gifts**: real-user profiles, follows, posts/comments/likes, friend requests, blocks,
    reports, direct/group chats, red packets/transfers, gift shop/inventory/sending, live & 1:1 gifting with beans,
-   check-in, VIP xp — server + client wiring (catalog social, chat, gifts, live, private, vip, flows).
+   VIP xp — server + client wiring (catalog social, chat, gifts, live, private, vip, flows).
 4. **Integration & QA**: smoke suite in both modes (`--base-url http://localhost:5080/`), API tests, deploy guide.

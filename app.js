@@ -461,7 +461,6 @@ const initialState = {
   readChats: [],
   points: 1000000000,
   // Module-owned shapes, declared here too because the state is loaded before those modules run.
-  checkin: { streak: 0, lastDate: '', history: [] },
   notices: [],
   friendRequests: { incoming: [], outgoing: [] },
   cart: {},
@@ -796,7 +795,7 @@ function localDate() {
 // ------------------------------------------------------------------ Me tab
 /*
  * Order: profile hero (the gifts module's decorated hero for signed-in users; the plain hero below
- * for guests or when that module is missing) → VIP → wallet → orders → daily check-in → "my stuff"
+ * for guests or when that module is missing) → VIP → wallet → orders → "my stuff"
  * shortcuts → settings rows. Every block reads live data; other modules are optional (optional
  * chaining) so a missing module never breaks the page.
  */
@@ -883,21 +882,6 @@ function meOrders() {
     .map(([ico, code, n]) => shortcut(ico, esc(t(`shell.me.orders.${code}`)), 'orders', code, n))
     .join('')}${shortcut('headset', esc(t('shell.me.orders.afterSales')), 'after-sales')}</div></section>`;
 }
-function meCheckin() {
-  const status = window.ShizhongCheckin?.status?.() || { done: false, streak: 0 };
-  const reward = Number(status.reward) || 10;
-  const text = status.done
-    ? status.streak
-      ? tn('shell.me.checkin.streak', status.streak)
-      : t('shell.me.checkin.doneToday')
-    : tn('shell.me.checkin.reward', reward);
-  return `<section class="me-checkin card"><span class="me-checkin-icon">${icon('calendar')}</span><div class="me-checkin-text"><h2>${esc(t('shell.me.checkin.title'))}</h2><p>${esc(text)}</p></div>${act(
-    'checkin',
-    '',
-    esc(status.done ? t('shell.me.checkin.view') : t('shell.me.checkin.action')),
-    status.done ? 'btn btn-secondary btn-sm' : 'btn btn-accent btn-sm'
-  )}</section>`;
-}
 function meLife() {
   const items = [
     ['heart', 'saved', 'saved'],
@@ -946,10 +930,10 @@ function mePage() {
   ];
   return `<section class="page me-page">${appBar({ title: t('nav.me'), actions })}<div class="me-body">${meHero()}${
     window.ShizhongVIP?.homeCard?.() || ''
-  }${meWallet()}${meOrders()}${meCheckin()}${meLife()}${meRows()}<p class="endnote">${esc(t('shell.me.endnote'))}</p></div></section>`;
+  }${meWallet()}${meOrders()}${meLife()}${meRows()}<p class="endnote">${esc(t('shell.me.endnote'))}</p></div></section>`;
 }
 /**
- * Redraw the Me page in place (scroll position kept). Orders, check-in, coupons, notices and the
+ * Redraw the Me page in place (scroll position kept). Orders, coupons, notices and the
  * wallet change inside layers, so Me catches up once the last layer closes.
  */
 function refreshMe() {
