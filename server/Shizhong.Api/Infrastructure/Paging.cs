@@ -44,9 +44,13 @@ public static class Csv
             DateTime d => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(d, DateTimeKind.Utc), Clock.Malaysia).ToString("yyyy-MM-dd HH:mm:ss"),
             _ => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture) ?? "",
         };
-        // Neutralise spreadsheet formulas.
-        if (s.Length > 0 && "=+-@".Contains(s[0])) s = "'" + s;
-        return s.Contains(',') || s.Contains('"') || s.Contains('\n') ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+        // Neutralise spreadsheet formulas (text starting with = + - @ tab CR). Numbers stay numbers, so refunds and
+        // debits (-12.50) are still summable in Excel.
+        var numeric = v is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal
+                      || decimal.TryParse(s, System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint,
+                          System.Globalization.CultureInfo.InvariantCulture, out _);
+        if (s.Length > 0 && !numeric && "=+-@\t\r".Contains(s[0])) s = "'" + s;
+        return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r') ?"\"" + s.Replace("\"", "\"\"") + "\"" : s;
     }
 
     public static IResult File(string name, string content) =>
