@@ -55,7 +55,7 @@
       <el-form label-width="90px">
         <div class="two">
           <div>
-            <el-form-item :label="t('personas.avatar')"><ImageUpload v-model="form.avatar" purpose="avatar" allow-path path-hint="avatars/women-000.jpg" /></el-form-item>
+            <el-form-item :label="t('personas.avatar')"><ImageUpload v-model="form.avatar" purpose="avatar" allow-path path-hint="avatars/women-000.webp" /></el-form-item>
             <el-form-item :label="t('personas.name')"><el-input v-model="form.name" maxlength="40" /></el-form-item>
             <el-form-item :label="t('personas.age')"><el-input-number v-model="form.age" :min="18" :max="99" /></el-form-item>
             <el-form-item :label="t('personas.gender')"><el-radio-group v-model="form.gender"><el-radio-button value="女">女</el-radio-button><el-radio-button value="男">男</el-radio-button></el-radio-group></el-form-item>
@@ -140,5 +140,5 @@ async function bulk(hidden, all = false) {
 
 <style scoped>
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 </style>

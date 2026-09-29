@@ -42,7 +42,7 @@
       preparePeople(fresh);
       for (const person of fresh)
         if (animatedFriendIds.includes(person.id))
-          person.animatedAvatar = 'animated-avatars/' + person.id + '.png';
+          person.animatedAvatar = 'animated-avatars/' + person.id + '.webp';
       demoData.people = records;
       people.push(...fresh);
       C.index('people', fresh);

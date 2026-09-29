@@ -231,11 +231,11 @@ public static class SeedText
 
     public static readonly string[] PostPhotosFood =
     [
-        "photos/chicken-satay.jpg", "photos/chicken-curry.jpg", "photos/cafe-toast.jpg", "photos/basil-pizza.jpg", "photos/bakery-bread.jpg",
-        "photos/celebration-cake.jpg", "nasi-lemak.jpg", "cafe-brunch.jpg", "fresh-fruit.jpg", "cake-table.jpg",
+        "photos/chicken-satay.webp", "photos/chicken-curry.webp", "photos/cafe-toast.webp", "photos/basil-pizza.webp", "photos/bakery-bread.webp",
+        "photos/celebration-cake.webp", "nasi-lemak.webp", "cafe-brunch.webp", "fresh-fruit.webp", "cake-table.webp",
     ];
-    public static readonly string[] PostPhotosCity = ["city-kl.jpg", "photos/airport-traveler.jpg", "cafe-brunch.jpg", "photos/cafe-baristas.jpg"];
-    public static readonly string[] PostPhotosLife = ["clean-home.jpg", "cafe-brunch.jpg", "photos/cafe-baristas.jpg", "fresh-fruit.jpg", "hair-salon.jpg"];
+    public static readonly string[] PostPhotosCity = ["city-kl.webp", "photos/airport-traveler.webp", "cafe-brunch.webp", "photos/cafe-baristas.webp"];
+    public static readonly string[] PostPhotosLife = ["clean-home.webp", "cafe-brunch.webp", "photos/cafe-baristas.webp", "fresh-fruit.webp", "hair-salon.webp"];
 
     public static readonly string[] Comments =
     [

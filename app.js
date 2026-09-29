@@ -84,16 +84,60 @@ function resourceURL(path) {
   if (/^https?:$/.test(url.protocol)) url.searchParams.set('v', SHIZHONG_BUILD);
   return url.href;
 }
+/** Repo-relative path of a local image reference ('photos/x.webp', 'avatars/y.webp', alias 'hero.webp'). */
+function assetPath(value) {
+  const aliases = window.SHIZHONG_ASSETS || {};
+  // Images are WebP (tools/perf/optimize_images.py); saved data may still name the old .jpg/.png alias.
+  const webp = value.replace(/\.(jpe?g|png)(?=$|[?#])/i, '.webp');
+  return aliases[value] || aliases[webp] || (value.startsWith('assets/') ? value : 'assets/' + value);
+}
+// URLs asset() turned from an old .jpg/.png name into .webp → the name as written (tried if the .webp is missing).
+const RENAMED_ASSETS = new Map();
 function asset(name) {
-  const value = String(name || 'logo.png');
+  const value = String(name || 'logo.webp');
   if (/^(data:|blob:)/i.test(value)) return value;
   // Photos the user uploaded live in IndexedDB ('media:<id>'); <img data-media> hydrates them.
   if (SZ.media.isRef(value)) return SZ.media.src(value);
   if (/^(https?:)?\/\//i.test(value)) return new URL(value, SHIZHONG_BASE).href;
-  const mapped = window.SHIZHONG_ASSETS?.[value] || (value.startsWith('assets/') ? value : 'assets/' + value);
-  // JPEG is served by the current host; its WebP handler returns 404.
-  return resourceURL(mapped.replace(/\.webp(?=$|[?#])/i, '.jpg'));
+  const path = assetPath(value);
+  const webp = path.replace(/\.(jpe?g|png)$/i, '.webp');
+  if (webp === path) return resourceURL(path);
+  const url = resourceURL(webp);
+  RENAMED_ASSETS.set(url, resourceURL(path));
+  return url;
 }
+// Photos in these folders also exist 320 px wide as <name>.w320.webp (tools/perf/optimize_images.py).
+const THUMB_DIRS = /^assets\/(photos|optimized)\/[^/]+\.webp$/;
+const isThumbable = path => THUMB_DIRS.test(path) && !/\.w320\.webp$/.test(path);
+/** A small copy of a photo for avatars and thumbnails (≤ 100 CSS px); any other reference as asset(). */
+function thumbAsset(name) {
+  const value = String(name || '');
+  if (!value || /^(data:|blob:|https?:|\/\/)/i.test(value) || SZ.media.isRef(value)) return asset(value);
+  const path = assetPath(value);
+  return resourceURL(isThumbable(path) ? path.replace(/\.webp$/, '.w320.webp') : path);
+}
+/** ' srcset=… sizes=…' for assets/photos images (320 and 640 px wide), '' for anything else. */
+function srcsetAttr(name, sizes = '100vw') {
+  const value = String(name || '');
+  if (!value || /^(data:|blob:|https?:|\/\/)/i.test(value) || SZ.media.isRef(value)) return '';
+  const path = assetPath(value);
+  if (!isThumbable(path) || !path.startsWith('assets/photos/')) return '';
+  return ` srcset="${esc(resourceURL(path.replace(/\.webp$/, '.w320.webp')))} 320w, ${esc(resourceURL(path))} 640w" sizes="${esc(sizes)}"`;
+}
+// A local image named .jpg/.png is requested as .webp (saved data from before the conversion); should that
+// file not exist (an image added since, not yet converted), retry once with the name as written.
+document.addEventListener(
+  'error',
+  e => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || img.dataset.assetRetry) return;
+    const original = RENAMED_ASSETS.get(img.src);
+    if (!original) return;
+    img.dataset.assetRetry = '1';
+    img.src = original;
+  },
+  true
+);
 /** src attribute for any image reference, plus data-media so IndexedDB photos hydrate. */
 function imageAttrs(ref) {
   return `src="${esc(asset(ref))}"${SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : ''}`;
@@ -147,7 +191,7 @@ const legacyServices = [
     cat: 'guide',
     name: '和本地人，漫游吉隆坡',
     sub: '城市地陪 · 中文沟通',
-    image: 'city-kl.jpg',
+    image: 'city-kl.webp',
     price: 128,
     unit: '半天起',
     rating: '4.9',
@@ -163,7 +207,7 @@ const legacyServices = [
     cat: 'food',
     name: '把周末，留给一顿好早午餐',
     sub: 'The Morning Table · Bukit Bintang',
-    image: 'cafe-brunch.jpg',
+    image: 'cafe-brunch.webp',
     price: 28,
     unit: '份',
     rating: '4.8',
@@ -179,7 +223,7 @@ const legacyServices = [
     cat: 'clean',
     name: '让家焕新，也让心情放个假',
     sub: '专业家政 · 自带清洁工具',
-    image: 'clean-home.jpg',
+    image: 'clean-home.webp',
     price: 68,
     unit: '小时起',
     rating: '4.9',
@@ -195,7 +239,7 @@ const legacyServices = [
     cat: 'market',
     name: '今天的鲜甜，即刻送到',
     sub: '适中鲜选 · 新鲜草莓 250g',
-    image: 'fresh-fruit.jpg',
+    image: 'fresh-fruit.webp',
     price: 19.9,
     unit: '盒',
     rating: '4.8',
@@ -211,7 +255,7 @@ const legacyServices = [
     cat: 'food',
     name: '一口椰香，是大马的日常',
     sub: 'Kampung Kitchen · 招牌椰浆饭',
-    image: 'nasi-lemak.jpg',
+    image: 'nasi-lemak.webp',
     price: 15.9,
     unit: '份',
     rating: '4.9',
@@ -227,7 +271,7 @@ const legacyServices = [
     cat: 'car',
     name: 'KLIA 接机，落地就安心',
     sub: '中文司机 · 舒适 5 座',
-    image: 'city-kl.jpg',
+    image: 'city-kl.webp',
     price: 88,
     unit: '程起',
     rating: '4.9',
@@ -246,7 +290,7 @@ const legacyPeople = [
     age: 26,
     city: '吉隆坡',
     distance: '1.2 km',
-    photo: 'portrait-woman-studio.jpg',
+    photo: 'portrait-woman-studio.webp',
     bio: '认真生活，偶尔发呆。周末一起探店吧。',
     tags: ['咖啡星人', '城市漫游'],
     language: '中文 · English',
@@ -263,7 +307,7 @@ const legacyPeople = [
     age: 25,
     city: '八打灵再也',
     distance: '2.8 km',
-    photo: 'portrait-woman-outdoor.jpg',
+    photo: 'portrait-woman-outdoor.webp',
     bio: '收集日落，也收集生活里微小的快乐。',
     tags: ['旅行', '摄影'],
     language: '中文 · Bahasa Melayu',
@@ -280,7 +324,7 @@ const legacyPeople = [
     age: 29,
     city: '吉隆坡',
     distance: '3.5 km',
-    photo: 'portrait-man-river.jpg',
+    photo: 'portrait-man-river.webp',
     bio: '在大马长大，带你认识我喜欢的这座城。',
     tags: ['徒步', '本地美食'],
     language: '中文 · English',
@@ -297,7 +341,7 @@ const legacyPeople = [
     age: 27,
     city: '槟城',
     distance: '8.6 km',
-    photo: 'portrait-woman-city.jpg',
+    photo: 'portrait-woman-city.webp',
     bio: '把日子过成喜欢的样子。你好，新朋友。',
     tags: ['阅读', '生活记录'],
     language: '中文 · English',
@@ -314,7 +358,7 @@ const legacyPosts = [
     id: 'f1',
     person: 'p2',
     text: '给忙碌的生活按个暂停键。☕<br>发现一家很喜欢的小店，连阳光都刚刚好。',
-    image: 'cafe-brunch.jpg',
+    image: 'cafe-brunch.webp',
     topic: '周末不宅家',
     place: 'Bukit Bintang',
     likes: 128,
@@ -324,7 +368,7 @@ const legacyPosts = [
     id: 'f2',
     person: 'p3',
     text: '每次抬头看双子塔，还是会心动。<br>今晚的吉隆坡，把浪漫拉满了。',
-    image: 'city-kl.jpg',
+    image: 'city-kl.webp',
     topic: '我的城市有点美',
     place: 'KLCC, Kuala Lumpur',
     likes: 86,
@@ -334,7 +378,7 @@ const legacyPosts = [
     id: 'f3',
     person: 'p1',
     text: '快乐有时候很简单，比如一顿认真吃的早餐。今天也要好好生活呀。',
-    image: 'nasi-lemak.jpg',
+    image: 'nasi-lemak.webp',
     topic: '大马日常',
     place: '吉隆坡',
     likes: 56,
@@ -380,7 +424,7 @@ const reducedMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').
 if (!reducedMotion)
   for (const person of people)
     if (animatedFriendIds.includes(person.id))
-      person.animatedAvatar = 'animated-avatars/' + person.id + '.png';
+      person.animatedAvatar = 'animated-avatars/' + person.id + '.webp';
 /*
  * Demo content in the active language: lc('people', person, 'bio') -> translated text or the original.
  * Kinds: services, orders, people, profiles, posts, groups, conversations (see tools/l10n/extract.js).
@@ -393,7 +437,7 @@ function personName(person) {
   return person ? tc('people', person.id, 'name', person.name) : '';
 }
 function avatarSource(person) {
-  return person?.animatedAvatar || person?.photo || 'avatars/women-000.jpg';
+  return person?.animatedAvatar || person?.photo || 'avatars/women-000.webp';
 }
 
 // The demo account's untouched profile is demo content too (translated in legacy.js, kind 'profile').
@@ -405,7 +449,7 @@ const initialState = {
     bio: DEMO_PROFILE.bio,
     phone: '',
     language: '中文',
-    photo: 'animated-avatars/self.png',
+    photo: 'animated-avatars/self.webp',
   },
   // Fans / visitors come from the (future) server; the demo account shows sample numbers.
   social: SZ.session.isDemo ? { fans: 150, visitors: 100 } : { fans: 0, visitors: 0 },
@@ -468,9 +512,9 @@ SZ.bootTasks.unshift(() => {
 });
 if (
   SZ.session.isDemo &&
-  (state.profile.photo === 'logo.png' || state.profile.photo === 'avatars/men-000.jpg')
+  /^(logo|avatars\/men-000)\.(png|jpg|webp)$/.test(state.profile.photo || '')
 ) {
-  state.profile.photo = 'animated-avatars/self.png';
+  state.profile.photo = 'animated-avatars/self.webp';
   save();
 }
 /** Display name of the signed-in user (guests and the untouched demo profile are translated). */
@@ -583,7 +627,7 @@ SZ.on('chat:unread', () => nav());
 SZ.on('boot:ready', () => {
   const brand = document.querySelector('.desktop-brand');
   if (brand)
-    brand.innerHTML = `<img class="desktop-logo" src="${asset('logo.png')}" alt=""><p class="brand-en">${esc(t('shell.desktop.kicker'))}</p><p class="brand-title">${t('shell.desktop.title')}</p><p class="brand-text">${esc(t('shell.desktop.text'))}</p>`;
+    brand.innerHTML = `<img class="desktop-logo" src="${asset('logo.webp')}" alt=""><p class="brand-en">${esc(t('shell.desktop.kicker'))}</p><p class="brand-title">${t('shell.desktop.title')}</p><p class="brand-text">${esc(t('shell.desktop.text'))}</p>`;
   const index = document.querySelector('.desktop-index');
   if (index) {
     index.setAttribute('aria-label', t('shell.desktop.index'));
@@ -619,7 +663,7 @@ function cityPill() {
 }
 function appBar({ title = '', logo = false, city = false, actions = [] } = {}) {
   const lead = logo
-    ? `<div class="brand-lockup"><img class="brand-logo" src="${asset('logo.png')}" alt=""><h1 class="app-bar-title">${esc(t('shell.brand'))}</h1></div>`
+    ? `<div class="brand-lockup"><img class="brand-logo" src="${asset('logo.webp')}" alt=""><h1 class="app-bar-title">${esc(t('shell.brand'))}</h1></div>`
     : `<h1 class="app-bar-title">${esc(title)}</h1>`;
   return `<header class="app-bar">${lead}<div class="app-bar-actions">${city ? cityPill() : ''}${actions.join('')}</div></header>`;
 }

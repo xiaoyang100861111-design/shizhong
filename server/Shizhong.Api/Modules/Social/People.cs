@@ -46,7 +46,7 @@ public static class PersonShape
         {
             p.PublicId, p.Name, p.Age, p.Gender, p.City, p.Area, X("distanceKm") ?? Distance(extra) , p.Occupation, p.Bio, X("tags") ?? Array.Empty<string>(),
             X("language"), X("online") ?? false, X("activeText"), X("theme"), X("room"), X("watch"), X("topic"), X("price"), X("liveMode"),
-            p.Avatar ?? "avatars/women-000.jpg", p.DisplayId, null,
+            p.Avatar ?? "avatars/women-000.webp", p.DisplayId, null,
         };
         var profile = new JsonObject { ["id"] = p.PublicId };
         foreach (var f in ProfileFields) if (extra[f] is JsonNode n) profile[f] = n.DeepClone();

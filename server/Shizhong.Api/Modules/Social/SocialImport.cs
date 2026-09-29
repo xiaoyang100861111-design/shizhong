@@ -16,17 +16,17 @@ public sealed class SocialImport(Db db, DemoData demo, ILogger<SocialImport> log
     static readonly (string Id, string Name, int Age, string City, string Distance, string Photo, string Bio, string[] Tags, string Language, bool Online,
         string Theme, string Room, string Watch, string Topic, int Price)[] Legacy =
     [
-        ("p1", "小满 ManMan", 26, "吉隆坡", "1.2 km", "portrait-woman-studio.jpg", "认真生活，偶尔发呆。周末一起探店吧。", ["咖啡星人", "城市漫游"], "中文 · English", true, "聊聊大马的生活", "今晚，把烦恼留在门外", "1.2k", "同城聊天", 8),
-        ("p2", "林间 Luna", 25, "八打灵再也", "2.8 km", "portrait-woman-outdoor.jpg", "收集日落，也收集生活里微小的快乐。", ["旅行", "摄影"], "中文 · Bahasa Melayu", true, "一起计划下一次旅行", "一起等一场温柔的日落", "866", "旅行分享", 10),
-        ("p3", "阿哲 Alex", 29, "吉隆坡", "3.5 km", "portrait-man-river.jpg", "在大马长大，带你认识我喜欢的这座城。", ["徒步", "本地美食"], "中文 · English", true, "发现城市的另一面", "跟我走进吉隆坡的夜晚", "632", "同城聊天", 6),
-        ("p4", "可晴 Kelsey", 27, "槟城", "8.6 km", "portrait-woman-city.jpg", "把日子过成喜欢的样子。你好，新朋友。", ["阅读", "生活记录"], "中文 · English", false, "轻松开口说英语", "给你一首歌的时间", "408", "语言交流", 8),
+        ("p1", "小满 ManMan", 26, "吉隆坡", "1.2 km", "portrait-woman-studio.webp", "认真生活，偶尔发呆。周末一起探店吧。", ["咖啡星人", "城市漫游"], "中文 · English", true, "聊聊大马的生活", "今晚，把烦恼留在门外", "1.2k", "同城聊天", 8),
+        ("p2", "林间 Luna", 25, "八打灵再也", "2.8 km", "portrait-woman-outdoor.webp", "收集日落，也收集生活里微小的快乐。", ["旅行", "摄影"], "中文 · Bahasa Melayu", true, "一起计划下一次旅行", "一起等一场温柔的日落", "866", "旅行分享", 10),
+        ("p3", "阿哲 Alex", 29, "吉隆坡", "3.5 km", "portrait-man-river.webp", "在大马长大，带你认识我喜欢的这座城。", ["徒步", "本地美食"], "中文 · English", true, "发现城市的另一面", "跟我走进吉隆坡的夜晚", "632", "同城聊天", 6),
+        ("p4", "可晴 Kelsey", 27, "槟城", "8.6 km", "portrait-woman-city.webp", "把日子过成喜欢的样子。你好，新朋友。", ["阅读", "生活记录"], "中文 · English", false, "轻松开口说英语", "给你一首歌的时间", "408", "语言交流", 8),
     ];
 
     static readonly (string Id, string Person, string Text, string Image, string Topic, string Place, int Likes, int Minutes)[] LegacyPosts =
     [
-        ("f1", "p2", "给忙碌的生活按个暂停键。☕\n发现一家很喜欢的小店，连阳光都刚刚好。", "cafe-brunch.jpg", "周末不宅家", "Bukit Bintang", 128, 18),
-        ("f2", "p3", "每次抬头看双子塔，还是会心动。\n今晚的吉隆坡，把浪漫拉满了。", "city-kl.jpg", "我的城市有点美", "KLCC, Kuala Lumpur", 86, 36),
-        ("f3", "p1", "快乐有时候很简单，比如一顿认真吃的早餐。今天也要好好生活呀。", "nasi-lemak.jpg", "大马日常", "吉隆坡", 56, 60),
+        ("f1", "p2", "给忙碌的生活按个暂停键。☕\n发现一家很喜欢的小店，连阳光都刚刚好。", "cafe-brunch.webp", "周末不宅家", "Bukit Bintang", 128, 18),
+        ("f2", "p3", "每次抬头看双子塔，还是会心动。\n今晚的吉隆坡，把浪漫拉满了。", "city-kl.webp", "我的城市有点美", "KLCC, Kuala Lumpur", 86, 36),
+        ("f3", "p1", "快乐有时候很简单，比如一顿认真吃的早餐。今天也要好好生活呀。", "nasi-lemak.webp", "大马日常", "吉隆坡", 56, 60),
     ];
 
     static readonly (string Id, string Name, string Desc, int Count, string Icon, string City)[] LegacyGroups =

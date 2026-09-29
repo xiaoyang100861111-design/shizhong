@@ -200,8 +200,16 @@ public sealed partial class PlatformModule : IModule
                         var js = await provider.BuildAsync(key, english, ctx);
                         if (js != null)
                         {
+                            // Built from the database: revalidate every time, but a repeat visit gets a 304 instead of the body.
+                            var etag = "W/\"" + Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(js)), 0, 10) + "\"";
+                            ctx.Response.Headers.CacheControl = "private, no-cache";
+                            ctx.Response.Headers.ETag = etag;
+                            if (ctx.Request.Headers.IfNoneMatch.ToString().Split(',').Any(t => t.Trim() == etag))
+                            {
+                                ctx.Response.StatusCode = StatusCodes.Status304NotModified;
+                                return;
+                            }
                             ctx.Response.ContentType = "application/javascript; charset=utf-8";
-                            ctx.Response.Headers.CacheControl = "no-cache";
                             await ctx.Response.WriteAsync(js);
                             return;
                         }

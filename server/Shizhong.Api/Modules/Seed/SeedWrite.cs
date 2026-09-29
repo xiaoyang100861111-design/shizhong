@@ -55,7 +55,7 @@ public sealed partial class SeedGenerator
         Wrote("地址、登录记录");
         var media = new SeedTable("Media", ("PublicId", typeof(string)), ("Purpose", typeof(string)), ("Mime", typeof(string)), ("Name", typeof(string)), ("Size", typeof(long)),
             ("Data", typeof(byte[])), ("CreatedAt", typeof(DateTime)));
-        foreach (var (mref, data, name) in chatMedia) media.Add(mref, "chat", "image/jpeg", name, (long)data.Length, data, T.Start);
+        foreach (var (mref, data, name) in chatMedia) media.Add(mref, "chat", "image/webp", name, (long)data.Length, data, T.Start);
         if (media.Count > 0) await W.InsertAsync(media);
 
         // ---------------------------------------------------------------- social

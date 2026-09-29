@@ -36,6 +36,10 @@ builder.Services.AddSignalR(o =>
     o.PayloadSerializerOptions.Encoder = Json.Options.Encoder;
     o.PayloadSerializerOptions.DefaultIgnoreCondition = Json.Options.DefaultIgnoreCondition;
 });
+// Brotli's default level (Fastest) came out larger than gzip here (catalog.js 52 KB br vs 46 KB gzip, the boot
+// script /core/server.js 298 KB vs 138 KB); Optimal costs a few ms per response and roughly halves them.
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Optimal);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Optimal);
 builder.Services.AddResponseCompression(o =>
 {
     o.EnableForHttps = true;

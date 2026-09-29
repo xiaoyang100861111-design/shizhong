@@ -64,7 +64,7 @@
           <span class="icon preview" :style="{ color: form.color, background: form.bg }" v-html="appIconSvg(form.icon)" />
         </el-form-item>
         <el-form-item :label="t('cat.badge')"><el-input v-model="form.badge" maxlength="16" placeholder="24H" style="width: 120px" /></el-form-item>
-        <el-form-item :label="t('cat.fallbackImage')"><ImageUpload v-model="form.image" :width="120" :height="80" allow-path path-hint="clean-home.jpg" /></el-form-item>
+        <el-form-item :label="t('cat.fallbackImage')"><ImageUpload v-model="form.image" :width="120" :height="80" allow-path path-hint="clean-home.webp" /></el-form-item>
         <el-form-item :label="t('cat.position')">
           <el-radio-group v-model="form.onHome"><el-radio :value="true">{{ t('cat.homeGrid') }}</el-radio><el-radio :value="false">{{ t('cat.moreList') }}</el-radio></el-radio-group>
         </el-form-item>

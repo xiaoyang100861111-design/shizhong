@@ -193,7 +193,7 @@
 .tg-head-text {
   flex: 1 1 auto;
   min-width: 0;
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
 }
 .tg-ctx-head.is-link {
   color: var(--c-text-2);
@@ -305,7 +305,7 @@
   font-size: 1.05rem;
 }
 .tg-chip-n {
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
 }
 .tg-chip-faces {
   display: inline-flex;
@@ -471,7 +471,7 @@
   border-radius: var(--r-full);
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
   line-height: 1.5;
@@ -620,7 +620,7 @@
   stroke-width: 2.4;
 }
 .tg-file-glyph b {
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
   font-size: var(--fs-11);
   font-weight: var(--fw-bold);
   letter-spacing: 0.02em;
@@ -643,7 +643,7 @@
 .tg-file-main small {
   margin-top: 2px;
   color: var(--c-text-3);
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
   font-size: var(--fs-12);
 }
 .tg-file .tg-caption {
@@ -1555,7 +1555,7 @@
   height: var(--tap);
   border-radius: var(--r-full);
   color: #fff;
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
   font-weight: var(--fw-semibold);
 }
 .tgv-btn .ico {
@@ -1600,7 +1600,7 @@
 }
 .tgv-time {
   min-width: 38px;
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
   font-size: var(--fs-12);
   text-align: center;
 }
@@ -1689,7 +1689,7 @@
   flex: 1;
 }
 .tg-roundrec-time {
-  font-family: var(--font-num), var(--font-sans);
+  font-family: var(--font-num);
 }
 .tg-roundrec-stage {
   display: flex;

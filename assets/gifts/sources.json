@@ -1,7 +1,7 @@
 [
   {
     "id": "ribbon-heart",
-    "file": "ribbon-heart.png",
+    "file": "ribbon-heart.webp",
     "name": "缎带心意",
     "nameZh": "缎带心意",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Heart%20with%20ribbon/3D/heart_with_ribbon_3d.png",
@@ -23,7 +23,7 @@
   },
   {
     "id": "teddy-bear",
-    "file": "teddy-bear.png",
+    "file": "teddy-bear.webp",
     "name": "抱抱泰迪",
     "nameZh": "抱抱泰迪",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Teddy%20bear/3D/teddy_bear_3d.png",
@@ -45,7 +45,7 @@
   },
   {
     "id": "rose",
-    "file": "rose.png",
+    "file": "rose.webp",
     "name": "心动玫瑰",
     "nameZh": "心动玫瑰",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Rose/3D/rose_3d.png",
@@ -67,7 +67,7 @@
   },
   {
     "id": "gift-box",
-    "file": "gift-box.png",
+    "file": "gift-box.webp",
     "name": "惊喜礼盒",
     "nameZh": "惊喜礼盒",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Wrapped%20gift/3D/wrapped_gift_3d.png",
@@ -89,7 +89,7 @@
   },
   {
     "id": "birthday-cake",
-    "file": "birthday-cake.png",
+    "file": "birthday-cake.webp",
     "name": "生日心愿",
     "nameZh": "生日心愿",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Birthday%20cake/3D/birthday_cake_3d.png",
@@ -111,7 +111,7 @@
   },
   {
     "id": "bouquet",
-    "file": "bouquet.png",
+    "file": "bouquet.webp",
     "name": "繁花祝福",
     "nameZh": "繁花祝福",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Bouquet/3D/bouquet_3d.png",
@@ -133,7 +133,7 @@
   },
   {
     "id": "balloon",
-    "file": "balloon.png",
+    "file": "balloon.webp",
     "name": "告白气球",
     "nameZh": "告白气球",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Balloon/3D/balloon_3d.png",
@@ -155,7 +155,7 @@
   },
   {
     "id": "butterfly",
-    "file": "butterfly.png",
+    "file": "butterfly.webp",
     "name": "梦幻蝴蝶",
     "nameZh": "梦幻蝴蝶",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Butterfly/3D/butterfly_3d.png",
@@ -177,7 +177,7 @@
   },
   {
     "id": "headphones",
-    "file": "headphones.png",
+    "file": "headphones.webp",
     "name": "心动旋律",
     "nameZh": "心动旋律",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Headphone/3D/headphone_3d.png",
@@ -199,7 +199,7 @@
   },
   {
     "id": "coffee",
-    "file": "coffee.png",
+    "file": "coffee.webp",
     "name": "暖心咖啡",
     "nameZh": "暖心咖啡",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Hot%20beverage/3D/hot_beverage_3d.png",
@@ -221,7 +221,7 @@
   },
   {
     "id": "diamond-ring",
-    "file": "diamond-ring.png",
+    "file": "diamond-ring.webp",
     "name": "璀璨指环",
     "nameZh": "璀璨指环",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Ring/3D/ring_3d.png",
@@ -243,7 +243,7 @@
   },
   {
     "id": "crescent-moon",
-    "file": "crescent-moon.png",
+    "file": "crescent-moon.webp",
     "name": "温柔月光",
     "nameZh": "温柔月光",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Crescent%20moon/3D/crescent_moon_3d.png",
@@ -265,7 +265,7 @@
   },
   {
     "id": "golden-star",
-    "file": "golden-star.png",
+    "file": "golden-star.webp",
     "name": "闪耀之星",
     "nameZh": "闪耀之星",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Glowing%20star/3D/glowing_star_3d.png",
@@ -287,7 +287,7 @@
   },
   {
     "id": "trophy",
-    "file": "trophy.png",
+    "file": "trophy.webp",
     "name": "荣耀奖杯",
     "nameZh": "荣耀奖杯",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Trophy/3D/trophy_3d.png",
@@ -309,7 +309,7 @@
   },
   {
     "id": "diamond",
-    "file": "diamond.png",
+    "file": "diamond.webp",
     "name": "倾心钻石",
     "nameZh": "倾心钻石",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Gem%20stone/3D/gem_stone_3d.png",
@@ -331,7 +331,7 @@
   },
   {
     "id": "crown",
-    "file": "crown.png",
+    "file": "crown.webp",
     "name": "皇家冠冕",
     "nameZh": "皇家冠冕",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Crown/3D/crown_3d.png",
@@ -353,7 +353,7 @@
   },
   {
     "id": "rocket",
-    "file": "rocket.png",
+    "file": "rocket.webp",
     "name": "逐梦火箭",
     "nameZh": "逐梦火箭",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Rocket/3D/rocket_3d.png",
@@ -375,7 +375,7 @@
   },
   {
     "id": "racing-car",
-    "file": "racing-car.png",
+    "file": "racing-car.webp",
     "name": "极速赛车",
     "nameZh": "极速赛车",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Racing%20car/3D/racing_car_3d.png",
@@ -397,7 +397,7 @@
   },
   {
     "id": "yacht",
-    "file": "yacht.png",
+    "file": "yacht.webp",
     "name": "碧海游艇",
     "nameZh": "碧海游艇",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Motor%20boat/3D/motor_boat_3d.png",
@@ -419,7 +419,7 @@
   },
   {
     "id": "castle",
-    "file": "castle.png",
+    "file": "castle.webp",
     "name": "童话城堡",
     "nameZh": "童话城堡",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Castle/3D/castle_3d.png",
@@ -441,7 +441,7 @@
   },
   {
     "id": "airplane",
-    "file": "airplane.png",
+    "file": "airplane.webp",
     "name": "云端旅程",
     "nameZh": "云端旅程",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Airplane/3D/airplane_3d.png",
@@ -463,7 +463,7 @@
   },
   {
     "id": "unicorn",
-    "file": "unicorn.png",
+    "file": "unicorn.webp",
     "name": "星愿独角兽",
     "nameZh": "星愿独角兽",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Unicorn/3D/unicorn_3d.png",
@@ -485,7 +485,7 @@
   },
   {
     "id": "panda",
-    "file": "panda.png",
+    "file": "panda.webp",
     "name": "软萌熊猫",
     "nameZh": "软萌熊猫",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Panda/3D/panda_3d.png",
@@ -507,7 +507,7 @@
   },
   {
     "id": "dragon",
-    "file": "dragon.png",
+    "file": "dragon.webp",
     "name": "腾跃祥龙",
     "nameZh": "腾跃祥龙",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Dragon/3D/dragon_3d.png",
@@ -529,7 +529,7 @@
   },
   {
     "id": "crystal-ball",
-    "file": "crystal-ball.png",
+    "file": "crystal-ball.webp",
     "name": "魔法水晶球",
     "nameZh": "魔法水晶球",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Crystal%20ball/3D/crystal_ball_3d.png",
@@ -551,7 +551,7 @@
   },
   {
     "id": "satellite",
-    "file": "satellite.png",
+    "file": "satellite.webp",
     "name": "星际卫星",
     "nameZh": "星际卫星",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Satellite/3D/satellite_3d.png",
@@ -573,7 +573,7 @@
   },
   {
     "id": "earth",
-    "file": "earth.png",
+    "file": "earth.webp",
     "name": "环游世界",
     "nameZh": "环游世界",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Globe%20showing%20asia-australia/3D/globe_showing_asia-australia_3d.png",
@@ -595,7 +595,7 @@
   },
   {
     "id": "ringed-planet",
-    "file": "ringed-planet.png",
+    "file": "ringed-planet.webp",
     "name": "银河星球",
     "nameZh": "银河星球",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Ringed%20planet/3D/ringed_planet_3d.png",
@@ -617,7 +617,7 @@
   },
   {
     "id": "violin",
-    "file": "violin.png",
+    "file": "violin.webp",
     "name": "浪漫小夜曲",
     "nameZh": "浪漫小夜曲",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Violin/3D/violin_3d.png",
@@ -639,7 +639,7 @@
   },
   {
     "id": "love-letter",
-    "file": "love-letter.png",
+    "file": "love-letter.webp",
     "name": "专属情书",
     "nameZh": "专属情书",
     "source": "https://github.com/microsoft/fluentui-emoji/blob/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Love%20letter/3D/love_letter_3d.png",

@@ -96,7 +96,7 @@
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-sm);
   background: var(--c-surface-2);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--fs-14);
   line-height: var(--lh-snug);
   overflow-wrap: anywhere;

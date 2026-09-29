@@ -2,7 +2,7 @@
   {
     "id": "fluent-red-heart",
     "name": "小心心",
-    "image": "live-gifts/fluent-red-heart.png",
+    "image": "live-gifts/fluent-red-heart.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -24,7 +24,7 @@
   {
     "id": "fluent-party-popper",
     "name": "礼花筒",
-    "image": "live-gifts/fluent-party-popper.png",
+    "image": "live-gifts/fluent-party-popper.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -46,7 +46,7 @@
   {
     "id": "fluent-ribbon-heart",
     "name": "缎带心意",
-    "image": "gifts/ribbon-heart.png",
+    "image": "gifts/ribbon-heart.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -60,7 +60,7 @@
   {
     "id": "fluent-teddy-bear",
     "name": "抱抱泰迪",
-    "image": "gifts/teddy-bear.png",
+    "image": "gifts/teddy-bear.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -74,7 +74,7 @@
   {
     "id": "fluent-rose",
     "name": "心动玫瑰",
-    "image": "gifts/rose.png",
+    "image": "gifts/rose.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -88,7 +88,7 @@
   {
     "id": "fluent-birthday-cake",
     "name": "生日心愿",
-    "image": "gifts/birthday-cake.png",
+    "image": "gifts/birthday-cake.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -102,7 +102,7 @@
   {
     "id": "fluent-bouquet",
     "name": "繁花祝福",
-    "image": "gifts/bouquet.png",
+    "image": "gifts/bouquet.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -116,7 +116,7 @@
   {
     "id": "fluent-balloon",
     "name": "告白气球",
-    "image": "gifts/balloon.png",
+    "image": "gifts/balloon.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -130,7 +130,7 @@
   {
     "id": "fluent-coffee",
     "name": "暖心咖啡",
-    "image": "gifts/coffee.png",
+    "image": "gifts/coffee.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -144,7 +144,7 @@
   {
     "id": "fluent-crown",
     "name": "皇家冠冕",
-    "image": "gifts/crown.png",
+    "image": "gifts/crown.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -158,7 +158,7 @@
   {
     "id": "fluent-rocket",
     "name": "逐梦火箭",
-    "image": "gifts/rocket.png",
+    "image": "gifts/rocket.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -172,7 +172,7 @@
   {
     "id": "fluent-racing-car",
     "name": "极速赛车",
-    "image": "gifts/racing-car.png",
+    "image": "gifts/racing-car.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -186,7 +186,7 @@
   {
     "id": "fluent-yacht",
     "name": "碧海游艇",
-    "image": "gifts/yacht.png",
+    "image": "gifts/yacht.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,
@@ -200,7 +200,7 @@
   {
     "id": "fluent-airplane",
     "name": "云端旅程",
-    "image": "gifts/airplane.png",
+    "image": "gifts/airplane.webp",
     "officialId": null,
     "officialValue": null,
     "officialUnit": null,

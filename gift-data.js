@@ -18,7 +18,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#E9718F',
       effect: 'hearts',
-      image: 'gifts/ribbon-heart.png',
+      image: 'gifts/ribbon-heart.webp',
       description: '把一句小小的喜欢系上柔软丝带，让你的问候在此刻轻轻发亮。',
     },
     {
@@ -29,7 +29,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#CFA677',
       effect: 'hearts',
-      image: 'gifts/teddy-bear.png',
+      image: 'gifts/teddy-bear.webp',
       description: '留一只毛绒小熊在礼物角，替你陪伴每个需要被温柔接住的夜晚。',
     },
     {
@@ -40,7 +40,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#E85A70',
       effect: 'hearts',
-      image: 'gifts/rose.png',
+      image: 'gifts/rose.webp',
       description: '一枝玫瑰就能点亮相遇的瞬间，愿今天的聊天从这抹花色开始。',
     },
     {
@@ -51,7 +51,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#EA9987',
       effect: 'confetti',
-      image: 'gifts/gift-box.png',
+      image: 'gifts/gift-box.webp',
       description: '拆开漂亮的蝴蝶结，把没来得及说出口的祝福装进这一份惊喜。',
     },
     {
@@ -62,7 +62,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#F196A7',
       effect: 'confetti',
-      image: 'gifts/birthday-cake.png',
+      image: 'gifts/birthday-cake.webp',
       description: '点亮一支小蜡烛，把今天值得庆祝的好消息留在甜甜的莓果色里。',
     },
     {
@@ -73,7 +73,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#E98AAA',
       effect: 'hearts',
-      image: 'gifts/bouquet.png',
+      image: 'gifts/bouquet.webp',
       description: '把春日的花色捧到你面前，愿这束柔和的绽放为平常一天添些明亮。',
     },
     {
@@ -84,7 +84,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#81B9DF',
       effect: 'confetti',
-      image: 'gifts/balloon.png',
+      image: 'gifts/balloon.webp',
       description: '放飞一颗轻盈气球，让你的好心情沿着天空慢慢升起。',
     },
     {
@@ -95,7 +95,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#B693DD',
       effect: 'stars',
-      image: 'gifts/butterfly.png',
+      image: 'gifts/butterfly.webp',
       description: '让一抹彩蝶停在收藏页边，陪你记住那些不经意却动人的小发现。',
     },
     {
@@ -106,7 +106,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#8E9DE4',
       effect: 'stars',
-      image: 'gifts/headphones.png',
+      image: 'gifts/headphones.webp',
       description: '戴上想象中的音乐耳机，把喜欢的旋律和今天的故事一起分享给懂你的人。',
     },
     {
@@ -117,7 +117,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#BD967B',
       effect: 'hearts',
-      image: 'gifts/coffee.png',
+      image: 'gifts/coffee.webp',
       description: '递上一杯冒着柔软热气的拿铁，陪你把忙碌的一天聊得慢一点。',
     },
     {
@@ -128,7 +128,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#AECFE5',
       effect: 'stars',
-      image: 'gifts/diamond-ring.png',
+      image: 'gifts/diamond-ring.webp',
       description: '用一圈细碎星光装点这次相遇，把认真听见的每一句话好好珍藏。',
     },
     {
@@ -139,7 +139,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#F0D599',
       effect: 'orbit',
-      image: 'gifts/crescent-moon.png',
+      image: 'gifts/crescent-moon.webp',
       description: '借一弯温柔月牙作夜灯，让晚归的心情也有一处安静发亮的角落。',
     },
     {
@@ -150,7 +150,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#E9BF5A',
       effect: 'stars',
-      image: 'gifts/golden-star.png',
+      image: 'gifts/golden-star.webp',
       description: '送你一颗金色小星星，为今天认真生活的自己点亮一个小小勋章。',
     },
     {
@@ -161,7 +161,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#DEB65F',
       effect: 'confetti',
-      image: 'gifts/trophy.png',
+      image: 'gifts/trophy.webp',
       description: '把这一刻的掌声放进金色奖杯，和你一起庆祝努力之后的小小成就。',
     },
     {
@@ -172,7 +172,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#86C9E5',
       effect: 'stars',
-      image: 'gifts/diamond.png',
+      image: 'gifts/diamond.webp',
       description: '清透的蓝色光棱为礼物陈列添一束亮光，也映出此刻真诚的欣赏。',
     },
     {
@@ -183,7 +183,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#E8BE67',
       effect: 'royal',
-      image: 'gifts/crown.png',
+      image: 'gifts/crown.webp',
       description: '为愿意分享生活的你戴上星河皇冠，愿你在自己的故事里自在闪耀。',
     },
     {
@@ -194,7 +194,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#EB896C',
       effect: 'launch',
-      image: 'gifts/rocket.png',
+      image: 'gifts/rocket.webp',
       description: '让星际火箭带着今晚的愿望升空，把对明天的期待画成一条明亮轨迹。',
     },
     {
@@ -205,7 +205,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#E66A72',
       effect: 'launch',
-      image: 'gifts/racing-car.png',
+      image: 'gifts/racing-car.webp',
       description: '把热情涂成流光车身，让这辆小小跑车陪你的快乐向前多走一程。',
     },
     {
@@ -216,7 +216,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#70B9D8',
       effect: 'confetti',
-      image: 'gifts/yacht.png',
+      image: 'gifts/yacht.webp',
       description: '在想象的蔚蓝海面展开白色甲板，邀你暂时放慢脚步听一会儿海风。',
     },
     {
@@ -227,7 +227,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#E2BC76',
       effect: 'royal',
-      image: 'gifts/castle.png',
+      image: 'gifts/castle.webp',
       description: '点亮层层城堡窗灯，为珍贵的相遇搭起一座温暖而盛大的童话舞台。',
     },
     {
@@ -238,7 +238,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#91B6DE',
       effect: 'launch',
-      image: 'gifts/airplane.png',
+      image: 'gifts/airplane.webp',
       description: '把一张想象中的登机牌送给你，愿我们总能聊起下一座想去的城市。',
     },
     {
@@ -249,7 +249,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '典藏款',
       accent: '#C5A1E3',
       effect: 'stars',
-      image: 'gifts/unicorn.png',
+      image: 'gifts/unicorn.webp',
       description: '让披着虹光的独角兽走进收藏花园，替你守住一点天马行空的童心。',
     },
     {
@@ -260,7 +260,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#8ABD99',
       effect: 'hearts',
-      image: 'gifts/panda.png',
+      image: 'gifts/panda.webp',
       description: '圆滚滚的熊猫抱着一枝竹叶来报到，给今天的聊天添一份松弛和可爱。',
     },
     {
@@ -271,7 +271,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#DAB260',
       effect: 'royal',
-      image: 'gifts/dragon.png',
+      image: 'gifts/dragon.webp',
       description: '让赤金神龙穿过层层祥云，为这场热闹相聚留下舒展而明亮的祝福。',
     },
     {
@@ -282,7 +282,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#AE8CCF',
       effect: 'orbit',
-      image: 'gifts/crystal-ball.png',
+      image: 'gifts/crystal-ball.webp',
       description: '将一个小愿望收进紫雾水晶球，让柔和光晕陪你慢慢把未来说给朋友听。',
     },
     {
@@ -293,7 +293,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#9DB4D4',
       effect: 'orbit',
-      image: 'gifts/satellite.png',
+      image: 'gifts/satellite.webp',
       description: '让一颗小卫星绕过漫长距离，把此刻的问候稳稳送到彼此的心里。',
     },
     {
@@ -304,7 +304,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#72BBCA',
       effect: 'orbit',
-      image: 'gifts/earth.png',
+      image: 'gifts/earth.webp',
       description: '把共同生活的蓝色星球捧在掌心，愿不同城市的我们也能分享同一份温柔。',
     },
     {
@@ -315,7 +315,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '臻藏款',
       accent: '#D0B28C',
       effect: 'orbit',
-      image: 'gifts/ringed-planet.png',
+      image: 'gifts/ringed-planet.webp',
       description: '沿着柔亮的星环慢慢漫游，给那些聊不完的想象留下一整片夜空。',
     },
     {
@@ -326,7 +326,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '珍藏款',
       accent: '#B78365',
       effect: 'stars',
-      image: 'gifts/violin.png',
+      image: 'gifts/violin.webp',
       description: '让木色琴弦替你奏起一段轻柔旋律，陪这场谈话停在恰到好处的温度。',
     },
     {
@@ -337,7 +337,7 @@ window.SHIZHONG_GIFT_DATA = {
       rarity: '心意款',
       accent: '#DD8D9B',
       effect: 'hearts',
-      image: 'gifts/love-letter.png',
+      image: 'gifts/love-letter.webp',
       description: '把一句惦念折进小小信封，让不善言辞的温柔也能被认真看见。',
     },
     {
@@ -353,7 +353,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'hearts',
       orientalEffect: 'knot',
       goldBeanPrice: 9,
-      image: 'gift-art/oriental/oriental-tongxin-knot.png',
+      image: 'gift-art/oriental/oriental-tongxin-knot.webp',
       description:
         '一枚朱红盘长结垂着细金穗，把想说的祝福系在一起；适合送给刚认识的新朋友，也能放在主页作小巧挂件。',
     },
@@ -370,7 +370,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'confetti',
       orientalEffect: 'lantern',
       goldBeanPrice: 19,
-      image: 'gift-art/oriental/oriental-lantern.png',
+      image: 'gift-art/oriental/oriental-lantern.webp',
       description: '描金宫灯点亮暖黄烛光，沿着夜色缓缓升起；把团圆与平安的心意送到正在聊天的人面前。',
     },
     {
@@ -386,7 +386,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'stars',
       orientalEffect: 'fan',
       goldBeanPrice: 39,
-      image: 'gift-art/oriental/oriental-folding-fan.png',
+      image: 'gift-art/oriental/oriental-folding-fan.webp',
       description: '一柄乌木折扇展开层叠水墨山峦，合拢时留下一缕金色光迹；适合送给喜欢旅行与山水的朋友。',
     },
     {
@@ -402,7 +402,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'orbit',
       orientalEffect: 'porcelain',
       goldBeanPrice: 199,
-      image: 'gift-art/oriental/oriental-blue-white-porcelain.png',
+      image: 'gift-art/oriental/oriental-blue-white-porcelain.webp',
       description: '白瓷小瓶映着细密青花缠枝纹，旋转间显出柔和釉光；让一份安静的雅意留在好友的礼物收藏里。',
     },
     {
@@ -419,7 +419,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'phoenix',
       wearable: 'avatar',
       goldBeanPrice: 520,
-      image: 'gift-art/oriental/oriental-phoenix-flight.png',
+      image: 'gift-art/oriental/oriental-phoenix-flight.webp',
       description: '赤金凤凰舒展羽翼，尾羽如轻柔绸带掠过屏幕；送给并肩前行的人，纪念彼此照亮的一刻。',
     },
     {
@@ -435,7 +435,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'stars',
       orientalEffect: 'pipa',
       goldBeanPrice: 399,
-      image: 'gift-art/oriental/oriental-pipa-song.png',
+      image: 'gift-art/oriental/oriental-pipa-song.webp',
       description: '梨花木琵琶立在云纹绸带间，琴弦泛起细碎金芒；把一段无需言说的悠长心绪送进今晚的会话。',
     },
     {
@@ -452,7 +452,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'dragon',
       wearable: 'avatar',
       goldBeanPrice: 2999,
-      image: 'gift-art/oriental/oriental-golden-dragon.png',
+      image: 'gift-art/oriental/oriental-golden-dragon.webp',
       description: '鎏金祥龙穿过层叠云海腾空盘旋，龙鳞映着故宫红光；用一份壮阔礼物为朋友的重要时刻喝彩。',
     },
     {
@@ -468,7 +468,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'royal',
       orientalEffect: 'ding',
       goldBeanPrice: 3999,
-      image: 'gift-art/oriental/oriental-nine-ding.png',
+      image: 'gift-art/oriental/oriental-nine-ding.webp',
       description: '青铜古鼎承着九重云纹，鼎耳与金边在光束中渐次显现；适合纪念一项稳稳落地的重要成果。',
     },
     {
@@ -484,7 +484,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'confetti',
       orientalEffect: 'qilin',
       goldBeanPrice: 5200,
-      image: 'gift-art/oriental/oriental-qilin-treasure.png',
+      image: 'gift-art/oriental/oriental-qilin-treasure.webp',
       description: '瑞兽麒麟踏着祥云送来一只缀金宝匣，步伐轻快而隆重；把好事临门的祝愿留给特别的伙伴。',
     },
     {
@@ -500,7 +500,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'orbit',
       orientalEffect: 'scroll',
       goldBeanPrice: 12888,
-      image: 'gift-art/oriental/oriental-landscape-scroll.png',
+      image: 'gift-art/oriental/oriental-landscape-scroll.webp',
       description: '长卷徐徐展开，黛色山峦、云水与金色楼阁在纸上相遇；把眼前的宽阔风景送给愿意同行的人。',
     },
     {
@@ -517,7 +517,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'crown',
       wearable: 'avatar',
       goldBeanPrice: 18888,
-      image: 'gift-art/oriental/oriental-phoenix-crown.png',
+      image: 'gift-art/oriental/oriental-phoenix-crown.webp',
       description: '点翠凤冠嵌着金珠与红色流苏，霞帔般的柔光在身后舒展；为值得珍惜的喜庆日子添一场华美仪式。',
     },
     {
@@ -533,7 +533,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'royal',
       orientalEffect: 'craft',
       goldBeanPrice: 29999,
-      image: 'gift-art/oriental/oriental-heavenly-craft.png',
+      image: 'gift-art/oriental/oriental-heavenly-craft.webp',
       description:
         '匠作宝匣汇聚建筑飞檐、青花瓷片与龙凤金纹，层层打开如一座微缩工艺殿堂；献给认真创造生活的人。',
     },
@@ -551,7 +551,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'azure-dragon',
       wearable: 'avatar',
       goldBeanPrice: 8888,
-      image: 'gift-art/oriental/oriental-azure-dragon.png',
+      image: 'gift-art/oriental/oriental-azure-dragon.webp',
       description: '青碧灵龙越过墨色海浪，长须与云气带出流动的翠金光；这份四灵藏品象征向新的方向出发。',
     },
     {
@@ -568,7 +568,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'white-tiger',
       wearable: 'avatar',
       goldBeanPrice: 6999,
-      image: 'gift-art/oriental/oriental-white-tiger.png',
+      image: 'gift-art/oriental/oriental-white-tiger.webp',
       description: '银白猛虎踩过深蓝星轨，额间金纹随着步伐闪亮；为勇敢迈出一步的朋友留下利落而坚定的祝福。',
     },
     {
@@ -585,7 +585,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'vermilion-bird',
       wearable: 'avatar',
       goldBeanPrice: 9999,
-      image: 'gift-art/oriental/oriental-vermilion-bird.png',
+      image: 'gift-art/oriental/oriental-vermilion-bird.webp',
       description: '朱雀从金红羽焰中展翼而起，细小火羽化作温暖光点；送给刚走过低谷、再次拥抱新开始的人。',
     },
     {
@@ -602,7 +602,7 @@ window.SHIZHONG_GIFT_DATA = {
       orientalEffect: 'black-tortoise',
       wearable: 'avatar',
       goldBeanPrice: 9888,
-      image: 'gift-art/oriental/oriental-black-tortoise.png',
+      image: 'gift-art/oriental/oriental-black-tortoise.webp',
       description: '龟蛇相依的玄武浮在深色云台之上，甲纹托起一圈温润的金色屏障；愿所爱之人安稳从容。',
     },
     {
@@ -618,7 +618,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'stars',
       orientalEffect: 'calligraphy',
       goldBeanPrice: 29,
-      image: 'gift-art/oriental/oriental-golden-calligraphy.png',
+      image: 'gift-art/oriental/oriental-golden-calligraphy.webp',
       description: '羊毫笔蘸开浓墨，在宣纸上写出一枚泛金的吉字；为正在努力的朋友送上一点鼓励与文采。',
     },
     {
@@ -634,7 +634,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'confetti',
       orientalEffect: 'scholar',
       goldBeanPrice: 999,
-      image: 'gift-art/oriental/oriental-top-scholar.png',
+      image: 'gift-art/oriental/oriental-top-scholar.webp',
       description: '绛红状元帽缀着金色花翎，卷轴在旁缓缓展开；祝贺考试、面试或作品发布时的每一份认真准备。',
     },
     {
@@ -650,7 +650,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'launch',
       orientalEffect: 'carp',
       goldBeanPrice: 1888,
-      image: 'gift-art/oriental/oriental-carp-dragon-gate.png',
+      image: 'gift-art/oriental/oriental-carp-dragon-gate.webp',
       description: '赤金锦鲤冲出浪花跃向汉白玉龙门，水滴化作细碎星点；为迎来转机的好消息送上掌声。',
     },
     {
@@ -666,7 +666,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'royal',
       orientalEffect: 'ao',
       goldBeanPrice: 11999,
-      image: 'gift-art/oriental/oriental-ao-champion.png',
+      image: 'gift-art/oriental/oriental-ao-champion.webp',
       description:
         '金鳌踏浪托起高台，卷云环绕如庆典舞台；把这一份荣耀感送给刚取得突破的朋友，纪念真正付出的努力。',
     },
@@ -683,7 +683,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'stars',
       orientalEffect: 'pagoda',
       goldBeanPrice: 49,
-      image: 'gift-art/oriental/oriental-midnight-pagoda.png',
+      image: 'gift-art/oriental/oriental-midnight-pagoda.webp',
       description: '子夜的琉璃小塔透出深蓝与金色微光，月影落在塔檐；陪晚睡的人把夜色过得柔和一点。',
     },
     {
@@ -699,7 +699,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'orbit',
       orientalEffect: 'dawn',
       goldBeanPrice: 69,
-      image: 'gift-art/oriental/oriental-dawn-corner-tower.png',
+      image: 'gift-art/oriental/oriental-dawn-corner-tower.webp',
       description: '晨光从宫墙角楼后升起，紫金云霞在屋檐间流动；用清亮的一声早安开启新一天。',
     },
     {
@@ -715,7 +715,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'stars',
       orientalEffect: 'noon',
       goldBeanPrice: 99,
-      image: 'gift-art/oriental/oriental-noon-golden-cup.png',
+      image: 'gift-art/oriental/oriental-noon-golden-cup.webp',
       description: '正午阳光照在鎏金杯盏上，杯沿折出几道明快光线；送给忙到中午也记得停下歇息的朋友。',
     },
     {
@@ -731,7 +731,7 @@ window.SHIZHONG_GIFT_DATA = {
       effect: 'hearts',
       orientalEffect: 'dusk',
       goldBeanPrice: 79,
-      image: 'gift-art/oriental/oriental-dusk-goose.png',
+      image: 'gift-art/oriental/oriental-dusk-goose.webp',
       description: '晚霞染红飞檐，归雁掠过层层绛色云彩；在一天将尽时，把温柔的问候送给惦念的人。',
     },
   ],
@@ -784,7 +784,7 @@ window.SHIZHONG_GIFT_DATA = {
       kind: 'photo',
       tone: 'dark',
       ink: '#FFFFFF',
-      image: 'city-kl.jpg',
+      image: 'city-kl.webp',
       background: '',
     },
     {

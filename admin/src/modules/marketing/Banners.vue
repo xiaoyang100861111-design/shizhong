@@ -39,7 +39,7 @@
 
     <el-dialog v-model="open" :title="editing ? t('mk.editBanner') : t('mk.newBanner')" width="640px">
       <el-form label-width="110px">
-        <el-form-item :label="t('mk.image')" required><ImageUpload v-model="form.image" :width="280" :height="150" purpose="banner" allow-path path-hint="hero.png" /></el-form-item>
+        <el-form-item :label="t('mk.image')" required><ImageUpload v-model="form.image" :width="280" :height="150" purpose="banner" allow-path path-hint="hero.webp" /></el-form-item>
         <el-form-item :label="t('mk.kicker')"><div class="two"><el-input v-model="form.kicker" maxlength="80" placeholder="中文" /><el-input v-model="form.kickerEn" maxlength="120" placeholder="English" /></div></el-form-item>
         <el-form-item :label="t('mk.titleLabel')" required><div class="two"><el-input v-model="form.title" maxlength="120" placeholder="中文" /><el-input v-model="form.titleEn" maxlength="160" placeholder="English" /></div></el-form-item>
         <el-form-item :label="t('mk.sub')"><div class="two"><el-input v-model="form.sub" maxlength="200" placeholder="中文" /><el-input v-model="form.subEn" maxlength="260" placeholder="English" /></div></el-form-item>

@@ -389,7 +389,7 @@
     const c = country(code);
     if (!c)
       return `<span class="region-flag region-flag-empty ${cls}" aria-hidden="true">${icon('globe')}</span>`;
-    return `<span class="region-flag ${cls}" aria-hidden="true"><img src="${esc(asset('flags/' + c.code.toLowerCase() + '.png'))}" alt="" width="80" height="60" loading="lazy" decoding="async"></span>`;
+    return `<span class="region-flag ${cls}" aria-hidden="true"><img src="${esc(asset('flags/' + c.code.toLowerCase() + '.webp'))}" alt="" width="80" height="60" loading="lazy" decoding="async"></span>`;
   }
   function rowHTML({
     action,

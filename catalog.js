@@ -58,9 +58,14 @@
   const number = (n, opts) => fmt().number(n, opts);
   const rating1 = n => number(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-  function img(src, alt = '', cls = '', extra = '') {
+  /** <img>: avatars and thumbnails get the 320-px copy of a photo; other photos a srcset (sizes: how wide it shows). */
+  function img(src, alt = '', cls = '', extra = '', sizes = '100vw') {
     const media = SZ.media.isRef(src);
-    return `<img${cls ? ` class="${cls}"` : ''} src="${esc(asset(src))}"${media ? ` data-media="${esc(src)}"` : ''} alt="${esc(alt)}" loading="lazy" decoding="async" ${extra}>`;
+    const small = /(^|\s)avatar(\s|$)|thumb/.test(cls);
+    const url = small ? thumbAsset(src) : asset(src);
+    const set = small ? '' : srcsetAttr(src, sizes);
+    const loading = /fetchpriority="high"/.test(extra) ? '' : ' loading="lazy"';
+    return `<img${cls ? ` class="${cls}"` : ''} src="${esc(url)}"${set}${media ? ` data-media="${esc(src)}"` : ''} alt="${esc(alt)}"${loading} decoding="async" ${extra}>`;
   }
   function avatarHTML(person, size = 48, placement = 'list') {
     const image = img(avatarSource(person), '', `avatar avatar-${size}`);
@@ -184,23 +189,23 @@
   const findPost = id => C.postById.get(id) || state.posts.find(p => p.id === id) || null;
 
   const FALLBACK_IMAGES = {
-    clean: 'clean-home.jpg',
-    guide: 'city-kl.jpg',
-    market: 'fresh-fruit.jpg',
-    food: 'nasi-lemak.jpg',
-    jobs: 'cafe-brunch.jpg',
-    car: 'city-kl.jpg',
-    flower: 'cake-table.jpg',
-    repair: 'clean-home.jpg',
-    travel: 'city-kl.jpg',
-    delivery: 'fresh-fruit.jpg',
-    beauty: 'hair-salon.jpg',
-    phone: 'cafe-brunch.jpg',
-    visa: 'city-kl.jpg',
+    clean: 'clean-home.webp',
+    guide: 'city-kl.webp',
+    market: 'fresh-fruit.webp',
+    food: 'nasi-lemak.webp',
+    jobs: 'cafe-brunch.webp',
+    car: 'city-kl.webp',
+    flower: 'cake-table.webp',
+    repair: 'clean-home.webp',
+    travel: 'city-kl.webp',
+    delivery: 'fresh-fruit.webp',
+    beauty: 'hair-salon.webp',
+    phone: 'cafe-brunch.webp',
+    visa: 'city-kl.webp',
   };
   function prepareServices(items) {
     for (const s of items) {
-      if (!s.image || s.image.startsWith('data:image/svg')) s.image = FALLBACK_IMAGES[s.cat] || 'city-kl.jpg';
+      if (!s.image || s.image.startsWith('data:image/svg')) s.image = FALLBACK_IMAGES[s.cat] || 'city-kl.webp';
       s.countryCode = String(s.countryCode || 'MY').toUpperCase();
       s.city = s.city || '吉隆坡';
       s.rating = Number(s.rating) || 4.6;
@@ -217,24 +222,24 @@
     for (const p of items) {
       p.countryCode = String(p.countryCode || 'MY').toUpperCase();
       if (!p.photo || p.photo.startsWith('data:image/svg'))
-        p.photo = 'avatars/' + (p.gender === '女' ? 'women' : 'men') + '-000.jpg';
+        p.photo = 'avatars/' + (p.gender === '女' ? 'women' : 'men') + '-000.webp';
       p.distanceKm = Number(p.distanceKm ?? parseFloat(p.distance)) || 1.3;
       p.tags = Array.isArray(p.tags) ? p.tags : [];
     }
   }
   function preparePosts(items) {
     const pictures = {
-      'city-kl': 'city-kl.jpg',
-      city: 'city-kl.jpg',
-      'cafe-brunch': 'cafe-brunch.jpg',
-      coffee: 'cafe-brunch.jpg',
-      'fresh-fruit': 'fresh-fruit.jpg',
-      'clean-home': 'clean-home.jpg',
-      'nasi-lemak': 'nasi-lemak.jpg',
+      'city-kl': 'city-kl.webp',
+      city: 'city-kl.webp',
+      'cafe-brunch': 'cafe-brunch.webp',
+      coffee: 'cafe-brunch.webp',
+      'fresh-fruit': 'fresh-fruit.webp',
+      'clean-home': 'clean-home.webp',
+      'nasi-lemak': 'nasi-lemak.webp',
     };
     for (const p of items) {
       if (!p.image && p.imageKey) p.image = pictures[p.imageKey] || null;
-      if (p.image === 'city-kl.jpg' && p.city && !['吉隆坡', '八打灵再也'].includes(p.city)) p.image = null;
+      if (p.image === 'city-kl.webp' && p.city && !['吉隆坡', '八打灵再也'].includes(p.city)) p.image = null;
       if (!p.at) {
         let minutes = Number(p.minutesAgo);
         if (!minutes && typeof p.time === 'string') {
@@ -486,7 +491,7 @@
     return act(
       'service',
       s.id,
-      `<span class="checkout-card-media">${img(s.image, '')}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</span><span class="checkout-card-body"><span class="checkout-card-title">${html(serviceName(s))}</span><span class="checkout-card-meta">${meta
+      `<span class="checkout-card-media">${img(s.image, '', '', '', '(min-width: 480px) 240px, 50vw')}${s.badge ? `<span class="checkout-card-badge">${html(txt('services', s, 'badge'))}</span>` : ''}</span><span class="checkout-card-body"><span class="checkout-card-title">${html(serviceName(s))}</span><span class="checkout-card-meta">${meta
         .filter(Boolean)
         .map(m => `<span>${html(m)}</span>`)
         .join(
@@ -713,7 +718,7 @@
       return {
         id,
         name: t('catalog.chat.supportName'),
-        photo: 'logo.png',
+        photo: 'logo.webp',
         initial: t('catalog.chat.supportHello'),
         support: true,
       };
@@ -749,7 +754,7 @@
         id,
         name: groupName(g),
         desc: txt('groups', g, 'desc'),
-        photo: findPerson(groupMembers(g)[0])?.photo || people[0]?.photo || 'logo.png',
+        photo: findPerson(groupMembers(g)[0])?.photo || people[0]?.photo || 'logo.webp',
         initial: txt('groups', g, 'desc') || t('catalog.group.welcome'),
         group: true,
         count: Number(g.count) || 1,
@@ -758,7 +763,7 @@
     return {
       id,
       name: t('catalog.chat.newFriend'),
-      photo: 'avatars/women-000.jpg',
+      photo: 'avatars/women-000.webp',
       initial: t('catalog.chat.requestSaved'),
     };
   }
@@ -885,13 +890,13 @@
       .join('')}</nav>`;
   }
   /** Server mode: the console's banners (image, bilingual copy, action). */
-  function serverBanner(b) {
+  function serverBanner(b, i = 0) {
     const sub = abroad() ? pickLang(b.subAbroad) || pickLang(b.sub) : pickLang(b.sub);
     const cta = pickLang(b.cta);
     return act(
       'commerce-banner',
       String(b.id),
-      `<img ${imageAttrs(b.image)} alt="" fetchpriority="high" decoding="async"><span class="checkout-banner-copy">${pickLang(b.kicker) ? `<span class="checkout-banner-kicker">${esc(pickLang(b.kicker))}</span>` : ''}<span class="checkout-banner-title">${esc(pickLang(b.title))}</span>${sub ? `<span class="checkout-banner-sub">${esc(sub)}</span>` : ''}${cta ? `<span class="checkout-banner-cta">${esc(cta)}${icon('chevron')}</span>` : ''}</span>`,
+      `<img ${imageAttrs(b.image)}${srcsetAttr(b.image)} alt="" ${i ? 'loading="lazy"' : 'fetchpriority="high"'} decoding="async"><span class="checkout-banner-copy">${pickLang(b.kicker) ? `<span class="checkout-banner-kicker">${esc(pickLang(b.kicker))}</span>` : ''}<span class="checkout-banner-title">${esc(pickLang(b.title))}</span>${sub ? `<span class="checkout-banner-sub">${esc(sub)}</span>` : ''}${cta ? `<span class="checkout-banner-cta">${esc(cta)}${icon('chevron')}</span>` : ''}</span>`,
       'checkout-banner'
     );
   }
@@ -901,13 +906,13 @@
       if (!list.length) return '';
       // Several live banners scroll sideways (one per view); a single one looks exactly like the prototype.
       return `<div class="checkout-banner-wrap"${list.length > 1 ? ' style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory"' : ''}>${list
-        .map(b => (list.length > 1 ? `<div style="flex:0 0 100%;scroll-snap-align:start">${serverBanner(b)}</div>` : serverBanner(b)))
+        .map((b, i) => (list.length > 1 ? `<div style="flex:0 0 100%;scroll-snap-align:start">${serverBanner(b, i)}</div>` : serverBanner(b)))
         .join('')}</div>`;
     }
     return `<div class="checkout-banner-wrap">${act(
       'campaign',
       '',
-      `<img src="${esc(asset('hero.png'))}" alt="" fetchpriority="high" decoding="async"><span class="checkout-banner-copy"><span class="checkout-banner-kicker">${esc(t('catalog.home.bannerKicker'))}</span><span class="checkout-banner-title">${esc(t('catalog.home.bannerTitle'))}</span><span class="checkout-banner-sub">${esc(abroad() ? t('catalog.home.bannerSubAbroad') : t('catalog.home.bannerSub'))}</span><span class="checkout-banner-cta">${esc(t('catalog.home.bannerCta'))}${icon('chevron')}</span></span>`,
+      `<img src="${esc(asset('hero.webp'))}" alt="" fetchpriority="high" decoding="async"><span class="checkout-banner-copy"><span class="checkout-banner-kicker">${esc(t('catalog.home.bannerKicker'))}</span><span class="checkout-banner-title">${esc(t('catalog.home.bannerTitle'))}</span><span class="checkout-banner-sub">${esc(abroad() ? t('catalog.home.bannerSubAbroad') : t('catalog.home.bannerSub'))}</span><span class="checkout-banner-cta">${esc(t('catalog.home.bannerCta'))}${icon('chevron')}</span></span>`,
       'checkout-banner'
     )}</div>`;
   }
@@ -1133,7 +1138,7 @@
     const support = chatInfo('support');
     const supportLast = lastMessage('support');
     const pinned = chatListRow('support', {
-      avatar: img('logo.png', '', 'avatar avatar-48 checkout-logo-avatar'),
+      avatar: img('logo.webp', '', 'avatar avatar-48 checkout-logo-avatar'),
       name: support.name,
       preview: supportLast ? messagePreview(supportLast) : t('catalog.chat.supportPreview'),
       time: supportLast?.time || null,
@@ -1590,7 +1595,7 @@
       kind: 'screen',
       title: t('catalog.campaign.title'),
       className: 'checkout-ui checkout-screen',
-      html: `<div class="checkout-campaign-hero">${img(banner?.image || 'hero.png', t('catalog.campaign.imageAlt'))}</div><div class="checkout-screen-body"><h2 class="checkout-detail-title">${esc(title)}</h2><p class="checkout-lead">${esc(abroad() ? t('catalog.campaign.leadAbroad') : t('catalog.campaign.lead', { city: cityName(catalogCity()) }))}</p>${countLine(tn('catalog.count.services', picks.length))}${picks.length ? pagedList('campaign:' + (bannerId || '') + locationKey(), picks, productCard) : emptyState('pin', t('catalog.campaign.empty'), t('catalog.campaign.emptyText'), 'city', t('catalog.home.changeCity'))}</div>`,
+      html: `<div class="checkout-campaign-hero">${img(banner?.image || 'hero.webp', t('catalog.campaign.imageAlt'))}</div><div class="checkout-screen-body"><h2 class="checkout-detail-title">${esc(title)}</h2><p class="checkout-lead">${esc(abroad() ? t('catalog.campaign.leadAbroad') : t('catalog.campaign.lead', { city: cityName(catalogCity()) }))}</p>${countLine(tn('catalog.count.services', picks.length))}${picks.length ? pagedList('campaign:' + (bannerId || '') + locationKey(), picks, productCard) : emptyState('pin', t('catalog.campaign.empty'), t('catalog.campaign.emptyText'), 'city', t('catalog.home.changeCity'))}</div>`,
     });
   }
   const allServices = () =>
@@ -2635,7 +2640,7 @@
     if (m.type === 'gift' && window.ShizhongGifts?.messageBubble)
       return window.ShizhongGifts.messageBubble(m, who);
     const author = m.person ? findPerson(m.person) : null;
-    const photo = m.self ? selfPhoto() : author?.photo || who?.photo || 'logo.png';
+    const photo = m.self ? selfPhoto() : author?.photo || who?.photo || 'logo.webp';
     const name = m.self ? selfName() : m.author || (author ? personName(author) : who?.name);
     return `<div class="checkout-bubble-line${m.self ? ' is-self' : ''}">${img(photo, '', 'avatar avatar-32')}<div class="checkout-bubble-main">${!m.self && who?.group ? `<span class="caption">${html(name)}</span>` : ''}<p class="checkout-bubble">${html(m.type && m.type !== 'text' ? messagePreview(m) : m.text)}</p>${m.time ? `<time class="caption">${esc(fmt().time(m.time))}</time>` : ''}</div></div>`;
   }

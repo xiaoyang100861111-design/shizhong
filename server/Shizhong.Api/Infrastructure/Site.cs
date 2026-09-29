@@ -35,6 +35,9 @@ public static class Site
         var types = new FileExtensionContentTypeProvider();
         types.Mappings[".webmanifest"] = "application/manifest+json";
         types.Mappings[".json"] = "application/json";
+        types.Mappings[".webp"] = "image/webp";
+        types.Mappings[".avif"] = "image/avif";
+        types.Mappings[".svg"] = "image/svg+xml";
 
         // Security headers for everything.
         app.Use(async (ctx, next) =>
@@ -71,6 +74,15 @@ public static class Site
         app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/admin"), site =>
         {
             site.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
+            // Images became WebP (tools/perf/optimize_images.py). Old app builds, caches and stored paths may still ask
+            // for the .jpg/.png: answer with the .webp twin (and the other way round) instead of a 404.
+            site.Use(async (ctx, next) =>
+            {
+                var p = ctx.Request.Path.Value;
+                if (p != null && (HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method)) && TwinOf(files, p) is { } twin)
+                    ctx.Request.Path = twin;
+                await next();
+            });
             site.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = files,
@@ -99,11 +111,31 @@ public static class Site
         });
     }
 
+    static readonly string[] RasterTwins = [".webp", ".jpg", ".jpeg", ".png"];
+
+    /// <summary>For a missing image file: the path of an existing file with the same name in another raster format.</summary>
+    public static string? TwinOf(IFileProvider files, string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        if (Array.IndexOf(RasterTwins, ext) < 0 || files.GetFileInfo(path).Exists) return null;
+        var stem = path[..^ext.Length];
+        // .jpg/.png → .webp first; a .webp that is missing falls back to a JPEG/PNG original if one exists
+        foreach (var other in ext == ".webp" ? RasterTwins[1..] : [".webp"])
+            if (files.GetFileInfo(stem + other).Exists) return stem + other;
+        return null;
+    }
+
+    /// <summary>
+    /// Cache-Control for static files (Cloudflare honours it at the edge too):
+    /// HTML revalidates; versioned URLs (?v=build, hashed /admin/assets) are immutable for a year;
+    /// unversioned images a day plus a week of stale-while-revalidate; anything else an hour.
+    /// </summary>
     static void Cache(HttpContext ctx, string name)
     {
         var h = ctx.Response.Headers;
         if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) h.CacheControl = "no-cache";
         else if (ctx.Request.Query.ContainsKey("v") || ctx.Request.Path.StartsWithSegments("/admin/assets")) h.CacheControl = "public, max-age=31536000, immutable";
+        else if (ctx.Request.Path.StartsWithSegments("/assets")) h.CacheControl = "public, max-age=86400, stale-while-revalidate=604800";
         else h.CacheControl = "public, max-age=3600";
     }
 }

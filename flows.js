@@ -2420,7 +2420,7 @@ function flowsInvite() {
             'btn btn-primary btn-lg btn-block'
           )
         : '';
-      return `<div class="flows-invite-card"><img class="flows-invite-logo" src="${asset('logo.png')}" alt=""><h3>${t('flows.invite.headline')}</h3><p>${t('flows.invite.sub')}</p><div class="flows-invite-code"><span class="caption">${t('flows.invite.codeLabel')}</span><strong class="num" aria-label="${esc(t('flows.invite.codeAria', { code: flowsInviteCode().split('').join(' ') }))}">${esc(flowsInviteCode())}</strong>${act('flows-invite-copy-code', '', `${icon('copy')}${t('flows.invite.copyCode')}`, 'btn btn-ghost btn-sm')}</div>${formNote(t('flows.invite.honest'))}</div><div class="flows-cta flows-cta--stack">${share}<a class="btn ${share ? 'btn-secondary' : 'btn-primary'} btn-lg btn-block" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${flowsIcon('message')}${t('flows.invite.whatsapp')}</a>${act('copy-invite', '', `${icon('copy')}${t('flows.invite.copyText')}`, 'btn btn-outline btn-lg btn-block')}</div>`;
+      return `<div class="flows-invite-card"><img class="flows-invite-logo" src="${asset('logo.webp')}" alt=""><h3>${t('flows.invite.headline')}</h3><p>${t('flows.invite.sub')}</p><div class="flows-invite-code"><span class="caption">${t('flows.invite.codeLabel')}</span><strong class="num" aria-label="${esc(t('flows.invite.codeAria', { code: flowsInviteCode().split('').join(' ') }))}">${esc(flowsInviteCode())}</strong>${act('flows-invite-copy-code', '', `${icon('copy')}${t('flows.invite.copyCode')}`, 'btn btn-ghost btn-sm')}</div>${formNote(t('flows.invite.honest'))}</div><div class="flows-cta flows-cta--stack">${share}<a class="btn ${share ? 'btn-secondary' : 'btn-primary'} btn-lg btn-block" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${flowsIcon('message')}${t('flows.invite.whatsapp')}</a>${act('copy-invite', '', `${icon('copy')}${t('flows.invite.copyText')}`, 'btn btn-outline btn-lg btn-block')}</div>`;
     },
   });
 }
@@ -2734,7 +2734,7 @@ function flowsAbout() {
   return flowsOpen('about', {
     title: t('flows.about.title'),
     body: () =>
-      `<div class="flows-about-hero"><img src="${asset('logo.png')}" alt=""><h3>${t('flows.about.name')}</h3><p>${t('flows.about.tagline')}</p><span class="tag">${t('flows.about.version', { version: esc(SHIZHONG_BUILD) })}</span></div><div class="list">${flowsRow('file', t('flows.about.licences'), 'flows-licences')}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${flowsRow('help', t('flows.settings.help'), 'help')}</div><p class="caption flows-footnote">${t('flows.about.demo')}</p>`,
+      `<div class="flows-about-hero"><img src="${asset('logo.webp')}" alt=""><h3>${t('flows.about.name')}</h3><p>${t('flows.about.tagline')}</p><span class="tag">${t('flows.about.version', { version: esc(SHIZHONG_BUILD) })}</span></div><div class="list">${flowsRow('file', t('flows.about.licences'), 'flows-licences')}${flowsRow('shield', t('flows.settings.policy'), 'privacy')}${flowsRow('help', t('flows.settings.help'), 'help')}</div><p class="caption flows-footnote">${t('flows.about.demo')}</p>`,
   });
 }
 const FLOWS_CREDITS = [
@@ -3038,7 +3038,7 @@ function flowsStartLivePreview() {
         kind: 'screen',
         title: t('flows.legacy.livePreviewTitle'),
         className: 'flows-layer',
-        html: `<div class="detail-hero"><img src="${esc(cover ? asset(cover) : asset('city-kl.jpg'))}" alt=""></div><div class="flows-body"><span class="tag tag-brand">${t('flows.legacy.liveBadge')}</span><h2 class="flows-live-title">${esc(data.title)}</h2><p class="flows-lead">${esc(topics.find(x => x.value === data.topic)?.label || '')} · ${t('flows.legacy.liveViewers')}</p><p class="caption">${t('flows.legacy.liveNoStream')}</p><div class="flows-cta">${act('close', '', t('flows.legacy.liveEnd'), 'btn btn-primary btn-lg btn-block')}</div></div>`,
+        html: `<div class="detail-hero"><img src="${esc(cover ? asset(cover) : asset('city-kl.webp'))}" alt=""></div><div class="flows-body"><span class="tag tag-brand">${t('flows.legacy.liveBadge')}</span><h2 class="flows-live-title">${esc(data.title)}</h2><p class="flows-lead">${esc(topics.find(x => x.value === data.topic)?.label || '')} · ${t('flows.legacy.liveViewers')}</p><p class="caption">${t('flows.legacy.liveNoStream')}</p><div class="flows-cta">${act('close', '', t('flows.legacy.liveEnd'), 'btn btn-primary btn-lg btn-block')}</div></div>`,
       });
     },
   });

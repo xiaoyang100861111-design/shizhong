@@ -138,5 +138,5 @@ async function copy(v) {
 .sums { margin: 0 0 8px; font-size: 13px; }
 .block { display: block; }
 .small { font-size: 12px; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.mono { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
 </style>

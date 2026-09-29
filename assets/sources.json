@@ -1,11 +1,11 @@
 [
   {
-    "name": "city-kl.jpg",
+    "name": "city-kl.webp",
     "usage": "Kuala Lumpur night skyline",
     "photographer": "Muhammad Faiz Zulkeflee",
     "source": "https://unsplash.com/photos/a-view-of-a-city-skyline-at-night-B7EmR14MNd0",
     "image_url": "https://images.unsplash.com/photo-1707446832549-1fb049a54e60?auto=format&fit=max&fm=jpg&q=85&w=800&h=800",
-    "local_path": "city-kl.jpg",
+    "local_path": "city-kl.webp",
     "bytes": 59153,
     "downloaded": true,
     "visually_verified": true,
@@ -17,12 +17,12 @@
     ]
   },
   {
-    "name": "cafe-brunch.jpg",
+    "name": "cafe-brunch.webp",
     "usage": "Cafe brunch",
     "photographer": "Christine Siracusa",
     "source": "https://unsplash.com/photos/tuna-on-bread-with-whip-cream-and-pepper-on-round-plate-on-top-of-table-bypcCMcIoVE",
     "image_url": "https://images.unsplash.com/photo-1492016775777-ed98c058f826?auto=format&fit=max&fm=jpg&q=85&w=800&h=800",
-    "local_path": "cafe-brunch.jpg",
+    "local_path": "cafe-brunch.webp",
     "bytes": 72137,
     "downloaded": true,
     "visually_verified": true,
@@ -34,12 +34,12 @@
     ]
   },
   {
-    "name": "fresh-fruit.jpg",
+    "name": "fresh-fruit.webp",
     "usage": "Fresh strawberries",
     "photographer": "Hans Vivek",
     "source": "https://unsplash.com/photos/bunch-of-strawberries-in-bowl-WmVJkVEasy4",
     "image_url": "https://images.unsplash.com/photo-1488380682272-7f04a40d5d69?auto=format&fit=max&fm=jpg&q=85&w=800&h=800",
-    "local_path": "fresh-fruit.jpg",
+    "local_path": "fresh-fruit.webp",
     "bytes": 55255,
     "downloaded": true,
     "visually_verified": true,
@@ -51,12 +51,12 @@
     ]
   },
   {
-    "name": "clean-home.jpg",
+    "name": "clean-home.webp",
     "usage": "Clean warm living room",
     "photographer": "Kara Eads",
     "source": "https://unsplash.com/photos/living-room-L7EwHkq1B2s",
     "image_url": "https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=max&fm=jpg&q=85&w=800&h=800",
-    "local_path": "clean-home.jpg",
+    "local_path": "clean-home.webp",
     "bytes": 94781,
     "downloaded": true,
     "visually_verified": true,
@@ -68,12 +68,12 @@
     ]
   },
   {
-    "name": "nasi-lemak.jpg",
+    "name": "nasi-lemak.webp",
     "usage": "Malaysian nasi lemak",
     "photographer": "You Le",
     "source": "https://unsplash.com/photos/nasi-lemak-served-on-banana-leaf-with-spoon-o5UmAx8vEjg",
     "image_url": "https://images.unsplash.com/photo-1770966485209-e20d97337f1a?auto=format&fit=max&fm=jpg&q=85&w=800&h=800",
-    "local_path": "nasi-lemak.jpg",
+    "local_path": "nasi-lemak.webp",
     "bytes": 88890,
     "downloaded": true,
     "visually_verified": true,
@@ -85,12 +85,12 @@
     ]
   },
   {
-    "name": "portrait-woman-studio.jpg",
+    "name": "portrait-woman-studio.webp",
     "usage": "Smiling woman in white shirt; profile or livestream demo",
     "photographer": "Dziana Hasanbekava",
     "source": "https://www.pexels.com/photo/smiling-asian-woman-looking-at-camera-7626623/",
     "image_url": "https://images.pexels.com/photos/7626623/pexels-photo-7626623.jpeg?auto=compress&cs=tinysrgb&fit=max&w=800&h=800",
-    "local_path": "portrait-woman-studio.jpg",
+    "local_path": "portrait-woman-studio.webp",
     "bytes": 38720,
     "downloaded": true,
     "visually_verified": true,
@@ -102,12 +102,12 @@
     ]
   },
   {
-    "name": "portrait-woman-outdoor.jpg",
+    "name": "portrait-woman-outdoor.webp",
     "usage": "Smiling woman outdoors; social or livestream demo",
     "photographer": "Min An",
     "source": "https://www.pexels.com/photo/portrait-of-asian-woman-1066134/",
     "image_url": "https://images.pexels.com/photos/1066134/pexels-photo-1066134.jpeg?auto=compress&cs=tinysrgb&fit=max&w=800&h=800",
-    "local_path": "portrait-woman-outdoor.jpg",
+    "local_path": "portrait-woman-outdoor.webp",
     "bytes": 61469,
     "downloaded": true,
     "visually_verified": true,
@@ -119,12 +119,12 @@
     ]
   },
   {
-    "name": "portrait-man-river.jpg",
+    "name": "portrait-man-river.webp",
     "usage": "Smiling man in casual orange shirt by river; social demo",
     "photographer": "Theodore Nguyen",
     "source": "https://www.pexels.com/photo/portrait-of-a-man-smiling-26178967/",
     "image_url": "https://images.pexels.com/photos/26178967/pexels-photo-26178967/free-photo-of-portrait-of-a-man-smiling.jpeg?auto=compress&cs=tinysrgb&fit=max&w=800&h=800",
-    "local_path": "portrait-man-river.jpg",
+    "local_path": "portrait-man-river.webp",
     "bytes": 55633,
     "downloaded": true,
     "visually_verified": true,
@@ -136,12 +136,12 @@
     ]
   },
   {
-    "name": "portrait-woman-city.jpg",
+    "name": "portrait-woman-city.webp",
     "usage": "Smiling adult woman in casual white blouse in city; social or livestream demo",
     "photographer": "HONG SON",
     "source": "https://www.pexels.com/photo/portrait-of-a-woman-smiling-20552804/",
     "image_url": "https://images.pexels.com/photos/20552804/pexels-photo-20552804/free-photo-of-portrait-of-a-woman-smiling.jpeg?auto=compress&cs=tinysrgb&fit=max&w=800&h=800",
-    "local_path": "portrait-woman-city.jpg",
+    "local_path": "portrait-woman-city.webp",
     "bytes": 59530,
     "downloaded": true,
     "visually_verified": true,

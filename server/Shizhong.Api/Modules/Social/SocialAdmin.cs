@@ -268,8 +268,8 @@ public static class SocialAdmin
 
     static string? ImageOf(string? key) => key switch
     {
-        "city-kl" or "city" => "city-kl.jpg", "cafe-brunch" or "coffee" => "cafe-brunch.jpg", "fresh-fruit" => "fresh-fruit.jpg",
-        "clean-home" => "clean-home.jpg", "nasi-lemak" => "nasi-lemak.jpg", _ => null,
+        "city-kl" or "city" => "city-kl.webp", "cafe-brunch" or "coffee" => "cafe-brunch.webp", "fresh-fruit" => "fresh-fruit.webp",
+        "clean-home" => "clean-home.webp", "nasi-lemak" => "nasi-lemak.webp", _ => null,
     };
 
     // ================================================================ reports & feedback

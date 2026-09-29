@@ -82,6 +82,6 @@ load();
 <style scoped>
 h4 { margin: 16px 0 8px; font-size: 14px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.mono { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
 @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
 </style>

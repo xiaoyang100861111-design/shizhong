@@ -199,8 +199,8 @@ load();
 .key-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .key-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .preview { background: var(--el-fill-color-light); border-radius: 6px; padding: 6px 8px; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
-.mono :deep(textarea), .mono :deep(input) { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.mono { font-family: var(--font-mono); }
+.mono :deep(textarea), .mono :deep(input) { font-family: var(--font-mono); font-size: 12px; }
 .small { font-size: 12px; }
 .break { word-break: break-all; }
 .mt { margin-top: 6px; }

@@ -37,7 +37,7 @@
         </el-form-item>
         <el-form-item :label="t('gifts.bg.ink')"><el-color-picker v-model="form.ink" /></el-form-item>
         <el-form-item v-if="form.kind === 'gradient'" :label="t('gifts.bg.css')" required><el-input v-model="form.css" type="textarea" :rows="3" class="mono" placeholder="linear-gradient(145deg, #FFF5F5 0%, #FCE7EC 100%)" /></el-form-item>
-        <el-form-item v-else :label="t('gifts.bg.image')" required><ImageUpload v-model="form.image" purpose="gift" :width="200" :height="100" allow-path path-hint="city-kl.jpg" /></el-form-item>
+        <el-form-item v-else :label="t('gifts.bg.image')" required><ImageUpload v-model="form.image" purpose="gift" :width="200" :height="100" allow-path path-hint="city-kl.webp" /></el-form-item>
         <div class="bg-swatch big" :style="swatch(form)" />
         <el-form-item :label="t('gifts.order')"><el-input-number v-model="form.sortOrder" :min="0" /></el-form-item>
         <el-form-item :label="t('common.status')"><el-switch v-model="form.enabled" /></el-form-item>
@@ -101,5 +101,5 @@ async function disable(b) {
 .bg-swatch.big { height: 120px; border-radius: 8px; margin-bottom: 12px; }
 .bg-meta { padding: 10px 12px; font-size: 13px; }
 .bg-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 </style>

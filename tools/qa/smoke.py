@@ -137,6 +137,10 @@ def errors_since(cdp, start, offline=False):
         m, p = e["method"], e.get("params", {})
         if m == "Network.requestWillBeSent" and offline and "/api/" in p.get("request", {}).get("url", ""):
             out.append("API CALL in the offline demo " + p["request"]["url"][-80:])
+        elif m == "Network.responseReceived" and p.get("type") == "Image" and p.get("response", {}).get("status", 0) >= 400:
+            out.append(f"IMAGE HTTP {p['response']['status']} " + p["response"].get("url", "")[-100:])
+        elif m == "Network.loadingFailed" and p.get("type") == "Image" and not p.get("canceled"):
+            out.append("IMAGE FAILED " + p.get("errorText", "") + " " + str(p.get("requestId", "")))
         elif m == "Network.responseReceived" and p.get("response", {}).get("status", 0) >= 500:
             out.append(f"HTTP {p['response']['status']} " + p["response"].get("url", "")[-100:])
         elif m == "Runtime.exceptionThrown":

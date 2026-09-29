@@ -110,5 +110,5 @@ const doReject = () => run(`finance/topups/${current.value.id}/reject`, { reason
 <style scoped>
 .block { display: block; }
 .small { font-size: 12px; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.mono { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
 </style>

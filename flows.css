@@ -1350,7 +1350,7 @@ button.flows-row:hover {
 }
 .flows-files code {
   padding: 2px 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-family: var(--font-mono);
   border-radius: var(--r-xs);
   background: var(--c-surface-2);
   font-size: var(--fs-12);

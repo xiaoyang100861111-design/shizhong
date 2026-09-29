@@ -293,7 +293,7 @@
     } catch (e) {
       console.error(e);
     }
-    who = who || { name: chatId, photo: 'logo.png' };
+    who = who || { name: chatId, photo: 'logo.webp' };
     const kind = who.support ? 'support' : who.serviceId ? 'merchant' : who.group ? 'group' : 'friend';
     const person = kind === 'friend' ? personById(chatId) : null;
     const group =
@@ -323,7 +323,7 @@
       group,
       service,
       name: name || t('chat.header.unknown'),
-      photo: person ? avatarSource(person) : who.photo || 'logo.png',
+      photo: person ? avatarSource(person) : who.photo || 'logo.webp',
       memberIds: group?.memberIds || who.memberIds || [],
     };
   }
@@ -570,7 +570,7 @@
         return `<button type="button" class="cx-bubble cx-card cx-b-location" data-action="cx-location" data-id="${id}"><span class="cx-card-main cx-loc-text"><strong>${esc(m.name || '')}</strong><small>${esc(m.address || '')}</small></span><span class="cx-map" aria-hidden="true"><span class="cx-map-pin">${icon('pin')}</span></span></button>`;
       case 'contact': {
         const p = m.personId ? personById(m.personId) : null;
-        const photo = p ? avatarSource(p) : m.photo || 'avatars/women-000.jpg';
+        const photo = p ? avatarSource(p) : m.photo || 'avatars/women-000.webp';
         const city = p ? td('city', p.city) : m.city ? td('city', m.city) : '';
         return `<button type="button" class="cx-bubble cx-card cx-b-contact" data-action="${p ? 'person' : 'cx-noop'}" data-id="${esc(m.personId || '')}"><span class="cx-card-body"><img class="avatar avatar-40" ${imgSrc(photo)} alt="" loading="lazy"><span class="cx-card-main"><strong>${esc(cardName(m))}</strong><small>${esc(city || t('chat.card.friend'))}</small></span></span><span class="cx-card-foot">${esc(t('chat.card.footer'))}</span></button>`;
       }
@@ -691,7 +691,7 @@
           kind: who?.group ? 'group' : who?.support ? 'support' : who?.serviceId ? 'merchant' : 'friend',
           who: who || {},
           name: who?.name || '',
-          photo: who?.photo || 'logo.png',
+          photo: who?.photo || 'logo.webp',
           memberIds: [],
         };
     const ctx = { info, now: Date.now(), readUntil: Date.now() };
@@ -2002,7 +2002,7 @@
       seen.add(id);
       out.push({ id, name, photo, sub });
     };
-    add('support', t('chat.support.name'), 'logo.png', t('chat.status.support'));
+    add('support', t('chat.support.name'), 'logo.webp', t('chat.status.support'));
     const contacts = typeof contactPeople === 'function' ? contactPeople() : [];
     for (const p of contacts)
       if (!blocked(p.id)) add(p.id, personName(p), avatarSource(p), td('city', p.city) || '');
@@ -3433,7 +3433,7 @@
         <div class="cx-call-scrim" aria-hidden="true"></div>
         <div class="cx-call-top"><span class="cx-call-badge">${ico('lock')}<span>${esc(t(video ? 'chat.call.videoDemo' : 'chat.call.voiceDemo'))}</span></span></div>
         <div class="cx-call-peer"><span class="cx-call-avatar"><img ${imgSrc(info.photo)} alt=""></span><h2 id="${titleId}">${esc(info.name)}</h2><p class="cx-call-status num" role="status">${esc(t('chat.call.calling'))}</p></div>
-        ${video ? `<div class="cx-call-self"><img ${imgSrc(state.profile?.photo || 'logo.png')} alt="${esc(t('chat.call.selfView'))}"><span class="cx-call-self-off" hidden>${ico('videoOff')}</span></div>` : ''}
+        ${video ? `<div class="cx-call-self"><img ${imgSrc(state.profile?.photo || 'logo.webp')} alt="${esc(t('chat.call.selfView'))}"><span class="cx-call-self-off" hidden>${ico('videoOff')}</span></div>` : ''}
         <div class="cx-call-controls">
           <button type="button" class="cx-call-btn" data-action="cx-call-toggle" data-id="mic" aria-pressed="false"><span class="cx-call-circle">${ico('micOff')}</span><span class="cx-call-label">${esc(t('chat.call.mute'))}</span></button>
           ${
@@ -3560,7 +3560,7 @@
         <div class="cx-call-scrim" aria-hidden="true"></div>
         <div class="cx-call-top"><span class="cx-call-badge">${ico('lock')}<span>${esc(t(c.video ? 'server.chat.call.video' : 'server.chat.call.voice'))}</span></span></div>
         <div class="cx-call-peer"><span class="cx-call-avatar"><img ${imgSrc(photo)} alt=""></span><h2 id="${titleId}">${esc(name)}</h2><p class="cx-call-status num" role="status"></p><p class="cx-call-note caption" hidden></p></div>
-        ${c.video ? `<div class="cx-call-self"><video class="cx-call-local" autoplay playsinline muted hidden></video><img ${imgSrc(state.profile?.photo || 'logo.png')} alt="${esc(t('chat.call.selfView'))}"><span class="cx-call-self-off" hidden>${ico('videoOff')}</span></div>` : ''}
+        ${c.video ? `<div class="cx-call-self"><video class="cx-call-local" autoplay playsinline muted hidden></video><img ${imgSrc(state.profile?.photo || 'logo.webp')} alt="${esc(t('chat.call.selfView'))}"><span class="cx-call-self-off" hidden>${ico('videoOff')}</span></div>` : ''}
         <div class="cx-call-audio" hidden></div>
         <div class="cx-call-controls"></div>
       </section>`,

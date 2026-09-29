@@ -32,7 +32,7 @@
   const TOPIC_KEYS = { 同城聊天: 'local', 旅行分享: 'travel', 语言交流: 'language', 音乐时光: 'music' };
   const LINE_COUNT = { local: 16, travel: 16, language: 16, music: 10 };
   const HOST_LINES = 14;
-  const DEFAULT_COVER = 'city-kl.jpg';
+  const DEFAULT_COVER = 'city-kl.webp';
   const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   // ------------------------------------------------------------------ small helpers
@@ -64,7 +64,7 @@
   /** <img> for any image reference, including IndexedDB photos ('media:…', hydrated by core). */
   function img(ref, alt = '', cls = '') {
     const media = SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : '';
-    return `<img class="${cls}" src="${esc(asset(ref))}"${media} alt="${esc(alt)}" decoding="async">`;
+    return `<img class="${cls}" src="${esc(asset(ref))}"${media} alt="${esc(alt)}" loading="lazy" decoding="async">`;
   }
   const avatarOf = p => (p?.self ? state.profile?.photo : avatarSource(p));
   const selfLevel = () => Math.max(1, Number(window.ShizhongVIP?.level?.('self')) || 1);
@@ -1115,7 +1115,7 @@
       .map(h => {
         const host = findPerson(h.hostId);
         const hostName = host ? nameOf(host) : h.hostName || '';
-        return `<li class="lr-history-row"><img src="${esc(giftArt(h.giftId))}" alt=""><div><strong>${esc(t('live.gift.historyItem', { gift: giftName(h.giftId) || h.name || '', qty: fmt().number(h.quantity) }))}</strong><span>${esc(t('live.gift.historyRow', { name: hostName, time: fmt().dateTime(h.time) }))}</span></div><b class="num">${esc(beans(h.total))}</b></li>`;
+        return `<li class="lr-history-row"><img src="${esc(giftArt(h.giftId))}" alt="" loading="lazy" decoding="async"><div><strong>${esc(t('live.gift.historyItem', { gift: giftName(h.giftId) || h.name || '', qty: fmt().number(h.quantity) }))}</strong><span>${esc(t('live.gift.historyRow', { name: hostName, time: fmt().dateTime(h.time) }))}</span></div><b class="num">${esc(beans(h.total))}</b></li>`;
       })
       .join('')}</ul>`;
   }

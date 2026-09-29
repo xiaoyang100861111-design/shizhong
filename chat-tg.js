@@ -719,7 +719,7 @@
       list
         .map(x => {
           const p = I.personById(x.person);
-          const photo = p ? avatarSource(p) : x.photo || 'logo.png';
+          const photo = p ? avatarSource(p) : x.photo || 'logo.webp';
           return `<div class="tg-person"><img class="avatar avatar-40" ${I.imgSrc(photo)} alt="" loading="lazy"><span class="tg-person-main"><strong>${esc(p ? personName(p) : x.name || '')}</strong><small>${esc(x.at ? SZ.fmt.dateTime(x.at) : '')}</small></span>${x.emoji ? `<span class="tg-person-e">${esc(x.emoji)}</span>` : ''}</div>`;
         })
         .join('');

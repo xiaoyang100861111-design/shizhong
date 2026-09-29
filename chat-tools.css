@@ -1432,7 +1432,7 @@ button.cx-bubble {
   overflow-wrap: anywhere;
 }
 .cx-mono {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--fs-12);
   font-weight: var(--fw-regular) !important;
 }
@@ -1486,12 +1486,7 @@ button.cx-bubble {
   border-radius: var(--r-sm);
   background: var(--c-surface-2);
   color: var(--c-text);
-  font:
-    var(--fs-13) / 1.5 ui-monospace,
-    'SFMono-Regular',
-    Menlo,
-    Consolas,
-    monospace;
+  font: var(--fs-13) / 1.5 var(--font-mono);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

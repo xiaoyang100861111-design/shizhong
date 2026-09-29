@@ -253,5 +253,5 @@ async function doSimulate() {
 .ml { margin-left: 6px; }
 .small { font-size: 12px; }
 .block { display: block; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.mono { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
 </style>
