@@ -964,6 +964,7 @@
       );
     if (SERVER) return placeOnServer(layer, m, sum, address, refresh);
     placing = true;
+    let short = false; // read in catch: must live outside the try block
     try {
       if (sum.payable > 0 && m.method !== 'wallet' && !(await authorise(m.method, sum.payable))) return;
       const first = m.items[0].s;
@@ -1025,7 +1026,6 @@
               time: now,
             }
           : null;
-      let short = false;
       const ok = SZ.store.commit(s => {
         if (m.method === 'wallet' && sum.payable > 0) {
           if ((Number(s.wallet) || 0) < sum.payable) {
