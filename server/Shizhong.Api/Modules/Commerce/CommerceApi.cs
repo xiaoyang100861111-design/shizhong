@@ -109,14 +109,14 @@ public sealed partial class CommerceModule
         addr.MapPost("", async (HttpContext ctx, AddressBody body, Db db, ConfigService cfg, StateService states) =>
         {
             var user = ctx.RequireUser();
-            var reward = await AddressApi.SaveAsync(db, cfg, user.Id, null, body);
-            return Results.Ok(new { reward, state = await states.ProjectKeysAsync(user, "address", "addressReward", "points") });
+            await AddressApi.SaveAsync(db, cfg, user.Id, null, body);
+            return Results.Ok(new { state = await states.ProjectKeysAsync(user, "address") });
         }).RequireRateLimiting("write");
         addr.MapPut("/{id}", async (string id, HttpContext ctx, AddressBody body, Db db, ConfigService cfg, StateService states) =>
         {
             var user = ctx.RequireUser();
-            var reward = await AddressApi.SaveAsync(db, cfg, user.Id, AddressApi.ParseId(id), body);
-            return Results.Ok(new { reward, state = await states.ProjectKeysAsync(user, "address", "addressReward", "points") });
+            await AddressApi.SaveAsync(db, cfg, user.Id, AddressApi.ParseId(id), body);
+            return Results.Ok(new { state = await states.ProjectKeysAsync(user, "address") });
         });
         addr.MapDelete("/{id}", async (string id, HttpContext ctx, Db db, StateService states) =>
         {
@@ -277,13 +277,13 @@ public sealed partial class CommerceModule
     public sealed record ApplyBody(string? Name, string? Category, string? City, string? Contact, string? Phone, string? Text, JsonObject? Location);
 }
 
-/// <summary>Member addresses (state.address: default first) and the one-time +10 beans reward for the first address.</summary>
+/// <summary>Member addresses (state.address: default first). The first-address reward belongs to the growth module (task "address").</summary>
 public static class AddressApi
 {
     public static long ParseId(string id) => long.TryParse(id.TrimStart('a'), out var n) ? n : throw ApiError.NotFound("address.notFound");
 
-    /// <summary>Create or update; returns the beans rewarded (first address ever), else 0.</summary>
-    public static async Task<long> SaveAsync(Db db, ConfigService cfg, long userId, long? id, CommerceModule.AddressBody b)
+    /// <summary>Create or update an address.</summary>
+    public static async Task SaveAsync(Db db, ConfigService cfg, long userId, long? id, CommerceModule.AddressBody b)
     {
         var name = Cx.Clip(b.Name, 40);
         var phone = Cx.Clip(b.Phone, 24);
@@ -297,9 +297,8 @@ public static class AddressApi
         // Malaysian postcodes are five digits; other countries keep whatever format they use (optional).
         if (country == "MY" && !System.Text.RegularExpressions.Regex.IsMatch(postcode, @"^\d{5}$")) throw ApiError.BadRequest("address.badPostcode");
         var city = Cx.ClipOrNull(Cx.Str(location?["cityName"]) ?? b.City, 60);
-        return await db.TxAsync(async (c, t) =>
+        await db.TxAsync(async (c, t) =>
         {
-            await Ledger.EnsureWalletAsync(c, t, userId); // serialises this member's first-address reward
             if (id is null)
             {
                 var count = await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.Addresses WHERE UserId = @userId AND DeletedAt IS NULL", new { userId }, t);
@@ -320,15 +319,6 @@ public static class AddressApi
                 if (b.MakeDefault)
                     await c.ExecuteAsync("UPDATE dbo.Addresses SET IsDefault = CASE WHEN Id = @id THEN 1 ELSE 0 END WHERE UserId = @userId AND DeletedAt IS NULL", new { id, userId }, t);
             }
-            var beans = cfg.Long("address.rewardBeans", 10);
-            if (beans <= 0) return 0L;
-            var rewarded = await c.ExecuteScalarAsync<int>("""
-                SELECT COUNT(*) FROM dbo.WalletTransactions WHERE UserId = @userId AND Currency = 'BEAN' AND RefType = N'task' AND RefId = N'address'
-                """, new { userId }, t);
-            if (rewarded > 0) return 0L;
-            await Ledger.ApplyAsync(c, t, new LedgerEntry(userId, Currencies.Bean, beans, "task", "首次保存地址奖励", "commerce.bill.addressReward", new { n = beans },
-                "system", "task", "address"));
-            return beans;
         });
     }
 
@@ -351,10 +341,5 @@ public static class AddressApi
                 ["city"] = a.City ?? "", ["location"] = Json.Node(a.Location),
             });
         ctx.State["address"] = list;
-        var done = await ctx.Connection.ExecuteScalarAsync<int>("""
-            SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.WalletTransactions WHERE UserId = @UserId AND Currency = 'BEAN' AND RefType = N'task' AND RefId = N'address')
-                          OR EXISTS (SELECT 1 FROM dbo.Addresses WHERE UserId = @UserId) THEN 1 ELSE 0 END
-            """, new { ctx.UserId });
-        ctx.State["addressReward"] = done == 1;
     }
 }

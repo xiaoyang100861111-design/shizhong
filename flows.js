@@ -824,8 +824,8 @@ function flowsCheckinState() {
   const lit = done ? ((streak - 1) % 7) + 1 : streak % 7;
   return { done, streak, lit, todayIndex: done ? lit - 1 : lit };
 }
-const FLOWS_CHECKIN_REWARD = 10;
-const FLOWS_CHECKIN_BONUS = 50;
+const FLOWS_CHECKIN_REWARD = Number(SZ.config('checkin.reward', 10)) || 0;
+const FLOWS_CHECKIN_BONUS = Number(SZ.config('checkin.bonus', 50)) || 0;
 window.ShizhongCheckin = {
   status() {
     const s = flowsCheckinState();
@@ -1264,7 +1264,7 @@ const FLOWS_METHODS = {
 const FLOWS_AMOUNTS = [20, 50, 100, 200, 500, 1000];
 function flowsMethodLabel(method) {
   if (!method) return '';
-  if (FLOWS_METHODS[method] || method === 'wallet') return t(`flows.pay.${method}`);
+  if (FLOWS_METHODS[method] || method === 'wallet' || t.has(`flows.pay.${method}`)) return t(`flows.pay.${method}`);
   // Older records (and other modules) stored the already-translated label.
   return td('flows.billMethod', method);
 }
@@ -1346,7 +1346,7 @@ function wallet() {
   return flowsOpen('wallet', { title: t('flows.wallet.title'), body: flowsWalletBody });
 }
 function flowsWalletBody() {
-  const demoTools = SZ.session.isDemo
+  const demoTools = SZ.session.isDemo && !SZ.server
     ? act(
         'flows-restore-balance',
         '',
@@ -1354,7 +1354,7 @@ function flowsWalletBody() {
         'btn btn-ghost btn-sm flows-balance-restore'
       )
     : '';
-  const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t('flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('checkin', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
+  const balance = `<section class="flows-balance" aria-labelledby="flows-balance-label"><p class="flows-balance-label" id="flows-balance-label">${t('flows.wallet.balance')}</p><p class="flows-balance-amount num">${esc(flowsMoney(state.wallet))}</p><p class="flows-balance-note">${t(SZ.server ? 'fin.wallet.note' : 'flows.wallet.demoNote')}</p><div class="flows-balance-actions">${act('recharge', '', `${icon('add')}${t('flows.wallet.topUp')}`, 'btn btn-primary')}${act('checkin', '', `${icon('medal')}${t('flows.wallet.beans', { n: SZ.fmt.compact(state.points) })}`, 'btn btn-outline')}</div>${demoTools}</section>`;
   // Newest first by time: several modules write bills, not always in time order.
   const bills = state.bills
     .map((b, i) => [b, flowsBillTs(b) || 0, i])
@@ -1382,7 +1382,9 @@ function flowsWalletBody() {
     if (state.bills.length > bills.length)
       list += `<div class="flows-more">${act('flows-bills-more', '', t('common.loadMore'), 'btn btn-secondary')}</div>`;
   }
-  return `${balance}${flowsSection(t('flows.wallet.history'), list, 'flows-bills-section')}`;
+  // Server mode: withdrawals, top-up history and statements (finance.js).
+  const finance = window.ShizhongFinance?.walletSection?.() || '';
+  return `${balance}${finance}${flowsSection(t('flows.wallet.history'), list, 'flows-bills-section')}`;
 }
 function flowsBillRow(b, ts) {
   const amount = Number(b.amount) || 0;
@@ -1527,6 +1529,8 @@ function flowsDoCheckin() {
 }
 function flowsTaskList() {
   const c = flowsCheckinState();
+  const hidden = SZ.config('tasks.hidden', []);
+  const reward = (id, fallback) => Number(SZ.config(`tasks.${id}Reward`, fallback)) || 0;
   return [
     {
       id: 'checkin',
@@ -1549,7 +1553,7 @@ function flowsTaskList() {
     {
       id: 'profile',
       icon: 'user',
-      reward: 20,
+      reward: reward('profile', 20),
       done: !!state.profileReward,
       progress: state.profileReward ? 1 : 0,
       total: 1,
@@ -1558,7 +1562,7 @@ function flowsTaskList() {
     {
       id: 'post',
       icon: 'edit',
-      reward: 10,
+      reward: reward('post', 10),
       done: !!state.postReward,
       progress: state.postReward ? 1 : 0,
       total: 1,
@@ -1567,13 +1571,13 @@ function flowsTaskList() {
     {
       id: 'address',
       icon: 'pin',
-      reward: 10,
+      reward: reward('address', 10),
       done: !!state.addressReward,
       progress: state.addressReward ? 1 : 0,
       total: 1,
       action: 'addresses',
     },
-  ];
+  ].filter(task => !(Array.isArray(hidden) && hidden.includes(task.id)));
 }
 function flowsTasks() {
   return flowsOpen('tasks', { title: t('flows.tasks.title'), body: flowsTasksBody });
@@ -1685,9 +1689,8 @@ function flowsAddressForm(id) {
       if ((location?.countryCode || 'MY') === 'MY' && !/^\d{5}$/.test(data.postcode || ''))
         return flowsFieldError(postcode, t('flows.address.postcodeError'));
       if (SZ.server && SZ.session.isLoggedIn) {
-        let res;
         try {
-          res = await SZ.api.act(isNew ? 'POST' : 'PUT', isNew ? 'addresses' : 'addresses/' + encodeURIComponent(a.id), {
+          await SZ.api.act(isNew ? 'POST' : 'PUT', isNew ? 'addresses' : 'addresses/' + encodeURIComponent(a.id), {
             name: data.name,
             phone: data.phone,
             address: data.address,
@@ -1699,9 +1702,11 @@ function flowsAddressForm(id) {
         } catch (e) {
           return SZ.api.fail(e);
         }
+        // The first-address beans belong to the growth module's task "address" (server-verified).
+        const reward = state.addressReward ? null : await window.ShizhongTasks?.claim?.('address')?.catch?.(() => null);
         flowsDone(layer);
         flowsRefresh('addresses', 'settings', 'tasks');
-        toast(res.reward ? t('flows.address.savedReward', { n: res.reward }) : t('flows.address.saved'), { type: 'success' });
+        toast(reward?.points ? t('flows.address.savedReward', { n: reward.points }) : t('flows.address.saved'), { type: 'success' });
         return;
       }
       const record = {
@@ -1911,14 +1916,15 @@ async function flowsProfileSubmitServer({ data, form, layer, name, bio, photo, i
     return SZ.api.fail(e);
   }
   SZ.api.apply(res.state);
-  if (res.reward) SZ.api.apply(res.reward.state);
+  const reward = res.reward || (state.profileReward ? null : await window.ShizhongTasks?.claim('profile'));
+  if (reward?.state) SZ.api.apply(reward.state);
   flowsUploadCommit(form);
   if (oldPhoto !== photo && SZ.media.isRef(oldPhoto)) SZ.media.remove(oldPhoto).catch(() => {});
   SZ.accounts.update(SZ.session.accountId, { name, avatar: photo });
   flowsDone(layer);
   flowsRender();
   flowsRefresh('settings', 'tasks');
-  toast(res.reward?.points ? t('flows.profile.savedReward', { n: res.reward.points }) : t('flows.profile.saved'), { type: 'success' });
+  toast(reward?.points ? t('flows.profile.savedReward', { n: reward.points }) : t('flows.profile.saved'), { type: 'success' });
 }
 function flowsProfileSubmit(data, form, layer, shown = {}) {
   const before = state.profile;

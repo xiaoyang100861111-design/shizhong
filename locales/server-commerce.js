@@ -91,7 +91,6 @@ SZ_I18N.extend('zh-CN', {
       couponGranted: '你收到一张优惠券',
       couponGrantedBody: '「{name}」{money} 已放入你的券包',
     },
-    bill: { addressReward: '首次保存地址奖励 {n} 金豆' },
     real: {
       footnote: '价格、库存和评价以商家实际为准。',
       detailNote: '下单后由商家确认，价格和服务内容以订单详情为准。',
@@ -206,7 +205,6 @@ SZ_I18N.extend('en', {
       couponGranted: 'You got a coupon',
       couponGrantedBody: '“{name}” worth {money} is in your coupons',
     },
-    bill: { addressReward: 'First saved address: {n} beans' },
     real: {
       footnote: 'Prices, stock and reviews are set by each shop.',
       detailNote: 'The shop confirms your order; the order details show the final price and scope.',

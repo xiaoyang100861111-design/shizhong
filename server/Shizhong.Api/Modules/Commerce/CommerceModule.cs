@@ -9,13 +9,13 @@ namespace Shizhong.Api.Modules.Commerce;
 /// Commerce: catalogue (categories, merchants, services, banners, search), favourites, reviews, cart, addresses,
 /// coupons, checkout and orders (server-side pricing, wallet payment, status machine, refunds), after-sales and
 /// merchant applications, merchant settlements; console pages for all of it plus the merchant self-service shop.
-/// State keys owned: orders, cart, saved, reviews, address, addressReward, coupons.
+/// State keys owned: orders, cart, saved, reviews, address, coupons (addressReward belongs to growth).
 /// </summary>
 public sealed partial class CommerceModule : IModule
 {
     public int Order => 100;
 
-    public IEnumerable<string> OwnedStateKeys => ["orders", "cart", "saved", "reviews", "address", "addressReward", "coupons"];
+    public IEnumerable<string> OwnedStateKeys => ["orders", "cart", "saved", "reviews", "address", "coupons"];
 
     public static readonly Dictionary<string, object> DefaultFees = new()
     {
@@ -85,7 +85,6 @@ public sealed partial class CommerceModule : IModule
         new("orders.projectLimit", "orders", 300, "int", "App 内显示最近订单数", "Orders kept in the app", Min: 50, Max: 2000),
 
         ConfigDef.GroupOf("address", "收货地址", "Addresses"),
-        new("address.rewardBeans", "address", 10, "int", "首次保存地址奖励金豆（0 = 不奖励）", "Beans for the first saved address (0 = none)", Public: true, Min: 0, Max: 100000),
         new("address.max", "address", 20, "int", "每人最多地址数", "Max addresses per member", Public: true, Min: 1, Max: 100),
 
         ConfigDef.GroupOf("merchant", "商家与结算", "Merchants & settlement"),
