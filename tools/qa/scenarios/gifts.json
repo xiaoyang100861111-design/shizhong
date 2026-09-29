@@ -206,6 +206,33 @@
         "expect": "!!SZ.overlay.$('[data-action=gift-wear]')",
         "msg": "detail refreshed with the decorate button"
       }
+    ],
+    "serverSteps": [
+      {
+        "eval": "window.__before = { owned: state.gifts.owned.rose || 0, wallet: state.wallet, bought: state.gifts.purchases.length }, ShizhongGifts.openDetail('rose'), true"
+      },
+      {
+        "click": "[data-action=gift-buy]"
+      },
+      {
+        "expect": "!!document.querySelector('.sz-confirm .gf-summary')",
+        "msg": "purchase asks for confirmation"
+      },
+      {
+        "shot": "confirm"
+      },
+      {
+        "click": "[data-sz-confirm='1']",
+        "settle": 1200
+      },
+      {
+        "expect": "state.gifts.owned.rose === __before.owned + 1",
+        "msg": "owned +1 (paid in gold beans on the server)"
+      },
+      {
+        "expect": "!!SZ.overlay.$('[data-action=gift-wear]')",
+        "msg": "detail refreshed with the decorate button"
+      }
     ]
   },
   {
@@ -233,7 +260,9 @@
         "expect": "SZ.overlay.top().meta.gift === 'detail' && state.wallet >= 199999",
         "msg": "top-up closes back to the detail"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "gifts cost gold beans on the server; the demo account has enough"
   },
   {
     "name": "gifts-collection",
@@ -259,6 +288,24 @@
       {
         "expect": "document.activeElement?.id === 'gf-tab-received'",
         "msg": "focus stays on the tab"
+      }
+    ],
+    "serverSteps": [
+      {
+        "eval": "ShizhongGifts.openCollection(),true"
+      },
+      {
+        "expect": "document.querySelectorAll('.gf-collection [role=tab]').length === 4",
+        "msg": "four tabs"
+      },
+      {
+        "shot": "owned"
+      },
+      {
+        "click": ".gf-collection [role=tab][data-id=received]"
+      },
+      {
+        "wait": 100
       }
     ]
   },
@@ -411,6 +458,32 @@
         "expect": "state.gifts.decoration.customImage.startsWith('media:') && getComputedStyle(document.querySelector('#app .gf-hero .gf-cover')).backgroundImage.includes('blob:')",
         "msg": "hero shows the uploaded cover"
       }
+    ],
+    "serverSteps": [
+      {
+        "eval": "ShizhongGifts.openStudio(),true"
+      },
+      {
+        "eval": "(async()=>{const c=document.createElement('canvas');c.width=640;c.height=320;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,640,320);g.addColorStop(0,'#2b5876');g.addColorStop(1,'#4e4376');x.fillStyle=g;x.fillRect(0,0,640,320);const b=await new Promise(r=>c.toBlob(r,'image/png'));const dt=new DataTransfer();dt.items.add(new File([b],'cover.png',{type:'image/png'}));const i=SZ.overlay.$('[data-gf-upload]');i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "expect": "SZ.overlay.top().gfStudio.draft.customImage.startsWith('media:') && SZ.overlay.top().gfStudio.draft.backgroundId === 'custom'",
+        "msg": "photo stored in SZ.media, not in state"
+      },
+      {
+        "shot": "preview"
+      },
+      {
+        "click": "[data-action=gift-studio-save]",
+        "settle": 1000
+      },
+      {
+        "expect": "state.gifts.decoration.customImage.startsWith('media:') && getComputedStyle(document.querySelector('#app .gf-hero .gf-cover')).backgroundImage.includes('/api/media/')",
+        "msg": "hero shows the uploaded cover (served by the API)"
+      }
     ]
   },
   {
@@ -428,7 +501,9 @@
         "expect": "state.gifts.decoration.customImage.startsWith('media:') && !localStorage.getItem('sz:v2:state:demo').includes('data:image/png;base64')",
         "msg": "legacy data URL moved to IndexedDB"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "IndexedDB migration is offline-only"
   },
   {
     "name": "gifts-studio-roundtrip",
@@ -532,6 +607,52 @@
         "expect": "state.gifts.sent[0].quantity === 10",
         "msg": "sent record"
       }
+    ],
+    "serverSteps": [
+      {
+        "eval": "ShizhongGifts.picker('p1'),true"
+      },
+      {
+        "expect": "SZ.overlay.top()?.meta.gift === 'picker'",
+        "msg": "picker open"
+      },
+      {
+        "click": ".gf-picker [data-action=gift-pick][data-id=coffee]"
+      },
+      {
+        "eval": "SZ.overlay.$('.gf-picker-footer [data-action=gift-qty][data-id=\"10\"]').focus(),true"
+      },
+      {
+        "click": ".gf-picker-footer [data-action=gift-qty][data-id='10']"
+      },
+      {
+        "expect": "document.activeElement?.matches('[data-action=gift-qty][data-id=\"10\"]')",
+        "msg": "quantity keeps focus"
+      },
+      {
+        "shot": "selected"
+      },
+      {
+        "eval": "window.__n = (state.messages.p1 || []).length, window.__w = state.wallet, window.__o = state.gifts.owned.coffee || 0, true"
+      },
+      {
+        "click": "[data-action=gift-picker-send]"
+      },
+      {
+        "wait": 600
+      },
+      {
+        "eval": "(document.querySelector('[data-sz-confirm=\"1\"]')?.click(), true)",
+        "settle": 1200
+      },
+      {
+        "expect": "!SZ.overlay.layers().some(l => l.meta.gift === 'picker')",
+        "msg": "picker closes after sending"
+      },
+      {
+        "expect": "state.messages.p1.length === __n + 1 && state.messages.p1[__n].type === 'gift' && state.messages.p1[__n].quantity === 10",
+        "msg": "gift message with quantity (paid in gold beans on the server)"
+      }
     ]
   },
   {
@@ -581,7 +702,9 @@
         "expect": "state.gifts.received.some(r => r.id === 'friend-demo-u0003-received')",
         "msg": "accepting records a received gift"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "offline sample gifts from ShizhongFriends.demoMessages; server: realtime_check.js accepts a real one"
   },
   {
     "name": "gifts-wallpaper",
@@ -669,7 +792,9 @@
         "expect": "SZ.overlay.top()?.meta.gift === 'qr-public' && !!SZ.overlay.$('.pq-warning')",
         "msg": "public card labelled as unverified"
       }
-    ]
+    ],
+    "serverSkip": true,
+    "serverNote": "the offline card ID 12345678 does not exist on the server"
   },
   {
     "name": "gifts-friend-profile",

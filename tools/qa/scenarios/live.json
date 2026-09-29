@@ -3,189 +3,485 @@
   "name": "live-room",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 2600 },
-   { "expect": "ShizhongLive.isOpen() && SZ.overlay.top().meta.kind==='room' && document.querySelectorAll('.lr-room .lr-msg').length>=6", "msg": "room is an overlay layer with seeded comments" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 2600
+   },
+   {
+    "expect": "ShizhongLive.isOpen() && SZ.overlay.top().meta.kind==='room' && document.querySelectorAll('.lr-room .lr-msg').length>=6",
+    "msg": "room is an overlay layer with seeded comments"
+   }
   ]
  },
  {
   "name": "live-room-back",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1500 },
-   { "back": true },
-   { "wait": 600 },
-   { "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===0", "msg": "back closes the live room" },
-   { "expect": "!!window.SZ_BOOTED && ui.page==='live' && !ShizhongLive.isOpen()", "msg": "still in the app on the Live tab" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "document.querySelectorAll('#overlay-root > [data-sz-layer]').length===0",
+    "msg": "back closes the live room"
+   },
+   {
+    "expect": "!!window.SZ_BOOTED && ui.page==='live' && !ShizhongLive.isOpen()",
+    "msg": "still in the app on the Live tab"
+   }
   ]
  },
  {
   "name": "live-profile-card-back",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "click": ".lr-room .lr-host-main" },
-   { "wait": 500 },
-   { "expect": "SZ.overlay.top().meta.kind==='lr-card' && SZ.overlay.depth()===2", "msg": "profile card over the room" },
-   { "shot": "card" },
-   { "eval": "window.__n=document.querySelectorAll('.lr-room .lr-msg').length, true" },
-   { "wait": 2600 },
-   { "expect": "document.querySelectorAll('.lr-room .lr-msg').length===window.__n", "msg": "comments pause while covered" },
-   { "back": true },
-   { "wait": 3000 },
-   { "expect": "SZ.overlay.depth()===1 && ShizhongLive.isOpen() && document.querySelectorAll('.lr-room .lr-msg').length>window.__n", "msg": "back closes the card and the room resumes" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "click": ".lr-room .lr-host-main"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.top().meta.kind==='lr-card' && SZ.overlay.depth()===2",
+    "msg": "profile card over the room"
+   },
+   {
+    "shot": "card"
+   },
+   {
+    "eval": "window.__n=document.querySelectorAll('.lr-room .lr-msg').length, true"
+   },
+   {
+    "wait": 2600
+   },
+   {
+    "expect": "document.querySelectorAll('.lr-room .lr-msg').length===window.__n",
+    "msg": "comments pause while covered"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 3000
+   },
+   {
+    "expect": "SZ.overlay.depth()===1 && ShizhongLive.isOpen() && document.querySelectorAll('.lr-room .lr-msg').length>window.__n",
+    "msg": "back closes the card and the room resumes"
+   }
   ]
  },
  {
   "name": "live-gift-panel",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "click": ".lr-room [data-action=lr-gifts]" },
-   { "wait": 500 },
-   { "expect": "SZ.overlay.top().meta.kind==='lr-gifts' && document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile').length>=8", "msg": "gift panel" },
-   { "expect": "[...document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile img')].every(i=>/gift-art\\//.test(i.getAttribute('src')))", "msg": "tiles use the gift-art manifest" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "click": ".lr-room [data-action=lr-gifts]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.top().meta.kind==='lr-gifts' && document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile').length>=8",
+    "msg": "gift panel"
+   },
+   {
+    "expect": "[...document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile img')].every(i=>/gift-art\\//.test(i.getAttribute('src')))",
+    "msg": "tiles use the gift-art manifest"
+   }
   ]
  },
  {
   "name": "live-gift-select-inplace",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "click": ".lr-room [data-action=lr-gifts]" },
-   { "wait": 500 },
-   { "click": "[data-action=lr-gift-tab][data-id=盛世华章]" },
-   { "wait": 300 },
-   { "eval": "(()=>{const s=SZ.overlay.top().el.querySelector('.lr-gift-body');s.scrollTop=420;window.__sheet=s;window.__st=s.scrollTop;const tiles=s.querySelectorAll('.lr-gift-tile');window.__tile=tiles[tiles.length-2];window.__tile.focus({preventScroll:true});window.__tile.click();return true})()" },
-   { "wait": 300 },
-   { "expect": "SZ.overlay.top().el.querySelector('.lr-gift-body')===window.__sheet && Math.abs(window.__sheet.scrollTop-window.__st)<2 && window.__tile.isConnected && window.__tile.getAttribute('aria-pressed')==='true' && document.activeElement===window.__tile", "msg": "selection updates in place (scroll and focus kept)" },
-   { "expect": "document.querySelector('.lr-gift-detail strong').textContent===window.__tile.querySelector('.lr-gift-name').textContent", "msg": "detail shows the selected gift" },
-   { "click": "[data-action=lr-gift-tab][data-id=大马风情]" },
-   { "wait": 300 },
-   { "expect": "document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile').length===12", "msg": "Malaysia series tab" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "click": ".lr-room [data-action=lr-gifts]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": "[data-action=lr-gift-tab][data-id=盛世华章]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "eval": "(()=>{const s=SZ.overlay.top().el.querySelector('.lr-gift-body');s.scrollTop=420;window.__sheet=s;window.__st=s.scrollTop;const tiles=s.querySelectorAll('.lr-gift-tile');window.__tile=tiles[tiles.length-2];window.__tile.focus({preventScroll:true});window.__tile.click();return true})()"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.top().el.querySelector('.lr-gift-body')===window.__sheet && Math.abs(window.__sheet.scrollTop-window.__st)<2 && window.__tile.isConnected && window.__tile.getAttribute('aria-pressed')==='true' && document.activeElement===window.__tile",
+    "msg": "selection updates in place (scroll and focus kept)"
+   },
+   {
+    "expect": "document.querySelector('.lr-gift-detail strong').textContent===window.__tile.querySelector('.lr-gift-name').textContent",
+    "msg": "detail shows the selected gift"
+   },
+   {
+    "click": "[data-action=lr-gift-tab][data-id=大马风情]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "document.querySelectorAll('.lr-sheet-gifts .lr-gift-tile').length===12",
+    "msg": "Malaysia series tab"
+   }
   ]
  },
  {
   "name": "live-gift-combo",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "eval": "window.__h=state.live.giftHistory.length, window.__p=state.points, true" },
-   { "click": ".lr-room [data-action=lr-gifts]" },
-   { "wait": 400 },
-   { "click": "[data-action=lr-send-gift]" },
-   { "wait": 300 },
-   { "expect": "SZ.overlay.top().meta.kind==='room' && !!document.querySelector('.lr-room .lr-gift-btn.lr-combo[data-action=lr-combo]')", "msg": "send button becomes combo" },
-   { "click": ".lr-room [data-action=lr-combo]", "settle": 200 },
-   { "expect": "state.live.giftHistory.length===Math.min(100,window.__h+2) && state.points<window.__p && /2/.test(document.querySelector('.lr-combo-text').textContent)", "msg": "combo sends again" },
-   { "shot": "effect" },
-   { "wait": 1600 },
-   { "expect": "document.querySelectorAll('.lr-room .lr-msg-hostline').length>0", "msg": "host thanks after the gift" },
-   { "wait": 2200 },
-   { "expect": "!document.querySelector('.lr-room .lr-combo')", "msg": "combo expires after 3 s" },
-   { "expect": "state.sentGifts.length<=200 && state.live.giftHistory.length<=100 && !!state.sentGifts[0].giftId", "msg": "capped history with gift ids" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "eval": "window.__h=state.live.giftHistory.length, window.__p=state.points, true"
+   },
+   {
+    "click": ".lr-room [data-action=lr-gifts]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-action=lr-send-gift]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.top().meta.kind==='room' && !!document.querySelector('.lr-room .lr-gift-btn.lr-combo[data-action=lr-combo]')",
+    "msg": "send button becomes combo"
+   },
+   {
+    "click": ".lr-room [data-action=lr-combo]",
+    "settle": 200
+   },
+   {
+    "expect": "state.live.giftHistory.length===Math.min(100,window.__h+2) && state.points<window.__p && /2/.test(document.querySelector('.lr-combo-text').textContent)",
+    "msg": "combo sends again"
+   },
+   {
+    "shot": "effect"
+   },
+   {
+    "wait": 1600
+   },
+   {
+    "expect": "document.querySelectorAll('.lr-room .lr-msg-hostline').length>0",
+    "msg": "host thanks after the gift"
+   },
+   {
+    "wait": 2200
+   },
+   {
+    "expect": "!document.querySelector('.lr-room .lr-combo')",
+    "msg": "combo expires after 3 s"
+   },
+   {
+    "expect": "state.sentGifts.length<=200 && state.live.giftHistory.length<=100 && !!state.sentGifts[0].giftId",
+    "msg": "capped history with gift ids"
+   }
   ]
  },
  {
   "name": "live-swipe",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "eval": "(()=>{window.__first=SZ.overlay.top().meta.hostId;const el=document.querySelector('.lr-room .lr-caption');const tp=y=>new Touch({identifier:1,target:el,clientX:200,clientY:y});el.dispatchEvent(new TouchEvent('touchstart',{touches:[tp(600)],changedTouches:[tp(600)],bubbles:true,cancelable:true}));for(const y of [585,540,440,300])el.dispatchEvent(new TouchEvent('touchmove',{touches:[tp(y)],changedTouches:[tp(y)],bubbles:true,cancelable:true}));el.dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[tp(300)],bubbles:true,cancelable:true}));return true})()" },
-   { "wait": 900 },
-   { "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().meta.hostId!==window.__first", "msg": "swipe up opens the next room in the same layer" },
-   { "eval": "ShizhongLive.prev(), true" },
-   { "wait": 900 },
-   { "expect": "SZ.overlay.top().meta.hostId===window.__first", "msg": "prev returns to the first room" },
-   { "expect": "!!document.querySelector('.lr-peek-next img') && !!document.querySelector('.lr-peek-prev img')", "msg": "neighbour covers pre-warmed" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "eval": "(()=>{window.__first=SZ.overlay.top().meta.hostId;const el=document.querySelector('.lr-room .lr-caption');const tp=y=>new Touch({identifier:1,target:el,clientX:200,clientY:y});el.dispatchEvent(new TouchEvent('touchstart',{touches:[tp(600)],changedTouches:[tp(600)],bubbles:true,cancelable:true}));for(const y of [585,540,440,300])el.dispatchEvent(new TouchEvent('touchmove',{touches:[tp(y)],changedTouches:[tp(y)],bubbles:true,cancelable:true}));el.dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[tp(300)],bubbles:true,cancelable:true}));return true})()"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().meta.hostId!==window.__first",
+    "msg": "swipe up opens the next room in the same layer"
+   },
+   {
+    "eval": "ShizhongLive.prev(), true"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "SZ.overlay.top().meta.hostId===window.__first",
+    "msg": "prev returns to the first room"
+   },
+   {
+    "expect": "!!document.querySelector('.lr-peek-next img') && !!document.querySelector('.lr-peek-prev img')",
+    "msg": "neighbour covers pre-warmed"
+   }
   ]
  },
  {
   "name": "live-next-filter",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=live-filter][data-id=travel]" },
-   { "wait": 600 },
-   { "click": "[data-action=room]" },
-   { "wait": 1200 },
-   { "eval": "ShizhongLive.next(), true" },
-   { "wait": 900 },
-   { "expect": "people.find(p=>p.id===SZ.overlay.top().meta.hostId).topic==='旅行分享'", "msg": "next room respects the Live filter" }
+   {
+    "click": "[data-action=live-filter][data-id=travel]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "eval": "ShizhongLive.next(), true"
+   },
+   {
+    "wait": 900
+   },
+   {
+    "expect": "people.find(p=>p.id===SZ.overlay.top().meta.hostId).topic==='旅行分享'",
+    "msg": "next room respects the Live filter"
+   }
   ]
  },
  {
   "name": "live-likes",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1000 },
-   { "eval": "window.__id=SZ.overlay.top().meta.hostId, window.__l=Number(state.live.likes[window.__id])||0, true" },
-   { "click": ".lr-room [data-action=lr-like]", "settle": 100 },
-   { "click": ".lr-room [data-action=lr-like]" },
-   { "wait": 500 },
-   { "expect": "state.live.likes[window.__id]===window.__l+2 && JSON.parse(localStorage.getItem(SZ.store.key())).live.likes[window.__id]===window.__l+2", "msg": "likes persist per host" }
-  ]
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1000
+   },
+   {
+    "eval": "window.__id=SZ.overlay.top().meta.hostId, window.__l=Number(state.live.likes[window.__id])||0, true"
+   },
+   {
+    "click": ".lr-room [data-action=lr-like]",
+    "settle": 100
+   },
+   {
+    "click": ".lr-room [data-action=lr-like]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "state.live.likes[window.__id]===window.__l+2 && JSON.parse(localStorage.getItem(SZ.store.key())).live.likes[window.__id]===window.__l+2",
+    "msg": "likes persist per host"
+   }
+  ],
+  "serverSkip": true,
+  "serverNote": "reads the local save"
  },
  {
   "name": "live-report",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1000 },
-   { "click": ".lr-room [data-action=lr-more]" },
-   { "wait": 400 },
-   { "shot": "more" },
-   { "click": ".lr-sheet-more [data-action=lr-report]" },
-   { "wait": 400 },
-   { "submit": ".lr-report" },
-   { "expect": "!document.querySelector('.lr-report .form-error').hidden", "msg": "reason is required" },
-   { "click": ".lr-report input[name=reason][value=spam]" },
-   { "submit": ".lr-report" },
-   { "wait": 300 },
-   { "expect": "state.feedback[0].context==='live' && state.feedback[0].reason==='spam' && SZ.overlay.top().meta.kind==='room'", "msg": "report saved, back in the room" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1000
+   },
+   {
+    "click": ".lr-room [data-action=lr-more]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "shot": "more"
+   },
+   {
+    "click": ".lr-sheet-more [data-action=lr-report]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "submit": ".lr-report"
+   },
+   {
+    "expect": "!document.querySelector('.lr-report .form-error').hidden",
+    "msg": "reason is required"
+   },
+   {
+    "click": ".lr-report input[name=reason][value=spam]"
+   },
+   {
+    "submit": ".lr-report"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.feedback[0].context==='live' && state.feedback[0].reason==='spam' && SZ.overlay.top().meta.kind==='room'",
+    "msg": "report saved, back in the room"
+   }
+  ],
+  "serverSteps": [
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1000
+   },
+   {
+    "click": ".lr-room [data-action=lr-more]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "shot": "more"
+   },
+   {
+    "click": ".lr-sheet-more [data-action=lr-report]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "submit": ".lr-report"
+   },
+   {
+    "expect": "!document.querySelector('.lr-report .form-error').hidden",
+    "msg": "reason is required"
+   },
+   {
+    "click": ".lr-report input[name=reason][value=spam]"
+   },
+   {
+    "submit": ".lr-report"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.feedback[0].reason==='spam' && ['live-room','person'].includes(state.feedback[0].targetType) && SZ.overlay.top().meta.kind==='room'",
+    "msg": "report saved on the server, back in the room"
+   }
   ]
  },
  {
   "name": "live-block-host",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1000 },
-   { "eval": "window.__host=SZ.overlay.top().meta.hostId, true" },
-   { "click": ".lr-room [data-action=lr-more]" },
-   { "wait": 300 },
-   { "click": ".lr-sheet-more [data-action=lr-block]" },
-   { "wait": 400 },
-   { "click": "[data-sz-confirm='1']" },
-   { "wait": 600 },
-   { "expect": "state.blocked.includes(window.__host) && ShizhongLive.isOpen() && SZ.overlay.top().meta.kind==='room' && SZ.overlay.top().meta.hostId!==window.__host", "msg": "blocking the host moves to the next room" },
-   { "eval": "SZ.store.commit(s=>{s.blocked=s.blocked.filter(x=>x!==window.__host)}), true" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1000
+   },
+   {
+    "eval": "window.__host=SZ.overlay.top().meta.hostId, true"
+   },
+   {
+    "click": ".lr-room [data-action=lr-more]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "click": ".lr-sheet-more [data-action=lr-block]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "state.blocked.includes(window.__host) && ShizhongLive.isOpen() && SZ.overlay.top().meta.kind==='room' && SZ.overlay.top().meta.hostId!==window.__host",
+    "msg": "blocking the host moves to the next room"
+   },
+   {
+    "eval": "SZ.store.commit(s=>{s.blocked=s.blocked.filter(x=>x!==window.__host)}), true"
+   }
   ]
  },
  {
   "name": "live-square",
   "hash": "home",
   "steps": [
-   { "eval": "ShizhongLive.open('p1'), true" },
-   { "wait": 800 },
-   { "click": ".lr-room [data-action=lr-square]" },
-   { "wait": 500 },
-   { "expect": "SZ.overlay.depth()===0 && ui.page==='live' && ui.liveTab==='public'", "msg": "Live square returns to the Live tab" }
+   {
+    "eval": "ShizhongLive.open('p1'), true"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "click": ".lr-room [data-action=lr-square]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth()===0 && ui.page==='live' && ui.liveTab==='public'",
+    "msg": "Live square returns to the Live tab"
+   }
   ]
  },
  {
   "name": "live-deeplink",
   "hash": "room/p2",
   "steps": [
-   { "wait": 1200 },
-   { "expect": "ShizhongLive.isOpen() && SZ.overlay.top().meta.hostId==='p2'", "msg": "#room/<id> opens the room" },
-   { "expect": "SZ.routes.link('room','p2').endsWith('#room/p2')", "msg": "share link" }
+   {
+    "wait": 1200
+   },
+   {
+    "expect": "ShizhongLive.isOpen() && SZ.overlay.top().meta.hostId==='p2'",
+    "msg": "#room/<id> opens the room"
+   },
+   {
+    "expect": "SZ.routes.link('room','p2').endsWith('#room/p2')",
+    "msg": "share link"
+   }
   ]
  },
  {
@@ -193,45 +489,108 @@
   "hash": "live",
   "session": "guest",
   "steps": [
-   { "click": "[data-action=room]" },
-   { "wait": 1000 },
-   { "click": ".lr-room [data-action=lr-gifts]" },
-   { "wait": 400 },
-   { "click": "[data-action=lr-send-gift]" },
-   { "wait": 500 },
-   { "expect": "state.live.giftHistory.length===0 && SZ.overlay.top().meta.kind!=='lr-gifts'", "msg": "guests are asked to sign in before sending" }
+   {
+    "click": "[data-action=room]"
+   },
+   {
+    "wait": 1000
+   },
+   {
+    "click": ".lr-room [data-action=lr-gifts]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-action=lr-send-gift]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "state.live.giftHistory.length===0 && SZ.overlay.top().meta.kind!=='lr-gifts'",
+    "msg": "guests are asked to sign in before sending"
+   }
   ]
  },
  {
   "name": "live-start",
   "hash": "live",
   "steps": [
-   { "click": "[data-action=start-live]" },
-   { "wait": 400 },
-   { "expect": "SZ.overlay.top().meta.kind==='lr-start' && SZ.overlay.depth()===1", "msg": "start-live form (live module, not the flows fallback)" },
-   { "eval": "document.querySelector('#lr-start-title').value='', true" },
-   { "submit": ".lr-start" },
-   { "expect": "!document.querySelector('#lr-start-error').hidden", "msg": "title required" },
-   { "shot": "form" },
-   { "type": "#lr-start-title", "value": "QA evening chat" },
-   { "submit": ".lr-start" },
-   { "wait": 7500 },
-   { "expect": "SZ.overlay.top().meta.host===true && document.querySelectorAll('.lr-host-room .lr-msg').length>=3 && document.querySelector('.lr-host-room .lr-viewer-count').textContent!=='0'", "msg": "host preview with simulated viewers" },
-   { "shot": "host" },
-   { "click": ".lr-host-room [data-action=lr-end-live]" },
-   { "wait": 400 },
-   { "click": "[data-sz-confirm='1']" },
-   { "wait": 600 },
-   { "expect": "SZ.overlay.top().meta.kind==='lr-summary' && state.live.myLives[0].title==='QA evening chat'", "msg": "end-live summary" }
-  ]
+   {
+    "click": "[data-action=start-live]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.top().meta.kind==='lr-start' && SZ.overlay.depth()===1",
+    "msg": "start-live form (live module, not the flows fallback)"
+   },
+   {
+    "eval": "document.querySelector('#lr-start-title').value='', true"
+   },
+   {
+    "submit": ".lr-start"
+   },
+   {
+    "expect": "!document.querySelector('#lr-start-error').hidden",
+    "msg": "title required"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "type": "#lr-start-title",
+    "value": "QA evening chat"
+   },
+   {
+    "submit": ".lr-start"
+   },
+   {
+    "wait": 7500
+   },
+   {
+    "expect": "SZ.overlay.top().meta.host===true && document.querySelectorAll('.lr-host-room .lr-msg').length>=3 && document.querySelector('.lr-host-room .lr-viewer-count').textContent!=='0'",
+    "msg": "host preview with simulated viewers"
+   },
+   {
+    "shot": "host"
+   },
+   {
+    "click": ".lr-host-room [data-action=lr-end-live]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "SZ.overlay.top().meta.kind==='lr-summary' && state.live.myLives[0].title==='QA evening chat'",
+    "msg": "end-live summary"
+   }
+  ],
+  "serverSkip": true,
+  "serverNote": "simulated viewers; real go-live needs Cloudflare Realtime"
  },
  {
   "name": "live-gift-wall",
   "hash": "me",
   "steps": [
-   { "eval": "SZ.actions.dispatch('gift-wall'), true" },
-   { "wait": 400 },
-   { "expect": "SZ.overlay.top().el.classList.contains('lr-history-screen')", "msg": "live gift history screen" }
+   {
+    "eval": "SZ.actions.dispatch('gift-wall'), true"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.top().el.classList.contains('lr-history-screen')",
+    "msg": "live gift history screen"
+   }
   ]
  }
 ]

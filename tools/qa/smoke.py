@@ -254,7 +254,7 @@ async def run(args):
                 if args.server:  # the server's demo account talks to personas: p1–p3's chats (offline seed) → seeded ones
                     text = json.dumps(steps)
                     for legacy, persona in (("p1", "u0040"), ("p2", "u0058"), ("p3", "u0033")):
-                        text = re.sub(r"(=|'|:)%s(\]|')" % legacy, r"\g<1>%s\g<2>" % persona, text)
+                        text = re.sub(r"\b%s\b" % legacy, persona, text)
                     steps = json.loads(text)
                 for i, st in enumerate(steps):
                     try:

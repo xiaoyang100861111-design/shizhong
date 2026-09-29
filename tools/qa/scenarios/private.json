@@ -504,7 +504,9 @@
     "expect": "!!(document.querySelector('.oo-room').dataset.phase==='ended' && state.oneToOne.calls[0].reason==='balance')",
     "msg": "auto end at zero"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "the server bills and ends calls (PrivateModule)"
  },
  {
   "name": "private-no-answer",
@@ -616,7 +618,9 @@
     "expect": "!!(state.oneToOne.calls.length===0 && SZ.overlay.top()?.meta.view==='private-history')",
     "msg": "delete returns to the list"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "server history keeps earlier calls; counts differ"
  },
  {
   "name": "private-block",
