@@ -223,7 +223,7 @@
     if (!person || !profile) return '';
     const api = window.ShizhongGifts;
     const name = personName(person);
-    const src = person.animatedAvatar || person.photo || 'avatars/women-000.jpg';
+    const src = person.animatedAvatar || person.photo || 'avatars/women-000.webp';
     const img = `<img class="avatar fs-avatar-img" src="${esc(asset(src))}" alt="${esc(t('gifts.friend.avatarAlt', { name }))}" width="88" height="88" decoding="async">`;
     const avatar = api?.charmed ? api.charmed(img, profile.avatarFrameId, 'hero') : img;
     if (profile.real) refreshSoon(person.id);

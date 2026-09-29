@@ -2,7 +2,7 @@
   <div class="login">
     <div class="card">
       <div class="brand">
-        <img src="/assets/optimized/logo.jpg" alt="" />
+        <img src="/assets/optimized/logo.webp" alt="" />
         <div>
           <h1>{{ t('app.name') }}</h1>
           <p>{{ t('login.welcome') }}</p>

@@ -17,20 +17,20 @@ public sealed partial class CatalogImport(Db db, DemoData demo, CatalogStore sto
     // id, icon, color, bg, badge, home, zh name, zh hint, en name, en hint, fallback image
     static readonly (string Id, string Icon, string Color, string Bg, string Badge, bool Home, string Name, string Hint, string NameEn, string HintEn, string Image)[] Cats =
     [
-        ("clean", "clean", "#ed8063", "#fff0e9", "", true, "上门服务", "家政保洁、空调清洗", "Home services", "Cleaning, aircon servicing and more", "clean-home.jpg"),
-        ("guide", "guide", "#e8ad36", "#fff5d8", "", true, "当地地陪", "有人带路，更懂大马", "Local guides", "Explore with someone who knows the city", "city-kl.jpg"),
-        ("market", "cart", "#e67e4c", "#fff0d7", "24H", true, "24H 超市", "生鲜日用，送到家", "24h grocery", "Fresh food and daily needs, delivered", "fresh-fruit.jpg"),
-        ("food", "food", "#e8766b", "#ffefec", "", true, "美食外送", "发现身边的好味道", "Food delivery", "Good food from nearby kitchens", "nasi-lemak.jpg"),
-        ("jobs", "bag", "#8c94c9", "#f1f0fc", "", true, "招聘求职", "好机会，就在附近", "Jobs", "Openings close to home", "cafe-brunch.jpg"),
-        ("car", "car", "#75a0c7", "#edf6ff", "", true, "接送用车", "接机、包车、同城出行", "Rides", "Airport pickups, charters and city rides", "city-kl.jpg"),
-        ("flower", "flower", "#d989a1", "#fff0f6", "", true, "鲜花蛋糕", "把惊喜送给在乎的人", "Flowers & cakes", "Surprise someone you care about", "cake-table.jpg"),
-        ("repair", "tool", "#c39962", "#fcf3e7", "", true, "维修安装", "家电、手机、宽带", "Repairs", "Appliances, phones and broadband", "clean-home.jpg"),
-        ("travel", "plane", "#77aa96", "#edf8ef", "", true, "旅行票务", "去看看，更大的世界", "Travel", "Trips, tickets and day tours", "city-kl.jpg"),
+        ("clean", "clean", "#ed8063", "#fff0e9", "", true, "上门服务", "家政保洁、空调清洗", "Home services", "Cleaning, aircon servicing and more", "clean-home.webp"),
+        ("guide", "guide", "#e8ad36", "#fff5d8", "", true, "当地地陪", "有人带路，更懂大马", "Local guides", "Explore with someone who knows the city", "city-kl.webp"),
+        ("market", "cart", "#e67e4c", "#fff0d7", "24H", true, "24H 超市", "生鲜日用，送到家", "24h grocery", "Fresh food and daily needs, delivered", "fresh-fruit.webp"),
+        ("food", "food", "#e8766b", "#ffefec", "", true, "美食外送", "发现身边的好味道", "Food delivery", "Good food from nearby kitchens", "nasi-lemak.webp"),
+        ("jobs", "bag", "#8c94c9", "#f1f0fc", "", true, "招聘求职", "好机会，就在附近", "Jobs", "Openings close to home", "cafe-brunch.webp"),
+        ("car", "car", "#75a0c7", "#edf6ff", "", true, "接送用车", "接机、包车、同城出行", "Rides", "Airport pickups, charters and city rides", "city-kl.webp"),
+        ("flower", "flower", "#d989a1", "#fff0f6", "", true, "鲜花蛋糕", "把惊喜送给在乎的人", "Flowers & cakes", "Surprise someone you care about", "cake-table.webp"),
+        ("repair", "tool", "#c39962", "#fcf3e7", "", true, "维修安装", "家电、手机、宽带", "Repairs", "Appliances, phones and broadband", "clean-home.webp"),
+        ("travel", "plane", "#77aa96", "#edf8ef", "", true, "旅行票务", "去看看，更大的世界", "Travel", "Trips, tickets and day tours", "city-kl.webp"),
         ("all", "grid", "#89829c", "#f2eff7", "", true, "全部服务", "你的生活所需", "All services", "Everything for everyday life", ""),
-        ("delivery", "bag", "#eaa24b", "#fff3df", "", false, "同城跑腿", "取件、送件、代买", "Errands", "Pick-ups, drop-offs and shopping runs", "fresh-fruit.jpg"),
-        ("beauty", "flower", "#cf809d", "#ffedf5", "", false, "丽人护理", "美甲、美发、日常护理", "Beauty", "Nails, hair and everyday care", "hair-salon.jpg"),
-        ("phone", "phone", "#7893c3", "#ecf3fc", "", false, "话费充值", "话费充值与套餐咨询", "Mobile top-up", "Prepaid top-ups and plan help", "cafe-brunch.jpg"),
-        ("visa", "globe", "#7baa9b", "#eff8f2", "", false, "签证咨询", "材料整理与语言协助", "Visa help", "Help with documents and paperwork", "city-kl.jpg"),
+        ("delivery", "bag", "#eaa24b", "#fff3df", "", false, "同城跑腿", "取件、送件、代买", "Errands", "Pick-ups, drop-offs and shopping runs", "fresh-fruit.webp"),
+        ("beauty", "flower", "#cf809d", "#ffedf5", "", false, "丽人护理", "美甲、美发、日常护理", "Beauty", "Nails, hair and everyday care", "hair-salon.webp"),
+        ("phone", "phone", "#7893c3", "#ecf3fc", "", false, "话费充值", "话费充值与套餐咨询", "Mobile top-up", "Prepaid top-ups and plan help", "cafe-brunch.webp"),
+        ("visa", "globe", "#7baa9b", "#eff8f2", "", false, "签证咨询", "材料整理与语言协助", "Visa help", "Help with documents and paperwork", "city-kl.webp"),
     ];
 
     /// <summary>Record fields kept in columns; everything else of a service record goes to Doc.</summary>
@@ -182,7 +182,7 @@ public sealed partial class CatalogImport(Db db, DemoData demo, CatalogStore sto
         if (await db.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.Banners") > 0) return;
         await db.ExecuteAsync("""
             INSERT INTO dbo.Banners(Position, Image, Kicker, KickerEn, Title, TitleEn, Sub, SubEn, SubAbroad, SubAbroadEn, Cta, CtaEn, ActionName, SortOrder, Enabled)
-            VALUES (N'home', N'hero.png', N'HELLO, MALAYSIA', N'HELLO, MALAYSIA', N'在大马，把日子过成喜欢', N'Make Malaysia feel like home',
+            VALUES (N'home', N'hero.webp', N'HELLO, MALAYSIA', N'HELLO, MALAYSIA', N'在大马，把日子过成喜欢', N'Make Malaysia feel like home',
                     N'地道好生活，就在你身边', N'Local help and good food, close by', N'发现马来西亚的城市好生活', N'Discover everyday life in Malaysia',
                     N'开始探索', N'Explore', N'campaign', 10, 1)
             """);

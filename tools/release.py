@@ -22,8 +22,8 @@ EXCLUDE_FILES = re.compile(
 )
 # Raw sources that are no longer referenced by the site (kept in the repo, not deployed).
 EXCLUDE_ASSETS = [
-    "assets/hero.png",
-    "assets/logo.png",
+    "assets/hero.webp",
+    "assets/logo.webp",
 ]
 # Whole folders superseded by assets/gift-art (originals stay in the repo for re-processing).
 EXCLUDE_ASSET_DIRS = ["assets/oriental/", "assets/live-gifts/"]

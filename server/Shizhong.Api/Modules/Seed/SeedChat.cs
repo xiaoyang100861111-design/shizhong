@@ -126,7 +126,8 @@ public sealed partial class SeedGenerator
         // Photos members send in chats (shared media rows; the app loads them from /api/media/<id>).
         var dir = Path.Combine(siteRoot, "assets", "photos");
         if (Directory.Exists(dir))
-            foreach (var file in Directory.GetFiles(dir, "*.jpg").OrderBy(f => f, StringComparer.Ordinal).Take(24))
+            foreach (var file in Directory.GetFiles(dir, "*.webp").Where(f => !f.EndsWith(".w320.webp", StringComparison.Ordinal))
+                         .OrderBy(f => f, StringComparer.Ordinal).Take(24))
                 chatMedia.Add(("seed" + Hex(20), File.ReadAllBytes(file), Path.GetFileName(file)));
     }
 
@@ -152,7 +153,7 @@ public sealed partial class SeedGenerator
     Msg SayImage(Conv c, SUser sender, DateTime at)
     {
         var (mref, data, name) = Pick(chatMedia);
-        return Say(c, sender, at, "image", "", new JsonObject { ["media"] = "media:" + mref, ["mime"] = "image/jpeg", ["size"] = data.Length, ["w"] = 640, ["h"] = 480, ["name"] = name },
+        return Say(c, sender, at, "image", "", new JsonObject { ["media"] = "media:" + mref, ["mime"] = "image/webp", ["size"] = data.Length, ["w"] = 640, ["h"] = 480, ["name"] = name },
             media: "media:" + mref);
     }
 

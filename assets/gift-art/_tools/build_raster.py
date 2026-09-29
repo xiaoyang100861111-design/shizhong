@@ -172,9 +172,9 @@ def main():
     # 1. Fluent shop gifts
     gdir = os.path.join(ASSETS, 'gifts')
     for fn in sorted(os.listdir(gdir)):
-        if not fn.endswith('.png'):
+        if not fn.endswith(('.png', '.webp')):  # sources are WebP since tools/perf/optimize_images.py
             continue
-        name = fn[:-4]
+        name = os.path.splitext(fn)[0]
         src = os.path.join(gdir, fn)
         im = clean_alpha(Image.open(src).convert('RGBA'), lo=2, hi=253)
         full = im if im.size == (256, 256) else square(trim(im), 256, margin=0.02)
@@ -185,9 +185,9 @@ def main():
     # 2. Oriental renders
     odir = os.path.join(ASSETS, 'oriental')
     for fn in sorted(os.listdir(odir)):
-        if not fn.endswith('.png'):
+        if not fn.endswith(('.png', '.webp')):  # sources are WebP since tools/perf/optimize_images.py
             continue
-        name = fn[:-4]
+        name = os.path.splitext(fn)[0]
         src = os.path.join(odir, fn)
         im = trim(clean_alpha(Image.open(src).convert('RGBA')), pad_ratio=0.015)
         f, how = write(os.path.join(OUT, 'oriental', name + '.png'), fit(im, 512), budget=200000,
@@ -206,7 +206,7 @@ def main():
         a, how = write(os.path.join(OUT, 'live', gid + '.png'), im, quality=(80, 98))
         c, _ = write(os.path.join(OUT, 'live', gid + '.charm.png'), square(trim(im), 96, 0.04),
                      budget=15000, quality=(70, 95))
-        old = os.path.join(ASSETS, 'live-gifts', gid + '.png')
+        old = os.path.join(ASSETS, 'live-gifts', gid + '.webp')
         report.append(('live/' + gid, os.path.getsize(old) if os.path.exists(old) else 0, a, c, how))
         sources['live'][gid] = {
             'emoji': folder,

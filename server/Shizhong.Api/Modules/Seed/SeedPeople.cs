@@ -245,7 +245,7 @@ public sealed partial class SeedGenerator
     string AvatarFor(string? gender)
     {
         avatarFiles ??= Directory.Exists(Path.Combine(siteRoot, "assets", "avatars"))
-            ? Directory.GetFiles(Path.Combine(siteRoot, "assets", "avatars"), "*.jpg").Select(Path.GetFileName).OfType<string>().OrderBy(f => f, StringComparer.Ordinal).ToArray()
+            ? Directory.GetFiles(Path.Combine(siteRoot, "assets", "avatars"), "*.webp").Select(Path.GetFileName).OfType<string>().OrderBy(f => f, StringComparer.Ordinal).ToArray()
             : [];
         var prefix = gender == "女" ? "women-" : "men-";
         var list = avatarFiles.Where(f => f.StartsWith(prefix, StringComparison.Ordinal)).ToArray();

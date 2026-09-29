@@ -49,7 +49,7 @@ public sealed class AdminBootstrap(Db db, ConfigService cfg, ILogger<AdminBootst
                 INSERT INTO dbo.Users(PublicId, DisplayId, Kind, Phone, Email, PasswordHash, Name, Avatar, Bio, City, Language, Interests,
                                       Marketing, TermsAcceptedAt, AgeConfirmed, RegisterMethod, CreatedAt)
                 OUTPUT inserted.Id
-                VALUES ('demo', '88002688', 2, '+60123456789', 'demo@shizhong.my', @h, N'适中生活家', 'animated-avatars/self.png',
+                VALUES ('demo', '88002688', 2, '+60123456789', 'demo@shizhong.my', @h, N'适中生活家', 'animated-avatars/self.webp',
                         N'在吉隆坡生活，喜欢美食、周末短途和认识新朋友。', N'吉隆坡', 'zh', '["food","travel","photography"]',
                         0, SYSUTCDATETIME(), 1, 'demo', '2026-09-01T01:00:00')
                 """, new { h = BCrypt.Net.BCrypt.HashPassword("shizhong2026", 11) });

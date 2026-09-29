@@ -32,7 +32,7 @@
   const TOPIC_KEYS = { 同城聊天: 'local', 旅行分享: 'travel', 语言交流: 'language', 音乐时光: 'music' };
   const LINE_COUNT = { local: 16, travel: 16, language: 16, music: 10 };
   const HOST_LINES = 14;
-  const DEFAULT_COVER = 'city-kl.jpg';
+  const DEFAULT_COVER = 'city-kl.webp';
   const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   // ------------------------------------------------------------------ small helpers

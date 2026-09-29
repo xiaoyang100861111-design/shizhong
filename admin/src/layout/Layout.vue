@@ -2,7 +2,7 @@
   <el-container class="shell">
     <el-aside :width="collapsed ? '64px' : '220px'" class="aside" :class="{ mobileOpen }">
       <div class="brand" @click="$router.push('/')">
-        <img src="/assets/optimized/logo.jpg" alt="" />
+        <img src="/assets/optimized/logo.webp" alt="" />
         <span v-if="!collapsed">{{ t('app.name') }}</span>
       </div>
       <el-scrollbar>

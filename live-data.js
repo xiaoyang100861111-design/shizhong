@@ -595,7 +595,7 @@
     const manifest = window.SHIZHONG_GIFT_ART || {};
     const entry = manifest[gift?.id] || manifest[gift?.artKey] || manifest[ART_KEYS[gift?.id]];
     return (
-      (entry && (entry[size] || entry.full || entry.thumb)) || gift?.fallbackImage || 'gifts/gift-box.png'
+      (entry && (entry[size] || entry.full || entry.thumb)) || gift?.fallbackImage || 'gifts/gift-box.webp'
     );
   }
   function define(source) {

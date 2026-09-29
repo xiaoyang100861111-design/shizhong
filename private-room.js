@@ -80,7 +80,7 @@
   const languagesOf = p => lc('people', p, 'language') || '';
   const statusOf = p =>
     p.online ? t('private.status.online') : lc('people', p, 'activeText') || t('private.status.away');
-  const photoOf = p => asset(p?.photo || 'avatars/women-000.jpg');
+  const photoOf = p => asset(p?.photo || 'avatars/women-000.webp');
   // Low-resolution avatars are shown as a framed "video tile" instead of being stretched full screen.
   const lowRes = p => /(^|\/)avatars\//.test(String(p?.photo || ''));
   function list(kind, record, field) {
