@@ -31,7 +31,10 @@ public sealed class CryptoRates(IHttpClientFactory http, ConfigService cfg, Cryp
             var fixedRates = cfg.Get<Dictionary<string, decimal>>("crypto.fixedRates", []);
             return fixedRates.TryGetValue(coin, out var f) && f > 0 ? new CoinRate(coin, f, Round(f * (1 - markup)), "fixed", DateTime.UtcNow) : null;
         }
-        await RefreshAsync(false, ct);
+        // Only wait for the feed when nothing is cached yet; otherwise refresh in the background so a slow price API
+        // never holds up the deposit page or crediting.
+        if (market.IsEmpty) await RefreshAsync(false, ct);
+        else _ = Task.Run(() => RefreshAsync(false, CancellationToken.None), CancellationToken.None);
         var maxAge = TimeSpan.FromSeconds(Math.Max(60, cfg.Int("crypto.rateMaxAgeSeconds", 3600)));
         if (market.TryGetValue(coin, out var m) && DateTime.UtcNow - m.At < maxAge)
             return new CoinRate(coin, m.Price, Round(m.Price * (1 - markup)), "market", m.At);
