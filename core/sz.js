@@ -1229,10 +1229,11 @@
     },
     estimate: () => navigator.storage?.estimate?.() || Promise.resolve(null),
     /**
-     * Downscale a photo before storing it. Animated formats (GIF, APNG) are kept as-is.
-     * Resolves to a Blob.
+     * Downscale a photo before storing / uploading it: WebP where the browser can encode it (Chrome, Android
+     * WebView; keeps PNG transparency), else JPEG (Safari). Animated formats (GIF, APNG) are kept as-is, and so
+     * is the original when re-encoding would not make it smaller. Resolves to a Blob.
      */
-    async compress(file, { max = 1280, quality = 0.82, type = 'image/jpeg' } = {}) {
+    async compress(file, { max = 1280, quality = 0.82, type = '' } = {}) {
       if (!/^image\/(jpeg|png|webp)$/.test(file.type) || (file.type === 'image/png' && (await isAnimatedPng(file)))) return file;
       const bitmap = await loadBitmap(file);
       const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
@@ -1241,7 +1242,9 @@
       canvas.width = Math.round(bitmap.width * scale);
       canvas.height = Math.round(bitmap.height * scale);
       canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      return new Promise(resolve => canvas.toBlob(b => resolve(b || file), type, quality));
+      const out = type || (canEncodeWebp() ? 'image/webp' : 'image/jpeg');
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, out, quality));
+      return blob && (scale < 1 || blob.size < file.size) ? blob : file;
     },
   };
   // Server mode, signed in: files are uploaded to /api/media; refs stay 'media:<id>' and load from the server.
@@ -1266,6 +1269,18 @@
       estimate: () => Promise.resolve(null),
       remote: true,
     });
+  }
+  let webpEncode = null;
+  function canEncodeWebp() {
+    if (webpEncode === null)
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 1;
+        webpEncode = c.toDataURL('image/webp').startsWith('data:image/webp');
+      } catch (_) {
+        webpEncode = false;
+      }
+    return webpEncode;
   }
   async function isAnimatedPng(file) {
     const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
