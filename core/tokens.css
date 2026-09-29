@@ -57,9 +57,18 @@
   --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px #1d4ed8;
 
   /* type */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
-  --font-num: 'SF Pro Display', 'Segoe UI', Roboto, system-ui, sans-serif;
+  /* One font system (no web fonts: system faces only, nothing to download before first paint).
+     --font-sans  every UI text: Chinese, English and Malay on iOS / Android / Windows / macOS
+     --font-num   money, counts, times: the platform's Latin UI face first (SF / Segoe UI / Roboto digits),
+                  the same CJK faces after it; pair with font-variant-numeric: tabular-nums (.num, .price)
+     --font-mono  codes, addresses, hashes
+     --font-display-serif  decorative only: oriental gift effects (oriental-effects.css) */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC',
+    'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+  --font-num: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans CJK SC', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Roboto Mono', monospace;
+  --font-display-serif: Georgia, 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Noto Serif SC', 'SimSun', serif;
   --fs-11: 0.6875rem; /* minimum: badges, legal */
   --fs-12: 0.75rem; /* captions, meta */
   --fs-13: 0.8125rem; /* secondary body */

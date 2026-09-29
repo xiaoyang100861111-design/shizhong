@@ -105,7 +105,7 @@ defineExpose({ load });
 .cfg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 20px; }
 .wide { grid-column: 1 / -1; }
 .foot { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
-.key { font-family: ui-monospace, Menlo, monospace; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.key { font-family: var(--font-mono); }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 .savebar { position: sticky; bottom: 0; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 10px 0; background: var(--el-bg-color); }
 </style>

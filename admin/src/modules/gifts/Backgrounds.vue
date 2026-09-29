@@ -101,5 +101,5 @@ async function disable(b) {
 .bg-swatch.big { height: 120px; border-radius: 8px; margin-bottom: 12px; }
 .bg-meta { padding: 10px 12px; font-size: 13px; }
 .bg-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 </style>

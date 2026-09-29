@@ -201,6 +201,9 @@
       img.src = src;
     });
   }
+  /** Canvas text uses the app's UI font stack (core/tokens.css --font-sans). */
+  const canvasFont = (weight, px) =>
+    `${weight} ${px}px ${getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'sans-serif'}`;
   function drawCard(ctx, qr, pictures) {
     const W = 1080;
     const H = 1440;
@@ -224,7 +227,7 @@
     if (pictures.avatar) ctx.drawImage(pictures.avatar, cx - r, cy - r, r * 2, r * 2);
     else {
       ctx.fillStyle = '#57535B';
-      ctx.font = '700 88px system-ui, sans-serif';
+      ctx.font = canvasFont(700, 88);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(Array.from(shown.name || '?')[0], cx, cy + 4);
@@ -239,10 +242,10 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#1D1B1F';
-    ctx.font = '700 60px system-ui, sans-serif';
+    ctx.font = canvasFont(700, 60);
     ctx.fillText(shown.name, cx, 420, W - 160);
     ctx.fillStyle = '#57535B';
-    ctx.font = '400 34px system-ui, sans-serif';
+    ctx.font = canvasFont(400, 34);
     ctx.fillText(
       `${t('gifts.hero.id', { id: formatId(shown.displayId) })} · ${shown.city}`,
       cx,
@@ -262,10 +265,10 @@
       for (let x = 0; x < count; x++)
         if (qr.isDark(y, x)) ctx.fillRect(left + (x + 2) * cell, top + (y + 2) * cell, cell, cell);
     ctx.fillStyle = '#57535B';
-    ctx.font = '400 32px system-ui, sans-serif';
+    ctx.font = canvasFont(400, 32);
     ctx.fillText(t('gifts.qr.scan'), cx, top + size + 70, W - 160);
     ctx.fillStyle = token('--c-brand-text', '#C21F2E');
-    ctx.font = '700 30px system-ui, sans-serif';
+    ctx.font = canvasFont(700, 30);
     ctx.fillText(t('gifts.qr.brand'), cx, H - 70);
   }
   function toBlob(canvas) {

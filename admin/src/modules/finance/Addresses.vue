@@ -107,6 +107,6 @@ async function copy(v) {
 .block { display: block; }
 .small { font-size: 12px; }
 .ml { margin-left: 6px; }
-.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.mono { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
 @media (max-width: 900px) { .sum-grid { grid-template-columns: 1fr; } }
 </style>

@@ -140,5 +140,5 @@ async function bulk(hidden, all = false) {
 
 <style scoped>
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 </style>

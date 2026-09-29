@@ -142,7 +142,7 @@
   display: grid;
   place-items: center;
   transform: translate(-50%, -50%) rotate(45deg);
-  font-family: serif;
+  font-family: var(--font-display-serif);
   font-size: 94px;
   font-weight: 600;
   color: #ffe8b9;
@@ -212,11 +212,7 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font:
-    600 clamp(22px, 7vw, 32px) / 1.18 Georgia,
-    'Songti SC',
-    'Noto Serif CJK SC',
-    serif;
+  font: 600 clamp(22px, 7vw, 32px) / 1.18 var(--font-display-serif);
   letter-spacing: 0.06em;
   color: #ffedc7;
   -webkit-text-stroke: 0.2px #fff1d4;
@@ -240,7 +236,7 @@
   border-radius: 22px;
   background: rgba(20, 11, 17, 0.62);
   color: #fff2da;
-  font: 500 13px/1 inherit;
+  font: 500 13px/1 var(--font-sans);
   cursor: pointer;
   pointer-events: auto;
 }

@@ -157,11 +157,11 @@ defineExpose({ load, groupsLoaded: all });
 .lbl { margin-right: 6px; }
 .pub { margin-right: 4px; }
 .foot { display: flex; gap: 10px; align-items: center; width: 100%; flex-wrap: wrap; margin-top: 2px; line-height: 1.4; }
-.key { font-family: ui-monospace, Menlo, monospace; opacity: .6; }
+.key { font-family: var(--font-mono); opacity: .6; }
 .help { margin: -6px 0 12px; font-size: 13px; }
 .i18n { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
 .json, .list-input { width: 100%; }
-.mono :deep(textarea) { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.mono :deep(textarea) { font-family: var(--font-mono); font-size: 12px; }
 .savebar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 10px 16px;
   background: var(--el-bg-color); border-top: 1px solid var(--el-border-color-lighter); box-shadow: 0 -4px 12px rgba(0,0,0,.05); border-radius: 10px; }
 .savebar span { margin-right: auto; color: var(--el-color-warning); }
