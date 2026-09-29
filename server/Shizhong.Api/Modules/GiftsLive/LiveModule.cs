@@ -581,8 +581,12 @@ public sealed class LiveTopic : IHubTopic
                 MERGE dbo.LiveViews AS v USING (SELECT @id AS SessionId, @me AS UserId) AS x ON v.SessionId = x.SessionId AND v.UserId = x.UserId
                 WHEN MATCHED THEN UPDATE SET LastAt = SYSUTCDATETIME()
                 WHEN NOT MATCHED THEN INSERT(SessionId, UserId) VALUES (@id, @me);
+                -- Count first, then update: counting inside the UPDATE held the session row while waiting for other viewers'
+                -- new LiveViews rows, whose inserts wait for that row (foreign key) — deadlocks when many viewers enter at
+                -- once (load test). Viewers only grows, so a concurrent join that counted earlier cannot lower it.
+                DECLARE @viewers INT = (SELECT COUNT(*) FROM dbo.LiveViews WHERE SessionId = @id);
                 UPDATE dbo.LiveSessions SET PeakViewers = CASE WHEN PeakViewers < @count THEN @count ELSE PeakViewers END,
-                       Viewers = (SELECT COUNT(*) FROM dbo.LiveViews WHERE SessionId = @id) WHERE Id = @id;
+                       Viewers = CASE WHEN Viewers < @viewers THEN @viewers ELSE Viewers END WHERE Id = @id;
                 """, new { id, me = user.Id, count });
             var vip = services.GetRequiredService<VipService>();
             var person = await LiveModule.PersonAsync(c, vip, user.Id, hostId);

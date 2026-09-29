@@ -173,9 +173,11 @@ public static class PostsApi
             var post = await VisiblePostAsync(c, id, user.Id);
             if (await SocialData.BlockedEitherAsync(c, user.Id, post.UserId)) throw ApiError.Forbidden("social.blocked");
             var status = cfg.Bool("content.moderateComments") ? 1 : 0;
+            // Counters move by the change instead of being recounted: a recount inside the UPDATE held the post row while
+            // waiting for other members' new rows, whose inserts wait for that row (foreign key) — deadlocks on busy posts.
             var cid = await c.ExecuteScalarAsync<long>("""
                 INSERT INTO dbo.Comments(PostId, UserId, Text, Status) OUTPUT inserted.Id VALUES (@Id, @uid, @text, @status);
-                UPDATE dbo.Posts SET CommentCount = (SELECT COUNT(*) FROM dbo.Comments WHERE PostId = @Id AND Status = 0) WHERE Id = @Id;
+                IF @status = 0 UPDATE dbo.Posts SET CommentCount = CommentCount + 1 WHERE Id = @Id;
                 """, new { post.Id, uid = user.Id, text, status });
             if (post.UserId != user.Id)
                 _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
@@ -200,8 +202,9 @@ public static class PostsApi
                 WHERE k.Id = @commentId AND k.Status <> 3 AND (k.UserId = @uid OR p.UserId = @uid)
                 """, new { commentId = id, uid = user.Id }) ?? throw ApiError.NotFound("social.commentNotFound");
             await c.ExecuteAsync("""
-                UPDATE dbo.Comments SET Status = 3 WHERE Id = @id;
-                UPDATE dbo.Posts SET CommentCount = (SELECT COUNT(*) FROM dbo.Comments WHERE PostId = @postId AND Status = 0) WHERE Id = @postId;
+                DECLARE @old TABLE (Status INT);
+                UPDATE dbo.Comments SET Status = 3 OUTPUT deleted.Status INTO @old WHERE Id = @id AND Status <> 3;
+                IF EXISTS (SELECT 1 FROM @old WHERE Status = 0) UPDATE dbo.Posts SET CommentCount = CommentCount - 1 WHERE Id = @postId;
                 """, new { id, postId });
             var count = await c.ExecuteScalarAsync<int>("SELECT CommentCount FROM dbo.Posts WHERE Id = @postId", new { postId });
             return Results.Ok(new { ok = true, count });
@@ -242,10 +245,16 @@ public static class PostsApi
         var post = await VisiblePostAsync(c, id, user.Id);
         int changed;
         if (on)
-            changed = await c.ExecuteAsync("IF NOT EXISTS (SELECT 1 FROM dbo.PostLikes WHERE PostId = @Id AND UserId = @uid) INSERT INTO dbo.PostLikes(PostId, UserId) VALUES (@Id, @uid)",
-                new { post.Id, uid = user.Id });
+            try
+            {
+                changed = await c.ExecuteAsync("IF NOT EXISTS (SELECT 1 FROM dbo.PostLikes WHERE PostId = @Id AND UserId = @uid) INSERT INTO dbo.PostLikes(PostId, UserId) VALUES (@Id, @uid)",
+                    new { post.Id, uid = user.Id });
+            }
+            catch (SqlException e) when (e.IsDuplicate()) { changed = 0; } // the same member's double tap
         else changed = await c.ExecuteAsync("DELETE FROM dbo.PostLikes WHERE PostId = @Id AND UserId = @uid", new { post.Id, uid = user.Id });
-        await c.ExecuteAsync("UPDATE dbo.Posts SET LikeCount = (SELECT COUNT(*) FROM dbo.PostLikes WHERE PostId = @Id) WHERE Id = @Id", new { post.Id });
+        // Move the counter by the change (a recount here deadlocked with other members' likes on the same post, see comments).
+        if (changed > 0)
+            await c.ExecuteAsync("UPDATE dbo.Posts SET LikeCount = LikeCount + @delta WHERE Id = @Id", new { post.Id, delta = on ? changed : -changed });
         if (post.UserId != user.Id)
             _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
         if (on && changed > 0 && post.UserId != user.Id)

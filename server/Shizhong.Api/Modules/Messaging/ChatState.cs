@@ -47,15 +47,21 @@ public static class ChatState
     /// <summary>Recent messages of the given conversations visible to the user (not hidden, after "clear"), oldest first.</summary>
     public static async Task<List<MsgRow>> RecentAsync(SqlConnection c, long userId, IEnumerable<long> convIds, int per, SqlTransaction? t = null)
     {
-        var ids = convIds.ToArray();
+        var ids = convIds.Distinct().ToArray();
         var list = new List<MsgRow>();
         foreach (var chunk in ids.Chunk(300))
+        {
+            // The newest {per} of each conversation by an index seek (not a scan of every message of busy groups). The ids come
+            // in as a VALUES list, not from dbo.Conversations: under READ COMMITTED a nested loop keeps the lock on its outer row
+            // while it reads the inner one, and a new message inserts into Messages first and then updates its conversation row —
+            // reading the conversation rows here deadlocked with members joining / writing to a busy group (load test).
+            var args = new DynamicParameters(new { userId });
+            var values = string.Join(", ", chunk.Select((id, i) => { args.Add("c" + i, id); return $"(@c{i})"; }));
             list.AddRange(await c.QueryAsync<MsgRow>($"""
                 SELECT x.Id, x.ConversationId, x.SenderId, x.AdminId, x.Type, x.Text, x.Body, x.MediaRef, x.ClientId, x.RecalledAt, x.CreatedAt,
                        u.PublicId AS SenderPublicId, u.Name AS SenderName, u.Avatar AS SenderAvatar, u.Kind AS SenderKind
-                FROM dbo.Conversations cv
+                FROM (VALUES {values}) AS cv(Id)
                 LEFT JOIN dbo.ChatStates s ON s.ConversationId = cv.Id AND s.UserId = @userId
-                -- the newest {per} of each conversation by an index seek (not a scan of every message of busy groups)
                 CROSS APPLY (
                     SELECT TOP ({per}) m.Id, m.ConversationId, m.SenderId, m.AdminId, m.Type, m.Text, m.Body, m.MediaRef, m.ClientId, m.RecalledAt, m.CreatedAt
                     FROM dbo.Messages m
@@ -63,9 +69,9 @@ public static class ChatState
                       AND NOT EXISTS (SELECT 1 FROM dbo.MessageHides h WHERE h.UserId = @userId AND h.MessageId = m.Id)
                     ORDER BY m.Id DESC
                 ) x LEFT JOIN dbo.Users u ON u.Id = x.SenderId
-                WHERE cv.Id IN @chunk
                 ORDER BY x.ConversationId, x.Id
-                """, new { chunk, userId }, t));
+                """, args, t));
+        }
         return list;
     }
 
