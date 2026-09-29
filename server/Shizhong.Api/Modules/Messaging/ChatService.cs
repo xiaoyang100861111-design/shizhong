@@ -256,6 +256,13 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
         {
             await using var c = await db.OpenAsync();
             var r = await RowAsync(c, messageId);
+            // Written in a caller's transaction that has not committed yet (only visible without blocking
+            // when the database reads committed snapshots): look again for a few seconds.
+            for (var i = 0; r is null && i < 10; i++)
+            {
+                await Task.Delay(300);
+                r = await RowAsync(c, messageId);
+            }
             if (r is null) return;
             var conv = await ByIdAsync(c, r.ConversationId);
             if (conv is null) return;
