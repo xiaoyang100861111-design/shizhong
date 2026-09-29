@@ -117,7 +117,7 @@ public static class PostsApi
         u.MapDelete("/posts/{id}", async (string id, HttpContext ctx, Db db, StateService states) =>
         {
             var user = ctx.RequireUser();
-            var n = await db.ExecuteAsync("UPDATE dbo.Posts SET Status = 3 WHERE PublicId = @id AND UserId = @Id AND Status <> 3", new { id, user.Id });
+            var n = await db.ExecuteAsync("UPDATE dbo.Posts SET Status = 3 WHERE PublicId = @postId AND UserId = @uid AND Status <> 3", new { postId = id, uid = user.Id });
             if (n == 0) throw ApiError.NotFound("social.postNotFound");
             return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "posts") });
         });
@@ -174,8 +174,8 @@ public static class PostsApi
             // Own comments, or any comment on one's own post.
             var postId = await c.ExecuteScalarAsync<long?>("""
                 SELECT k.PostId FROM dbo.Comments k JOIN dbo.Posts p ON p.Id = k.PostId
-                WHERE k.Id = @id AND k.Status <> 3 AND (k.UserId = @Id OR p.UserId = @Id)
-                """, new { id, user.Id }) ?? throw ApiError.NotFound("social.commentNotFound");
+                WHERE k.Id = @commentId AND k.Status <> 3 AND (k.UserId = @uid OR p.UserId = @uid)
+                """, new { commentId = id, uid = user.Id }) ?? throw ApiError.NotFound("social.commentNotFound");
             await c.ExecuteAsync("""
                 UPDATE dbo.Comments SET Status = 3 WHERE Id = @id;
                 UPDATE dbo.Posts SET CommentCount = (SELECT COUNT(*) FROM dbo.Comments WHERE PostId = @postId AND Status = 0) WHERE Id = @postId;

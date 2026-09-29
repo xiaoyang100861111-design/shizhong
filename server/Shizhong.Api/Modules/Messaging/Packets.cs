@@ -79,8 +79,8 @@ public static class Packets
                 var expires = DateTime.UtcNow.AddMinutes(cfg.Int("chat.packetExpireMinutes", 1440));
                 await c.ExecuteAsync("""
                     INSERT INTO dbo.RedPackets(MessageId, ConversationId, SenderId, RecipientId, Kind, Mode, TotalCents, Count, Shares, Note, ExpiresAt)
-                    VALUES (@id, @conv, @Id, @recipient, @kind, @mode, @cents, @count, @shares, @note, @expires)
-                    """, new { id, conv = conv.Id, user.Id, recipient, kind, mode, cents, count, shares = shares is null ? null : Json.Serialize(shares), note, expires }, t);
+                    VALUES (@messageId, @conv, @senderId, @recipient, @kind, @mode, @cents, @count, @shares, @note, @expires)
+                    """, new { messageId = id, conv = conv.Id, senderId = user.Id, recipient, kind, mode, cents, count, shares = shares is null ? null : Json.Serialize(shares), note, expires }, t);
                 await Ledger.ApplyAsync(c, t, new LedgerEntry(user.Id, Currencies.Rm, -cents, type,
                     Title: (kind == 0 ? "聊天红包 · " : "好友转账 · ") + name, TitleKey: kind == 0 ? "chat.money.packetBill" : "chat.money.transferBill",
                     Params: new { name }, Method: "wallet", RefType: "chat", RefId: chatId));
@@ -131,7 +131,7 @@ public static class Packets
             var (conv, chatId) = await MessagingApi.VisibleAsync(c, chat, user, mid, t);
             var p = await c.QueryFirstOrDefaultAsync<PacketRow>("""
                 SELECT p.Id, p.MessageId, p.SenderId, p.RecipientId, p.Kind, p.Mode, p.TotalCents, p.Count, p.Note, p.Status, p.ExpiresAt, p.RefundedCents, p.SettledAt,
-                       NULL AS RecipientPublicId
+                       CAST(NULL AS NVARCHAR(32)) AS RecipientPublicId
                 FROM dbo.RedPackets p WITH (UPDLOCK, HOLDLOCK) WHERE p.MessageId = @mid
                 """, new { mid }, t) ?? throw ApiError.NotFound("money.notFound");
             senderId = p.SenderId;

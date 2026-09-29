@@ -181,6 +181,7 @@ public static class SocialApi
                     subject = (await SocialData.UserByPublicIdAsync(c, targetId))?.Id;
                     break;
             }
+            if (subject == user.Id) throw ApiError.BadRequest("social.self");
             var subjectPublic = subject is { } sid ? await c.ExecuteScalarAsync<string?>("SELECT PublicId FROM dbo.Users WHERE Id = @sid", new { sid }) : null;
             var id = await tickets.CreateAsync(new TicketInput(user.Id, "report", type, targetId, reason, SocialData.Clip(body.Details, 1000),
                 new { subjectId = subject, subject = subjectPublic, snapshot = snapshot is { Length: > 300 } s ? s[..300] : snapshot }));

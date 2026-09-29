@@ -192,8 +192,8 @@ public sealed class PeopleChunks(Db db, PersonaCache personas) : IChunkProvider
 
     public async Task<string?> BuildAsync(string key, bool english, HttpContext ctx)
     {
-        var viewer = ctx.User();
         await using var c = await db.OpenAsync();
+        var viewer = ctx.User() ?? await ViewerAsync(c, ctx);
         var hidden = viewer is null ? new HashSet<long>() : await SocialData.HiddenForAsync(c, viewer.Id);
         switch (key)
         {
@@ -221,6 +221,19 @@ public sealed class PeopleChunks(Db db, PersonaCache personas) : IChunkProvider
                 }
                 return ChunkJs.Chunk(key, list.Select(p => p.Profile).ToList());
         }
+    }
+
+    /// <summary>/data/* is outside the API's auth middleware: resolve the signed-in member from the session cookie / bearer.</summary>
+    static async Task<CurrentUser?> ViewerAsync(SqlConnection c, HttpContext ctx)
+    {
+        var header = ctx.Request.Headers.Authorization.FirstOrDefault();
+        var token = header != null && header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? header[7..].Trim() : ctx.Request.Cookies[AuthCookies.User];
+        if (string.IsNullOrEmpty(token)) return null;
+        var u = await c.QueryFirstOrDefaultAsync<(long Id, string PublicId, string DisplayId, int Kind, string Name, DateTime? MutedUntil)>("""
+            SELECT u.Id, u.PublicId, u.DisplayId, u.Kind, u.Name, u.MutedUntil FROM dbo.UserSessions s JOIN dbo.Users u ON u.Id = s.UserId
+            WHERE s.TokenHash = @hash AND s.RevokedAt IS NULL AND s.ExpiresAt > SYSUTCDATETIME() AND u.Status = 0 AND u.DeletedAt IS NULL
+            """, new { hash = Tokens.Hash(token) });
+        return u.Id == 0 ? null : new CurrentUser(u.Id, u.PublicId, u.DisplayId, u.Kind, u.Name, u.MutedUntil);
     }
 
     async Task<string> PeopleAsync(SqlConnection c, bool english, CurrentUser? viewer, HashSet<long> hidden)
