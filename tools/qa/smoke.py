@@ -8,6 +8,14 @@ Shizhong smoke / screenshot runner (Chrome DevTools Protocol, no Selenium/Playwr
     python tools/qa/smoke.py --root D:/worktree    # test another checkout
     python tools/qa/smoke.py --session none        # first-run (welcome / login screen)
     python tools/qa/smoke.py --theme dark --width 320 --height 740
+    python tools/qa/smoke.py --url http://127.0.0.1:8000/          # offline demo from a static server
+    python tools/qa/smoke.py --url http://127.0.0.1:5080/ --server # server mode (sessions via /api/auth)
+    python tools/qa/smoke.py --chrome /opt/pw-browsers/chromium-1194/chrome-linux/chrome
+
+Server mode (--server): session "demo" signs in with POST /api/auth/demo, "new" registers a fresh member,
+"none" signs out and "guest" signs out and browses as a guest. In server mode, scenarios may set
+"serverSkip": true (offline-only behaviour) or "serverSteps" (used instead of "steps"). Any request to /api/
+in the offline demo (no --server) and any HTTP 5xx is reported as a failure.
 
 Scenarios live in tools/qa/scenarios/*.json (one file per feature area). Each scenario:
     {"name": "home", "hash": "home", "session": "demo", "steps": [ ...step... ]}
@@ -26,7 +34,7 @@ A final screenshot is always taken. Results: <out>/report.json and PNGs.
 
 Exit code 1 when any scenario has an exception, failed step or failed expectation.
 """
-import argparse, asyncio, base64, glob, json, os, re, shutil, subprocess, sys, time, urllib.request
+import argparse, asyncio, base64, glob, json, os, random, re, shutil, subprocess, sys, time, urllib.request
 
 try:
     import websockets
@@ -42,7 +50,7 @@ CHROME_CANDIDATES = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/usr/bin/google-chrome",
     "/usr/bin/chromium",
-]
+] + sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux/chrome"), reverse=True)  # Playwright's Chromium (CI / cloud)
 
 PROBE = r"""
 (() => {
@@ -123,11 +131,15 @@ class CDP:
         return False
 
 
-def errors_since(cdp, start):
+def errors_since(cdp, start, offline=False):
     out = []
     for e in cdp.events[start:]:
         m, p = e["method"], e.get("params", {})
-        if m == "Runtime.exceptionThrown":
+        if m == "Network.requestWillBeSent" and offline and "/api/" in p.get("request", {}).get("url", ""):
+            out.append("API CALL in the offline demo " + p["request"]["url"][-80:])
+        elif m == "Network.responseReceived" and p.get("response", {}).get("status", 0) >= 500:
+            out.append(f"HTTP {p['response']['status']} " + p["response"].get("url", "")[-100:])
+        elif m == "Runtime.exceptionThrown":
             d = p.get("exceptionDetails", {})
             out.append("EXCEPTION " + (d.get("exception", {}).get("description") or d.get("text") or "")[:400])
         elif m == "Runtime.consoleAPICalled" and p.get("type") == "error":
@@ -135,7 +147,9 @@ def errors_since(cdp, start):
         elif m == "Log.entryAdded":
             en = p.get("entry", {})
             # optional translated demo content may not exist yet for every chunk
-            if en.get("level") == "error" and "favicon" not in en.get("text", "") and "/data/i18n/" not in (en.get("url") or ""):
+            # server mode: a refused action (400 / 409 / 429) is an expected answer the app shows as a toast
+            expected = not offline and re.search(r"status of (400|409|422|429) ", en.get("text", ""))
+            if en.get("level") == "error" and not expected and "favicon" not in en.get("text", "") and "/data/i18n/" not in (en.get("url") or ""):
                 out.append("LOG " + en.get("text", "")[:200] + " " + (en.get("url") or "")[-80:])
     return out
 
@@ -170,7 +184,7 @@ async def run(args):
     if not chrome:
         sys.exit("Chrome/Edge not found; pass --chrome")
     root = os.path.abspath(args.root)
-    url = "file:///" + root.replace("\\", "/").lstrip("/") + "/index.html"
+    url = (args.url.rstrip("/") + "/index.html") if args.url else "file:///" + root.replace("\\", "/").lstrip("/") + "/index.html"
     out = os.path.abspath(args.out or os.path.join(root, ".qa", f"{args.locale}-{args.width}"))
     os.makedirs(out, exist_ok=True)
     profile = os.path.join(out, "_profile")
@@ -194,34 +208,49 @@ async def run(args):
             sys.exit("Chrome did not start")
         async with websockets.connect(ws_url, max_size=None) as ws:
             cdp = CDP(ws)
-            for m in ("Page.enable", "Runtime.enable", "Log.enable"):
+            for m in ("Page.enable", "Runtime.enable", "Log.enable", "Network.enable"):
                 await cdp.send(m)
             await cdp.send("Emulation.setDeviceMetricsOverride", {"width": args.width, "height": args.height, "deviceScaleFactor": 2, "mobile": True})
             await cdp.send("Emulation.setTouchEmulationEnabled", {"enabled": True, "maxTouchPoints": 5})
             scenarios = load_scenarios(args.only)
+            if args.server:
+                scenarios = [x for x in scenarios if not x.get("serverSkip")]
             for sc in scenarios:
                 name = sc["name"]
                 session = sc.get("session", args.session)
                 start = len(cdp.events)
+                if args.server:  # sign-in is rate limited per client IP: every scenario looks like a fresh client
+                    await cdp.send("Network.setExtraHTTPHeaders", {"headers": {"X-Forwarded-For": "10.%d.%d.%d" % (
+                        random.randint(0, 250), random.randint(0, 250), random.randint(1, 250))}})
                 # fresh document with the requested locale/session/theme
                 await cdp.send("Page.navigate", {"url": url + "#home"})
                 await cdp.wait_for("document.readyState==='complete'", 15)
                 setup = [f"localStorage.setItem('sz:locale',{json.dumps(args.locale)})",
                          f"localStorage.setItem('sz:theme',{json.dumps(args.theme)})"]
+                if args.server:
+                    # the server session is a cookie: sign in / out through the API before the real load
+                    if session == "demo":
+                        setup.append("await fetch('/api/auth/demo',{method:'POST'})")
+                    elif session == "new":
+                        setup.append("await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify("
+                                     "{phone:'+60 1'+String(Math.floor(1e7+Math.random()*8e7)),password:'qa123456a',name:'QA',ageConfirmed:true,terms:true,city:'吉隆坡'})})")
+                    else:
+                        setup.append("await fetch('/api/auth/logout',{method:'POST'})")
+                    setup.append("localStorage.setItem('sz:v3:guest','1')" if session == "guest" else "localStorage.removeItem('sz:v3:guest')")
                 if session == "none":
                     setup.append("localStorage.removeItem('sz:v2:session')")
                 else:
                     setup.append(f"localStorage.setItem('sz:v2:session',JSON.stringify({{accountId:{json.dumps(session)},at:Date.now()}}))")
                 for extra in sc.get("setup", []):
                     setup.append(extra)
-                await cdp.js(";".join(setup))
+                await cdp.js("(async()=>{" + ";".join(setup) + "})()")
                 await cdp.send("Page.navigate", {"url": "about:blank"})
                 await cdp.wait_for("location.href==='about:blank'", 5)
                 await cdp.send("Page.navigate", {"url": url + "#" + sc.get("hash", "home")})
                 booted = await cdp.wait_for("window.SZ_BOOTED===true || !!document.querySelector('.boot-error')", 15)
                 await cdp.drain(0.6)
                 steps_log, step_fail = [], []
-                for i, st in enumerate(sc.get("steps", [])):
+                for i, st in enumerate(sc.get("serverSteps", sc.get("steps", [])) if args.server else sc.get("steps", [])):
                     try:
                         res = True
                         if "click" in st:
@@ -267,7 +296,7 @@ async def run(args):
                 except Exception as exc:
                     probe = {}
                     step_fail.append(f"final capture failed: {exc}")
-                errs = errors_since(cdp, start)
+                errs = errors_since(cdp, start, offline=not args.server)
                 bad = (not booted) or bool(errs) or bool(step_fail)
                 failures += 1 if bad else 0
                 report[name] = {"file": sc["_file"], "booted": booted, "steps": steps_log, "stepFailures": step_fail, "errors": errs, **(probe if isinstance(probe, dict) else {})}
@@ -306,6 +335,8 @@ def main():
     ap.add_argument("--height", type=int, default=844)
     ap.add_argument("--port", type=int, default=9333)
     ap.add_argument("--chrome", default="")
+    ap.add_argument("--url", default="", help="base URL (static server or the API host) instead of file://")
+    ap.add_argument("--server", action="store_true", help="server mode: sign in through /api/auth")
     args = ap.parse_args()
     sys.exit(1 if asyncio.run(run(args)) else 0)
 

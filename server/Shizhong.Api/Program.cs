@@ -90,6 +90,11 @@ app.MapHub<AppHub>("/hubs/app");
 
 app.UseShizhongSite();
 
+if (Environment.GetEnvironmentVariable("QA_DUMP_ROUTES") is { Length: > 0 } dumpPath)
+    app.Lifetime.ApplicationStarted.Register(() => File.WriteAllLines(dumpPath,
+        app.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
+            .Select(e => string.Join(",", e.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? ["*"]) + " " + e.RoutePattern.RawText)));
+
 app.Run();
 
 /// <summary>Startup work a module needs after migrations (seed built-in rows, warm caches).</summary>
