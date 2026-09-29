@@ -55,7 +55,12 @@ public static class SocialAdmin
                 """, new { id });
             return Results.Ok(new
             {
-                stats,
+                stats = new
+                {
+                    posts = (int)stats.Posts, comments = (int)stats.Comments, follows = (int)stats.Follows, fans = (int)stats.Fans,
+                    visitors = (int)stats.Visitors, contacts = (int)stats.Contacts, groups = (int)stats.Groups, messages = (int)stats.Messages,
+                    blocks = (int)stats.Blocks, reportsMade = (int)stats.ReportsMade, reportsAgainst = (int)stats.ReportsAgainst,
+                },
                 posts = posts.Select(p => new { p.id, p.text, p.image, status = PostStatus[(int)p.status], p.visibility, p.likes, p.comments, createdAt = Json.Ms((DateTime)p.createdAt) }),
                 reports = reports.Select(r => new { r.id, r.targetType, r.targetId, r.reason, r.status, r.direction, createdAt = Json.Ms((DateTime)r.createdAt) }),
             });
