@@ -962,7 +962,7 @@
           ? { type: 'error', action: { label: t('catalog.pay.topUp'), run: () => SZ.actions.dispatch('recharge') } }
           : { type: 'error' }
       );
-    if (SERVER) return placeOnServer(layer, m, sum, address);
+    if (SERVER) return placeOnServer(layer, m, sum, address, refresh);
     placing = true;
     try {
       if (sum.payable > 0 && m.method !== 'wallet' && !(await authorise(m.method, sum.payable))) return;
@@ -1049,7 +1049,7 @@
     }
   }
   /** Server mode: the backend re-prices, charges the wallet and creates the order (and its notice). */
-  async function placeOnServer(layer, m, sum, address) {
+  async function placeOnServer(layer, m, sum, address, refresh) {
     placing = true;
     const cta = layer.el.querySelector('[data-checkout="place"]');
     if (cta) {
