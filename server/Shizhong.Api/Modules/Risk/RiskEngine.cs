@@ -337,7 +337,8 @@ public sealed class RiskCleanup(Db db, ConfigService cfg, ILogger<RiskCleanup> l
                 await Task.Delay(TimeSpan.FromMinutes(30), stop);
                 var days = Math.Clamp(cfg.Int("risk.retentionDays", 90), 7, 3650);
                 await db.ExecuteAsync("""
-                    DELETE TOP (20000) FROM dbo.RiskActions WHERE At < DATEADD(DAY, -2, SYSUTCDATETIME());
+                    -- the rules only look back 24 h, but 风控总览 charts the actions of the last 30 days
+                    DELETE TOP (20000) FROM dbo.RiskActions WHERE At < DATEADD(DAY, -31, SYSUTCDATETIME());
                     DELETE TOP (20000) FROM dbo.RiskEvents WHERE At < DATEADD(DAY, -@days, SYSUTCDATETIME());
                     DELETE FROM dbo.RiskLists WHERE Source = N'auto' AND ExpiresAt < DATEADD(DAY, -1, SYSUTCDATETIME());
                     """, new { days });
