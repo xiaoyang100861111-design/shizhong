@@ -210,6 +210,17 @@ public static class RiskPolicy
         return o;
     }
 
+    internal static double? Number(JsonNode v)
+    {
+        if (v is not JsonValue jv) return null;
+        return jv.GetValueKind() switch
+        {
+            System.Text.Json.JsonValueKind.Number => double.Parse(jv.ToJsonString(), System.Globalization.CultureInfo.InvariantCulture),
+            System.Text.Json.JsonValueKind.String when double.TryParse(jv.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture, out var d) => d,
+            _ => null,
+        };
+    }
+
     /// <summary>Custom rules: the given JSON on top of the light preset, keeping only known fields with sane values.</summary>
     public static JsonObject Normalize(JsonNode? custom, string baseLevel = RiskLevels.Light)
     {
@@ -225,10 +236,11 @@ public static class RiskPolicy
                 switch (f.Type)
                 {
                     case "int":
-                        if (v is JsonValue iv && iv.TryGetValue<double>(out var n)) target[f.Key] = (int)Math.Clamp(Math.Round(n), 0, f.Max);
+                        if (Number(v) is { } n) target[f.Key] = (int)Math.Clamp(Math.Round(n), 0, f.Max);
                         break;
                     case "bool":
-                        if (v is JsonValue bv && bv.TryGetValue<bool>(out var b)) target[f.Key] = b;
+                        if (v is JsonValue bv && bv.GetValueKind() is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)
+                            target[f.Key] = bv.GetValueKind() == System.Text.Json.JsonValueKind.True;
                         break;
                     case "captcha":
                         if (v is JsonValue cv && cv.TryGetValue<string>(out var m) && m is CaptchaModes.Off or CaptchaModes.Always or CaptchaModes.Risky) target[f.Key] = m;
@@ -268,13 +280,13 @@ public sealed class RiskRules(ConfigService cfg)
     public int Int(string scene, string key)
     {
         Refresh();
-        return rules[scene]?[key] is JsonValue v && v.TryGetValue<int>(out var n) ? n : 0;
+        return rules[scene]?[key] is JsonValue v && RiskPolicy.Number(v) is { } n ? (int)n : 0;
     }
 
     public bool Bool(string scene, string key)
     {
         Refresh();
-        return rules[scene]?[key] is JsonValue v && v.TryGetValue<bool>(out var b) && b;
+        return rules[scene]?[key] is JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.True;
     }
 
     public string Captcha(string scene)
