@@ -9,6 +9,7 @@ export default {
     { path: '/system/admins', component: () => import('./Admins.vue'), meta: { title: { zh: '管理员账号', en: 'Admin accounts' }, perm: 'system.admins' }, menu: true },
     { path: '/system/logs', component: () => import('./Logs.vue'), meta: { title: { zh: '操作日志', en: 'Audit log' }, perm: 'system.logs' }, menu: true },
     { path: '/system/info', component: () => import('./Info.vue'), meta: { title: { zh: '系统信息', en: 'System info' }, perm: 'system.config' }, menu: true },
+    { path: '/system/seed', component: () => import('./Seed.vue'), meta: { title: { zh: '测试数据', en: 'Test data' }, perm: 'system.seed' }, menu: true },
   ],
   messages: {
     zh: {
@@ -22,6 +23,25 @@ export default {
         logs: '操作日志', action: '动作', target: '对象', detail: '详情', info: '系统信息', build: '版本', db: '数据库', migrations: '已执行的迁移',
         modules: '已加载模块', online: '在线连接', serverTime: '服务器时间', inherit: '沿用角色设置',
       },
+      seed: {
+        title: '测试数据', refresh: '刷新', actions: '生成与清除', scale: '数据规模', generate: '生成测试数据', regenerate: '重新生成测试数据', clear: '清除测试数据',
+        verify: '一致性检查', intro: '生成约 2,000 个会员、30 个代理、8,000 笔订单、4 万笔礼物流水等逼真的测试数据（最近 90 天），用于演示和测试。所有生成的记录都会登记，清除时只删除这些记录，不会动到真实会员和他们的数据。在后台运行，约 1 分钟。',
+        disabled: '已在系统配置中关闭（seed.enabled）：不能生成或清除测试数据。',
+        status: { running: '运行中', done: '已完成', failed: '失败' }, kind: { seed: '生成', clear: '清除' }, runStatus: { 0: '运行中', 1: '成功', 2: '失败' },
+        last: '上次{kind}：{time}（{status}）', took: '用时 {s} 秒', done: '测试数据已更新',
+        confirmRegenerate: '会先清除现有的测试数据，再按新的规模重新生成。确定继续？', confirmClear: '将删除所有生成的测试数据（会员、订单、流水、聊天等），真实数据不受影响。确定清除？',
+        checks: '一致性检查', check: '检查项', problems: '问题', checked: '检查数', fail: '不一致',
+        accounts: '测试账号', password: '统一密码', passwordNote: '所有测试会员和测试后台账号都使用这个密码', demo: '体验账号', admin: '超级管理员',
+        staff: '后台测试账号', username: '账号', name: '名称', role: '角色', staffNote: '另有 {agents} 个代理账号（账号 = 邀请码小写）和 {shops} 个商家后台账号（shop + 商家编号），密码同上。',
+        members: '测试会员（示例）', phone: '手机号', city: '城市', membersNote: '用手机号或邮箱 + 统一密码登录 App。',
+        tables: '生成的记录', table: '数据表', generatedRows: '生成行数',
+        count: {
+          members: '会员', agents: '代理', orders: '订单', reviews: '评价', posts: '动态', comments: '评论', follows: '关注', messages: '聊天消息',
+          liveSessions: '直播场次', giftTransactions: '礼物流水', privateCalls: '一对一通话', cryptoDeposits: '加密货币充值', withdrawals: '提现申请', tickets: '工单',
+          ledger: '钱包流水', notifications: '通知',
+        },
+      },
+      err: { 'seed.running': '测试数据任务正在运行，请稍候', 'seed.disabled': '测试数据功能已关闭（系统配置 seed.enabled）' },
     },
     en: {
       sys: {
@@ -34,6 +54,25 @@ export default {
         logs: 'Audit log', action: 'Action', target: 'Target', detail: 'Details', info: 'System info', build: 'Build', db: 'Database', migrations: 'Applied migrations',
         modules: 'Modules', online: 'Live connections', serverTime: 'Server time', inherit: 'Use the role’s scope',
       },
+      seed: {
+        title: 'Test data', refresh: 'Refresh', actions: 'Generate & remove', scale: 'Scale', generate: 'Generate test data', regenerate: 'Regenerate test data', clear: 'Remove test data',
+        verify: 'Consistency check', intro: 'Generates realistic test data for the last 90 days: about 2,000 members, 30 agents, 8,000 orders, 40,000 gift transactions and more. Every generated row is registered, and removal deletes only those rows — real members and their data are never touched. Runs in the background (about a minute).',
+        disabled: 'Switched off in the settings (seed.enabled): test data cannot be generated or removed.',
+        status: { running: 'Running', done: 'Done', failed: 'Failed' }, kind: { seed: 'generation', clear: 'removal' }, runStatus: { 0: 'running', 1: 'succeeded', 2: 'failed' },
+        last: 'Last {kind}: {time} ({status})', took: '{s} s', done: 'Test data updated',
+        confirmRegenerate: 'The current test data is removed first, then generated again at the new scale. Continue?', confirmClear: 'All generated test data (members, orders, ledger, chats…) will be deleted. Real data is not affected. Continue?',
+        checks: 'Consistency check', check: 'Check', problems: 'Problems', checked: 'Checked', fail: 'Mismatch',
+        accounts: 'Test accounts', password: 'Shared password', passwordNote: 'Every test member and test console account uses this password', demo: 'Demo account', admin: 'Super admin',
+        staff: 'Console test accounts', username: 'Username', name: 'Name', role: 'Role', staffNote: 'Plus {agents} agent logins (username = invite code in lower case) and {shops} shop logins (shop + merchant number), same password.',
+        members: 'Test members (sample)', phone: 'Phone', city: 'City', membersNote: 'Sign in to the app with the phone or e-mail and the shared password.',
+        tables: 'Generated rows', table: 'Table', generatedRows: 'Rows',
+        count: {
+          members: 'Members', agents: 'Agents', orders: 'Orders', reviews: 'Reviews', posts: 'Posts', comments: 'Comments', follows: 'Follows', messages: 'Chat messages',
+          liveSessions: 'Live sessions', giftTransactions: 'Gift transactions', privateCalls: '1:1 calls', cryptoDeposits: 'Crypto deposits', withdrawals: 'Withdrawals', tickets: 'Tickets',
+          ledger: 'Ledger rows', notifications: 'Notifications',
+        },
+      },
+      err: { 'seed.running': 'A test-data job is running, please wait', 'seed.disabled': 'Test data is switched off (setting seed.enabled)' },
     },
   },
 };

@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Shizhong.Api.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
+// Test data from the command line (docs/测试数据.md): --seed [--scale 1.0] [--reset] · --seed-clear · --seed-verify
+var seedCli = Shizhong.Api.Modules.Seed.SeedCli.Requested(args);
+var builder = WebApplication.CreateBuilder(seedCli ? Shizhong.Api.Modules.Seed.SeedCli.WebArgs(args) : args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables("SZ_");
 
@@ -78,6 +80,11 @@ if (!app.Configuration.GetValue("Database:SkipMigrations", false))
     await app.Services.GetRequiredService<Migrator>().MigrateAsync();
 await app.Services.GetRequiredService<ConfigService>().LoadAsync();
 foreach (var b in app.Services.GetServices<IBootstrap>()) await b.RunAsync();
+if (seedCli)
+{
+    Environment.ExitCode = await Shizhong.Api.Modules.Seed.SeedCli.RunAsync(app.Services, args);
+    return;
+}
 
 app.UseForwardedHeaders();
 app.UseResponseCompression();
