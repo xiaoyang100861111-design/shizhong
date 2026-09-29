@@ -44,6 +44,7 @@ public sealed partial class PlatformModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration config)
     {
         services.AddSingleton<MediaStore>();
+        services.AddSingleton<DemoData>();
     }
 
     public void Map(WebApplication app)
