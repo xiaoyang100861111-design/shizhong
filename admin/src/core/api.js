@@ -105,5 +105,7 @@ export function assetUrl(v) {
   if (!v) return '';
   if (v.startsWith('media:')) return '/api/media/' + v.slice(6);
   if (/^(https?:|data:|\/)/.test(v)) return v;
-  return '/assets/' + v.replace(/^assets\//, '');
+  const path = v.replace(/^assets\//, '');
+  // Bare names ('hero.webp', 'cafe-brunch.webp') are the app's aliases (window.SHIZHONG_ASSETS) for assets/optimized/.
+  return '/assets/' + (path.includes('/') ? path : 'optimized/' + path);
 }
