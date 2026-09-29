@@ -60,13 +60,19 @@ public sealed class LiveModule : IModule
     {
         var g = app.MapGroup("/api/live").RequireUser();
 
-        g.MapGet("/rooms", async (Db db, LiveRooms rooms, ConfigService cfg, VipService vip) =>
+        g.MapGet("/rooms", async (HttpContext ctx, Db db, LiveRooms rooms, ConfigService cfg, VipService vip, SocialGraph social) =>
         {
+            var me = ctx.RequireUser();
             await using var c = await db.OpenAsync();
             var rows = (await c.QueryAsync<SessionRow>($"""
                 SELECT s.Id, s.HostId, s.Title, s.Topic, s.Cover, s.Status, s.StartedAt, s.Likes, s.GiftBeans, {People.Columns.Replace("u.Id,", "")}
                 FROM dbo.LiveSessions s JOIN dbo.Users u ON u.Id = s.HostId WHERE s.Status = 0 ORDER BY s.StartedAt DESC
                 """)).ToList();
+            // hosts who blocked this viewer (or were blocked by them) are not listed
+            var hidden = new HashSet<long>();
+            foreach (var hostId in rows.Select(r => r.HostId).Distinct())
+                if (hostId != me.Id && await social.BlockedAsync(me.Id, hostId)) hidden.Add(hostId);
+            rows = rows.Where(r => !hidden.Contains(r.HostId)).ToList();
             var levels = await vip.LevelsAsync(c, rows.Select(r => r.HostId));
             return Results.Ok(new
             {
@@ -152,6 +158,9 @@ public sealed class LiveModule : IModule
             text = Moderation.Clean(cfg, text);
             await using var c = await db.OpenAsync();
             var s = await LiveAsync(c, id);
+            // A viewer the host blocked (or who blocked the host) cannot write into that room.
+            if (s.HostId != user.Id && await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId))
+                throw ApiError.Forbidden("live.blocked");
             var kind = s.HostId == user.Id ? "host" : "chat";
             var commentId = await c.ExecuteScalarAsync<long>("""
                 INSERT INTO dbo.LiveComments(SessionId, UserId, Kind, Text) OUTPUT inserted.Id VALUES (@id, @me, @kind, @text);
@@ -191,6 +200,7 @@ public sealed class LiveModule : IModule
             await using var lookup = await db.OpenAsync();
             var s = await LiveAsync(lookup, id);
             if (s.HostId == user.Id) throw ApiError.BadRequest("live.ownRoom");
+            if (await ctx.RequestServices.GetRequiredService<SocialGraph>().BlockedAsync(user.Id, s.HostId)) throw ApiError.Forbidden("gifts.blocked");
             var host = await People.ByIdAsync(lookup, s.HostId) ?? throw ApiError.NotFound("live.notFound");
             var total = gift.Beans * qty;
             var share = await lookup.ExecuteScalarAsync<decimal?>("SELECT LiveShare FROM dbo.HostProfiles WHERE UserId = @HostId", new { s.HostId })
@@ -384,6 +394,7 @@ public sealed class LiveModule : IModule
             SELECT s.Id, s.HostId, s.Title, s.Topic, s.Cover, s.Status, s.StartedAt, s.Likes, s.GiftBeans, {People.Columns.Replace("u.Id,", "")}
             FROM dbo.LiveSessions s JOIN dbo.Users u ON u.Id = s.HostId WHERE s.Id = @id
             """, new { id }) ?? throw ApiError.NotFound("live.notFound");
+        if (r.HostId != me.Id && await services.GetRequiredService<SocialGraph>().BlockedAsync(me.Id, r.HostId)) throw ApiError.Forbidden("live.blocked");
         var comments = (await c.QueryAsync<(long Id, long UserId, string Kind, string Text, DateTime CreatedAt)>(
             "SELECT TOP (30) Id, UserId, Kind, Text, CreatedAt FROM dbo.LiveComments WHERE SessionId = @id ORDER BY Id DESC", new { id })).Reverse().ToList();
         var people = await PeopleAsync(c, vip, comments.Select(x => x.UserId).Append(r.HostId), r.HostId);
