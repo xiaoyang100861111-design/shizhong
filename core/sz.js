@@ -537,7 +537,11 @@
       } catch (_) {}
       if (!res.ok) {
         const err = new ApiError(res.status, data?.code || (res.status === 401 ? 'auth.required' : 'common.server'), data?.detail, data?.extra);
-        if (res.status === 401 && session.isLoggedIn && !String(path).startsWith('auth/')) emit('server:unauthorized', err);
+        if (res.status === 401 && session.isLoggedIn && !String(path).startsWith('auth/')) {
+          // A revoked bearer token wins over a valid cookie on the server: drop it, or every reload fails again.
+          if (token) api.setToken('');
+          emit('server:unauthorized', err);
+        }
         throw err;
       }
       return data;
