@@ -54,6 +54,12 @@ public static class SeedCleaner
         DELETE FROM dbo.Calls WHERE Id IN {K("Calls")} OR ConversationId IN (SELECT Id FROM #convs) OR CallerId IN (SELECT Id FROM #su) OR CalleeId IN (SELECT Id FROM #su)
             OR MessageId IN (SELECT Id FROM #msgs);
         DELETE FROM dbo.MessageHides WHERE MessageId IN (SELECT Id FROM #msgs) OR UserId IN (SELECT Id FROM #su);
+        -- Telegram-style chat tables (0302): reactions, pins, media links, read log, scheduled messages
+        DELETE FROM dbo.MessageReactions WHERE MessageId IN (SELECT Id FROM #msgs) OR UserId IN (SELECT Id FROM #su);
+        DELETE FROM dbo.MessagePins WHERE MessageId IN (SELECT Id FROM #msgs) OR ConversationId IN (SELECT Id FROM #convs);
+        DELETE FROM dbo.MessageMedia WHERE MessageId IN (SELECT Id FROM #msgs);
+        DELETE FROM dbo.ChatReadLog WHERE ConversationId IN (SELECT Id FROM #convs) OR UserId IN (SELECT Id FROM #su);
+        DELETE FROM dbo.ScheduledMessages WHERE ConversationId IN (SELECT Id FROM #convs) OR SenderId IN (SELECT Id FROM #su);
         UPDATE dbo.Conversations SET LastMessageId = NULL WHERE LastMessageId IN (SELECT Id FROM #msgs);
         DELETE FROM dbo.Messages WHERE Id IN (SELECT Id FROM #msgs);
         DELETE FROM dbo.ChatStates WHERE ConversationId IN (SELECT Id FROM #convs) OR UserId IN (SELECT Id FROM #su);
@@ -70,6 +76,8 @@ public static class SeedCleaner
         DELETE FROM dbo.Blocks WHERE UserId IN (SELECT Id FROM #su) OR TargetId IN (SELECT Id FROM #su);
         DELETE FROM dbo.FriendRequests WHERE Id IN {K("FriendRequests")} OR FromId IN (SELECT Id FROM #su) OR ToId IN (SELECT Id FROM #su);
         DELETE FROM dbo.GroupMembers WHERE UserId IN (SELECT Id FROM #su);
+        -- groups a test member created in the app (not seeded): same as the owner leaving — imported ones stay, others close
+        UPDATE dbo.Groups SET OwnerId = NULL, Status = CASE WHEN Imported = 1 THEN Status ELSE 2 END WHERE OwnerId IN (SELECT Id FROM #su);
 
         -- commerce
         DELETE FROM dbo.Reviews WHERE Id IN {K("Reviews")} OR OrderId IN (SELECT Id FROM #orders) OR UserId IN (SELECT Id FROM #su);
