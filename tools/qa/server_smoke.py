@@ -82,7 +82,12 @@ def register(name="QA", invite=None, **extra):
     if invite:
         body["inviteCode"] = invite
     body.update(extra)
-    r = c.post("/api/auth/register", body)
+    r = c.post("/api/auth/register", body, expect=[200, 403])
+    if c.status == 403 and r.get("code") == "risk.captcha":  # a stricter risk level: solve the slider and retry
+        c.s.headers["X-SZ-Captcha"] = solve_slider(c, "register") or ""
+        r = c.post("/api/auth/register", body)
+        c.s.headers.pop("X-SZ-Captcha", None)
+    ok(c.status == 200, "register", r)
     c.token, c.me, c.phone = r["token"], r["me"], phone
     return c
 
@@ -432,9 +437,140 @@ def t_admin_perms(routes_file):
                 ok(r.status_code in want, f"{m} {pat} as {who} → {r.status_code}", r.text[:120])
 
 
+# ---------------------------------------------------------------------------------------------------- risk control
+def _png(png):
+    import struct, zlib
+    data, idat, w, h, ch = png[8:], b"", 0, 0, 3
+    while data:
+        n = struct.unpack(">I", data[:4])[0]
+        t, d, data = data[4:8], data[8:8 + n], data[12 + n:]
+        if t == b"IHDR":
+            w, h = struct.unpack(">II", d[:8])
+            ch = 4 if d[9] == 6 else 3
+        if t == b"IDAT":
+            idat += d
+    raw, row, px = zlib.decompress(idat), w * ch, bytearray()
+    for y in range(h):
+        line, out = raw[y * (row + 1) + 1:(y + 1) * (row + 1)], bytearray(row)
+        for i in range(row):
+            out[i] = (line[i] + (out[i - ch] if i >= ch else 0)) & 255
+        px += out
+    return w, ch, px
+
+
+def solve_slider(c, scene, attempts=3):
+    """Solves the server's slider for tests: matches the piece against the gap, drags there with an uneven track."""
+    import base64
+    for _ in range(attempts):
+        ch = c.post("/api/risk/captcha", {"scene": scene})
+        w, _, bg = _png(base64.b64decode(ch["bg"].split(",")[1]))
+        pw, _, piece = _png(base64.b64decode(ch["img"].split(",")[1]))
+        # inner pixels of the piece (opaque and not the white outline): the gap there is 0.42 × the original
+        pts = [(px, py, (piece[(py * pw + px) * 4] - 6) / 1.06 * 0.42) for py in range(0, pw, 3) for px in range(0, pw, 3)
+               if piece[(py * pw + px) * 4 + 3] and piece[(py * pw + px) * 4] < 245]
+        y0 = ch["y"]
+        best = min(range(0, w - pw), key=lambda x: sum(abs(bg[((y0 + py) * w + x + px) * 3] - v) for px, py, v in pts))
+        track, t, pos = [], 0, 0
+        while pos < best:
+            track.append({"t": t, "x": pos, "y": random.random() * 3})
+            t += random.randint(12, 30)
+            pos = min(best, pos + random.randint(3, 25))
+        track.append({"t": t + 40, "x": best, "y": 1})
+        r = c.post("/api/risk/captcha/verify", {"id": ch["id"], "scene": scene, "x": best, "track": track}, expect=[200, 400])
+        if r.get("token"):
+            return r["token"]
+    ok(False, "slider solved", scene)
+    return None
+
+
+def t_risk():
+    print("· risk control: levels, slider, limits, lock, lists, Blue V")
+    a = admin()
+    before = a.get("/api/admin/risk/policy")["level"]
+    try:
+        # medium: every sign-up needs the slider
+        a.put("/api/admin/risk/policy", {"level": "medium"})
+        c = Client()
+        body = {"phone": "+60 1%d" % random.randint(10000000, 99999999), "password": "qa123456a", "name": "风控QA", "ageConfirmed": True, "terms": True}
+        r = c.post("/api/auth/register", body, expect=403)
+        ok(r.get("code") == "risk.captcha" and r["extra"]["scene"] == "register", "sign-up asks for the slider", r)
+        bad = c.post("/api/risk/captcha/verify", {"id": "nope", "x": 10, "track": []}, expect=400)
+        ok(bad.get("code") == "risk.captchaFailed", "unknown challenge fails", bad)
+        token = solve_slider(c, "register")
+        c.s.headers["X-SZ-Captcha"] = token or ""
+        r = c.post("/api/auth/register", body)
+        c.s.headers.pop("X-SZ-Captcha", None)
+        c.token, c.me = r.get("token"), r.get("me")
+        ok(bool(c.token), "sign-up with the slider token")
+
+        # medium: only friends can be added to a group; a fresh account is limited
+        r = c.post("/api/groups", {"name": "新号建群", "desc": "QA"}, expect=403)
+        ok(r.get("code") == "risk.newAccount" and r["extra"]["hours"] == 24, "medium: 24 h before a new account can create groups", r)
+        a.put("/api/admin/risk/policy", {"level": "light"})
+        gid = c.post("/api/groups", {"name": "风控测试群", "desc": "QA"})["group"]["id"]
+        a.put("/api/admin/risk/policy", {"level": "medium"})
+        stranger = register("路人")
+        inv = c.post(f"/api/groups/{gid}/invite", {"people": [stranger.me["id"]]})
+        ok(inv["added"] == [] and inv["skipped"][0]["reason"] == "notFriend", "invite: strangers skipped (friends only)", inv)
+
+        # severe: a new account cannot add anyone to a group (newAccountDay 0)
+        a.put("/api/admin/risk/policy", {"level": "severe"})
+        r = c.post(f"/api/groups/{gid}/invite", {"people": [stranger.me["id"]]}, expect=[200, 403])
+        ok(r.get("added") == [] or r.get("code") == "risk.newAccount", "severe: new account cannot add people", r)
+
+        # Blue V skips every rule, and appears in the boot data
+        uid = a.get("/api/admin/users", params={"q": c.me["displayId"]})["items"][0]["id"]
+        a.post(f"/api/admin/users/{uid}/verified", {"verified": True, "label": "官方认证"})
+        boot = c.s.get(BASE + "/core/server.js", headers=c.headers()).text
+        ok(f'"{c.me["id"]}"' in boot, "boot data lists the Blue V account")
+        ok(c.get("/api/me").get("verified") is True, "/api/me says verified")
+        c.post("/api/groups", {"name": "蓝V建群", "desc": "QA"})
+        inv = c.post(f"/api/groups/{gid}/invite", {"people": [stranger.me["id"]]})
+        ok(inv["added"] == [stranger.me["id"]], "Blue V can add strangers", inv)
+        a.post(f"/api/admin/users/{uid}/verified", {"verified": False})
+        ok(c.get("/api/me").get("verified") is False, "Blue V revoked")
+
+        # custom: sign-in lock after 3 wrong passwords, admin unlock
+        pol = a.get("/api/admin/risk/policy")
+        custom = pol["presets"]["light"]
+        custom["login"].update({"captcha": "off", "maxFailures": 3, "lockMinutes": 10, "ipFailuresHour": 0})
+        a.put("/api/admin/risk/policy", {"level": "custom", "custom": custom})
+        m = register("锁定QA")
+        login = Client()
+        for i in range(3):
+            r = login.post("/api/auth/login", {"phone": m.phone, "password": "wrong-pass1"}, expect=400)
+        ok(r.get("extra", {}).get("left") == 0, "attempts count down to 0", r)
+        r = login.post("/api/auth/login", {"phone": m.phone, "password": "qa123456a"}, expect=429)
+        ok(r.get("code") == "auth.locked", "account locked", r)
+        a.post("/api/admin/risk/unlock", {"account": m.phone})
+        login.post("/api/auth/login", {"phone": m.phone, "password": "qa123456a"})
+
+        # block list by IP; e-mail domain Blue V
+        blocked = Client()
+        e = a.post("/api/admin/risk/lists", {"kind": "ip", "value": blocked.ip, "listType": "block", "note": "QA", "hours": 1})
+        r = blocked.post("/api/auth/register", dict(body, phone="+60 1%d" % random.randint(10000000, 99999999)), expect=403)
+        ok(r.get("code") == "risk.blocked", "blocked IP cannot sign up", r)
+        a.delete(f"/api/admin/risk/lists/{e['id']}")
+        dom = "qa%d.example" % random.randint(1000, 9999)
+        d = a.post("/api/admin/risk/domains", {"domain": dom, "label": "员工认证"})
+        u = Client().post("/api/auth/register", {"email": f"staff@{dom}", "password": "qa123456a", "name": "员工", "ageConfirmed": True, "terms": True})
+        ok(u["me"].get("verified") is True and u["me"].get("verifiedLabel") == "员工认证", "domain Blue V on sign-up", u["me"])
+        a.delete(f"/api/admin/risk/domains/{d['id']}?revoke=true")
+
+        ev = a.get("/api/admin/risk/events", params={"size": 50})
+        acts = {x["action"] for x in ev["items"]}
+        ok({"captcha", "block", "lock"} <= acts, "events recorded (captcha, block, lock)", acts)
+        ov = a.get("/api/admin/risk/overview")
+        ok(ov["level"] == "custom" and len(ov["trend"]) == 7, "overview", ov.get("level"))
+        csv = a.s.get(BASE + "/api/admin/risk/events/export", headers=a.headers())
+        ok(csv.status_code == 200 and "场景" in csv.text, "events export")
+    finally:
+        a.put("/api/admin/risk/policy", {"level": before if before != "custom" else "light"})
+
+
 SECTIONS = {
     "boot": t_boot, "signup": t_signup, "orders": t_tasks_address_member_checkout, "social": t_social_money,
-    "finance": t_finance, "admin": t_admin_scope,
+    "finance": t_finance, "admin": t_admin_scope, "risk": t_risk,
 }
 
 
