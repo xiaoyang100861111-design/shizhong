@@ -3,6 +3,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Shizhong.Api.Infrastructure;
 using Shizhong.Api.Modules.Messaging;
+using Shizhong.Api.Modules.Risk;
 
 namespace Shizhong.Api.Modules.Social;
 
@@ -12,6 +13,7 @@ namespace Shizhong.Api.Modules.Social;
 /// edit, dissolve. The group chat is the conversation of Kind 2.
 ///   POST /api/groups · GET /api/groups/{id} · PATCH /api/groups/{id} · DELETE /api/groups/{id}
 ///   POST /api/groups/{id}/join · POST /api/groups/{id}/leave · GET /api/groups/{id}/members
+///   POST /api/groups/{id}/invite { people: [personId] } → { added, skipped: [{ id, reason }] }  (any member; risk scene groupInvite)
 ///   POST /api/groups/{id}/members/{personId}/kick · POST /api/groups/{id}/members/{personId}/role { role: admin|member }
 /// </summary>
 public static class GroupsApi
@@ -113,7 +115,7 @@ public static class GroupsApi
     {
         var g = app.MapGroup("/api/groups").RequireUser();
 
-        g.MapPost("", async (HttpContext ctx, CreateBody body, Db db, ConfigService cfg, ContentFilter filter, ChatService chat, StateService states) =>
+        g.MapPost("", async (HttpContext ctx, CreateBody body, Db db, ConfigService cfg, ContentFilter filter, ChatService chat, StateService states, RiskEngine risk) =>
         {
             var user = ctx.RequireUser();
             SocialData.RequireNotMuted(user);
@@ -124,6 +126,7 @@ public static class GroupsApi
             if (desc.Length > cfg.Int("social.groupDescMax", 300)) throw ApiError.BadRequest("social.groupDescTooLong", null, new { n = cfg.Int("social.groupDescMax", 300) });
             name = filter.Apply(name);
             desc = filter.Apply(desc);
+            var ticket = await risk.CheckUserAsync(ctx, RiskScenes.GroupCreate, user.Id);
             var publicId = await db.TxAsync(async (c, t) =>
             {
                 var id = await c.ExecuteScalarAsync<long>("""
@@ -136,6 +139,7 @@ public static class GroupsApi
                 await SystemAsync(c, chat, id, $"{user.Name} 创建了群聊", new JsonObject { ["key"] = "server.chat.sys.groupCreated", ["name"] = user.Name, ["person"] = user.PublicId }, t);
                 return pid;
             });
+            await ticket.DoneAsync();
             await using var c2 = await db.OpenAsync();
             var row = await RequireAsync(c2, publicId);
             return Results.Ok(new { group = View(row, [user.PublicId], null, 2), state = await states.ProjectKeysAsync(user, c2, "joined", "groups") });
@@ -195,9 +199,16 @@ public static class GroupsApi
             return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, c, "joined", "groups") });
         });
 
-        g.MapPost("/{id}/join", async (string id, HttpContext ctx, Db db, ConfigService cfg, ChatService chat, StateService states, Realtime realtime) =>
+        g.MapPost("/{id}/join", async (string id, HttpContext ctx, Db db, ConfigService cfg, ChatService chat, StateService states, Realtime realtime, RiskEngine risk) =>
         {
             var user = ctx.RequireUser();
+            RiskTicket? ticket = null;
+            await using (var rc = await db.OpenAsync())
+            {
+                var existing = await RequireAsync(rc, id);
+                if (await RoleAsync(rc, existing.Id, user.Id) is null) ticket = await risk.CheckUserAsync(ctx, RiskScenes.GroupJoin, user.Id, 1, rc);
+            }
+            var joined = false;
             await db.TxAsync(async (c, t) =>
             {
                 await c.ExecuteAsync("SELECT Id FROM dbo.Groups WITH (UPDLOCK, HOLDLOCK) WHERE PublicId = @id", new { id }, t);
@@ -207,7 +218,9 @@ public static class GroupsApi
                 if (row.Members >= limit) throw ApiError.Conflict("social.groupFull", null, new { n = limit });
                 await c.ExecuteAsync("INSERT INTO dbo.GroupMembers(GroupId, UserId, Role) VALUES (@Id, @uid, 0)", new { row.Id, uid = user.Id }, t);
                 await SystemAsync(c, chat, row.Id, $"{user.Name} 加入了群聊", new JsonObject { ["key"] = "server.chat.sys.joined", ["name"] = user.Name, ["person"] = user.PublicId }, t);
+                joined = true;
             });
+            if (joined && ticket != null) await ticket.DoneAsync();
             return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "joined", "groups", "messages", "chatReads") });
         });
 
@@ -257,6 +270,81 @@ public static class GroupsApi
             return Results.Ok(new { items, count = rows.Count, myRole = rows.FirstOrDefault(r => r.UserId == user.Id).Role switch { 2 => "owner", 1 => "admin", _ => rows.Any(r => r.UserId == user.Id) ? "member" : null } });
         });
 
+        // Adding people (拉人): any member may add; friends only when the risk rule says so.
+        g.MapPost("/{id}/invite", async (string id, HttpContext ctx, InviteBody body, Db db, ConfigService cfg, ChatService chat, Realtime realtime,
+            StateService states, RiskEngine risk) =>
+        {
+            var user = ctx.RequireUser();
+            SocialData.RequireNotMuted(user);
+            var ids = (body.People ?? []).Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).Distinct().Take(500).ToArray();
+            if (ids.Length == 0) throw ApiError.BadRequest("social.inviteEmpty");
+            var skipped = new List<object>();
+            var candidates = new List<(long Id, string PublicId, string Name)>();
+            RiskTicket ticket;
+            long groupId;
+            await using (var c = await db.OpenAsync())
+            {
+                var row = await RequireAsync(c, id);
+                groupId = row.Id;
+                if (await RoleAsync(c, row.Id, user.Id) is null) throw ApiError.Forbidden("social.notMember");
+                var verified = await c.ExecuteScalarAsync<int>("SELECT Verified FROM dbo.Users WHERE Id = @Id", new { user.Id }) == 1;
+                var onlyFriends = !verified && risk.Rules.Level != RiskLevels.Off && risk.Rules.Bool(RiskScenes.GroupInvite, "onlyFriends");
+                var people = (await c.QueryAsync<(long Id, string PublicId, string Name, int Kind)>(
+                    "SELECT Id, PublicId, Name, Kind FROM dbo.Users WHERE PublicId IN @ids AND DeletedAt IS NULL AND Status = 0", new { ids })).ToList();
+                var members = (await c.QueryAsync<long>("SELECT UserId FROM dbo.GroupMembers WHERE GroupId = @gid AND UserId IN @uids",
+                    new { gid = row.Id, uids = people.Select(p => p.Id).DefaultIfEmpty(-1).ToArray() })).ToHashSet();
+                var friends = (await c.QueryAsync<long>("""
+                    SELECT a.PeerId FROM dbo.Contacts a JOIN dbo.Contacts b ON b.UserId = a.PeerId AND b.PeerId = a.UserId
+                    WHERE a.UserId = @uid AND a.PeerId IN @pids
+                    """, new { uid = user.Id, pids = people.Select(p => p.Id).DefaultIfEmpty(-1).ToArray() })).ToHashSet();
+                var blocked = (await c.QueryAsync<long>("""
+                    SELECT CASE WHEN UserId = @uid THEN TargetId ELSE UserId END FROM dbo.Blocks
+                    WHERE (UserId = @uid AND TargetId IN @pids) OR (TargetId = @uid AND UserId IN @pids)
+                    """, new { uid = user.Id, pids = people.Select(p => p.Id).DefaultIfEmpty(-1).ToArray() })).ToHashSet();
+                foreach (var pid in ids)
+                {
+                    var p = people.FirstOrDefault(x => x.PublicId == pid);
+                    string? reason = p.Id == 0 ? "notFound" : p.Id == user.Id ? "self" : members.Contains(p.Id) ? "member"
+                        : blocked.Contains(p.Id) ? "blocked" : onlyFriends && !friends.Contains(p.Id) ? "notFriend" : null;
+                    if (reason != null) skipped.Add(new { id = pid, reason });
+                    else candidates.Add((p.Id, p.PublicId, p.Name));
+                }
+                if (candidates.Count == 0)
+                    return Results.Ok(new { ok = true, added = Array.Empty<string>(), skipped });
+                var limit = row.MaxMembers ?? cfg.Int("social.groupMax", 500);
+                if (row.Members + candidates.Count > limit) throw ApiError.Conflict("social.groupFull", null, new { n = limit });
+                ticket = await risk.CheckUserAsync(ctx, RiskScenes.GroupInvite, user.Id, candidates.Count, c);
+            }
+            var added = new List<(long Id, string PublicId, string Name)>();
+            await db.TxAsync(async (c, t) =>
+            {
+                await c.ExecuteAsync("SELECT Id FROM dbo.Groups WITH (UPDLOCK, HOLDLOCK) WHERE Id = @groupId", new { groupId }, t);
+                foreach (var p in candidates)
+                {
+                    var n = await c.ExecuteAsync("""
+                        IF NOT EXISTS (SELECT 1 FROM dbo.GroupMembers WHERE GroupId = @groupId AND UserId = @uid)
+                          INSERT INTO dbo.GroupMembers(GroupId, UserId, Role) VALUES (@groupId, @uid, 0)
+                        """, new { groupId, uid = p.Id }, t);
+                    if (n > 0) added.Add(p);
+                }
+                if (added.Count > 0)
+                {
+                    var names = string.Join("、", added.Take(10).Select(a => a.Name)) + (added.Count > 10 ? $" 等 {added.Count} 人" : "");
+                    await SystemAsync(c, chat, groupId, $"{user.Name} 邀请 {names} 加入了群聊", new JsonObject
+                    {
+                        ["key"] = "server.chat.sys.invited", ["name"] = user.Name, ["person"] = user.PublicId, ["names"] = names, ["count"] = added.Count,
+                    }, t);
+                }
+                return 0;
+            });
+            if (added.Count > 0)
+            {
+                await ticket.DoneAsync(actualQty: added.Count);
+                _ = realtime.ToUsers(added.Select(a => a.Id), "state:refresh", new { keys = new[] { "joined", "groups", "messages", "chatReads" } });
+            }
+            return Results.Ok(new { ok = true, added = added.Select(a => a.PublicId), skipped, state = await states.ProjectKeysAsync(user, "groups") });
+        }).RequireRateLimiting("write");
+
         g.MapPost("/{id}/members/{personId}/kick", async (string id, string personId, HttpContext ctx, Db db, ChatService chat, Realtime realtime) =>
         {
             var user = ctx.RequireUser();
@@ -297,6 +385,7 @@ public static class GroupsApi
     public sealed record CreateBody(string? Name, string? Desc, string? City, JsonObject? Location);
     public sealed record EditBody(string? Name, string? Desc, string? Meetup, string[]? Rules);
     public sealed record RoleBody(string? Role);
+    public sealed record InviteBody(string[]? People);
 }
 
 /// <summary>data/groups.js from the database: active groups with real member counts and a short preview.</summary>

@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Shizhong.Api.Infrastructure;
 using Shizhong.Api.Modules.Auth;
 using Shizhong.Api.Modules.Messaging;
+using Shizhong.Api.Modules.Risk;
 
 namespace Shizhong.Api.Modules.Social;
 
@@ -192,7 +193,7 @@ public static class SocialApi
 
         // ------------------------------------------------------------ greet
         g.MapPost("/greet/{id}", async (string id, HttpContext ctx, GreetBody body, Db db, ConfigService cfg, ContentFilter filter, ChatService chat,
-            PersonaReplies replies, StateService states) =>
+            PersonaReplies replies, StateService states, RiskEngine risk) =>
         {
             var user = ctx.RequireUser();
             SocialData.RequireNotMuted(user);
@@ -203,9 +204,11 @@ public static class SocialApi
             await using var c = await db.OpenAsync();
             var u = await SocialData.RequirePersonAsync(c, id);
             if (u.Id == user.Id) throw ApiError.BadRequest("social.self");
+            var ticket = await risk.CheckUserAsync(ctx, RiskScenes.Greet, user.Id, 1, c);
             var conv = await chat.DirectAsync(c, null, user.Id, u.Id, true);
             await MessagingApi.EnsureCanWriteAsync(c, conv, user);
             var mid = await chat.InsertAsync(c, null, conv, user.Id, null, "text", text, new JsonObject { ["greeting"] = true }, null, body.ClientId);
+            await ticket.DoneAsync();
             await AddContactAsync(c, user.Id, u.Id, "greet");
             await chat.DeliverAsync(mid, conn: c);
             replies.OnMemberMessage(conv, user.Id, mid, "text", text, null);
@@ -219,9 +222,10 @@ public static class SocialApi
 
         // ------------------------------------------------------------ friend requests
         g.MapPost("/friends/requests", async (HttpContext ctx, FriendBody body, Db db, ConfigService cfg, ContentFilter filter, Notices notices,
-            Realtime realtime, ChatService chat, StateService states) =>
+            Realtime realtime, ChatService chat, StateService states, RiskEngine risk) =>
         {
             var user = ctx.RequireUser();
+            SocialData.RequireNotMuted(user);
             var message = filter.Apply(SocialData.Clip(body.Message, cfg.Int("social.requestMax", 120)));
             await using var c = await db.OpenAsync();
             var u = await FindAccountAsync(c, body.Account) ?? throw ApiError.NotFound("social.accountNotFound");
@@ -232,6 +236,7 @@ public static class SocialApi
                 throw ApiError.Conflict("social.alreadyFriends");
             if (await c.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.FriendRequests WHERE FromId = @a AND ToId = @b AND Status = 0", new { a = user.Id, b = u.Id }) > 0)
                 throw ApiError.Conflict("social.requestPending");
+            var ticket = await risk.CheckUserAsync(ctx, RiskScenes.Friend, user.Id, 1, c);
             // They already asked me: accepting is the natural answer.
             var reverse = await c.ExecuteScalarAsync<long?>("SELECT TOP 1 Id FROM dbo.FriendRequests WHERE FromId = @b AND ToId = @a AND Status = 0", new { a = user.Id, b = u.Id });
             if (reverse is { } rid)
@@ -242,6 +247,7 @@ public static class SocialApi
             var reqId = await c.ExecuteScalarAsync<long>("""
                 INSERT INTO dbo.FriendRequests(FromId, ToId, Account, Message) OUTPUT inserted.Id VALUES (@a, @b, @account, @message)
                 """, new { a = user.Id, b = u.Id, account = SocialData.Clip(body.Account, 40), message });
+            await ticket.DoneAsync();
             var accepted = false;
             if (u.IsPersona && ctx.RequestServices.GetRequiredService<ConfigService>().Bool("persona.acceptFriends", true))
             {

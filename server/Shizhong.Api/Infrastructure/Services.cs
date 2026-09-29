@@ -201,6 +201,9 @@ public sealed class Realtime(IHubContext<AppHub> hub)
     public Task ToUsers(IEnumerable<long> userIds, string evt, object? payload) =>
         hub.Clients.Groups(userIds.Distinct().Select(UserGroup).ToList()).SendAsync("evt", evt, payload);
 
+    public Task ToAll(string evt, object? payload) =>
+        hub.Clients.All.SendAsync("evt", evt, payload);
+
     public Task ToTopic(string topic, string evt, object? payload) =>
         hub.Clients.Group("t:" + topic).SendAsync("evt", evt, payload);
 

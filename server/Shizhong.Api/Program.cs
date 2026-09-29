@@ -55,10 +55,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = 429;
-    // Sign-in, registration and admin login: per IP.
+    // Sign-in, registration and admin login: per IP. A hard ceiling only; the configurable rules are in 风控 (Modules/Risk).
     o.AddPolicy("auth", ctx => RateLimitPartition.GetSlidingWindowLimiter(ctx.Ip(), _ => new SlidingWindowRateLimiterOptions
     {
-        PermitLimit = 30, Window = TimeSpan.FromMinutes(5), SegmentsPerWindow = 5, QueueLimit = 0,
+        PermitLimit = 120, Window = TimeSpan.FromMinutes(5), SegmentsPerWindow = 5, QueueLimit = 0,
     }));
     // Writes that fan out (messages, comments, gifts): per user or IP.
     o.AddPolicy("write", ctx => RateLimitPartition.GetTokenBucketLimiter(ctx.User()?.Id.ToString() ?? ctx.Ip(), _ => new TokenBucketRateLimiterOptions

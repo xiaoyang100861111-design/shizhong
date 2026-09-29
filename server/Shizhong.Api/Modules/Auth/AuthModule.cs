@@ -5,6 +5,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Shizhong.Api.Infrastructure;
 using Shizhong.Api.Modules.Platform;
+using Shizhong.Api.Modules.Risk;
 
 namespace Shizhong.Api.Modules.Auth;
 
@@ -37,8 +38,6 @@ public sealed partial class AuthModule : IModule
         new("auth.passwordMin", "auth", 8, "int", "密码最短位数", "Password min length", Public: true, Min: 6, Max: 32),
         new("auth.passwordMax", "auth", 64, "int", "密码最长位数", "Password max length", Public: true, Min: 16, Max: 128),
         new("auth.passwordLetterDigit", "auth", true, "bool", "密码必须同时含字母和数字", "Password needs letters and digits", Public: true),
-        new("auth.maxFailures", "auth", 5, "int", "连续输错几次后锁定", "Failures before lock", Public: true, Min: 3, Max: 20),
-        new("auth.lockSeconds", "auth", 30, "int", "锁定秒数", "Lock seconds", Public: true, Min: 10, Max: 86400),
         new("auth.sessionDays", "auth", 90, "int", "登录有效天数", "Session length (days)", Min: 1, Max: 365),
         new("auth.nameMax", "auth", 20, "int", "昵称最长字数", "Nickname max length", Public: true, Min: 4, Max: 40),
         new("auth.countryCodes", "auth", new object[]
@@ -76,7 +75,7 @@ public sealed partial class AuthModule : IModule
             return Results.Ok(new { exists = row.Id > 0, hasPassword = row.HasPassword == 1 });
         });
 
-        auth.MapPost("/register", async (HttpContext ctx, RegisterBody body, Db db, ConfigService cfg, Notices notices, IEnumerable<IUserLifecycle> hooks, MediaStore media) =>
+        auth.MapPost("/register", async (HttpContext ctx, RegisterBody body, Db db, ConfigService cfg, Notices notices, IEnumerable<IUserLifecycle> hooks, MediaStore media, RiskEngine risk) =>
         {
             if (!cfg.Bool("auth.allowRegister", true)) throw ApiError.Forbidden("auth.registerClosed");
             var (phone, email) = Normalize(body.Phone, body.Email);
@@ -108,6 +107,10 @@ public sealed partial class AuthModule : IModule
                 }
             }
             else if (cfg.Bool("auth.inviteRequired")) throw ApiError.BadRequest("auth.inviteRequired");
+            if (await db.ExecuteScalarAsync<int>("""
+                    SELECT COUNT(*) FROM dbo.Users WHERE DeletedAt IS NULL AND ((@phone IS NOT NULL AND Phone = @phone) OR (@email IS NOT NULL AND Email = @email))
+                    """, new { phone, email }) > 0) throw ApiError.Conflict("auth.exists");
+            var ticket = await risk.CheckRegisterAsync(ctx, phone, email, name);
 
             var hash = BCrypt.Net.BCrypt.HashPassword(body.Password, 11);
             var method = phone != null ? "phone" : "email";
@@ -160,32 +163,40 @@ public sealed partial class AuthModule : IModule
                 }
             }
             if (userId == 0) throw ApiError.Conflict("auth.tryAgain");
+            await ticket.DoneAsync(userId);
             await LogAsync(db, ctx, userId, phone ?? email, true, "register");
             var token = await StartSessionAsync(ctx, db, cfg, userId);
             return Results.Ok(new { token, me = await PlatformModule.MeAsync(db, userId) });
         });
 
-        auth.MapPost("/login", async (HttpContext ctx, LoginBody body, Db db, ConfigService cfg) =>
+        auth.MapPost("/login", async (HttpContext ctx, LoginBody body, Db db, ConfigService cfg, RiskEngine risk) =>
         {
             var (phone, email) = Normalize(body.Phone, body.Email ?? (body.Account?.Contains('@') == true ? body.Account : null));
             if (phone is null && email is null && body.Account is { Length: > 0 } acct)
                 (phone, _) = Normalize(acct, null);
             var account = phone ?? email ?? throw ApiError.BadRequest("auth.accountRequired");
-            await CheckLockAsync(db, cfg, account);
-            var row = await db.QueryFirstOrDefaultAsync<(long Id, string? PasswordHash, int Status, int Kind)>("""
-                SELECT Id, PasswordHash, Status, Kind FROM dbo.Users
+            var row = await db.QueryFirstOrDefaultAsync<(long Id, string? PasswordHash, int Status, int Kind, int Verified)>("""
+                SELECT Id, PasswordHash, Status, Kind, Verified FROM dbo.Users
                 WHERE DeletedAt IS NULL AND Kind <> 1 AND ((@phone IS NOT NULL AND Phone = @phone) OR (@email IS NOT NULL AND Email = @email))
                 """, new { phone, email });
+            await risk.CheckLoginAsync(ctx, account, row.Id == 0 ? null : row.Id, row.Verified);
             if (row.Id == 0)
             {
                 await LogAsync(db, ctx, null, account, false, "notFound");
+                await risk.OnLoginFailedAsync(ctx, account, null);
                 throw ApiError.BadRequest("auth.notFound");
             }
             if (row.PasswordHash is null || !BCrypt.Net.BCrypt.Verify(body.Password ?? "", row.PasswordHash))
             {
                 await LogAsync(db, ctx, row.Id, account, false, "wrongPassword");
-                var left = await AttemptsLeftAsync(db, cfg, account);
-                throw ApiError.BadRequest("auth.wrongPassword", null, new { left });
+                await risk.OnLoginFailedAsync(ctx, account, row.Id);
+                int? left = null;
+                if (row.Verified == 0)
+                {
+                    await using var lc = await db.OpenAsync();
+                    left = await risk.AttemptsLeftAsync(lc, account);
+                }
+                throw ApiError.BadRequest(left is null ? "auth.wrongPasswordPlain" : "auth.wrongPassword", null, new { left });
             }
             if (row.Status != 0)
             {
@@ -338,28 +349,9 @@ public sealed partial class AuthModule : IModule
         return token;
     }
 
-    static async Task CheckLockAsync(Db db, ConfigService cfg, string account)
-    {
-        if (await AttemptsLeftAsync(db, cfg, account) <= 0)
-            throw ApiError.TooMany("auth.locked", new { seconds = cfg.Int("auth.lockSeconds", 30) });
-    }
-
-    static async Task<int> AttemptsLeftAsync(Db db, ConfigService cfg, string account)
-    {
-        var max = cfg.Int("auth.maxFailures", 5);
-        var seconds = cfg.Int("auth.lockSeconds", 30);
-        // Failures since the last success, inside the lock window.
-        var failures = await db.ExecuteScalarAsync<int>("""
-            SELECT COUNT(*) FROM dbo.LoginLogs
-            WHERE Account = @account AND Success = 0 AND At > DATEADD(SECOND, -@seconds, SYSUTCDATETIME())
-              AND At > ISNULL((SELECT MAX(At) FROM dbo.LoginLogs WHERE Account = @account AND Success = 1), '19000101')
-            """, new { account, seconds });
-        return Math.Max(0, max - failures);
-    }
-
     static Task LogAsync(Db db, HttpContext ctx, long? userId, string? account, bool success, string? reason) =>
-        db.ExecuteAsync("INSERT INTO dbo.LoginLogs(UserId, Account, Success, Reason, Ip, UserAgent, Platform) VALUES (@userId, @account, @success, @reason, @ip, @ua, @platform)",
-            new { userId, account, success, reason, ip = ctx.Ip(), ua = ctx.UserAgent(), platform = ctx.Platform() });
+        db.ExecuteAsync("INSERT INTO dbo.LoginLogs(UserId, Account, Success, Reason, Ip, UserAgent, Platform, DeviceId) VALUES (@userId, @account, @success, @reason, @ip, @ua, @platform, @device)",
+            new { userId, account, success, reason, ip = ctx.Ip(), ua = ctx.UserAgent(), platform = ctx.Platform(), device = RiskEngine.Device(ctx) });
 
     public static void CheckPassword(string? password, ConfigService cfg)
     {

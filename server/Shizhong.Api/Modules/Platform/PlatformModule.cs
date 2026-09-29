@@ -83,6 +83,7 @@ public sealed partial class PlatformModule : IModule
                 state,
                 stateVersion = version,
                 ownedKeys = ModuleRegistry.OwnedStateKeys.OrderBy(k => k),
+                verified = await ctx.RequestServices.GetRequiredService<Shizhong.Api.Modules.Risk.VerifiedDirectory>().MapAsync(),
                 serverTime = Json.Ms(DateTime.UtcNow),
             };
             ctx.Response.Headers.CacheControl = "no-store";
@@ -285,7 +286,7 @@ public sealed partial class PlatformModule : IModule
     {
         var u = await db.QueryFirstOrDefaultAsync<MeRow>("""
             SELECT u.Id, u.PublicId, u.DisplayId, u.Kind, u.Phone, u.Email, u.Name, u.Avatar, u.Marketing, u.CreatedAt, u.LastLoginAt,
-                   CASE WHEN u.PasswordHash IS NULL THEN 0 ELSE 1 END AS HasPassword, a.Code AS AgentCode
+                   CASE WHEN u.PasswordHash IS NULL THEN 0 ELSE 1 END AS HasPassword, a.Code AS AgentCode, u.Verified, u.VerifiedLabel
             FROM dbo.Users u LEFT JOIN dbo.Agents a ON a.Id = u.AgentId WHERE u.Id = @userId
             """, new { userId });
         if (u is null) return null;
@@ -301,6 +302,8 @@ public sealed partial class PlatformModule : IModule
             marketing = u.Marketing,
             hasPassword = u.HasPassword == 1,
             agentCode = u.AgentCode,
+            verified = u.Verified == 1,
+            verifiedLabel = u.Verified == 1 ? u.VerifiedLabel : null,
             createdAt = Json.Ms(u.CreatedAt),
             lastLoginAt = Json.Ms(u.LastLoginAt),
         };
@@ -309,7 +312,7 @@ public sealed partial class PlatformModule : IModule
     sealed record UserRow(string Name, string? Avatar, string? Bio, string? Phone, string? Email, string? Language, string? Interests, string? City, string? Location);
     sealed record NoticeRow(long Id, string Type, string? Title, string? Body, string? TitleKey, string? BodyKey, string? Params, string? Action, DateTime CreatedAt, DateTime? ReadAt, bool Silent);
     sealed record MeRow(long Id, string PublicId, string DisplayId, int Kind, string? Phone, string? Email, string Name, string? Avatar, bool Marketing,
-        DateTime CreatedAt, DateTime? LastLoginAt, int HasPassword, string? AgentCode);
+        DateTime CreatedAt, DateTime? LastLoginAt, int HasPassword, string? AgentCode, int Verified, string? VerifiedLabel);
     public sealed record StatePut(JsonObject? State, int Version, bool Force);
     public sealed record RefreshBody(string[]? Keys);
     public sealed record NoticeRead(string[]? Ids, bool All);
