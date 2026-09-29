@@ -21,11 +21,6 @@ public sealed partial class SeedGenerator
     }
     readonly List<Coupon> couponList = [];
     readonly Dictionary<long, List<Coupon>> couponsOf = [];
-    readonly List<(string Code, string Name, string NameEn, long Amount, long Min, int Days, string? Category)> newTemplates =
-    [
-        ("mid-autumn", "中秋团圆券", "Mid-Autumn coupon", 1200, 8800, 14, null),
-        ("sale99", "9.9 超市节券", "9.9 grocery coupon", 900, 4900, 7, "market"),
-    ];
 
     void GrantCoupon(SUser u, string code, string source, DateTime at, long? adminId = null)
     {
@@ -137,22 +132,8 @@ public sealed partial class SeedGenerator
         foreach (var m in merchants.OrderBy(_ => R.Next()).Take(merchants.Count / 4)) manualMerchants.Add(m.Id);
         var cats = CatWeights.Where(c => svcByCat.ContainsKey(c.Cat)).ToArray();
 
-        // Campaign coupons: 9.9 grocery festival and Mid-Autumn, granted by operations.
-        foreach (var (code, name, _, _, _, _, _) in newTemplates)
-        {
-            var day = code == "sale99" ? new DateOnly(T.Now.Year, 9, 8) : new DateOnly(T.Now.Year, 9, 22);
-            var at = SeedClock.Utc(day.ToDateTime(new TimeOnly(10, 0)));
-            if (at < T.Start || at > T.Now) continue;
-            var admin = Pick(operatorAdmins);
-            var n = 0;
-            foreach (var u in members.Where(m => m.RegAt < at && !m.Disabled && Chance(0.45)))
-            {
-                GrantCoupon(u, code, "admin", at.AddSeconds(n++ % 600), admin);
-                Notice(u, at.AddSeconds(n % 600 + 30), "promo", "commerce.notice.couponGranted", "commerce.notice.couponGrantedBody",
-                    new { name, amount = Money.ToRm(coupons[code].AmountCents) }, "coupons", null);
-            }
-            Audit(admin, "marketing.coupon.grant", () => "coupon:" + code, new { code, count = n }, at.AddSeconds(-40));
-        }
+        // Campaign coupons granted by operations (festivals, city launches, 8.8 / 9.9 …) and rewards handed out one by one.
+        GrantCampaignCoupons();
         // Membership trial (grants the member coupon).
         foreach (var u in members.Where(m => Chance(0.33 + Math.Min(0.4, m.Act / 20))))
         {
@@ -501,7 +482,8 @@ public sealed partial class SeedGenerator
                 s.Commission += (long)Math.Round(gross * (o.Commission ?? 0.10m), MidpointRounding.AwayFromZero);
                 o.Settlement = s.Id;
             }
-            if (created < T.Now.AddDays(-1.5))
+            // Finance pays the weekly batch over a few days; the latest one is still partly waiting.
+            if (created < T.Now.AddDays(-3.5) || (created < T.Now.AddDays(-1) && Chance(0.5)))
             {
                 s.Paid = true;
                 s.PaidAt = T.Pick(R, created.AddHours(6), Min(created.AddDays(1.5), T.Now), SeedClock.OfficeHours);

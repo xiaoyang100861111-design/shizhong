@@ -118,7 +118,7 @@ public sealed partial class SeedGenerator
         }
 
         // ---------------------------------------------------------------- merchant applications
-        for (var i = 0; i < N(50); i++)
+        for (var i = 0; i < N(80); i++)
         {
             var u = PickUser(active, actW);
             var (name, category, text) = Pick(SeedText.MerchantApps);
@@ -128,7 +128,7 @@ public sealed partial class SeedGenerator
             var shopName = (Chance(0.5) ? u.Area.Zh : u.City.Zh) + name;
             var details = t.Details;
             t.Data = () => new { name = shopName, category, city = u.City.Zh, contact = u.Name, phone, text = details, location = LocationOf(u.City) };
-            t.Status = at > T.Now.AddDays(-2) ? Pick(new[] { "received", "processing" }) : TicketStatus(0.1, 0.1, 0.5);
+            t.Status = at > T.Now.AddDays(-3) ? Pick(new[] { "received", "received", "processing" }) : TicketStatus(0.16, 0.12, 0.5);
             if (t.Status == "processing") { t.HandledBy = Pick(auditAdmins); t.Handled = Handle(at); }
             if (t.Status == "rejected")
             {
@@ -154,7 +154,10 @@ public sealed partial class SeedGenerator
         }
 
         // ---------------------------------------------------------------- after-sales
-        var candidates = orders.Where(o => o.Paid && o.Status is OrderStatus.Done or OrderStatus.Serving && !o.U.IsDemo).OrderBy(_ => R.Next()).Take(N(100)).ToList();
+        var candidates = orders.Where(o => o.Paid && o.Status is OrderStatus.Done or OrderStatus.Serving && !o.U.IsDemo).OrderBy(_ => R.Next()).Take(N(110)).ToList();
+        // …and a few from the last couple of days that the team has not got to yet.
+        candidates.AddRange(orders.Where(o => o.Paid && o.Status is OrderStatus.Done or OrderStatus.Serving && !o.U.IsDemo && (o.Serving ?? o.Created) > T.Now.AddDays(-3)
+            && !candidates.Contains(o)).OrderBy(_ => R.Next()).Take(N(14)));
         foreach (var o in candidates)
         {
             var reason = o.Cat is "food" or "market" ? Weighted(new (string, double)[] { ("missing", 35), ("quality", 35), ("refund", 20), ("misc", 10) })
@@ -167,7 +170,7 @@ public sealed partial class SeedGenerator
             t.TargetId = () => ord.No;
             t.Data = () => new { orderId = ord.No, title = ord.S.Name, reason, text };
             Notice(o.U, at.AddMilliseconds(30), "order", "flows.notice.afterSales", "flows.notice.afterSalesBody", new { id = o.No }, "order-detail", o.No, silent: true);
-            t.Status = at > T.Now.AddHours(-18) ? Pick(new[] { "received", "processing" }) : TicketStatus(0.08, 0.1, 0.72);
+            t.Status = at > T.Now.AddHours(-30) ? Pick(new[] { "received", "received", "processing" }) : TicketStatus(0.08, 0.1, 0.72);
             if (t.Status is "resolved" or "rejected" or "processing")
             {
                 t.HandledBy = Pick(supportAdmins);

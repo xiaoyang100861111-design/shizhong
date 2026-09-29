@@ -19,11 +19,17 @@ public sealed class SeedModule : IModule
     [
         ConfigDef.GroupOf("seed", "测试数据", "Test data", "正式上线后建议关闭，关闭后后台不能再生成或清除测试数据"),
         new("seed.enabled", "seed", true, "bool", "允许在后台生成 / 清除测试数据", "Allow generating / removing test data in the console"),
+        new("seed.liveKeeper", "seed", true, "bool", "保持测试直播间在线", "Keep the generated live rooms on air",
+            "测试数据里「正在直播」的房间：刷新心跳、模拟观众进出和评论；关闭后这些房间会按掉线规则自动下播。只影响生成的直播间"),
     ];
 
     public IEnumerable<PermissionDef> Permissions => Perm.Menu("system", "系统管理", "System", 99, ("seed", "测试数据", "Test data"));
 
-    public void AddServices(IServiceCollection services, IConfiguration config) => services.AddSingleton<SeedRunner>();
+    public void AddServices(IServiceCollection services, IConfiguration config)
+    {
+        services.AddSingleton<SeedRunner>();
+        services.AddHostedService<SeedLiveKeeper>();
+    }
 
     public void Map(WebApplication app)
     {
@@ -224,6 +230,7 @@ public sealed class SeedRunner(Db db, ConfigService cfg, IServiceProvider servic
     {
         services.GetService<Commerce.CatalogStore>()?.Invalidate();
         services.GetService<Social.PersonaCache>()?.Invalidate();
+        services.GetService<GiftsLive.GiftCatalog>()?.Invalidate();
     }
 }
 

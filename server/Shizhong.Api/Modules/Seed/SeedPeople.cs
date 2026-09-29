@@ -14,6 +14,7 @@ public sealed partial class SeedGenerator
     readonly List<AgentInfo> agents = [];
     readonly Dictionary<long, long> merchantAgent = [];
     readonly Dictionary<long, long> merchantAdmin = [];
+    readonly Dictionary<long, long> agentParent = [];   // level-2 agent → its level-1 agent
 
     // ------------------------------------------------------------------ agents, console accounts, merchant attribution
     async Task AgentsAndStaffAsync()
@@ -22,13 +23,13 @@ public sealed partial class SeedGenerator
         long Role(string code) => roles.TryGetValue(code, out var id) ? id : throw new InvalidOperationException("Missing built-in role " + code);
 
         // Agents: one or two city leads per city (level 1), sub-agents under them (level 2).
-        var leadCities = new[] { 0, 0, 1, 2, 2, 3, 4, 5 };
+        var leadCities = new[] { 0, 0, 1, 2, 2, 3, 4, 5, 0, 1, 3, 2, 5, 0 };
         var level1 = new SeedTable("Agents", ("ParentId", typeof(long)), ("Path", typeof(string)), ("Level", typeof(int)), ("Code", typeof(string)),
             ("Name", typeof(string)), ("Contact", typeof(string)), ("Phone", typeof(string)), ("City", typeof(string)), ("CommissionRate", typeof(decimal)),
             ("CanCreateMerchant", typeof(bool)), ("CanCreateAgent", typeof(bool)), ("Status", typeof(int)), ("Note", typeof(string)), ("CreatedAt", typeof(DateTime)));
         var cityPrefix = new[] { "KL", "PJ", "PG", "JB", "MK", "IP" };
         var l1 = new List<(SeedText.City City, string Code, string Name)>();
-        foreach (var ci in leadCities.Take(Math.Max(2, N(8))))
+        foreach (var ci in leadCities.Take(Math.Max(2, Math.Min(leadCities.Length, N(14)))))
         {
             var city = SeedText.Cities[ci];
             var code = NewAgentCode(cityPrefix[ci]);
@@ -44,7 +45,8 @@ public sealed partial class SeedGenerator
 
         var level2 = new SeedTable("Agents", level1.Cols);
         var l2 = new List<(SeedText.City City, string Code, string Name)>();
-        var subCount = Math.Max(2, N(22));
+        var l2Parent = new List<long>();
+        var subCount = Math.Max(2, N(66));
         for (var i = 0; i < subCount; i++)
         {
             var parent = agents[i % agents.Count];
@@ -53,6 +55,7 @@ public sealed partial class SeedGenerator
             var area = parent.City.Areas[R.Next(parent.City.Areas.Length)];
             var name = $"{area.Zh}{Pick(new[] { "推广点", "服务站", "合伙人", "代理" })}·{contact}";
             l2.Add((parent.City, code, name));
+            l2Parent.Add(parent.Id);
             level2.Add(parent.Id, "/", 2, code, name, contact, NewPhone(), parent.City.Zh, Chance(0.3) ? 0.04m : (decimal?)null, true, false,
                 Chance(0.06) ? 1 : 0, Chance(0.06) ? "业绩不达标，暂停合作" : "二级代理", T.Start.AddDays(-R.Next(10, 90)));
         }
@@ -60,7 +63,7 @@ public sealed partial class SeedGenerator
         await C.ExecuteAsync("""
             UPDATE a SET Path = p.Path + CAST(a.Id AS NVARCHAR(20)) + '/' FROM dbo.Agents a JOIN dbo.Agents p ON p.Id = a.ParentId WHERE a.Id IN @l2Ids
             """, new { l2Ids });
-        for (var i = 0; i < l2Ids.Length; i++) agents.Add(new AgentInfo(l2Ids[i], l2[i].Code, l2[i].Name, l2[i].City, 2));
+        for (var i = 0; i < l2Ids.Length; i++) { agents.Add(new AgentInfo(l2Ids[i], l2[i].Code, l2[i].Name, l2[i].City, 2)); agentParent[l2Ids[i]] = l2Parent[i]; }
         Summary["agents"] = agents.Count;
 
         // Merchants: most shops belong to an agent of their city (so agent consoles show shops and their orders).
@@ -334,7 +337,7 @@ public sealed partial class SeedGenerator
             var method = u.Phone != null ? "phone" : "email";
             users.Add(u.PublicId, u.DisplayId, 0, u.Phone, u.Email, passwordHash, u.Name, u.Avatar, bio, u.Gender, u.Age, u.City.Zh, u.Area.Zh,
                 Chance(0.6) ? Pick(SeedText.Occupations) : null, u.Lang, Json.Serialize(u.Interests), LocationOf(u.City).ToJsonString(Json.Options),
-                Math.Round(lat, 5), Math.Round(lng, 5), u.Disabled ? 1 : 0, muted, u.AgentId, Chance(0.3), u.RegAt, true, method, Ip(), u.Platform,
+                Math.Round(lat, 5), Math.Round(lng, 5), u.Disabled ? 1 : 0, muted, u.AgentId, u.Marketing = Chance(0.3), u.RegAt, true, method, Ip(), u.Platform,
                 u.RegAt, u.LastSeen.AddMinutes(-R.Next(0, 90)) is var ll && ll < u.RegAt ? u.RegAt : ll, u.LastSeen);
         }
         var ids = await W.InsertAsync(users);
@@ -435,7 +438,7 @@ public sealed partial class SeedGenerator
         foreach (var c in commentRecs) Seen(c.U.Id, c.At);
         foreach (var l in likeRecs) Seen(l.U.Id, l.At);
         foreach (var o in orders) Seen(o.U.Id, o.Created);
-        foreach (var s in lives) foreach (var v in s.Views) Seen(v.U.Id, v.Last);
+        foreach (var s in lives) { Seen(s.Host.Id, s.End); foreach (var v in s.Views) Seen(v.U.Id, v.Last); }
         foreach (var r in follows.Rows) Seen((long)r[0]!, (DateTime)r[2]!);
         foreach (var u in members)
         {

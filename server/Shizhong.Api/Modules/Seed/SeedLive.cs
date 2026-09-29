@@ -28,6 +28,7 @@ public sealed partial class SeedGenerator
         public string? Cover;
         public DateTime Start, End;
         public string EndReason = "host";
+        public bool Live;               // still on air when the data was generated (Status 0, kept alive by SeedLiveKeeper)
         public long? StoppedBy;
         public string? StopNote;
         public int Peak, NewFollowers, NewFans;
@@ -137,16 +138,16 @@ public sealed partial class SeedGenerator
                 Accepting = Chance(0.85), Applied = applied, Reviewed = After(applied, 30, 60 * 30), ReviewedBy = Pick(auditAdmins), Note = "资料完整，通过",
             });
         }
-        foreach (var u in active.Where(m => !m.Host && m.Age <= 35).OrderBy(_ => R.Next()).Take(N(26)))
+        foreach (var u in active.Where(m => !m.Host && m.Age <= 38).OrderBy(_ => R.Next()).Take(N(86)))
         {
-            var status = Weighted(new (int, double)[] { (0, 15), (2, 9), (3, 2) });
-            var applied = T.Pick(R, Max(u.RegAt, T.Now.AddDays(status == 0 ? -4 : -60)), T.Now.AddHours(-1));
+            var status = Weighted(new (int, double)[] { (0, 45), (2, 30), (3, 11) });
+            var applied = T.Pick(R, Max(u.RegAt, T.Now.AddDays(status == 0 ? -9 : -75)), T.Now.AddHours(-1));
             hostRecs.Add(new HostRec
             {
                 U = u, Status = status, Intro = SeedText.Fill(Pick(SeedText.HostIntros), R, u.City), Topics = SeedText.CallTopics.OrderBy(_ => R.Next()).Take(2).ToArray(),
                 Rate = 200, Accepting = status == 3 ? false : true, Applied = applied,
                 Reviewed = status == 0 ? null : Min(After(applied, 60, 60 * 40), T.Now), ReviewedBy = status == 0 ? null : Pick(auditAdmins),
-                Note = status switch { 2 => Pick(new[] { "资料不完整，请补充清晰的个人照片", "介绍内容过于简单，请补充后重新申请" }), 3 => "多次违规，暂停主播资格", _ => null },
+                Note = status switch { 2 => Pick(SeedText.HostRejectNotes), 3 => Pick(SeedText.HostSuspendNotes), _ => null },
             });
         }
         foreach (var h in hostRecs.Where(h => h.Reviewed != null))
@@ -176,43 +177,9 @@ public sealed partial class SeedGenerator
             if (s.StoppedBy is long by) Audit(by, "live.stop", () => "live:" + s.Id.Id, new { note = s.StopNote }, end);
             lives.Add(s);
 
-            // Audience: followers first, then people browsing the lobby.
-            var viewers = (int)Math.Clamp(Math.Round(Math.Exp(Gauss(2.55, 0.7))), 2, 160);
-            var pool = followersOf.GetValueOrDefault(host.Id) ?? [];
-            var seen = new HashSet<long> { host.Id };
-            for (var k = 0; k < viewers; k++)
-            {
-                SUser v = pool.Count > 0 && Chance(0.45) && usersById.TryGetValue(Pick(pool), out var f) && !f.IsPersona ? f : PickUser(active, viewW);
-                for (var retry = 0; retry < 6 && (v.RegAt > start || v.LastSeen < start); retry++) v = PickUser(active, viewW);
-                if (v.RegAt > start || v.LastSeen < start || !seen.Add(v.Id)) continue;
-                var first = start.AddSeconds(R.NextDouble() * (end - start).TotalSeconds * 0.9);
-                var last = first.AddSeconds(R.NextDouble() * (end - first).TotalSeconds);
-                var likes = Chance(0.5) ? 0 : Between(1, 40);
-                s.Views.Add((v, first, last, likes));
-                s.Likes += likes;
-                if (Chance(0.5))
-                    for (var c = Between(1, 4); c > 0; c--)
-                        s.Comments.Add((v, "chat", SeedText.Fill(Pick(SeedText.LiveComments), R, v.City), first.AddSeconds(R.NextDouble() * Math.Max(1, (last - first).TotalSeconds))));
-                if (Chance(0.05) && !followSet.Contains((v.Id, host.Id))) { Follow(v, host, first.AddSeconds(R.Next(10, 300)) is var fa && fa < end ? fa : first); s.NewFollowers++; }
-                if (Chance(0.12)) reminders.Add(host.Id, v.Id, first.AddSeconds(R.Next(5, 200)));
-                // Gifts (heavier spenders gift more).
-                var gifter = Chance(Math.Min(0.45, 0.04 + v.Act * 0.03));
-                if (!gifter) continue;
-                var txs = Between(1, (int)Math.Clamp(v.Act * 0.7, 1, 6));
-                for (var g = 0; g < txs; g++)
-                {
-                    var gift = PickGift(liveGifts, liveGiftW);
-                    var at = first.AddSeconds(R.NextDouble() * Math.Max(1, (last - first).TotalSeconds));
-                    var qty = PickQty(gift);
-                    var combo = gift.Beans < 100 && qty == 1 && Chance(0.25) ? Between(2, 6) : 1;
-                    var comboId = combo > 1 || Chance(0.5) ? "c" + Hex(10) : null;
-                    for (var n = 1; n <= combo; n++)
-                        LiveGift(s, v, gift, qty, at.AddMilliseconds(n * R.Next(250, 900)), comboId, comboId is null ? null : n, liveShareDefault, holdDays);
-                }
-            }
-            for (var h = Between(2, 6); h > 0; h--) s.Comments.Add((host, "host", Pick(SeedText.HostLines), start.AddSeconds(R.NextDouble() * (end - start).TotalSeconds)));
-            s.Peak = (int)Math.Ceiling(s.Views.Count * (0.35 + R.NextDouble() * 0.45));
+            FillAudience(s, active, viewW, followersOf, liveShareDefault, holdDays, (int)Math.Clamp(Math.Round(Math.Exp(Gauss(2.55, 0.7))), 2, 160));
         }
+        BuildLiveNow(hosts, active, viewW, followersOf, liveShareDefault, holdDays);
         foreach (var s in lives) s.NewFans = fans.Count(f => f.Key.Host == s.Host.Id && f.Value.Joined >= s.Start && f.Value.Joined <= s.End);
         Summary["liveSessions"] = lives.Count;
 
@@ -329,6 +296,51 @@ public sealed partial class SeedGenerator
             giftTxs.Add(tx);
         }
         Summary["giftTransactions"] = giftTxs.Count;
+    }
+
+    /// <summary>Audience of one room: followers first, then people browsing the lobby; chat, likes, follows, reminders and gifts.</summary>
+    void FillAudience(LiveRec s, List<SUser> active, double[] viewW, Dictionary<long, List<long>> followersOf, decimal liveShareDefault, int holdDays, int viewers)
+    {
+        var watching = 0;
+        var host = s.Host;
+        var start = s.Start;
+        var end = s.End;
+        var pool = followersOf.GetValueOrDefault(host.Id) ?? [];
+        var seen = new HashSet<long> { host.Id };
+        for (var k = 0; k < viewers; k++)
+        {
+            SUser v = pool.Count > 0 && Chance(0.45) && usersById.TryGetValue(Pick(pool), out var f) && !f.IsPersona ? f : PickUser(active, viewW);
+            for (var retry = 0; retry < 6 && (v.RegAt > start || v.LastSeen < start); retry++) v = PickUser(active, viewW);
+            if (v.RegAt > start || v.LastSeen < start || !seen.Add(v.Id)) continue;
+            var first = start.AddSeconds(R.NextDouble() * (end - start).TotalSeconds * 0.9);
+            var last = first.AddSeconds(R.NextDouble() * (end - first).TotalSeconds);
+            // A room that is live right now: a good part of the audience is still in it.
+            if (s.Live && Chance(0.5)) { last = end.AddSeconds(-R.Next(0, 40)); watching++; }
+            var likes = Chance(0.5) ? 0 : Between(1, 40);
+            s.Views.Add((v, first, last, likes));
+            s.Likes += likes;
+            if (Chance(0.5))
+                for (var c = Between(1, 4); c > 0; c--)
+                    s.Comments.Add((v, "chat", SeedText.Fill(Pick(SeedText.LiveComments), R, v.City), first.AddSeconds(R.NextDouble() * Math.Max(1, (last - first).TotalSeconds))));
+            if (Chance(0.05) && !followSet.Contains((v.Id, host.Id))) { Follow(v, host, first.AddSeconds(R.Next(10, 300)) is var fa && fa < end ? fa : first); s.NewFollowers++; }
+            if (Chance(0.12)) reminders.Add(host.Id, v.Id, first.AddSeconds(R.Next(5, 200)));
+            // Gifts (heavier spenders gift more).
+            var gifter = Chance(Math.Min(0.45, 0.04 + v.Act * 0.03));
+            if (!gifter) continue;
+            var txs = Between(1, (int)Math.Clamp(v.Act * 0.7, 1, 6));
+            for (var g = 0; g < txs; g++)
+            {
+                var gift = PickGift(liveGifts, liveGiftW);
+                var at = first.AddSeconds(R.NextDouble() * Math.Max(1, (last - first).TotalSeconds));
+                var qty = PickQty(gift);
+                var combo = gift.Beans < 100 && qty == 1 && Chance(0.25) ? Between(2, 6) : 1;
+                var comboId = combo > 1 || Chance(0.5) ? "c" + Hex(10) : null;
+                for (var n = 1; n <= combo; n++)
+                    LiveGift(s, v, gift, qty, at.AddMilliseconds(n * R.Next(250, 900)), comboId, comboId is null ? null : n, liveShareDefault, holdDays);
+            }
+        }
+        for (var h = Between(2, 6); h > 0; h--) s.Comments.Add((host, "host", Pick(SeedText.HostLines), start.AddSeconds(R.NextDouble() * (end - start).TotalSeconds)));
+        s.Peak = Math.Min(s.Views.Count, Math.Max(watching, (int)Math.Ceiling(s.Views.Count * (0.35 + R.NextDouble() * 0.45))));
     }
 
     void LiveGift(LiveRec s, SUser from, GiftRow gift, int qty, DateTime at, string? comboId, int? comboN, decimal shareDefault, int holdDays)

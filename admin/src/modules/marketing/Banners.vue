@@ -26,7 +26,7 @@
         </el-table-column>
         <el-table-column :label="t('cat.order')" prop="sortOrder" width="70" />
         <el-table-column :label="t('common.status')" width="100">
-          <template #default="{ row }"><el-tag size="small" :type="row.live ? 'success' : 'info'">{{ row.live ? t('mk.live') : row.enabled ? t('mk.scheduled') : t('common.disabled') }}</el-tag></template>
+          <template #default="{ row }"><el-tag size="small" :type="row.live ? 'success' : 'info'">{{ row.live ? t('mk.live') : !row.enabled ? t('common.disabled') : row.endAt && row.endAt <= Date.now() ? t('mk.ended') : t('mk.scheduled') }}</el-tag></template>
         </el-table-column>
         <el-table-column :label="t('common.actions')" width="130" fixed="right">
           <template #default="{ row }">

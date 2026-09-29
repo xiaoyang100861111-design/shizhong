@@ -342,6 +342,25 @@ public sealed partial class SeedGenerator
                 t = After(reply, 60 * 24, 60 * 24 * 20);
             }
         }
+        // Questions from the last few hours still waiting in the desk queue.
+        foreach (var u in active.Where(m => m.LastSeen >= T.Now.AddHours(-1)).OrderBy(_ => R.Next()).Take(N(24)))
+        {
+            var t = T.Now.AddMinutes(-R.Next(3, 60 * 7));
+            if (t <= u.RegAt.AddMinutes(30)) continue;
+            if (!supportConvs.TryGetValue(u.Id, out var c))
+            {
+                c = new Conv { Kind = 3, Owner = u, Created = t };
+                supportConvs[u.Id] = c;
+                convs.Add(c);
+                if (supportWelcome.Length > 0) Say(c, null, t.AddMilliseconds(-300), "text", supportWelcome, new JsonObject { ["i18nConfig"] = "chat.supportWelcome", ["desk"] = true });
+            }
+            else if (c.Msgs.Count > 0 && c.Msgs.Max(m => m.At) >= t) continue;
+            var (q, _) = Pick(SeedText.SupportThreads);
+            Say(c, u, t, "text", q);
+            if (Chance(0.4)) Say(c, u, t.AddSeconds(R.Next(20, 240)), "text", Pick(SeedText.SupportNudges));
+            c.DeskStatus = 0;
+            c.DeskReadAt = null;
+        }
         Summary["conversations"] = convs.Count(c => !c.Existing);
     }
 
