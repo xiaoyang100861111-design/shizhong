@@ -254,6 +254,7 @@ public sealed class SocialImport(Db db, DemoData demo, ILogger<SocialImport> log
                 UPDATE dbo.Conversations SET LastMessageId = (SELECT MAX(Id) FROM dbo.Messages WHERE ConversationId = @convId),
                   LastAt = (SELECT MAX(CreatedAt) FROM dbo.Messages WHERE ConversationId = @convId) WHERE Id = @convId;
                 INSERT INTO dbo.ChatStates(UserId, ConversationId, ReadAt) VALUES (@demoId, @convId, SYSUTCDATETIME());
+                UPDATE dbo.Conversations SET DeskStatus = 1, DeskReadAt = SYSUTCDATETIME() WHERE Id = @convId;
                 """, new { convId, demoId }, t);
         }
         // Sample fans and visitors (the prototype showed 150 / 100 for the demo account).

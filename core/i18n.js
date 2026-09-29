@@ -37,10 +37,16 @@
     return target;
   }
   function lookup(messages, key) {
+    const parts = key.split('.');
     let node = messages;
-    for (const part of key.split('.')) {
+    for (let i = 0; i < parts.length; i++) {
       if (node == null || typeof node !== 'object') return undefined;
-      node = node[part];
+      // Flat dotted keys (server.error: { 'auth.required': … }) are found as well as nested ones.
+      if (i < parts.length - 1) {
+        const rest = parts.slice(i).join('.');
+        if (Object.prototype.hasOwnProperty.call(node, rest)) return node[rest];
+      }
+      node = node[parts[i]];
     }
     return node;
   }

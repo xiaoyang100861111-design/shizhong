@@ -156,6 +156,8 @@ public static class PostsApi
                 INSERT INTO dbo.Comments(PostId, UserId, Text, Status) OUTPUT inserted.Id VALUES (@Id, @uid, @text, @status);
                 UPDATE dbo.Posts SET CommentCount = (SELECT COUNT(*) FROM dbo.Comments WHERE PostId = @Id AND Status = 0) WHERE Id = @Id;
                 """, new { post.Id, uid = user.Id, text, status });
+            if (post.UserId != user.Id)
+                _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
             if (post.UserId != user.Id && status == 0)
                 await notices.PushAsync(post.UserId, new NoticeInput("social", TitleKey: "server.social.notice.commentTitle", BodyKey: "server.social.notice.commentBody",
                     Params: new { name = user.Name, text = text.Length > 40 ? text[..40] + "…" : text }, ActionName: "comments", ActionId: post.PublicId, Silent: true));
@@ -223,6 +225,8 @@ public static class PostsApi
                 new { post.Id, uid = user.Id });
         else changed = await c.ExecuteAsync("DELETE FROM dbo.PostLikes WHERE PostId = @Id AND UserId = @uid", new { post.Id, uid = user.Id });
         await c.ExecuteAsync("UPDATE dbo.Posts SET LikeCount = (SELECT COUNT(*) FROM dbo.PostLikes WHERE PostId = @Id) WHERE Id = @Id", new { post.Id });
+        if (post.UserId != user.Id)
+            _ = ctx.RequestServices.GetRequiredService<Realtime>().ToUser(post.UserId, "state:refresh", new { keys = new[] { "posts" } });
         if (on && changed > 0 && post.UserId != user.Id)
             await notices.PushAsync(post.UserId, new NoticeInput("social", TitleKey: "server.social.notice.likeTitle", BodyKey: "server.social.notice.likeBody",
                 Params: new { name = user.Name }, ActionName: "comments", ActionId: post.PublicId, Silent: true));
