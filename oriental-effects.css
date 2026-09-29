@@ -4,7 +4,7 @@
   --soe-accent: #f5ce8e;
   position: absolute;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-effect);
   isolation: isolate;
   overflow: hidden;
   contain: layout paint style;
@@ -167,7 +167,7 @@
   animation: soe-copy-in var(--soe-duration) ease both;
 }
 .soe-eyebrow {
-  font-size: 11px;
+  font-size: var(--fs-12);
   letter-spacing: 0.27em;
   color: #ffe3ae;
   line-height: 1.5;
@@ -225,22 +225,20 @@
   flex: none;
   color: #ffe5a4;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
 .soe-skip {
   position: absolute;
   z-index: 8;
-  right: 10px;
-  top: max(10px, env(safe-area-inset-top));
+  right: 12px;
+  top: calc(112px + var(--safe-top));
   min-width: 44px;
   min-height: 44px;
   padding: 0 10px;
   border: 1px solid rgba(255, 235, 195, 0.25);
   border-radius: 22px;
-  background: rgba(20, 11, 17, 0.42);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(20, 11, 17, 0.62);
   color: #fff2da;
   font: 500 13px/1 inherit;
   cursor: pointer;

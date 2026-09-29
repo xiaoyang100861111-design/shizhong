@@ -1,7 +1,14 @@
-/* Local, disposable live-room gift celebrations. Requires live-effects.css. */
+/*
+ * Local, disposable live-room gift celebrations (owner: live). Requires live-effects.css.
+ * window.ShizhongLiveEffects = { play({ container, gift: { id, name, image, accent, effect }, sender, count,
+ *   avatar }, onEnd({ reason, giftId })) -> stop(), stop() }. Text comes from t('live.fx.*').
+ * Reduced motion: no particles, a short static card. Hidden page / removed container: ends at once.
+ */
 (function () {
   'use strict';
   let active = null;
+  const tr = (key, params, fallback) => (typeof t === 'function' ? t(key, params) : fallback);
+  const number = n => (window.SZ?.fmt ? SZ.fmt.number(n) : String(n));
   const TAU = Math.PI * 2;
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
   const palettes = {
@@ -108,18 +115,20 @@
       avatar.addEventListener('error', () => avatar.remove(), { once: true });
       senderRow.append(avatar);
     }
-    senderRow.append(element('span', '', String(input.sender || '一位朋友').slice(0, 80) + ' 送出'));
+    const who = String(input.sender || tr('live.fx.someone', null, '')).slice(0, 80);
+    senderRow.append(element('span', '', tr('live.fx.sent', { name: who }, who)));
     const giftLine = element('div', 'sle-gift-line');
-    giftLine.append(element('strong', 'sle-name', String(gift.name || '一份心意').slice(0, 80)));
+    giftLine.append(
+      element('strong', 'sle-name', String(gift.name || tr('live.fx.gift', null, '')).slice(0, 80))
+    );
     const count = clamp(Math.floor(Number(input.count) || 1), 1, 999999);
-    giftLine.append(element('span', 'sle-count', '× ' + count.toLocaleString()));
+    giftLine.append(element('span', 'sle-count', '× ' + number(count)));
     copy.append(senderRow, giftLine);
-    const skip = element('button', 'sle-skip', '跳过');
+    const skip = element('button', 'sle-skip', tr('live.fx.skip', null, 'Skip'));
     skip.type = 'button';
-    skip.setAttribute('aria-label', '跳过礼物特效');
+    skip.setAttribute('aria-label', tr('live.fx.skipLabel', null, 'Skip'));
     let frame = 0,
       timer = 0,
-      observer = null,
       resizeObserver = null,
       ended = false;
     let canvas = null,
@@ -138,7 +147,6 @@
       ended = true;
       cancelAnimationFrame(frame);
       clearTimeout(timer);
-      if (observer) observer.disconnect();
       if (resizeObserver) resizeObserver.disconnect();
       window.removeEventListener('resize', requestResize);
       document.removeEventListener('visibilitychange', visibilityChanged);
@@ -180,10 +188,6 @@
     window.addEventListener('pagehide', pageHidden);
     if (motion.addEventListener) motion.addEventListener('change', motionChanged);
     else if (motion.addListener) motion.addListener(motionChanged);
-    observer = new MutationObserver(() => {
-      if (!container.isConnected || !stage.isConnected || stage.parentNode !== container) finish('removed');
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
     timer = setTimeout(() => finish('complete'), duration + (reduced ? 0 : 80));
     if (reduced) return finish;
     canvas = element('canvas', 'sle-canvas');

@@ -1,720 +1,1578 @@
-/* Local interactive live-room prototype. Broadcast events are simulated. */
 'use strict';
+/*
+ * Public live room, room gifts, start-live preview (owner: live). Broadcasts are simulated locally.
+ *
+ * window.ShizhongLive = { open(hostId, { resume }), next(), prev(), isOpen(), gifts(), gift(id),
+ *   giftName(id), giftArt(id, size), startLive(), openHistory(), stop(), showVip(), catalog }
+ *
+ * The room is one SZ.overlay layer (kind 'raw', meta { kind: 'room', hostId }). Swiping (or next/prev)
+ * swaps the host inside that layer, so the back button always closes the whole room. Every panel
+ * (gifts, profile card, ranks, report…) is an SZ.overlay sheet on top; the room pauses its comment
+ * stream and effects while covered and resumes on uncover.
+ */
 (() => {
-  const defaults = { fanclubs: [], reminders: [], honorXp: 0, giftHistory: [], likes: {} };
-  initialState.live = JSON.parse(JSON.stringify(defaults));
-  let session = null,
-    sequence = 0;
-  const sessions = new Map();
-  const own = () => {
-    state.live = { ...JSON.parse(JSON.stringify(defaults)), ...(state.live || {}) };
-    return state.live;
+  const DEFAULTS = {
+    fanclubs: [],
+    reminders: [],
+    honorXp: 0,
+    giftHistory: [],
+    likes: {},
+    myLives: [],
   };
+  initialState.live = SZ.clone(DEFAULTS);
+  const HISTORY_CAP = 100;
+  const SENT_CAP = 200;
+  const COMMENT_CAP = 60;
+  const QUANTITIES = [1, 10, 66, 99];
+  const CLAIMS = [100, 1000, 10000, 100000];
+  const COMBO_MS = 3000;
+  const FULL_ENTRANCE_GAP = 30000;
+  const REPORT_REASONS = ['harassment', 'inappropriate', 'fake', 'spam', 'scam', 'minor', 'misc'];
+  // Live topics are stored as source-language ids; demo comment lines are keyed by these slugs.
+  const TOPIC_KEYS = { 同城聊天: 'local', 旅行分享: 'travel', 语言交流: 'language', 音乐时光: 'music' };
+  const LINE_COUNT = { local: 16, travel: 16, language: 16, music: 10 };
+  const HOST_LINES = 14;
+  const DEFAULT_COVER = 'city-kl.jpg';
+  const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  // ------------------------------------------------------------------ small helpers
+  const G = () => window.SHIZHONG_LIVE_GIFTS || [];
+  const gift = id => G().byId?.(id) || G().find(g => g.id === id) || null;
+  const giftName = id => gift(id)?.name || '';
+  const giftArt = (id, size = 'thumb') => asset(G().art ? G().art(id, size) : gift(id)?.image);
+  const fmt = () => SZ.fmt;
+  const compact = n => fmt().compact(n);
+  const beans = n => tn('live.gift.price', Number(n) || 0, { amount: compact(n) });
   const hash = s => {
     let n = 0;
     for (const c of String(s)) n = (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0;
     return n;
   };
-  const number = n =>
-    Number(n) >= 100000000
-      ? compactBalance(n)
-      : Number(n) >= 10000
-        ? (Number(n) / 10000).toFixed(1) + '万'
-        : Number(n).toLocaleString('zh-CN');
-  const viewerCount = value => {
-    const text = String(value || '').toLowerCase();
-    const n = parseFloat(text.replace(/,/g, ''));
-    return Number.isFinite(n)
-      ? Math.round(n * (text.includes('万') ? 10000 : text.includes('k') ? 1000 : 1))
-      : 0;
+  const own = () => {
+    state.live = SZ.withDefaults(state.live, SZ.clone(DEFAULTS));
+    return state.live;
   };
-  const person = id =>
-    id === 'self'
-      ? {
-          id: 'self',
-          name: state.profile.name,
-          photo: state.profile.photo,
-          city: state.city,
-          bio: state.profile.bio,
-          age: '',
-          tags: ['生活体验官'],
-        }
-      : people.find(p => p.id === id);
-  const vip = id => (id === 'self' ? (window.ShizhongVIP?.level() ?? 10) : 8 + (hash(id + 'vip') % 53));
-  const badge = id =>
-    `<span class="lr-vip" data-tier="${vip(id) >= 45 ? 'royal' : vip(id) >= 30 ? 'gold' : vip(id) >= 16 ? 'silver' : 'bronze'}" title="VIP 等级 ${vip(id)}">◆ ${vip(id)}</span>`;
-  const gifts = () => window.SHIZHONG_LIVE_GIFTS || [];
-  const gift = id => gifts().find(g => g.id === id);
-  const roomNode = () => document.querySelector('.lr-room');
-  const clone = v => JSON.parse(JSON.stringify(v));
-  function commit(fn) {
-    const before = clone(state);
-    fn();
-    if (save()) return true;
-    state = before;
-    toast('保存未完成，请释放浏览器空间后重试');
-    return false;
+  const isBlocked = id => (state.blocked || []).includes(id);
+  const following = id => (state.follows || []).includes(id);
+  const myName = () => (typeof profileName === 'function' ? profileName() : state.profile?.name || '');
+  function findPerson(id) {
+    if (id === 'self')
+      return { id: 'self', name: myName(), photo: state.profile?.photo, city: state.city, self: true };
+    return (typeof people !== 'undefined' ? people : []).find(p => p.id === id) || null;
   }
+  const nameOf = p => (p?.self ? myName() : personName(p));
+  /** <img> for any image reference, including IndexedDB photos ('media:…', hydrated by core). */
+  function img(ref, alt = '', cls = '') {
+    const media = SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : '';
+    return `<img class="${cls}" src="${esc(asset(ref))}"${media} alt="${esc(alt)}" decoding="async">`;
+  }
+  const avatarOf = p => (p?.self ? state.profile?.photo : avatarSource(p));
+  const selfLevel = () => Math.max(1, Number(window.ShizhongVIP?.level?.('self')) || 1);
+  const levelOf = id => (id === 'self' ? selfLevel() : 8 + (hash(id + 'vip') % 53));
+  function levelChip(id) {
+    const n = levelOf(id);
+    const tier = n >= 45 ? 'royal' : n >= 30 ? 'gold' : n >= 16 ? 'silver' : 'bronze';
+    return `<span class="lr-lv" data-tier="${tier}">${esc(t('live.level', { n }))}</span>`;
+  }
+  // Glyphs the shell icon set does not have.
+  const GLYPHS = {
+    up: '<path d="m6 15 6-6 6 6"/>',
+    down: '<path d="m6 9 6 6 6-6"/>',
+    pause: '<path d="M9 5v14M15 5v14"/>',
+    play: '<path d="m8 5 11 7-11 7z"/>',
+    flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
+    block: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+    eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+    send: '<path d="m22 2-8 20-3-9-9-3zM11 13 22 2"/>',
+    exit: '<path d="M9 3H3v18h6m5-15 6 6-6 6M8 12h12"/>',
+    trophy: '<path d="M8 21h8m-4-4v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H3a4 4 0 0 0 4 5m10-5h4a4 4 0 0 1-4 5"/>',
+  };
+  const glyph = name => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${GLYPHS[name]}</svg>`;
+  const topicKey = topic => TOPIC_KEYS[topic] || 'local';
+  const topicLabel = topic => td('live.topic', topic || '同城聊天');
+  const cityLabel = city => td('city', city || state.city);
+  const ensureChunks = keys =>
+    window.ShizhongCatalog?.ensure ? window.ShizhongCatalog.ensure(keys) : Promise.resolve();
+  const chunksFor = id => (typeof profileChunks === 'function' ? profileChunks(id) : []);
+
+  // ------------------------------------------------------------------ state upgrade
+  /* v2 renamed gift ids and caps the histories; old saves are rewritten once per load. */
+  function migrate() {
+    if (!state) return;
+    own();
+    const map = G().legacyIds || {};
+    let changed = false;
+    const fix = list => {
+      if (!Array.isArray(list)) return;
+      for (const r of list)
+        if (r && map[r.giftId]) {
+          r.giftId = map[r.giftId];
+          changed = true;
+        }
+    };
+    fix(state.live.giftHistory);
+    fix(state.sentGifts);
+    fix(state.oneToOne?.gifts);
+    if (state.live.giftHistory.length > HISTORY_CAP) {
+      state.live.giftHistory.length = HISTORY_CAP;
+      changed = true;
+    }
+    if (Array.isArray(state.sentGifts) && state.sentGifts.length > SENT_CAP) {
+      state.sentGifts.length = SENT_CAP;
+      changed = true;
+    }
+    for (const [id, n] of Object.entries(state.live.likes))
+      if (!Number.isFinite(Number(n))) {
+        delete state.live.likes[id];
+        changed = true;
+      }
+    if (changed) SZ.store.saveSoon();
+  }
+  migrate();
+  SZ.on('boot:ready', migrate);
+  SZ.bootTasks = SZ.bootTasks || [];
+  SZ.bootTasks.push(() => SZ_I18N.loadContent('live-gifts'));
+
+  // ------------------------------------------------------------------ per-host memory (this page session)
+  const models = new Map();
   function model(id) {
-    if (!sessions.has(id))
-      sessions.set(id, {
+    if (!models.has(id))
+      models.set(id, {
         comments: [],
         draft: '',
         count: 0,
-        likes: 0,
-        paused: false,
+        scrollPaused: false,
         clean: false,
-        giftCategory: '推荐',
+        category: G().categories?.[0] || '推荐',
         giftId: 'heart',
         quantity: 1,
+        said: false,
+        nudged: false,
       });
-    return sessions.get(id);
+    return models.get(id);
   }
-  function audience(host) {
-    const pool = people.filter(p => p.id !== host.id && !state.blocked.includes(p.id));
-    const start = hash(host.id) % Math.max(1, pool.length);
-    return Array.from({ length: Math.min(24, pool.length) }, (_, i) => pool[(start + i * 7) % pool.length]);
+  let R = null; // the open viewer room
+  let H = null; // the open host preview
+  let roomsThisSession = 0;
+  let lastLeftAt = 0;
+
+  function audienceFor(hostId, size = 24) {
+    const pool = (typeof people !== 'undefined' ? people : []).filter(
+      p => p.id !== hostId && !isBlocked(p.id)
+    );
+    if (!pool.length) return [];
+    const start = hash(hostId) % pool.length;
+    const out = new Map();
+    for (let i = 0; i < Math.min(size, pool.length); i++) {
+      const p = pool[(start + i * 7) % pool.length];
+      out.set(p.id, p);
+    }
+    return [...out.values()];
   }
-  function messageHTML(m) {
-    const p = person(m.personId) || session?.audience[0];
+  const likesBase = id => 6800 + (hash(id) % 35000);
+  const myLikes = id => Math.max(0, Number(own().likes[id]) || 0);
+  const viewerBase = p => Number(p?.watch) || 286 + (hash(p?.id) % 1200);
+
+  // ------------------------------------------------------------------ comments
+  function demoLine(r) {
+    const key = topicKey(r.host.topic);
+    const i = r.model.count++;
+    const viewer = r.audience[i % Math.max(1, r.audience.length)];
+    return {
+      personId: viewer?.id || r.id,
+      text: t(`live.lines.${key}.${i % LINE_COUNT[key]}`),
+      kind: 'chat',
+    };
+  }
+  function seedComments(r) {
+    const m = r.model;
+    if (m.comments.length) return;
+    const original = Array.isArray(r.host.roomComments) ? r.host.roomComments : [];
+    const translated = original.length ? lc('profiles', r.host, 'roomComments') : [];
+    original.slice(0, 3).forEach((c, i) => {
+      const tr = Array.isArray(translated) ? translated[i] : null;
+      const text = typeof tr === 'string' ? tr : tr?.text || c.text;
+      const author = c.person && findPerson(c.person) ? c.person : r.audience[i]?.id;
+      if (text && author)
+        m.comments.push({ personId: author, text, kind: author === r.id ? 'host' : 'chat' });
+    });
+    while (m.comments.length < 6) m.comments.push(demoLine(r));
+  }
+  function messageHTML(r, m) {
+    const p = findPerson(m.personId);
     if (!p) return '';
-    const fan = p.id === 'self' ? own().fanclubs.includes(session?.id) : hash(p.id) % 3 === 0;
-    return `<div class="lr-message ${m.gift ? 'lr-message-gift' : ''} ${p.id === 'self' ? 'lr-message-self' : ''}">${act('lr-user', p.id, `${badge(p.id)}${fan ? '<span class="lr-fan-badge">粉 ' + (p.id === 'self' ? 6 : 1 + (hash(p.id) % 20)) + '</span>' : ''}<strong>${esc(p.name)}：</strong>`, 'lr-comment-user')}<span class="lr-message-text">${esc(m.text)}</span></div>`;
+    const isHost = m.personId === r.id || m.kind === 'host';
+    let fan = 0;
+    if (p.self) fan = r.mode === 'viewer' && own().fanclubs.includes(r.id) ? 6 : 0;
+    else if (hash(p.id) % 3 === 0) fan = 1 + (hash(p.id) % 20);
+    const cls = [
+      'lr-msg',
+      `lr-msg-${m.kind || 'chat'}`,
+      p.self ? 'lr-msg-self' : '',
+      isHost ? 'lr-msg-hostline' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const role = isHost ? `<span class="lr-host-tag">${esc(t('live.card.host'))}</span>` : '';
+    return `<button type="button" class="${cls}" data-action="lr-user" data-id="${esc(p.id)}">${role}${levelChip(p.id)}${fan ? `<span class="lr-fan" aria-hidden="true">♥${fan}</span>` : ''}<span class="lr-msg-name">${esc(nameOf(p))}</span> <span class="lr-msg-text">${esc(m.text)}</span></button>`;
   }
-  function pushComment(s, m) {
-    if (session !== s || !s.el.isConnected) return;
-    s.model.comments.push(m);
-    if (s.model.comments.length > 40) s.model.comments.shift();
-    const box = s.el.querySelector('.lr-comments');
-    box.insertAdjacentHTML('beforeend', messageHTML(m));
-    while (box.children.length > 6) box.firstElementChild.remove();
+  const nearBottom = box => box.scrollHeight - box.scrollTop - box.clientHeight < 28;
+  function pushComment(r, m) {
+    if (!r || !r.el?.isConnected) return;
+    r.model.comments.push(m);
+    if (r.model.comments.length > COMMENT_CAP) r.model.comments.shift();
+    const box = r.el.querySelector('.lr-comments');
+    if (!box) return;
+    const stick = !r.model.scrollPaused && nearBottom(box);
+    box.insertAdjacentHTML('beforeend', messageHTML(r, m));
+    while (box.children.length > COMMENT_CAP) {
+      const first = box.firstElementChild;
+      const h = first.offsetHeight;
+      first.remove();
+      if (!stick) box.scrollTop = Math.max(0, box.scrollTop - h);
+    }
+    if (stick) box.scrollTop = box.scrollHeight;
+    else if (m.personId !== 'self') {
+      r.unseen = (r.unseen || 0) + 1;
+      updatePill(r);
+    }
+  }
+  function updatePill(r) {
+    const pill = r.el?.querySelector('.lr-new-pill');
+    if (!pill) return;
+    pill.hidden = !r.unseen;
+    pill.textContent = r.unseen ? tn('live.comments.new', r.unseen) : '';
+  }
+  function jumpToLatest(r) {
+    const box = r.el.querySelector('.lr-comments');
+    if (!box) return;
     box.scrollTop = box.scrollHeight;
+    r.unseen = 0;
+    updatePill(r);
   }
-  function demoLine(s) {
-    const host = s.host,
-      pool = s.audience,
-      i = s.model.count++;
-    const lines =
-      host.topic === '旅行分享'
-        ? [
-            '这个路线适合周末慢慢走',
-            '刚刚说的咖啡店我记下来了',
-            '雨季出门记得带伞呀',
-            '更喜欢日落时分的海边',
-            '下次想听你分享槟城的老街',
-            '镜头里的城市很有生活感',
-            '这里坐公共交通方便吗？',
-            '等有假期，也去走走这条路线',
-            '这条街适合带相机去走走',
-            '喜欢你边走边介绍的节奏',
-            '午后出门会不会有点晒',
-            '附近有地方坐下来喝茶吗',
-            '周末想安排一个轻松的行程',
-            '小巷里的店总是很有惊喜',
-            '我先把路线存下来',
-            '坐在家里也像跟着出去走了一趟',
-          ]
-        : host.topic === '语言交流'
-          ? [
-              '这个发音再说一次可以吗',
-              '今天又学会一个日常用语',
-              '中英夹着聊，反而很亲切',
-              '这个词平时在店里也会用到',
-              '原来这句可以这样说',
-              '刚下班，来听一会儿',
-              '大家晚上好，很高兴认识你们',
-              '慢慢练习，已经比上次顺畅啦',
-              '点餐的时候这句很实用',
-              '我试着跟读了一遍',
-              '能不能再举一个生活里的例子',
-              '终于听懂这句话啦',
-              '把今天学的写进备忘录了',
-              '说错也没关系，慢慢来',
-              '明天上班试着说说看',
-              '这种聊天练习轻松很多',
-            ]
-          : [
-              '下班了，来这里坐一会儿',
-              '今天的歌单很适合放松',
-              '刚泡好茶，你们吃晚饭了吗',
-              '喜欢这样不赶时间地聊天',
-              '我也住这附近，周末常去散步',
-              '刚才那个故事好有画面感',
-              '大家晚上好，今天过得怎样',
-              '听着聊天，顺手把房间收拾好了',
-              '刚到家，终于能歇一会儿',
-              '这个话题我也有同感',
-              '听你说完，心情轻松了一点',
-              '准备好小零食来听故事了',
-              '今天也有一件开心的小事',
-              '周末大家有什么安排呀',
-              '这首歌有点耳熟',
-              '窗外刚停雨，空气很舒服',
-            ];
-    return { personId: pool[i % pool.length]?.id || host.id, text: lines[i % lines.length] };
+  function bindComments(r) {
+    const box = r.el.querySelector('.lr-comments');
+    if (!box) return;
+    box.scrollTop = box.scrollHeight;
+    box.addEventListener(
+      'scroll',
+      () => {
+        if (r.unseen && !r.model.scrollPaused && nearBottom(box)) {
+          r.unseen = 0;
+          updatePill(r);
+        }
+      },
+      { passive: true }
+    );
   }
-  function stop() {
-    const s = session;
-    if (!s) return;
-    s.model.draft = s.el.querySelector('[name="liveText"]')?.value ?? s.model.draft;
-    session = null;
-    clearInterval(s.timer);
-    s.observer?.disconnect();
-    window.ShizhongVipEntry?.stop();
-    window.ShizhongLiveEffects?.stop();
-    window.ShizhongOrientalEffects?.stop();
+  function setScrollPaused(r, paused) {
+    r.model.scrollPaused = paused;
+    const b = r.el.querySelector('.lr-scroll-toggle');
+    if (b) {
+      b.setAttribute('aria-pressed', String(paused));
+      b.setAttribute('aria-label', t(paused ? 'live.comments.resume' : 'live.comments.pause'));
+      b.innerHTML = glyph(paused ? 'play' : 'pause');
+    }
+    if (!paused) jumpToLatest(r);
   }
-  function draw(id, options = {}) {
-    const host = person(id);
-    if (!host) return;
-    stop();
-    own();
-    activeRoom = id;
-    const m = model(id),
-      viewers = audience(host),
-      seed = hash(id),
-      watch = viewerCount(host.watch) || 286 + (seed % 1200);
-    const s = {
+
+  // ------------------------------------------------------------------ room markup
+  function followButton(id, cls) {
+    const on = following(id);
+    return `<button type="button" class="${cls}" data-action="lr-follow" data-id="${esc(id)}" aria-pressed="${on}"><span class="lr-follow-label">${esc(t(on ? 'live.follow.following' : 'live.follow.follow'))}</span></button>`;
+  }
+  function paneHTML(r) {
+    const host = r.host,
+      id = r.id,
+      m = r.model,
+      name = nameOf(host);
+    const title = lc('people', host, 'room') || t('live.room.label', { name });
+    const language = lc('people', host, 'language') || '';
+    const faces = r.audience.slice(0, 3);
+    return `<div class="lr-media" aria-hidden="true">${img(host.photo, '', 'lr-cover')}</div><div class="lr-shade" aria-hidden="true"></div>
+      <header class="lr-top">
+        <div class="lr-host">
+          <button type="button" class="lr-host-main" data-action="lr-user" data-id="${esc(id)}" aria-label="${esc(t('live.card.open', { name }))}">${img(avatarOf(host), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lr-title-${r.uid}">${esc(name)}</strong><span class="lr-likes num">${esc(t('live.room.likes', { count: compact(likesBase(id) + myLikes(id)) }))}</span></span></button>
+          ${followButton(id, 'lr-follow lr-follow-pill')}
+        </div>
+        <button type="button" class="lr-viewers" data-action="lr-audience" aria-label="${esc(t('live.audience.open', { count: fmt().number(r.watch) }))}"><span class="lr-faces" aria-hidden="true">${faces.map(p => img(avatarOf(p))).join('')}</span><span class="lr-viewer-count num">${esc(compact(r.watch))}</span></button>
+        <button type="button" class="lr-icon lr-close" data-action="lr-exit" aria-label="${esc(t('live.room.close'))}">${icon('close')}</button>
+      </header>
+      <div class="lr-chips">
+        <button type="button" class="lr-chip" data-action="lr-rank">${glyph('trophy')}<span>${esc(t('live.room.rank', { n: (hash(id) % 18) + 1 }))}</span></button>
+        <button type="button" class="lr-chip" data-action="lr-fanclub"><span class="lr-chip-mark" aria-hidden="true">♥</span><span>${esc(t('live.room.fanClub'))}</span></button>
+        <button type="button" class="lr-chip" data-action="lr-tasks"><span class="lr-chip-mark" aria-hidden="true">✦</span><span>${esc(t('live.room.tasks'))}</span></button>
+        <button type="button" class="lr-chip lr-chip-square" data-action="lr-square"><span>${esc(t('live.room.square'))}</span>${icon('chevron')}</button>
+      </div>
+      <p class="lr-ticker" aria-hidden="true"><span>${esc(t('live.ticker.welcome', { name }))}</span></p>
+      <div class="lr-side">
+        <button type="button" class="lr-icon" data-action="lr-prev" aria-label="${esc(t('live.room.prev'))}">${glyph('up')}</button>
+        <button type="button" class="lr-icon" data-action="lr-next" aria-label="${esc(t('live.room.next'))}">${glyph('down')}</button>
+      </div>
+      <button type="button" class="lr-restore" data-action="lr-clean" aria-pressed="true">${glyph('eye')}<span>${esc(t('live.room.restore'))}</span></button>
+      <div class="lr-bottom">
+        <div class="lr-caption"><h2 class="lr-room-title">${esc(title)}</h2><p>${[topicLabel(host.topic), cityLabel(host.city), language].filter(Boolean).map(esc).join(' · ')}</p></div>
+        <div class="lr-comment-area">
+          <div class="lr-comments" role="log" aria-live="off" aria-label="${esc(t('live.comments.label'))}" tabindex="0">${m.comments.map(c => messageHTML(r, c)).join('')}</div>
+          <button type="button" class="lr-icon lr-scroll-toggle" data-action="lr-scroll-toggle" aria-pressed="${m.scrollPaused}" aria-label="${esc(t(m.scrollPaused ? 'live.comments.resume' : 'live.comments.pause'))}">${glyph(m.scrollPaused ? 'play' : 'pause')}</button>
+          <button type="button" class="lr-new-pill" data-action="lr-new-comments" hidden></button>
+        </div>
+        <p class="lr-entry">${esc(t('live.entry.you'))}</p>
+        <div class="lr-nudge" hidden></div>
+        <div class="lr-bar">
+          <form class="lr-composer" novalidate><input class="lr-input" name="liveText" aria-label="${esc(t('live.comments.input'))}" placeholder="${esc(t('live.comments.placeholder'))}" maxlength="160" autocomplete="off" enterkeyhint="send" value="${esc(m.draft)}"><button type="submit" class="lr-send" aria-label="${esc(t('live.comments.send'))}">${glyph('send')}</button></form>
+          <div class="lr-actions">
+            <button type="button" class="lr-icon lr-like" data-action="lr-like" aria-label="${esc(t('live.actions.like'))}">${icon('heart')}</button>
+            <button type="button" class="lr-icon lr-gift-btn" data-action="lr-gifts" aria-label="${esc(t('live.actions.gift'))}">${icon('gift')}</button>
+            <button type="button" class="lr-icon" data-action="lr-more" aria-label="${esc(t('live.actions.more'))}">${icon('grid')}</button>
+          </div>
+        </div>
+      </div>
+      <div class="lr-float" aria-hidden="true"></div>`;
+  }
+  const peekHTML = p =>
+    p ? `${img(p.photo, '', 'lr-cover')}<span class="lr-peek-name">${esc(nameOf(p))}</span>` : '';
+
+  // ------------------------------------------------------------------ room list (swipe order)
+  function candidates() {
+    let list = [];
+    if (typeof livePeople === 'function' && typeof ui !== 'undefined' && ui.liveTab !== 'private')
+      list = livePeople();
+    if (!R || !list.some(p => p.id === R.id))
+      list = (typeof people !== 'undefined' ? people : []).filter(p => p.liveMode !== 'private');
+    return list.filter(p => !isBlocked(p.id));
+  }
+  function neighbor(dir) {
+    if (!R) return null;
+    const list = candidates();
+    if (!list.length) return null;
+    let i = list.findIndex(p => p.id === R.id);
+    // The current host was just blocked: the room that followed it now sits at its old index.
+    if (i < 0) i = dir > 0 ? R.index - 1 : R.index;
+    const n = list.length;
+    const target = list[(((i + dir) % n) + n) % n];
+    return target && target.id !== R.id ? target : null;
+  }
+  function prewarm() {
+    if (!R) return;
+    for (const [dir, cls] of [
+      [-1, '.lr-peek-prev'],
+      [1, '.lr-peek-next'],
+    ]) {
+      const p = neighbor(dir);
+      const slot = R.el.querySelector(cls);
+      if (slot) slot.innerHTML = peekHTML(p);
+      if (!p) continue;
+      ensureChunks(chunksFor(p.id)).catch(() => {});
+      const pre = new Image();
+      pre.decoding = 'async';
+      pre.src = asset(p.photo);
+    }
+    R.index = Math.max(
+      0,
+      candidates().findIndex(p => p.id === R.id)
+    );
+  }
+
+  // ------------------------------------------------------------------ open / switch / close
+  function open(hostId, { resume = false } = {}) {
+    hostId = String(hostId || '');
+    const host = findPerson(hostId);
+    if (!host || host.self) return toast(t('live.room.missing'));
+    if (isBlocked(hostId)) return toast(t('live.room.blocked'));
+    if (H) return toast(t('live.host.busy'));
+    if (R) {
+      // A deep link or a card further down asked for a room: bring ours to the top and switch host.
+      closeSheetsAboveRoom();
+      if (R.id !== hostId) switchHost(hostId, { entrance: 'quick' });
+      return R.layer;
+    }
+    const entrance = resume
+      ? 'none'
+      : !roomsThisSession || Date.now() - lastLeftAt >= FULL_ENTRANCE_GAP
+        ? 'full'
+        : 'quick';
+    const layer = SZ.overlay.open({
+      kind: 'raw',
+      html: `<section class="lr-room" role="dialog" aria-modal="true" tabindex="-1"><div class="lr-track"><div class="lr-peek lr-peek-prev" aria-hidden="true"></div><div class="lr-pane"></div><div class="lr-peek lr-peek-next" aria-hidden="true"></div></div></section>`,
+      meta: { kind: 'room', hostId },
+      onClose: () => teardown(),
+      onCover: () => cover(true),
+      onUncover: () => cover(false),
+    });
+    R = { layer, el: layer.el, mode: 'viewer', covered: false, fxToken: 0, index: 0 };
+    bindRoom(R);
+    roomsThisSession++;
+    switchHost(hostId, { entrance, first: true });
+    R.timer = setInterval(tick, 2400);
+    return layer;
+  }
+  function switchHost(id, { entrance = 'quick', first = false } = {}) {
+    const r = R;
+    const host = findPerson(id);
+    if (!r || !host) return;
+    if (!first) leaveHost(r);
+    Object.assign(r, {
       id,
       host,
-      model: m,
-      audience: viewers,
-      watch,
-      token: ++sequence,
-      intent: 0,
-      panel: '',
-      selectedPerson: id,
-      fx: false,
+      model: model(id),
+      audience: audienceFor(id),
+      watch: viewerBase(host),
+      unseen: 0,
       beat: 0,
-    };
-    session = s;
-    if (!currentOverlay) previousFocus = document.activeElement;
-    currentOverlay = { kind: 'room', title: host.room, liveRoomId: id };
-    document.body.style.overflow = 'hidden';
-    if (!m.comments.length) {
-      const initial = (host.roomComments || []).slice(0, 3);
-      for (let i = 0; i < 6; i++)
-        m.comments.push(
-          i < initial.length
-            ? { personId: viewers[i % viewers.length]?.id || id, text: initial[i].text }
-            : demoLine(s)
-        );
-    }
-    document.querySelector('#overlay-root').innerHTML =
-      `<section class="full-screen live-room lr-room" role="dialog" aria-modal="true" aria-label="${esc(host.name)}的直播间">
-      <img class="lr-backdrop" src="${asset(host.photo)}" alt="${esc(host.name)}的直播封面"><div class="lr-shade"></div>
-      <div class="lr-header">${act('lr-user', id, `<img class="avatar" src="${asset(host.photo)}" alt="${esc(host.name)}"><div><strong>${esc(host.name)}</strong><small>${number(6800 + (seed % 35000))} 本场点赞</small></div>`, 'lr-host-pill', 'aria-label="查看主播资料"')}${act('lr-follow', id, state.follows.includes(id) ? '已关注' : '关注', 'lr-follow')}${act(
-        'lr-audience',
-        '',
-        `${viewers
-          .slice(0, 3)
-          .map(p => `<img src="${asset(p.photo)}" alt="">`)
-          .join('')}<span>${number(watch)}</span>`,
-        'lr-audience',
-        'aria-label="在线观众"'
-      )}${act('lr-exit', '', icon('close'), 'lr-close', 'aria-label="退出直播"')}</div>
-      <div class="lr-subheader">${act('lr-rank', '', '人气榜 · ' + ((seed % 18) + 1), 'lr-rank')}<span class="lr-room-location">${esc(host.city)} · 演示直播</span>${act('lr-square', '', '直播广场 ›', 'lr-square')}</div>
-      <div class="lr-promo">${act('lr-fanclub', '', '<span>♥</span><b>粉丝团</b><small>一起点亮陪伴</small>', 'lr-fanclub')}${act('lr-task', '', '<span>✦</span><b>人气心愿</b><small>来一起攒心动</small>', 'lr-task')}</div>
-      ${act('lr-follow', id, state.follows.includes(id) ? '欢迎常来坐坐 ♡' : '喜欢主播就点关注 ♡', 'lr-follow-hint')}
-      <div class="lr-ticker" aria-hidden="true"><span>✦ 欢迎来到 ${esc(host.name)} 的直播间　一起把今天聊成好心情</span></div>
-      ${act('lr-next', '', `${icon('down')}<span>换一间</span>`, 'lr-next', 'aria-label="下一个直播间"')}
-      <div class="lr-bottom"><div class="lr-room-caption"><b>${esc(host.room || '把今天分享给你')}</b><small>${esc(host.theme || host.topic)} · ${esc(host.language || '中文')}</small></div><div class="lr-comments" role="log" aria-label="直播评论" aria-live="off">${m.comments.slice(-6).map(messageHTML).join('')}</div><div class="lr-entry-notice">${badge('self')} ${esc(state.profile.name)} 进入了直播间</div>
-      <form class="lr-composer" data-form="lr-comment"><input name="liveText" aria-label="直播评论内容" placeholder="说点什么…" maxlength="160" autocomplete="off" required value="${esc(m.draft)}"><button class="lr-send" type="submit" aria-label="发送直播评论">${icon('plane')}</button>${act('lr-like', '', icon('heart'), 'lr-like', 'aria-label="点赞直播"')}${act('lr-gifts', '', icon('gift'), 'lr-gift', 'aria-label="直播送礼"')}${act('lr-more', '', '<span aria-hidden="true">•••</span>', 'lr-more', 'aria-label="更多直播功能"')}</form></div><span class="lr-like-count" aria-live="polite"></span>
-    </section>`;
-    s.el = roomNode();
-    s.el.classList.toggle('lr-clean', m.clean);
-    s.el.classList.toggle('lr-paused', m.paused);
-    s.observer = new MutationObserver(() => {
-      if (session === s && !s.el.isConnected) stop();
+      uid: SZ.uid('lr'),
     });
-    s.observer.observe(document.querySelector('#overlay-root'), { childList: true });
-    s.timer = setInterval(() => {
-      if (session !== s || !s.el.isConnected) {
-        stop();
+    seedComments(r);
+    r.el.querySelector('.lr-pane').innerHTML = paneHTML(r);
+    r.el.classList.toggle('lr-clean', r.model.clean);
+    r.el.setAttribute('aria-labelledby', 'lr-title-' + r.uid);
+    r.layer.meta.hostId = id;
+    r.layer.meta.title = t('live.room.label', { name: nameOf(host) });
+    bindComments(r);
+    prewarm();
+    if (entrance !== 'none') window.ShizhongVIP?.entry?.(r.el, { quick: entrance === 'quick' });
+  }
+  /** Keep what belongs to the host we are leaving (the draft) and stop anything still playing. */
+  function leaveHost(r) {
+    const input = r.el.querySelector('.lr-input');
+    if (input && r.model) r.model.draft = input.value;
+    stopEffects(r);
+    window.ShizhongVipEntry?.stop?.();
+    endCombo(r);
+    clearTimeout(r.thanksTimer);
+    clearTimeout(r.nudgeTimer);
+  }
+  function teardown() {
+    const r = R;
+    if (!r) return;
+    leaveHost(r);
+    clearInterval(r.timer);
+    R = null;
+    lastLeftAt = Date.now();
+  }
+  function cover(covered) {
+    const r = R;
+    if (!r) return;
+    r.covered = covered;
+    if (!covered) return;
+    const input = r.el.querySelector('.lr-input');
+    if (input) r.model.draft = input.value;
+    stopEffects(r);
+    window.ShizhongVipEntry?.stop?.();
+  }
+  function tick() {
+    const r = R;
+    if (!r || r.covered || r.switching || document.hidden || !r.el.isConnected) return;
+    pushComment(r, demoLine(r));
+    r.beat++;
+    const visitor = r.audience[(r.beat * 3) % Math.max(1, r.audience.length)];
+    const entry = r.el.querySelector('.lr-entry');
+    if (visitor && entry) entry.textContent = t('live.entry.arrived', { name: nameOf(visitor) });
+    r.watch = Math.max(1, r.watch + ((hash(r.id + r.beat) % 7) - 2));
+    const count = r.el.querySelector('.lr-viewer-count');
+    if (count) count.textContent = compact(r.watch);
+    if (r.beat % 5 === 0 && visitor) {
+      const ticker = r.el.querySelector('.lr-ticker span');
+      if (ticker)
+        ticker.textContent = t('live.ticker.lit', { name: nameOf(visitor), city: cityLabel(r.host.city) });
+    }
+  }
+
+  // ------------------------------------------------------------------ gestures and keys
+  function bindRoom(r) {
+    const el = r.el;
+    el.addEventListener('submit', event => {
+      const form = event.target.closest('.lr-composer');
+      if (!form) return;
+      event.preventDefault();
+      submitComment(r, form);
+    });
+    el.addEventListener('keydown', event => {
+      // Escape skips a playing effect before it closes the room (core listens on document).
+      if (event.key === 'Escape' && (r.fxPlaying || el.querySelector('.vpe-stage'))) {
+        event.preventDefault();
+        event.stopPropagation();
+        stopEffects(r);
+        window.ShizhongVipEntry?.stop?.();
         return;
       }
-      if (document.hidden || s.panel || m.paused) return;
-      pushComment(s, demoLine(s));
-      s.beat++;
-      const visitor = s.audience[s.beat % s.audience.length] || host;
-      s.el.querySelector('.lr-entry-notice').innerHTML = `${badge(visitor.id)} ${esc(visitor.name)} 来了`;
-      if (s.beat % 5 === 0) {
-        const t = s.el.querySelector('.lr-ticker span');
-        t.textContent = `✦ ${visitor.name} 点亮了直播间　欢迎一起分享 ${host.city} 的日常`;
+      // Arrow keys scroll the comment log when it has focus; elsewhere they change rooms.
+      if (event.target.closest?.('input, textarea, select, .lr-comments')) return;
+      if (event.key === 'ArrowDown' || event.key === 'PageDown') {
+        event.preventDefault();
+        go(1);
+      } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
+        event.preventDefault();
+        go(-1);
       }
-    }, 2200);
-    focusOverlay();
-    if (!options.resume) {
-      window.ShizhongVIP?.entry(s.el);
-      pushComment(s, { personId: 'self', text: '进入了直播间 · VIP ' + vip('self') });
-    }
-  }
-  function panel(title, html, kind = 'info') {
-    const s = session;
-    if (!s) return;
-    window.ShizhongVipEntry?.stop();
-    const focus = document.activeElement;
-    ++s.intent;
-    demand([], () => {});
-    s.el.querySelector('.lr-panel-layer')?.remove();
-    s.panel = kind;
-    s.panelFocus = focus;
-    for (const node of s.el.children) node.inert = true;
-    s.el.insertAdjacentHTML(
-      'beforeend',
-      `<div class="lr-panel-layer"><button class="lr-panel-backdrop" data-action="lr-panel-close" aria-label="收起弹层"></button><section class="lr-panel lr-${kind}-panel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header class="lr-panel-header"><h2>${esc(title)}</h2>${act('lr-panel-close', '', icon('close'), 'lr-close', 'aria-label="关闭直播弹层"')}</header><div class="lr-panel-body">${html}</div></section></div>`
+    });
+    el.addEventListener('dblclick', event => {
+      if (!event.target.closest('button, input, .lr-comments, .lr-bar')) like(r, event);
+    });
+    // Follow-the-finger swipe: the track (room + neighbour covers) moves with the touch.
+    const track = el.querySelector('.lr-track');
+    let start = null;
+    const ignore = target =>
+      r.switching ||
+      target.closest('.lr-comments, .lr-composer, .lr-nudge, .sle-stage, .soe-stage, .vpe-stage');
+    el.addEventListener(
+      'touchstart',
+      event => {
+        start = null;
+        if (event.touches.length !== 1 || ignore(event.target)) return;
+        const p = event.touches[0];
+        start = { x: p.clientX, y: p.clientY, at: performance.now(), dy: 0, dragging: false };
+      },
+      { passive: true }
     );
-    s.el.querySelector('.lr-panel-header button')?.focus({ preventScroll: true });
+    el.addEventListener(
+      'touchmove',
+      event => {
+        if (!start) return;
+        const p = event.touches[0];
+        const dx = p.clientX - start.x,
+          dy = p.clientY - start.y;
+        if (!start.dragging) {
+          if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) return (start = null);
+          if (Math.abs(dy) < 10) return;
+          start.dragging = true;
+          track.style.transition = 'none';
+          el.classList.add('lr-dragging');
+        }
+        event.preventDefault();
+        start.dy = neighbor(dy < 0 ? 1 : -1) ? dy : dy * 0.25;
+        track.style.transform = `translate3d(0, ${start.dy}px, 0)`;
+      },
+      { passive: false }
+    );
+    const end = () => {
+      const s = start;
+      start = null;
+      if (!s?.dragging) return;
+      el.classList.remove('lr-dragging');
+      const h = el.clientHeight || 1;
+      const velocity = s.dy / Math.max(1, performance.now() - s.at);
+      if (s.dy < -h * 0.2 || velocity < -0.55) go(1);
+      else if (s.dy > h * 0.2 || velocity > 0.55) go(-1);
+      else settle(r, 0);
+    };
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
   }
-  function closePanel() {
-    const s = session;
-    if (!s) return;
-    ++s.intent;
-    demand([], () => {});
-    s.el.querySelector('.lr-panel-layer')?.remove();
-    s.panel = '';
-    for (const node of s.el.children) node.inert = false;
-    if (s.panelFocus?.isConnected && !s.panelFocus.closest('[inert]'))
-      s.panelFocus.focus({ preventScroll: true });
+  function settle(r, percent) {
+    const track = r.el.querySelector('.lr-track');
+    const ms = reduceMotion() ? 0 : 280;
+    track.style.transition = ms ? `transform ${ms}ms var(--ease-out)` : 'none';
+    track.style.transform = percent ? `translate3d(0, ${percent}%, 0)` : '';
+    return new Promise(resolve => setTimeout(resolve, ms + 20));
   }
-  function follow(id) {
-    const followed = state.follows.includes(id);
+  /** dir 1 = next room (content moves up), -1 = previous room. */
+  function go(dir) {
+    const r = R;
+    if (!r || r.switching) return;
+    const target = neighbor(dir);
+    if (!target) {
+      settle(r, 0);
+      return toast(t('live.room.noMore'));
+    }
+    r.switching = true;
+    Promise.all([ensureChunks(chunksFor(target.id)), settle(r, dir > 0 ? -100 : 100)])
+      .then(
+        () => {
+          if (R !== r) return;
+          const track = r.el.querySelector('.lr-track');
+          track.style.transition = 'none';
+          track.style.transform = '';
+          switchHost(target.id, { entrance: 'quick' });
+          if (!r.el.contains(document.activeElement)) r.el.focus({ preventScroll: true });
+        },
+        () => {
+          if (R !== r) return;
+          settle(r, 0);
+          toast(t('live.room.loadFailed'), { type: 'error' });
+        }
+      )
+      .finally(() => {
+        r.switching = false;
+      });
+  }
+
+  // ------------------------------------------------------------------ interactions
+  function submitComment(r, form) {
+    const input = form.elements.liveText;
+    const text = input.value.trim();
+    if (!text) return input.focus();
+    if (!SZ.requireLogin(t('auth.reason.comment'))) return;
+    pushComment(r, { personId: 'self', text: text.slice(0, 160), kind: r.mode === 'host' ? 'host' : 'self' });
+    input.value = '';
+    r.model.draft = '';
+    r.model.said = true;
+    jumpToLatest(r);
+  }
+  function like(r, event) {
+    if (!r || r.mode !== 'viewer') return;
+    if (!SZ.requireLogin(t('auth.reason.like'))) return;
+    const likes = own().likes;
+    likes[r.id] = myLikes(r.id) + 1;
+    SZ.store.saveSoon();
+    const label = r.el.querySelector('.lr-likes');
+    if (label) label.textContent = t('live.room.likes', { count: compact(likesBase(r.id) + myLikes(r.id)) });
+    const button = r.el.querySelector('.lr-like');
+    if (button) {
+      button.classList.remove('lr-pop');
+      void button.offsetWidth;
+      button.classList.add('lr-pop');
+    }
+    const layer = r.el.querySelector('.lr-float');
+    if (reduceMotion() || !layer) return;
+    const heart = document.createElement('span');
+    heart.className = 'lr-heart';
+    heart.innerHTML = icon('heart');
+    if (event?.clientX) {
+      const rect = r.el.getBoundingClientRect();
+      heart.style.left = event.clientX - rect.left + 'px';
+      heart.style.top = event.clientY - rect.top + 'px';
+    }
+    heart.style.setProperty('--lr-drift', (hash(String(likes[r.id])) % 60) - 30 + 'px');
+    layer.append(heart);
+    setTimeout(() => heart.remove(), 1300);
+  }
+  function refreshFollow(id) {
+    const on = following(id);
+    for (const layer of SZ.overlay.layers())
+      layer.el.querySelectorAll(`[data-action="lr-follow"][data-id="${CSS.escape(id)}"]`).forEach(b => {
+        b.setAttribute('aria-pressed', String(on));
+        const label = b.querySelector('.lr-follow-label');
+        if (label) label.textContent = t(on ? 'live.follow.following' : 'live.follow.follow');
+        if (b.classList.contains('lr-card-follow')) {
+          b.classList.toggle('btn-primary', !on);
+          b.classList.toggle('btn-secondary', on);
+        }
+      });
+  }
+  function toggleFollow(id) {
+    const p = findPerson(id);
+    if (!p || p.self || !SZ.requireLogin(t('auth.reason.follow'))) return;
+    const on = following(id);
     if (
-      !commit(() => {
-        state.follows = followed ? state.follows.filter(x => x !== id) : [...state.follows, id];
+      !SZ.store.commit(s => {
+        s.follows = on ? s.follows.filter(x => x !== id) : [...s.follows, id];
       })
     )
       return;
-    const s = session;
-    if (!s) return;
-    s.el.querySelectorAll(`[data-action="lr-follow"][data-id="${id}"]`).forEach(b => {
-      b.textContent = followed ? '关注' : '已关注';
-      b.setAttribute('aria-pressed', String(!followed));
-    });
-    render();
-  }
-  function userCard(id, full = false) {
-    const s = session,
-      p = person(id);
-    if (!s || !p) return;
-    s.selectedPerson = id;
-    const seed = hash(id),
-      followers = 1200 + (seed % 47000),
-      likes = followers * 3 + (seed % 300);
-    const works = [...state.posts, ...basePosts].filter(x => x.person === id).slice(0, 9);
-    const name = full ? '个人主页' : '主播与用户资料';
-    const profileAction = full
-      ? id === 'self'
-        ? 'lr-my-profile'
-        : 'lr-decorated-profile'
-      : 'lr-full-profile';
-    panel(
-      name,
-      `<div class="lr-profile-banner" style="background-image:linear-gradient(180deg,#29203518,#171021a8),url('${asset(p.photo)}')"><img class="lr-profile-avatar" src="${asset(p.photo)}" alt="${esc(p.name)}">${id === s.id ? '<span class="lr-live-label">▥ 直播中</span>' : ''}<div class="lr-profile-name"><h2>${esc(p.name)} ${badge(id)}</h2><small>适中号 ${88000000 + (seed % 10000000)} · ${esc(p.city || state.city)}</small></div></div>
-      <div class="lr-profile-stats"><span><b>${number(likes)}</b> 获赞</span><span><b>${88 + (seed % 460)}</b> 关注</span><span><b>${number(followers)}</b> 粉丝</span></div>
-      <p class="lr-profile-bio">${esc(full ? p.about || p.bio : p.bio)}</p><div class="lr-profile-actions">${id !== 'self' ? act('lr-follow', id, state.follows.includes(id) ? '已关注' : '+ 关注', 'lr-primary') : ''}${act(profileAction, id, full ? '礼物装扮主页' : '个人主页', 'lr-secondary')}${id !== 'self' ? act('lr-message', id, icon('chat'), 'lr-secondary', 'aria-label="私信"') : ''}</div>
-      ${id === s.id ? `<div class="lr-profile-links">${act('lr-fanclub', '', `<b>粉丝团 <span>♥</span></b><small>${number(320 + (seed % 1280))} 位成员 · 一起陪伴</small>`)}${act('lr-vip', '', `<b>我的 VIP 权益 <span>V</span></b><small>VIP ${vip('self')} · 查看权益</small>`)}</div><div class="lr-profile-links">${act('lr-reminder', id, own().reminders.includes(id) ? '✓ 已开启开播提醒' : '♧ 开播提醒')}${act('lr-task', '', '✦ 人气心愿与成就')}</div>` : ''}
-      <div class="lr-member-grid"><span>${esc(p.age ? p.age + ' 岁' : '生活体验官')}</span><span>${esc(p.language || '中文')}</span>${(
-        p.tags || []
-      )
-        .slice(0, 3)
-        .map(t => `<span>${esc(t)}</span>`)
-        .join('')}</div>
-      ${full ? `<h3 class="lr-section-title">作品与生活 <small>${works.length + (id === s.id ? 1 : 0)}</small></h3><div class="lr-profile-showcase">${id === s.id ? act('lr-panel-close', '', `<img src="${asset(p.photo)}" alt="直播封面"><span>直播中 · 点击返回</span>`) : ''}${works.map(w => act('lr-work', w.id, `<img src="${asset(w.image || p.photo)}" alt="${esc(w.topic || '生活记录')}"><span>♡ ${w.likes || 12}</span>`)).join('')}</div>${!works.length ? '<p class="lr-notice">生活记录正在更新，先来直播间聊聊天。</p>' : ''}` : act('lr-full-profile', id, '查看完整主页与作品 ›', 'lr-profile-open')}
-    `,
-      full ? 'profile' : 'user'
+    refreshFollow(id);
+    if (R && id === R.id) hideNudge(R);
+    toast(
+      t(on ? 'live.follow.undone' : 'live.follow.done', { name: nameOf(p) }),
+      on ? {} : { type: 'success' }
     );
   }
-  function fullProfile(id) {
-    const s = session;
-    if (!s) return;
-    const intent = ++s.intent;
-    return demand(profileChunks(id, true), () => {
-      if (session === s && s.intent === intent) userCard(id, true);
-    });
+  function showNudge(r) {
+    if (!r || R !== r || r.model.nudged || following(r.id) || r.covered) return;
+    const box = r.el.querySelector('.lr-nudge');
+    if (!box) return;
+    r.model.nudged = true;
+    box.innerHTML = `${img(avatarOf(r.host), '', 'lr-nudge-avatar')}<p>${esc(t('live.nudge.text', { name: nameOf(r.host) }))}</p>${followButton(r.id, 'lr-follow lr-follow-pill')}<button type="button" class="lr-icon lr-nudge-close" data-action="lr-nudge-close" aria-label="${esc(t('live.nudge.dismiss'))}">${icon('close')}</button>`;
+    box.hidden = false;
+    clearTimeout(r.nudgeTimer);
+    r.nudgeTimer = setTimeout(() => hideNudge(r), 8000);
   }
-  function ranks(view = 'rank') {
-    const s = session;
-    if (!s) return;
-    const rows = s.audience.slice(0, view === 'rank' ? 12 : 24);
-    panel(
-      view === 'rank' ? '本场人气榜' : '在线观众',
-      `<p class="lr-notice">${view === 'rank' ? '感谢每一份陪伴与心意' : '同频的人，正在这里相遇'} · 演示数据</p>${rows.map((p, i) => act('lr-user', p.id, `<span class="lr-rank-index">${String(i + 1).padStart(2, '0')}</span><img src="${asset(p.photo)}" alt="${esc(p.name)}"><div><strong>${esc(p.name)}</strong><small>${badge(p.id)} ${hash(p.id) % 2 ? '粉丝团成员' : '正在观看'}</small></div><b>${view === 'rank' ? number(Math.max(25, 8300 - i * 631)) + ' 热力' : '查看'}</b>`, 'lr-rank-row')).join('')}`,
-      view
-    );
+  function hideNudge(r) {
+    const box = r?.el?.querySelector('.lr-nudge');
+    if (box) box.hidden = true;
   }
-  function fanclub() {
-    const s = session;
-    if (!s) return;
-    const joined = own().fanclubs.includes(s.id);
-    panel(
-      '主播粉丝团',
-      `<div class="lr-fan-hero"><img src="${asset(s.host.photo)}" alt="${esc(s.host.name)}"><h2>${esc(s.host.name)}的陪伴团</h2><p>${joined ? '你已经是其中的一员' : '把普通的相遇，变成常来的陪伴'}</p><span>♥ 粉丝团 Lv.${joined ? 6 : 1}</span></div><div class="lr-member-grid"><span>专属粉丝徽章</span><span>开播提醒</span><span>每日陪伴任务</span></div><p class="lr-notice">演示加入免费，徽章会出现在你的直播评论中。</p>${act('lr-join-fans', '', joined ? '已加入 · 返回直播间' : '加入粉丝团', 'lr-primary lr-wide')}`,
-      'fanclub'
-    );
-  }
-  function vipPanel(mode = 'main', level = 0) {
-    panel(
-      mode === 'rules' ? 'VIP 等级规则' : 'VIP 荣誉中心',
-      window.ShizhongVIP?.panelHTML(mode, level) || '<p class="lr-notice">正在准备你的权益…</p>',
-      'vip'
-    );
-  }
-  function tasks() {
-    const s = session;
-    if (!s) return;
-    panel(
-      '人气心愿',
-      `<div class="lr-task-hero">✦<h2>一起点亮今天的直播间</h2><p>${esc(s.host.name)} · ${esc(s.host.topic || '同城聊天')}</p></div><div class="lr-task-row"><div><strong>送一颗小心心</strong><small>让心意被看见</small></div>${act('lr-gifts', '', '去送礼', 'lr-primary')}</div><div class="lr-task-row"><div><strong>成为陪伴团的一员</strong><small>点亮专属评论徽章</small></div>${act('lr-fanclub', '', own().fanclubs.includes(s.id) ? '已加入' : '加入', 'lr-secondary')}</div><div class="lr-task-row"><div><strong>留下一句问候</strong><small>认真回应每一个今天</small></div>${act('lr-talk', '', '去聊天', 'lr-secondary')}</div>`,
-      'task'
-    );
-  }
-  function giftPanel(category) {
-    const s = session;
-    if (!s) return;
-    if (category) s.model.giftCategory = category;
-    const cats = ['推荐', '互动', '典藏', '盛世华章', '记录'];
-    const cat = s.model.giftCategory;
-    let selected = gift(s.model.giftId) || gifts()[0];
-    if (!selected) return;
-    const list =
-      cat === '推荐' ? gifts().filter(g => g.category === '推荐') : gifts().filter(g => g.category === cat);
-    if (cat === '盛世华章') list.sort((a, b) => a.price - b.price);
-    if (cat !== '记录' && !list.some(g => g.id === selected.id)) {
-      selected = list[0] || selected;
-      s.model.giftId = selected.id;
+
+  // ------------------------------------------------------------------ effects
+  function stopEffects(r) {
+    if (r) {
+      r.fxToken++;
+      r.fxPlaying = false;
+      r.el?.classList.remove('lr-fx');
     }
-    const quantity = s.model.quantity;
-    panel(
-      '送礼物',
-      `<div class="lr-gift-tabs">${cats.map(c => act('lr-gift-category', c, c, cat === c ? 'active' : '')).join('')}${act('lr-vip', '', 'VIP ' + vip('self'))}</div>
-      ${
-        cat === '记录'
-          ? `<div class="lr-gift-history">${
-              own().giftHistory.length
-                ? own()
-                    .giftHistory.slice(0, 20)
-                    .map(
-                      h =>
-                        `<div class="lr-rank-row"><img src="${asset(gift(h.giftId)?.image || 'gifts/gift-box.png')}" alt=""><div><strong>${esc(h.name)} ×${h.quantity}</strong><small>送给 ${esc(h.hostName)} · ${new Date(h.time).toLocaleString('zh-CN')}</small></div><b>${number(h.total)} 金豆</b></div>`
-                    )
-                    .join('')
-                : '<p class="lr-notice">还没有赠礼记录，去推荐里挑一份心意吧。</p>'
-            }</div>`
-          : `<div class="lr-gift-grid">${list.map(g => act('lr-select-gift', g.id, `<img src="${asset(g.image)}" alt="${esc(g.name)}" loading="lazy"><strong>${esc(g.name)}</strong><small>${number(g.price)} 金豆</small>`, `lr-gift-tile ${selected.id === g.id ? 'active' : ''}`, `aria-pressed="${selected.id === g.id}"`)).join('')}</div><div class="lr-gift-selected"><img src="${asset(selected.image)}" alt=""><div><strong>${esc(selected.name)}</strong><small>${number(selected.price)} 金豆 / 个 · ${esc(selected.description || '让心意在直播间闪耀')}</small></div>${act('lr-preview-gift', selected.id, '预览特效', 'lr-secondary')}</div>`
-      }
-      <div class="lr-gift-footer"><div><small>我的金豆</small><b>${number(state.points)}</b>${act('lr-topup', '', '领取体验金豆 ›')}</div>${cat !== '记录' ? `<label class="lr-gift-quantity"><span>数量</span><select aria-label="赠送礼物数量">${[1, 10, 66, 99].map(n => `<option value="${n}" ${n === quantity ? 'selected' : ''}>× ${n}</option>`).join('')}</select></label>${act('lr-send-gift', selected.id, `赠送 · ${number(selected.price * quantity)}`, 'lr-primary')}` : ''}</div><p class="lr-notice lr-demo-note">本地演示 · 使用体验金豆，不产生真实扣款</p>`,
-      'gift'
-    );
+    window.ShizhongLiveEffects?.stop?.();
+    window.ShizhongOrientalEffects?.stop?.();
   }
-  function play(g, count, sender, preview = false) {
-    const s = session;
-    if (!s || !g) return;
-    closePanel();
-    s.fx = true;
-    const fxToken = (s.fxToken = (s.fxToken || 0) + 1);
-    window.ShizhongLiveEffects?.stop();
-    window.ShizhongOrientalEffects?.stop();
+  function playEffect(r, g, count, sender, onDone) {
+    if (!r || !g || r.covered) return onDone?.({ reason: 'covered' });
+    stopEffects(r);
     const engine = g.orientalEffect ? window.ShizhongOrientalEffects : window.ShizhongLiveEffects;
-    engine?.play(
+    if (!engine?.play) return onDone?.({ reason: 'unavailable' });
+    const token = r.fxToken;
+    r.fxPlaying = true;
+    r.el.classList.add('lr-fx');
+    engine.play(
       {
-        container: s.el,
-        gift: { ...g, image: asset(g.image) },
-        sender: preview ? '特效预览' : sender,
+        container: r.el,
+        gift: {
+          id: g.id,
+          name: g.name,
+          image: giftArt(g.id, 'full'),
+          accent: g.accent,
+          effect: g.effect,
+          orientalEffect: g.orientalEffect,
+        },
+        sender,
         count,
-        avatar: asset(state.profile.photo),
+        avatar: asset(avatarOf(findPerson(r.mode === 'host' ? r.lastGiver : 'self'))),
         theme: g.orientalEffect,
       },
-      () => {
-        if (session === s && s.fxToken === fxToken) s.fx = false;
+      info => {
+        if (r.fxToken !== token) return;
+        r.fxPlaying = false;
+        r.el.classList.remove('lr-fx');
+        onDone?.(info || {});
       }
     );
   }
-  function sendGift(id) {
-    const s = session,
-      g = gift(id);
-    if (!s || s.panel !== 'gift' || s.sending || !g || id !== s.model.giftId) return;
-    const qty = Number(s.el.querySelector('.lr-gift-quantity select')?.value || 1);
-    if (![1, 10, 66, 99].includes(qty)) return;
+
+  // ------------------------------------------------------------------ sheets over the room
+  function sheet(key, title, html, extra = {}) {
+    return SZ.overlay.open({
+      kind: 'sheet',
+      title,
+      html,
+      className: `lr-sheet lr-sheet-${key}`,
+      meta: { kind: 'lr-' + key, hostId: R?.id || '' },
+      ...extra,
+    });
+  }
+  function closeSheetsAboveRoom() {
+    const room = R?.layer || H?.layer;
+    if (!room) return;
+    for (const layer of SZ.overlay.layers().reverse()) {
+      if (layer === room) break;
+      SZ.overlay.close({ layer, force: true });
+    }
+  }
+
+  // --- gift panel (updates in place: selection, quantity and tab switches keep scroll and focus)
+  function giftTiles(r) {
+    const m = r.model;
+    let list = G().filter(g => g.category === m.category);
+    if (m.category === '盛世华章' || m.category === '大马风情')
+      list = list.slice().sort((a, b) => a.price - b.price);
+    if (!list.some(g => g.id === m.giftId)) m.giftId = list[0]?.id || m.giftId;
+    return list
+      .map(
+        g =>
+          `<button type="button" class="lr-gift-tile" data-action="lr-select-gift" data-id="${esc(g.id)}" aria-pressed="${g.id === m.giftId}"><img src="${esc(giftArt(g.id))}" alt="" loading="lazy" decoding="async"><span class="lr-gift-name">${esc(g.name)}</span><span class="lr-gift-price num">${esc(beans(g.price))}</span></button>`
+      )
+      .join('');
+  }
+  function giftDetail(r) {
+    const g = gift(r.model.giftId);
+    if (!g) return '';
+    return `<img src="${esc(giftArt(g.id))}" alt=""><div class="lr-gift-info"><strong>${esc(g.name)}</strong><span class="lr-gift-each num">${esc(tn('live.gift.each', g.price, { amount: compact(g.price) }))}</span><p>${esc(g.description)}</p></div><button type="button" class="btn btn-sm btn-outline" data-action="lr-preview-gift" data-id="${esc(g.id)}">${esc(t('live.gift.preview'))}</button>`;
+  }
+  function sendLabel(r) {
+    const g = gift(r.model.giftId);
+    const c = r.combo;
+    if (c && g && c.giftId === g.id && c.qty === r.model.quantity)
+      return t('live.gift.combo', { n: c.n + 1 });
+    return t('live.gift.send', { amount: compact((g?.price || 0) * r.model.quantity) });
+  }
+  function giftHistoryHTML() {
+    const rows = own().giftHistory.slice(0, 40);
+    if (!rows.length)
+      return `<div class="empty-state lr-empty">${icon('gift')}<h3>${esc(t('live.gift.historyEmpty'))}</h3><p>${esc(t('live.gift.historyEmptyText'))}</p></div>`;
+    return `<ul class="lr-history">${rows
+      .map(h => {
+        const host = findPerson(h.hostId);
+        const hostName = host ? nameOf(host) : h.hostName || '';
+        return `<li class="lr-history-row"><img src="${esc(giftArt(h.giftId))}" alt=""><div><strong>${esc(t('live.gift.historyItem', { gift: giftName(h.giftId) || h.name || '', qty: fmt().number(h.quantity) }))}</strong><span>${esc(t('live.gift.historyRow', { name: hostName, time: fmt().dateTime(h.time) }))}</span></div><b class="num">${esc(beans(h.total))}</b></li>`;
+      })
+      .join('')}</ul>`;
+  }
+  function giftPanel() {
+    const r = R;
+    if (!r) return;
+    const m = r.model;
+    const cats = [...(G().categories || []), 'history'];
+    if (!cats.includes(m.category)) m.category = cats[0];
+    const history = m.category === 'history';
+    const tab = c =>
+      `<button type="button" role="tab" class="lr-tab" data-action="lr-gift-tab" data-id="${esc(c)}" aria-selected="${c === m.category}">${esc(c === 'history' ? t('live.gift.history') : td('live.giftCategory', c))}</button>`;
+    const body = `<div class="lr-tabs" role="tablist" aria-label="${esc(t('live.gift.categories'))}">${cats.map(tab).join('')}</div>
+      <div class="lr-gift-body" role="tabpanel">${history ? giftHistoryHTML() : `<div class="lr-gift-grid">${giftTiles(r)}</div>`}</div>
+      <div class="lr-gift-detail" aria-live="polite"${history ? ' hidden' : ''}>${giftDetail(r)}</div>
+      <div class="lr-qty" role="group" aria-label="${esc(t('live.gift.quantity'))}"${history ? ' hidden' : ''}><span class="lr-qty-label" aria-hidden="true">${esc(t('live.gift.quantity'))}</span><div class="segmented">${QUANTITIES.map(n => `<button type="button" data-action="lr-qty" data-id="${n}" class="${n === m.quantity ? 'active' : ''}" aria-pressed="${n === m.quantity}">×${n}</button>`).join('')}</div></div>
+      <p class="caption lr-demo-note">${esc(t('live.gift.demoNote'))}</p>
+      <div class="sheet-footer lr-gift-footer"><div class="lr-balance"><span>${esc(t('live.gift.balance'))}</span><b class="num">${esc(compact(state.points))}</b><button type="button" class="lr-link" data-action="lr-topup">${esc(t('live.gift.getBeans'))}</button></div><button type="button" class="btn btn-primary lr-send-gift" data-action="lr-send-gift"${history ? ' hidden' : ''}>${esc(sendLabel(r))}</button></div>`;
+    return sheet('gifts', t('live.gift.title'), body);
+  }
+  function giftLayer() {
+    const top = SZ.overlay.top();
+    return top?.meta.kind === 'lr-gifts' ? top : null;
+  }
+  function refreshGiftPanel(parts = {}) {
+    const layer = giftLayer();
+    const r = R;
+    if (!layer || !r) return;
+    const q = sel => layer.el.querySelector(sel);
+    if (parts.selection)
+      layer.el
+        .querySelectorAll('.lr-gift-tile')
+        .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === r.model.giftId)));
+    if (parts.detail && q('.lr-gift-detail')) q('.lr-gift-detail').innerHTML = giftDetail(r);
+    if (parts.quantity)
+      layer.el.querySelectorAll('[data-action="lr-qty"]').forEach(b => {
+        const on = Number(b.dataset.id) === r.model.quantity;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+    const send = q('.lr-send-gift');
+    if (send) send.textContent = sendLabel(r);
+    const balance = q('.lr-balance b');
+    if (balance) balance.textContent = compact(state.points);
+  }
+  function switchGiftTab(category) {
+    const layer = giftLayer();
+    const r = R;
+    const cats = [...(G().categories || []), 'history'];
+    if (!layer || !r || !cats.includes(category)) return;
+    r.model.category = category;
+    const history = category === 'history';
+    layer.el
+      .querySelectorAll('.lr-tab')
+      .forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === category)));
+    layer.el.querySelector('.lr-gift-body').innerHTML = history
+      ? giftHistoryHTML()
+      : `<div class="lr-gift-grid">${giftTiles(r)}</div>`;
+    for (const sel of ['.lr-gift-detail', '.lr-qty', '.lr-send-gift'])
+      layer.el.querySelector(sel).hidden = history;
+    refreshGiftPanel({ detail: !history });
+    const sheetEl = layer.el.querySelector('.sheet');
+    const tabs = layer.el.querySelector('.lr-tabs');
+    if (sheetEl && tabs && sheetEl.scrollTop > tabs.offsetTop) sheetEl.scrollTop = tabs.offsetTop;
+  }
+  function sendGift({ combo = false } = {}) {
+    const r = R;
+    if (!r || r.sending) return;
+    if (!SZ.requireLogin(t('auth.reason.gift'))) return;
+    const g = gift(combo ? r.combo?.giftId : r.model.giftId);
+    const qty = combo ? r.combo?.qty : r.model.quantity;
+    if (!g || !QUANTITIES.includes(qty)) return;
     const total = g.price * qty;
     if (!Number.isSafeInteger(total) || total <= 0) return;
     if (state.points < total) {
-      toast('体验金豆不足，可先领取再赠送');
-      topup(total - state.points);
-      return;
+      endCombo(r);
+      toast(t('live.gift.notEnough'));
+      return topup(total - state.points);
     }
-    s.sending = true;
-    const previousLevel = vip('self');
-    const record = {
-      id: 'live-' + Date.now() + '-' + s.token,
-      giftId: g.id,
-      name: g.name,
-      hostId: s.id,
-      hostName: s.host.name,
-      quantity: qty,
-      total,
-      time: Date.now(),
-    };
-    const ok = commit(() => {
-      state.points -= total;
-      own().honorXp += total;
-      state.live.giftHistory.unshift(record);
-      state.live.giftHistory = state.live.giftHistory.slice(0, 100);
-      state.sentGifts = state.sentGifts || [];
-      state.sentGifts.unshift({ name: g.name + ' ×' + qty, host: s.host.name, time: localDate() });
+    r.sending = true;
+    const before = selfLevel();
+    const record = { id: SZ.uid('lg'), giftId: g.id, hostId: r.id, quantity: qty, total, time: Date.now() };
+    const ok = SZ.store.commit(s => {
+      s.points -= total;
+      s.live = SZ.withDefaults(s.live, SZ.clone(DEFAULTS));
+      s.live.honorXp = (Number(s.live.honorXp) || 0) + total;
+      s.live.giftHistory.unshift(record);
+      if (s.live.giftHistory.length > HISTORY_CAP) s.live.giftHistory.length = HISTORY_CAP;
+      s.sentGifts = Array.isArray(s.sentGifts) ? s.sentGifts : [];
+      s.sentGifts.unshift({ giftId: g.id, quantity: qty, hostId: r.id, total, time: record.time });
+      if (s.sentGifts.length > SENT_CAP) s.sentGifts.length = SENT_CAP;
     });
-    s.sending = false;
+    r.sending = false;
     if (!ok) return;
-    pushComment(s, { personId: 'self', text: '送出 ' + g.name + ' ×' + qty, gift: true });
-    play(g, qty, state.profile.name);
-    render();
-    window.ShizhongVIP?.afterGift(previousLevel);
+    const n = r.combo && r.combo.giftId === g.id && r.combo.qty === qty ? r.combo.n + 1 : 1;
+    const layer = giftLayer();
+    if (layer) SZ.overlay.close({ layer, force: true });
+    pushComment(r, {
+      personId: 'self',
+      text: t('live.gift.sentLine', { gift: g.name, qty: fmt().number(qty) }),
+      kind: 'gift',
+    });
+    jumpToLatest(r);
+    playEffect(r, g, qty * n, myName(), info => {
+      if (info.reason === 'complete' || info.reason === 'skipped') showNudge(r);
+    });
+    startCombo(r, g.id, qty, n);
+    if (n === 1 || n % 5 === 0) {
+      clearTimeout(r.thanksTimer);
+      r.thanksTimer = setTimeout(() => {
+        if (R !== r || r.id !== record.hostId) return;
+        const line = `live.thanks.${hash(record.id) % 4}`;
+        pushComment(r, { personId: r.id, kind: 'host', text: t(line, { name: myName(), gift: g.name }) });
+      }, 1600);
+    }
+    window.ShizhongVIP?.afterGift?.(before);
+  }
+  function startCombo(r, giftId, qty, n) {
+    clearTimeout(r.comboTimer);
+    r.combo = { giftId, qty, n };
+    const b = r.el.querySelector('.lr-gift-btn');
+    if (b) {
+      b.dataset.action = 'lr-combo';
+      b.classList.remove('lr-combo');
+      void b.offsetWidth;
+      b.classList.add('lr-combo');
+      b.innerHTML = `<svg class="lr-ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20"/></svg><span class="lr-combo-text num">×${n}</span>`;
+      b.setAttribute('aria-label', t('live.gift.comboLabel', { gift: giftName(giftId), qty, n: n + 1 }));
+    }
+    r.comboTimer = setTimeout(() => endCombo(r), COMBO_MS);
+  }
+  function endCombo(r) {
+    if (!r) return;
+    clearTimeout(r.comboTimer);
+    r.combo = null;
+    const b = r.el?.querySelector('.lr-gift-btn');
+    if (!b || b.dataset.action === 'lr-gifts') return;
+    b.dataset.action = 'lr-gifts';
+    b.classList.remove('lr-combo');
+    b.innerHTML = icon('gift');
+    b.setAttribute('aria-label', t('live.actions.gift'));
+  }
+  function preview(id) {
+    const r = R;
+    const g = gift(id);
+    if (!r || !g) return;
+    const layer = giftLayer();
+    if (layer) SZ.overlay.close({ layer, force: true });
+    playEffect(r, g, 1, t('live.gift.previewSender'), info => {
+      if (R === r && !r.covered && info.reason === 'complete') giftPanel();
+    });
   }
   function topup(shortfall = 0) {
-    panel(
-      '领取体验金豆',
-      `<div class="lr-vip-hero"><span>✦</span><h2>${number(state.points)} 金豆</h2><p>${state.points.toLocaleString('zh-CN')} 金豆</p><p>${shortfall ? '还差 ' + number(shortfall) + ' 金豆即可赠送' : '选择一档体验额度'}</p></div><div class="lr-member-grid">${[100, 1000, 10000, 100000].map(n => act('lr-claim', n, '+' + number(n) + ' 金豆', 'lr-secondary')).join('')}</div><p class="lr-notice">这是设计原稿的免费体验额度，不连接支付、不产生真实扣款。</p>${act('lr-gifts', '', '返回礼物面板', 'lr-primary lr-wide')}`,
-      'topup'
-    );
+    if (!R) return;
+    const body = `<div class="lr-topup-hero"><b class="num">${esc(compact(state.points))}</b><span>${esc(t('live.gift.balance'))}</span></div><p class="lr-sheet-intro">${esc(shortfall ? t('live.topup.short', { amount: compact(shortfall) }) : t('live.topup.pick'))}</p><div class="lr-claims">${CLAIMS.map(n => `<button type="button" class="btn btn-secondary" data-action="lr-claim" data-id="${n}" aria-label="${esc(t('live.topup.claimLabel', { amount: fmt().number(n) }))}">+${esc(compact(n))}</button>`).join('')}</div><p class="caption">${esc(t('live.topup.note'))}</p><div class="sheet-footer"><button type="button" class="btn btn-outline" data-action="lr-gifts">${esc(t('live.topup.back'))}</button></div>`;
+    sheet('topup', t('live.topup.title'), body);
+  }
+  function claim(n) {
+    if (!CLAIMS.includes(n) || SZ.overlay.top()?.meta.kind !== 'lr-topup') return;
+    if (!SZ.store.commit(s => (s.points += n))) return;
+    toast(t('live.topup.done', { amount: fmt().number(n) }), { type: 'success' });
+    giftPanel();
+  }
+
+  // --- people
+  function userCard(id) {
+    const p = findPerson(id);
+    if (!(R || H) || !p) return;
+    const seed = hash(id);
+    const followers = 1200 + (seed % 47000);
+    const isHost = !!R && id === R.id;
+    const viewerMode = !!R;
+    const name = nameOf(p);
+    const bio = p.self ? (typeof profileBio === 'function' ? profileBio() : '') : lc('people', p, 'bio');
+    const tags = p.self ? [] : lc('people', p, 'tags') || [];
+    const meta = [cityLabel(p.city), p.age ? t('live.card.age', { age: p.age }) : '']
+      .filter(Boolean)
+      .join(' · ');
+    const on = following(id);
+    const actions = p.self
+      ? `<button type="button" class="btn btn-secondary" data-action="lr-my-profile">${esc(t('live.card.myProfile'))}</button>`
+      : `<button type="button" class="btn ${on ? 'btn-secondary' : 'btn-primary'} lr-card-follow" data-action="lr-follow" data-id="${esc(id)}" aria-pressed="${on}"><span class="lr-follow-label">${esc(t(on ? 'live.follow.following' : 'live.follow.follow'))}</span></button><button type="button" class="btn btn-secondary" data-action="lr-message" data-id="${esc(id)}">${icon('chat')}<span>${esc(t('live.card.message'))}</span></button><button type="button" class="btn btn-secondary" data-action="lr-profile" data-id="${esc(id)}">${esc(t('live.card.profile'))}</button>`;
+    const hostRows = isHost
+      ? `<div class="list lr-card-list"><button type="button" class="list-row" data-action="lr-fanclub"><b aria-hidden="true" class="lr-row-ico">♥</b><span class="list-row-main">${esc(t('live.card.fanClub', { count: fmt().number(320 + (seed % 1280)) }))}</span>${icon('chevron', 'chevron')}</button><div class="list-row"><span class="list-row-main" id="lr-card-reminder">${esc(t('live.card.reminder'))}</span><button type="button" class="switch" role="switch" aria-labelledby="lr-card-reminder" aria-checked="${own().reminders.includes(id)}" data-action="lr-reminder" data-id="${esc(id)}"></button></div></div>`
+      : '';
+    const safety =
+      p.self || !viewerMode
+        ? ''
+        : `<div class="lr-card-safety"><button type="button" class="btn btn-ghost btn-sm" data-action="lr-report" data-id="${esc(id)}">${glyph('flag')}<span>${esc(t('live.card.report'))}</span></button><button type="button" class="btn btn-ghost btn-sm lr-danger" data-action="lr-block" data-id="${esc(id)}">${glyph('block')}<span>${esc(t('live.card.block'))}</span></button></div>`;
+    const status = isHost
+      ? `<span class="tag tag-brand">${esc(t('live.card.liveNow'))}</span>`
+      : `<span class="tag">${esc(t(p.self ? 'live.card.you' : seed % 2 ? 'live.card.fanMember' : 'live.card.watching'))}</span>`;
+    const stats = p.self
+      ? ''
+      : `<dl class="lr-card-stats"><div><dt>${esc(t('live.card.followers'))}</dt><dd class="num">${esc(compact(followers))}</dd></div><div><dt>${esc(t('live.card.following'))}</dt><dd class="num">${esc(fmt().number(88 + (seed % 460)))}</dd></div><div><dt>${esc(t('live.card.likes'))}</dt><dd class="num">${esc(compact(followers * 3 + (seed % 300)))}</dd></div></dl>`;
+    const body = `<div class="lr-card-head">${img(avatarOf(p), '', 'avatar avatar-72')}<div class="lr-card-name"><h3>${esc(name)} ${levelChip(id)}</h3>${meta ? `<p>${esc(meta)}</p>` : ''}${status}</div></div>${stats}${bio ? `<p class="lr-card-bio">${esc(bio)}</p>` : ''}${
+      tags.length
+        ? `<div class="lr-card-tags">${tags
+            .slice(0, 4)
+            .map(x => `<span class="tag">${esc(x)}</span>`)
+            .join('')}</div>`
+        : ''
+    }<div class="lr-card-actions">${actions}</div>${hostRows}${safety}`;
+    sheet('card', t('live.card.title'), body);
+  }
+  function peopleSheet(view) {
+    const r = R;
+    if (!r) return;
+    const rank = view === 'rank';
+    const rows = r.audience.slice(0, rank ? 12 : 24);
+    const row = (p, i) =>
+      `<li><button type="button" class="list-row lr-person" data-action="lr-user" data-id="${esc(p.id)}">${rank ? `<b class="lr-rank-no num" data-top="${i < 3}">${i + 1}</b>` : ''}${img(avatarOf(p), '', 'avatar avatar-40')}<span class="list-row-main"><span class="lr-person-name">${esc(nameOf(p))}</span>${levelChip(p.id)}</span><span class="row-value num">${esc(rank ? t('live.rank.heat', { amount: compact(Math.max(25, 8300 - i * 631)) }) : t(hash(p.id) % 2 ? 'live.card.fanMember' : 'live.card.watching'))}</span></button></li>`;
+    const body = `<p class="lr-sheet-intro">${esc(t(rank ? 'live.rank.intro' : 'live.audience.intro'))}</p><ol class="list lr-people">${rows.map(row).join('')}</ol>`;
+    sheet(view, t(rank ? 'live.rank.title' : 'live.audience.title'), body);
+  }
+  function fanclub() {
+    const r = R;
+    if (!r) return;
+    const joined = own().fanclubs.includes(r.id);
+    const perks = ['badge', 'reminder', 'daily']
+      .map(
+        k =>
+          `<li class="list-row"><b class="lr-row-ico" aria-hidden="true">✦</b><span class="list-row-main">${esc(t(`live.fans.perk.${k}`))}</span></li>`
+      )
+      .join('');
+    const body = `<div class="lr-fan-hero">${img(avatarOf(r.host), '', 'avatar avatar-72')}<h3>${esc(t('live.fans.title', { name: nameOf(r.host) }))}</h3><p>${esc(t(joined ? 'live.fans.joinedText' : 'live.fans.text'))}</p><span class="tag tag-gold">${esc(t('live.fans.level', { n: joined ? 6 : 1 }))}</span></div><ul class="list lr-perks">${perks}</ul><p class="caption">${esc(t('live.fans.note'))}</p><div class="sheet-footer"><button type="button" class="btn ${joined ? 'btn-secondary' : 'btn-primary'} btn-lg" data-action="lr-join-fans"${joined ? ' disabled' : ''}>${esc(t(joined ? 'live.fans.joined' : 'live.fans.join'))}</button></div>`;
+    sheet('fanclub', t('live.room.fanClub'), body);
+  }
+  function tasks() {
+    const r = R;
+    if (!r) return;
+    const today = fmt().date(Date.now(), 'iso');
+    const gave = own().giftHistory.some(h => h.hostId === r.id && fmt().date(h.time, 'iso') === today);
+    const rows = [
+      ['gift', gave, 'lr-gifts'],
+      ['like', myLikes(r.id) > 0, 'lr-like'],
+      ['fans', own().fanclubs.includes(r.id), 'lr-fanclub'],
+      ['chat', r.model.said, 'lr-talk'],
+    ];
+    const done = rows.filter(x => x[1]).length;
+    const body = `<div class="lr-task-hero"><h3>${esc(t('live.tasks.intro'))}</h3><p>${esc(t('live.tasks.progress', { done, total: rows.length }))}</p><div class="lr-progress" role="progressbar" aria-label="${esc(t('live.tasks.title'))}" aria-valuemin="0" aria-valuemax="${rows.length}" aria-valuenow="${done}"><span style="width:${(done / rows.length) * 100}%"></span></div></div><ul class="list">${rows
+      .map(
+        ([k, ok, action]) =>
+          `<li class="list-row lr-task"><span class="list-row-main"><span class="lr-task-title">${esc(t(`live.tasks.${k}`))}</span><span class="caption">${esc(t(`live.tasks.${k}Text`))}</span></span>${ok ? `<span class="tag tag-success">${icon('check')}${esc(t('live.tasks.done'))}</span>` : `<button type="button" class="btn btn-sm btn-tonal" data-action="${action}" data-id="task">${esc(t('live.tasks.go'))}</button>`}</li>`
+      )
+      .join('')}</ul>`;
+    sheet('tasks', t('live.tasks.title'), body);
   }
   function more() {
-    const s = session;
-    if (!s) return;
-    panel(
-      '直播设置',
-      `<div class="lr-settings">${act('lr-toggle-pause', '', s.model.paused ? '继续滚动评论' : '暂停滚动评论', 'lr-settings-row')}${act('lr-toggle-clean', '', s.model.clean ? '显示评论与信息' : '清屏观看', 'lr-settings-row')}${act('lr-share', '', '复制直播间名片', 'lr-settings-row')}${act('lr-vip', '', '我的 VIP 等级', 'lr-settings-row')}${act('lr-rank', '', '查看本场人气榜', 'lr-settings-row')}${act('lr-exit', '', '离开直播间', 'lr-settings-row')}</div>`,
-      'settings'
+    const r = R;
+    if (!r) return;
+    const vip = typeof window.ShizhongVIP?.open === 'function';
+    const row = (action, ico, label, extra = '', cls = '') =>
+      `<button type="button" class="list-row ${cls}" data-action="${action}" ${extra}>${ico}<span class="list-row-main">${esc(label)}</span></button>`;
+    const toggle = (action, label, on, id = '') =>
+      `<div class="list-row"><span class="list-row-main" id="${action}-label">${esc(label)}</span><button type="button" class="switch" role="switch" aria-checked="${on}" aria-labelledby="${action}-label" data-action="${action}" data-id="${esc(id)}"></button></div>`;
+    const body = `<div class="list">${toggle('lr-scroll-toggle', t('live.comments.pause'), r.model.scrollPaused)}${toggle('lr-clean', t('live.more.clean'), r.model.clean)}${toggle('lr-reminder', t('live.card.reminder'), own().reminders.includes(r.id), r.id)}</div>
+      <div class="list">${row('lr-share', icon('share'), t('live.more.share'))}${vip ? row('lr-vip', icon('crown'), t('live.more.vip')) : ''}${row('lr-rank', glyph('trophy'), t('live.rank.title'))}</div>
+      <div class="list">${row('lr-report', glyph('flag'), t('live.more.report'), `data-id="${esc(r.id)}"`)}${row('lr-block', glyph('block'), t('live.more.block'), `data-id="${esc(r.id)}"`, 'danger')}${row('lr-exit', glyph('exit'), t('live.more.leave'))}</div>`;
+    sheet('more', t('live.more.title'), body);
+  }
+
+  // --- share, report, block
+  async function share() {
+    const r = R;
+    if (!r) return;
+    const title = lc('people', r.host, 'room') || '';
+    const text = t('live.share.text', { name: nameOf(r.host), title }) + '\n' + SZ.routes.link('room', r.id);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(t('live.share.copied'), { type: 'success' });
+    } catch (_) {
+      sheet(
+        'share',
+        t('live.share.title'),
+        `<textarea class="field lr-share-box" readonly rows="4" aria-label="${esc(t('live.share.title'))}">${esc(text)}</textarea><p class="form-hint">${esc(t('live.share.hint'))}</p>`,
+        { mode: 'push' }
+      );
+      requestAnimationFrame(() => SZ.overlay.$('.lr-share-box')?.select());
+    }
+  }
+  function report(targetId) {
+    const r = R;
+    const p = findPerson(targetId);
+    if (!r || !p || p.self) return;
+    const isHost = targetId === r.id;
+    const name = nameOf(p);
+    const reasons = REPORT_REASONS.map(
+      k =>
+        `<label class="list-row lr-radio"><input type="radio" name="reason" value="${k}"><span class="list-row-main">${esc(t(`live.report.r.${k}`))}</span></label>`
+    ).join('');
+    const body = `<form class="lr-report" novalidate><p class="lr-sheet-intro">${esc(t('live.report.intro'))}</p><fieldset class="lr-fieldset"><legend class="form-label">${esc(t('live.report.reason'))}<span class="required" aria-hidden="true">*</span></legend><div class="list">${reasons}</div><p class="form-error" role="alert" hidden>${esc(t('live.report.needReason'))}</p></fieldset><div class="form-group"><label class="form-label" for="lr-report-details">${esc(t('live.report.details'))}</label><textarea id="lr-report-details" class="field" name="details" rows="3" maxlength="500" placeholder="${esc(t('live.report.detailsPlaceholder'))}"></textarea></div>${isBlocked(targetId) ? '' : `<label class="lr-check"><input type="checkbox" name="alsoBlock" value="1"><span>${esc(t('live.report.alsoBlock', { name }))}</span></label>`}<div class="sheet-footer"><button type="submit" class="btn btn-primary btn-lg">${esc(t('live.report.submit'))}</button></div></form>`;
+    const layer = sheet(
+      'report',
+      isHost ? t('live.report.titleRoom') : t('live.report.title', { name }),
+      body
     );
-  }
-  function like() {
-    const s = session;
-    if (!s) return;
-    s.model.likes++;
-    const indicator = s.el.querySelector('.lr-like-count');
-    indicator.textContent = '♥ ' + s.model.likes;
-    indicator.classList.remove('lr-like-pop');
-    void indicator.offsetWidth;
-    indicator.classList.add('lr-like-pop');
-  }
-  room = (id, options = {}) => demand(profileChunks(id), () => draw(id, options));
-  const previousClose = closeOverlay;
-  closeOverlay = function () {
-    if (session && roomNode()) {
-      stop();
-    }
-    return previousClose();
-  };
-  const previousMenu = menuAction;
-  menuAction = function (action, id, button) {
-    if (!action.startsWith('lr-')) return previousMenu(action, id, button);
-    const s = session;
-    if (!s) return;
-    switch (action) {
-      case 'lr-exit':
-      case 'lr-square':
-        closeOverlay();
+    layer.el.addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.target;
+      const reason = form.elements.reason.value;
+      if (!REPORT_REASONS.includes(reason)) {
+        form.querySelector('.form-error').hidden = false;
+        form.querySelector('input[name=reason]')?.focus();
         return;
-      case 'lr-next':
-        nextRoom();
-        return;
-      case 'lr-panel-close':
-        closePanel();
-        return;
-      case 'lr-follow':
-        follow(id);
-        return;
-      case 'lr-user':
-        userCard(id);
-        return;
-      case 'lr-full-profile':
-        fullProfile(id);
-        return;
-      case 'lr-my-profile':
-        closeOverlay();
-        navigate('me');
-        return;
-      case 'lr-decorated-profile': {
-        const hostId = s.id,
-          intent = ++s.intent;
-        return demand(profileChunks(id, true), () => {
-          if (session !== s || s.intent !== intent) return;
-          stop();
-          personDetail(id);
-          if (currentOverlay?.personId === id) currentOverlay.returnTo = () => room(hostId, { resume: true });
+      }
+      const alsoBlock = !!form.elements.alsoBlock?.checked;
+      if (alsoBlock && !SZ.requireLogin(t('live.block.login'))) return;
+      const ok = SZ.store.commit(s => {
+        s.feedback = Array.isArray(s.feedback) ? s.feedback : [];
+        s.feedback.unshift({
+          id: SZ.uid('rp'),
+          kind: 'report',
+          targetType: isHost ? 'live-room' : 'person',
+          targetId,
+          context: 'live',
+          roomId: r.id,
+          reason,
+          details: String(form.elements.details.value || '').slice(0, 500),
+          ts: Date.now(),
+          status: 'received',
         });
-      }
-      case 'lr-message': {
-        const hostId = s.id,
-          intent = ++s.intent;
-        return demand(chatChunks(id), () => {
-          if (session !== s || s.intent !== intent) return;
-          stop();
-          openChat(id);
-          if (currentOverlay?.chatId === id) currentOverlay.returnTo = () => room(hostId, { resume: true });
-        });
-      }
-      case 'lr-audience':
-        ranks('audience');
-        return;
-      case 'lr-rank':
-        ranks();
-        return;
-      case 'lr-fanclub':
-        fanclub();
-        return;
-      case 'lr-join-fans':
-        if (!own().fanclubs.includes(s.id) && !commit(() => state.live.fanclubs.push(s.id))) return;
-        closePanel();
-        toast('粉丝团徽章已点亮');
-        return;
-      case 'lr-reminder': {
-        const has = own().reminders.includes(id);
-        if (
-          commit(() => {
-            state.live.reminders = has
-              ? state.live.reminders.filter(x => x !== id)
-              : [...state.live.reminders, id];
-          })
-        ) {
-          button.textContent = has ? '♧ 开播提醒' : '✓ 已开启开播提醒';
-          toast(has ? '已关闭演示提醒' : '已保存开播提醒偏好');
-        }
-        return;
-      }
-      case 'lr-vip':
-        vipPanel();
-        return;
-      case 'lr-task':
-        tasks();
-        return;
-      case 'lr-talk':
-        closePanel();
-        s.el.querySelector('[name="liveText"]').focus();
-        return;
-      case 'lr-gifts':
-        giftPanel();
-        return;
-      case 'lr-gift-category':
-        giftPanel(id);
-        return;
-      case 'lr-select-gift':
-        s.model.giftId = id;
-        giftPanel();
-        return;
-      case 'lr-preview-gift':
-        play(gift(id), 1, '', true);
-        return;
-      case 'lr-send-gift':
-        sendGift(id);
-        return;
-      case 'lr-topup':
-        topup();
-        return;
-      case 'lr-claim': {
-        const n = Number(id);
-        if (![100, 1000, 10000, 100000].includes(n) || s.panel !== 'topup') return;
-        if (
-          commit(() => {
-            state.points += n;
-          })
-        ) {
-          giftPanel();
-          render();
-          toast('已领取 ' + number(n) + ' 体验金豆');
-        }
-        return;
-      }
-      case 'lr-more':
-        more();
-        return;
-      case 'lr-like':
-        like();
-        return;
-      case 'lr-toggle-pause':
-        s.model.paused = !s.model.paused;
-        s.el.classList.toggle('lr-paused', s.model.paused);
-        closePanel();
-        return;
-      case 'lr-toggle-clean':
-        s.model.clean = !s.model.clean;
-        s.el.classList.toggle('lr-clean', s.model.clean);
-        closePanel();
-        return;
-      case 'lr-share': {
-        const text = esc(s.host.name) + ' 的直播间 · ' + s.host.room + ' · 适中';
-        if (navigator.clipboard?.writeText)
-          navigator.clipboard.writeText(text).then(
-            () => toast('直播间名片已复制'),
-            () => toast('复制暂不可用，请手动分享主播名称')
-          );
-        else toast('主播：' + s.host.name + ' · ' + s.host.room);
-        return;
-      }
-      case 'lr-work': {
-        const w = [...state.posts, ...basePosts].find(x => x.id === id);
-        if (!w) return;
-        panel(
-          '生活作品',
-          `<img class="lr-work-photo" src="${asset(w.image || person(w.person)?.photo)}" alt="${esc(w.topic || '生活记录')}"><p class="lr-profile-bio">${esc(w.text)}</p><p class="lr-notice">${esc(w.location || w.city || '')} · ♡ ${w.likes || 0}</p>${act('lr-full-profile', w.person, '返回个人主页', 'lr-secondary lr-wide')}`,
-          'work'
-        );
-        return;
-      }
+        if (s.feedback.length > 200) s.feedback.length = 200;
+        if (alsoBlock && !s.blocked.includes(targetId)) s.blocked.push(targetId);
+      });
+      if (!ok) return;
+      SZ.overlay.close({ layer, force: true });
+      toast(t('live.report.done'), { type: 'success' });
+      if (alsoBlock) afterBlock(targetId);
+    });
+  }
+  async function block(targetId) {
+    const r = R;
+    const p = findPerson(targetId);
+    if (!r || !p || p.self || !SZ.requireLogin(t('live.block.login'))) return;
+    const ok = await SZ.confirm({
+      title: t('live.block.title', { name: nameOf(p) }),
+      message: t('live.block.text'),
+      confirmText: t('live.block.confirm'),
+      danger: true,
+    });
+    if (!ok || R !== r) return;
+    if (
+      !SZ.store.commit(s => {
+        if (!s.blocked.includes(targetId)) s.blocked.push(targetId);
+      })
+    )
+      return;
+    afterBlock(targetId);
+    toast(t('live.block.done', { name: nameOf(p) }), {
+      action: {
+        label: t('common.undo'),
+        run: () => {
+          SZ.store.commit(s => {
+            s.blocked = s.blocked.filter(x => x !== targetId);
+          });
+          if (typeof render === 'function') render();
+        },
+      },
+    });
+  }
+  /** Hide a blocked person everywhere in the room; blocking the host moves on to the next room. */
+  function afterBlock(targetId) {
+    const r = R;
+    if (!r) return;
+    closeSheetsAboveRoom();
+    if (typeof render === 'function') render();
+    if (targetId === r.id) {
+      const next = neighbor(1);
+      if (next) switchHost(next.id, { entrance: 'none' });
+      else SZ.overlay.close({ layer: r.layer, force: true });
+      return;
     }
-  };
-  document.addEventListener(
-    'submit',
-    event => {
-      const form = event.target.closest('[data-form="lr-comment"]');
+    r.audience = r.audience.filter(p => p.id !== targetId);
+    for (const m of models.values()) m.comments = m.comments.filter(c => c.personId !== targetId);
+    r.el.querySelectorAll(`.lr-msg[data-id="${CSS.escape(targetId)}"]`).forEach(n => n.remove());
+  }
+
+  // ------------------------------------------------------------------ start live (host preview)
+  function startLive() {
+    if (!SZ.requireLogin(t('auth.reason.live'))) return;
+    if (H) return;
+    const last = own().myLives[0];
+    const topics = Object.keys(TOPIC_KEYS);
+    const startTitle = last?.title || '';
+    let cover = last?.cover || '';
+    let fresh = '';
+    let used = false;
+    const body = `<form class="lr-start" novalidate>
+      <div class="form-group"><label class="form-label" for="lr-start-title">${esc(t('live.start.name'))}<span class="required" aria-hidden="true">*</span></label><input id="lr-start-title" class="field" name="title" maxlength="40" required autocomplete="off" placeholder="${esc(t('live.start.namePlaceholder'))}" value="${esc(startTitle)}" aria-describedby="lr-start-count"><p class="form-hint lr-count" id="lr-start-count">${esc(t('live.start.count', { n: startTitle.length, max: 40 }))}</p><p class="form-error" id="lr-start-error" role="alert" hidden>${esc(t('live.start.nameRequired'))}</p></div>
+      <div class="form-group"><label class="form-label" for="lr-start-topic">${esc(t('live.start.topic'))}</label><select id="lr-start-topic" class="field" name="topic">${topics.map(x => `<option value="${esc(x)}"${x === (last?.topic || topics[0]) ? ' selected' : ''}>${esc(topicLabel(x))}</option>`).join('')}</select></div>
+      <div class="form-group"><span class="form-label" id="lr-start-cover-label">${esc(t('live.start.cover'))}</span><label class="lr-cover-pick"><input type="file" name="cover" accept="image/*" class="sr-only" aria-labelledby="lr-start-cover-label"><span class="lr-cover-frame">${img(cover || DEFAULT_COVER, '', 'lr-cover-img')}</span><span class="lr-cover-text"><b>${esc(t(cover ? 'live.start.coverChange' : 'live.start.coverPick'))}</b><span class="caption">${esc(t('live.start.coverHint'))}</span></span></label></div>
+      <p class="caption lr-start-note">${esc(t('live.start.note'))}</p>
+      <div class="sheet-footer"><button type="submit" class="btn btn-primary btn-lg">${icon('video')}<span>${esc(t('live.start.submit'))}</span></button></div></form>`;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: t('live.start.title'),
+      html: body,
+      className: 'lr-start-sheet',
+      meta: { kind: 'lr-start' },
+      onClose: () => {
+        if (fresh && !used) SZ.media.remove(fresh).catch(() => {});
+      },
+    });
+    const form = layer.el.querySelector('form');
+    const title = form.elements.title;
+    title.addEventListener('input', () => {
+      form.querySelector('.lr-count').textContent = t('live.start.count', { n: title.value.length, max: 40 });
+      if (!title.value.trim()) return;
+      title.removeAttribute('aria-invalid');
+      form.querySelector('#lr-start-error').hidden = true;
+    });
+    form.elements.cover.addEventListener('change', async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const blob = await SZ.media.compress(file, { max: 1280 });
+        const ref = await SZ.media.put(blob, { name: file.name });
+        await SZ.media.url(ref);
+        if (fresh) SZ.media.remove(fresh).catch(() => {});
+        fresh = cover = ref;
+        const pic = form.querySelector('.lr-cover-img');
+        pic.dataset.media = ref;
+        pic.src = SZ.media.src(ref);
+        form.querySelector('.lr-cover-text b').textContent = t('live.start.coverChange');
+      } catch (_) {
+        toast(t('live.start.coverFailed'), { type: 'error' });
+      }
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const value = title.value.trim();
+      if (!value) {
+        title.setAttribute('aria-invalid', 'true');
+        form.querySelector('#lr-start-error').hidden = false;
+        title.focus();
+        return;
+      }
+      used = true;
+      const topic = topics.includes(form.elements.topic.value) ? form.elements.topic.value : topics[0];
+      SZ.overlay.close({ layer, force: true });
+      openHost({ title: value.slice(0, 40), topic, cover });
+    });
+  }
+  function openHost({ title, topic, cover }) {
+    const uid = SZ.uid('lh');
+    const layer = SZ.overlay.open({
+      kind: 'raw',
+      html: `<section class="lr-room lr-host-room" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="lh-title-${uid}"><div class="lr-track"><div class="lr-pane"></div></div></section>`,
+      meta: { kind: 'room', hostId: 'self', host: true },
+      beforeClose: async () => {
+        if (!H || H.ending) return true;
+        const ok = await SZ.confirm({
+          title: t('live.host.endTitle'),
+          message: t('live.host.endText'),
+          confirmText: t('live.host.endConfirm'),
+          danger: true,
+        });
+        if (ok && H) H.ending = true;
+        return ok;
+      },
+      onClose: () => endHost(),
+      onCover: () => H && (H.covered = true),
+      onUncover: () => H && (H.covered = false),
+    });
+    const h = (H = {
+      uid,
+      layer,
+      el: layer.el,
+      mode: 'host',
+      id: 'self',
+      host: { ...findPerson('self'), topic },
+      model: { comments: [], count: 0, draft: '', scrollPaused: false, said: false },
+      audience: audienceFor('self', 40),
+      title,
+      topic,
+      cover,
+      startedAt: Date.now(),
+      watch: 0,
+      peak: 0,
+      likes: 0,
+      giftBeans: 0,
+      followers: 0,
+      comments: 0,
+      beat: 0,
+      fxToken: 0,
+    });
+    h.el.querySelector('.lr-pane').innerHTML = hostHTML(h);
+    h.el.addEventListener('submit', event => {
+      const form = event.target.closest('.lr-composer');
       if (!form) return;
       event.preventDefault();
-      event.stopImmediatePropagation();
-      const s = session,
-        text = form.elements.liveText.value.trim();
-      if (!s || !text || text.length > 160) return;
-      pushComment(s, { personId: 'self', text });
-      form.reset();
-      form.elements.liveText.value = '';
-      s.model.draft = '';
-    },
-    true
-  );
-  document.addEventListener('change', event => {
-    if (!session || !event.target.matches('.lr-gift-quantity select')) return;
-    session.model.quantity = Number(event.target.value) || 1;
-    const g = gift(session.model.giftId);
-    const b = session.el.querySelector('[data-action="lr-send-gift"]');
-    if (b && g) b.textContent = '赠送 · ' + number(g.price * session.model.quantity);
-  });
-  document.addEventListener(
-    'keydown',
-    event => {
-      if (event.key !== 'Escape' || !session) return;
-      if (document.querySelector('.vpe-stage')) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.ShizhongVipEntry?.stop();
-        return;
-      }
-      if (session.fx) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.ShizhongLiveEffects?.stop();
-        window.ShizhongOrientalEffects?.stop();
-        session.fx = false;
-      } else if (session.panel) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        closePanel();
-      }
-    },
-    true
-  );
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      window.ShizhongLiveEffects?.stop();
-      window.ShizhongOrientalEffects?.stop();
+      submitComment(h, form);
+    });
+    bindComments(h);
+    pushComment(h, { personId: 'self', kind: 'system', text: t('live.host.started') });
+    h.timer = setInterval(() => hostTick(h), 1800);
+    h.clock = setInterval(() => {
+      const c = h.el.querySelector('.lr-clock');
+      if (c) c.textContent = clock(Date.now() - h.startedAt);
+    }, 1000);
+  }
+  function clock(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const hh = Math.floor(s / 3600),
+      mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0'),
+      ss = String(s % 60).padStart(2, '0');
+    return (hh ? hh + ':' : '') + mm + ':' + ss;
+  }
+  function hostHTML(h) {
+    const self = findPerson('self');
+    return `<div class="lr-media" aria-hidden="true">${img(h.cover || DEFAULT_COVER, '', 'lr-cover')}</div><div class="lr-shade" aria-hidden="true"></div>
+      <header class="lr-top">
+        <div class="lr-host"><div class="lr-host-main">${img(avatarOf(self), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lh-title-${h.uid}">${esc(t('live.host.label'))}</strong><span class="lr-live-line"><span class="lr-live-dot">${esc(t('live.host.live'))}</span><span class="lr-clock num">00:00</span></span></span></div></div>
+        <span class="lr-viewers lr-viewers-static">${icon('user')}<span class="lr-viewer-count num">0</span><span class="sr-text">${esc(t('live.host.viewersLabel'))}</span></span>
+        <button type="button" class="lr-icon lr-close" data-action="lr-end-live" aria-label="${esc(t('live.host.end'))}">${icon('close')}</button>
+      </header>
+      <div class="lr-chips lr-host-stats">
+        <span class="lr-chip lr-stat-gifts">${icon('gift')}<span>${esc(tn('live.host.gifts', 0, { amount: '0' }))}</span></span>
+        <span class="lr-chip lr-stat-likes">${icon('heart')}<span class="num">0</span><span class="sr-text">${esc(t('live.summary.likes'))}</span></span>
+        <span class="lr-chip lr-stat-followers">${icon('plususer')}<span class="num">0</span><span class="sr-text">${esc(t('live.summary.followers'))}</span></span>
+      </div>
+      <div class="lr-bottom">
+        <div class="lr-caption"><h2 class="lr-room-title">${esc(h.title)}</h2><p>${esc(topicLabel(h.topic))} · ${esc(t('live.host.note'))}</p></div>
+        <div class="lr-comment-area"><div class="lr-comments" role="log" aria-live="polite" aria-label="${esc(t('live.comments.label'))}" tabindex="0"></div><button type="button" class="lr-new-pill" data-action="lr-new-comments" hidden></button></div>
+        <p class="lr-entry">${esc(t('live.host.waiting'))}</p>
+        <div class="lr-bar"><form class="lr-composer" novalidate><input class="lr-input" name="liveText" aria-label="${esc(t('live.comments.input'))}" placeholder="${esc(t('live.host.placeholder'))}" maxlength="160" autocomplete="off" enterkeyhint="send"><button type="submit" class="lr-send" aria-label="${esc(t('live.comments.send'))}">${glyph('send')}</button></form><button type="button" class="btn btn-danger lr-end" data-action="lr-end-live">${esc(t('live.host.end'))}</button></div>
+      </div>`;
+  }
+  const HOST_GIFTS = ['heart', 'rose', 'coffee', 'my-teh-tarik', 'donut', 'wand', 'my-nasi-lemak', 'bear'];
+  const HOST_BIG_GIFTS = ['my-bunga-raya', 'confetti', 'ribbon-heart', 'my-wau-bulan'];
+  function hostTick(h) {
+    if (H !== h || h.covered || document.hidden || !h.el.isConnected) return;
+    const b = ++h.beat;
+    const viewer = h.audience[(b * 5) % Math.max(1, h.audience.length)];
+    if (!viewer) return;
+    h.watch = Math.max(1, h.watch + (b < 6 ? 2 + (b % 3) : (hash('w' + b) % 5) - 1));
+    h.peak = Math.max(h.peak, h.watch);
+    h.likes += 3 + (hash('l' + b) % 14);
+    const entry = h.el.querySelector('.lr-entry');
+    if (entry) entry.textContent = t('live.entry.arrived', { name: nameOf(viewer) });
+    if (b % 2 === 1) {
+      pushComment(h, {
+        personId: viewer.id,
+        text: t(`live.hostLines.${b % HOST_LINES}`, { name: myName() }),
+        kind: 'chat',
+      });
+      h.comments++;
     }
+    if (b % 7 === 3) {
+      h.followers++;
+      pushComment(h, { personId: viewer.id, text: t('live.host.followed'), kind: 'system' });
+    }
+    if (b % 4 === 0) {
+      const big = b % 16 === 0;
+      const list = big ? HOST_BIG_GIFTS : HOST_GIFTS;
+      const g = gift(list[hash('g' + b) % list.length]);
+      if (g) {
+        const qty = big ? 1 : [1, 1, 3, 10][b % 4];
+        h.giftBeans += g.price * qty;
+        pushComment(h, {
+          personId: viewer.id,
+          text: t('live.gift.sentLine', { gift: g.name, qty: fmt().number(qty) }),
+          kind: 'gift',
+        });
+        if (big) {
+          h.lastGiver = viewer.id;
+          playEffect(h, g, qty, nameOf(viewer));
+        }
+      }
+    }
+    const set = (sel, text) => {
+      const n = h.el.querySelector(sel);
+      if (n) n.textContent = text;
+    };
+    set('.lr-viewer-count', compact(h.watch));
+    set('.lr-stat-gifts > span', tn('live.host.gifts', h.giftBeans, { amount: compact(h.giftBeans) }));
+    set('.lr-stat-likes .num', compact(h.likes));
+    set('.lr-stat-followers .num', fmt().number(h.followers));
+  }
+  function endHost() {
+    const h = H;
+    if (!h) return;
+    clearInterval(h.timer);
+    clearInterval(h.clock);
+    stopEffects(h);
+    H = null;
+    const record = {
+      id: SZ.uid('ml'),
+      title: h.title,
+      topic: h.topic,
+      cover: h.cover,
+      startedAt: h.startedAt,
+      endedAt: Date.now(),
+      peakViewers: h.peak,
+      likes: h.likes,
+      giftBeans: h.giftBeans,
+      followers: h.followers,
+      comments: h.comments,
+    };
+    SZ.store.commit(
+      s => {
+        s.live = SZ.withDefaults(s.live, SZ.clone(DEFAULTS));
+        s.live.myLives.unshift(record);
+        if (s.live.myLives.length > 20) s.live.myLives.length = 20;
+      },
+      { quiet: true }
+    );
+    // Opened once the close has finished, so the summary takes over the room's history entry.
+    queueMicrotask(() => summary(record));
+  }
+  function summary(rec) {
+    const stat = (key, value) =>
+      `<div><dt>${esc(t(`live.summary.${key}`))}</dt><dd class="num">${esc(value)}</dd></div>`;
+    const body = `<div class="lr-summary-head">${img(rec.cover || DEFAULT_COVER, '', 'lr-summary-cover')}<div><h3>${esc(rec.title)}</h3><p class="caption">${esc(topicLabel(rec.topic))} · ${esc(fmt().dateTime(rec.startedAt))}</p></div></div><dl class="lr-summary">${stat('duration', clock(rec.endedAt - rec.startedAt))}${stat('viewers', fmt().number(rec.peakViewers))}${stat('likes', compact(rec.likes))}${stat('gifts', beans(rec.giftBeans))}${stat('followers', fmt().number(rec.followers))}${stat('comments', fmt().number(rec.comments))}</dl><p class="caption">${esc(t('live.summary.note'))}</p><div class="sheet-footer"><button type="button" class="btn btn-primary btn-lg" data-action="close">${esc(t('live.summary.done'))}</button></div>`;
+    SZ.overlay.open({
+      kind: 'sheet',
+      title: t('live.summary.title'),
+      html: body,
+      className: 'lr-summary-sheet',
+      meta: { kind: 'lr-summary' },
+    });
+  }
+
+  // ------------------------------------------------------------------ gift history screen (Me › gifts)
+  function openHistory() {
+    SZ.overlay.open({
+      kind: 'screen',
+      title: t('live.history.title'),
+      className: 'lr-history-screen',
+      html: `<div class="lr-history-body">${giftHistoryHTML()}</div>`,
+    });
+  }
+
+  // ------------------------------------------------------------------ actions
+  const ACTIONS = {
+    'lr-exit': () => {
+      if (!R) return;
+      closeSheetsAboveRoom();
+      SZ.overlay.close({ layer: R.layer });
+    },
+    'lr-square': () => {
+      if (typeof ui !== 'undefined') ui.liveTab = 'public';
+      navigate('live');
+    },
+    'lr-next': () => go(1),
+    'lr-prev': () => go(-1),
+    'lr-follow': id => toggleFollow(id),
+    'lr-user': id => userCard(id),
+    'lr-profile': id => {
+      if (typeof personDetail === 'function') personDetail(id);
+    },
+    'lr-my-profile': () => navigate('me'),
+    'lr-message': id => {
+      if (!SZ.requireLogin(t('auth.reason.message'))) return;
+      if (window.ShizhongChat?.open) window.ShizhongChat.open(id);
+      else if (typeof openChat === 'function') openChat(id);
+    },
+    'lr-audience': () => peopleSheet('audience'),
+    'lr-rank': () => peopleSheet('rank'),
+    'lr-fanclub': () => fanclub(),
+    'lr-join-fans': () => {
+      const r = R;
+      if (!r || !SZ.requireLogin(t('auth.reason.join'))) return;
+      if (!own().fanclubs.includes(r.id) && !SZ.store.commit(s => s.live.fanclubs.push(r.id))) return;
+      closeSheetsAboveRoom();
+      toast(t('live.fans.done'), { type: 'success' });
+    },
+    'lr-reminder': (id, el) => {
+      id = id || R?.id;
+      if (!id || !SZ.requireLogin(t('auth.reason.follow'))) return;
+      const has = own().reminders.includes(id);
+      if (
+        !SZ.store.commit(s => {
+          s.live.reminders = has ? s.live.reminders.filter(x => x !== id) : [...s.live.reminders, id];
+        })
+      )
+        return;
+      el?.setAttribute('aria-checked', String(!has));
+      toast(t(has ? 'live.reminder.off' : 'live.reminder.on'));
+    },
+    'lr-tasks': () => tasks(),
+    'lr-talk': () => {
+      closeSheetsAboveRoom();
+      requestAnimationFrame(() => R?.el.querySelector('.lr-input')?.focus());
+    },
+    'lr-like': id => {
+      if (id === 'task') closeSheetsAboveRoom();
+      like(R);
+    },
+    'lr-gifts': () => giftPanel(),
+    'lr-combo': () => sendGift({ combo: true }),
+    'lr-gift-tab': id => switchGiftTab(id),
+    'lr-select-gift': id => {
+      if (!R || !gift(id)) return;
+      R.model.giftId = id;
+      refreshGiftPanel({ selection: true, detail: true });
+    },
+    'lr-qty': id => {
+      const n = Number(id);
+      if (!R || !QUANTITIES.includes(n)) return;
+      R.model.quantity = n;
+      refreshGiftPanel({ quantity: true });
+    },
+    'lr-preview-gift': id => preview(id),
+    'lr-send-gift': () => {
+      const c = R?.combo;
+      sendGift({ combo: !!c && c.giftId === R.model.giftId && c.qty === R.model.quantity });
+    },
+    'lr-topup': () => topup(),
+    'lr-claim': id => claim(Number(id)),
+    'lr-more': () => more(),
+    'lr-scroll-toggle': (id, el) => {
+      const r = R;
+      if (!r) return;
+      setScrollPaused(r, !r.model.scrollPaused);
+      if (el?.getAttribute('role') === 'switch')
+        el.setAttribute('aria-checked', String(r.model.scrollPaused));
+    },
+    'lr-new-comments': () => {
+      const r = H || R;
+      if (!r) return;
+      if (r.model.scrollPaused) setScrollPaused(r, false);
+      else jumpToLatest(r);
+    },
+    'lr-clean': (id, el) => {
+      const r = R;
+      if (!r) return;
+      r.model.clean = !r.model.clean;
+      r.el.classList.toggle('lr-clean', r.model.clean);
+      if (el?.getAttribute('role') === 'switch') {
+        el.setAttribute('aria-checked', String(r.model.clean));
+        closeSheetsAboveRoom();
+      }
+      requestAnimationFrame(() =>
+        r.el
+          .querySelector(r.model.clean ? '.lr-restore' : '[data-action="lr-more"]')
+          ?.focus({ preventScroll: true })
+      );
+    },
+    'lr-share': () => share(),
+    'lr-vip': () => window.ShizhongVIP?.open?.(),
+    'lr-report': id => report(id || R?.id),
+    'lr-block': id => block(id || R?.id),
+    'lr-nudge-close': () => hideNudge(R),
+    'lr-end-live': () => H && SZ.overlay.close({ layer: H.layer }),
+  };
+  SZ.actions.register('lr-', (action, id, el) => {
+    const fn = ACTIONS[action];
+    if (!fn) return false;
+    fn(id, el);
+    return true;
   });
-  window.ShizhongLive = Object.freeze({ open: id => room(id), stop, catalog: gifts, showVip: vipPanel });
+  const openWhenLoaded = id =>
+    typeof demand === 'function' ? demand(chunksFor(id), () => open(id)) : open(id);
+  SZ.actions.register('room', (action, id) => {
+    if (!id) return false;
+    openWhenLoaded(id);
+    return true;
+  });
+  SZ.actions.register('next-room', () => (R ? go(1) : false));
+  SZ.actions.register('start-live', () => {
+    startLive();
+    return true;
+  });
+  SZ.actions.register('gift-wall', () => {
+    openHistory();
+    return true;
+  });
+  SZ.routes.register('room', id => openWhenLoaded(id));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    stopEffects(R);
+    stopEffects(H);
+  });
+
+  window.ShizhongLive = Object.freeze({
+    open,
+    next: () => go(1),
+    prev: () => go(-1),
+    isOpen: () => !!R,
+    gifts: () => G(),
+    gift,
+    giftName,
+    giftArt,
+    startLive,
+    openHistory,
+    /** Stop any gift effect or VIP entrance playing in the room (the 1:1 module calls this). */
+    stop: () => {
+      stopEffects(R);
+      window.ShizhongVipEntry?.stop?.();
+    },
+    showVip: () => window.ShizhongVIP?.open?.(),
+    catalog: () => G(),
+  });
 })();
