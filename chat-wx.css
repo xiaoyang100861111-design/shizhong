@@ -90,8 +90,8 @@
 }
 .wx-pk-ico {
   flex: 0 0 auto;
-  width: 30px;
-  height: 38px;
+  width: 32px;
+  height: 40px;
 }
 .wx-bubble.is-settled .wx-pk-ico {
   opacity: 0.9;
@@ -194,10 +194,10 @@
 }
 .wx-amt small {
   font-size: 0.55em;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
 }
 .wx-amt b {
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
 }
 .wx-link {
   padding: 0;
@@ -333,14 +333,18 @@
   caret-color: var(--wx-green);
 }
 .wx-cell-value input {
+  flex: 0 1 auto;
+  max-width: 100%;
+  font-family: var(--font-num);
   text-align: right;
+}
+.wx-page input:focus-visible {
+  border-radius: 0;
+  box-shadow: none;
 }
 .wx-cells input::placeholder {
   color: var(--wx-text-3);
   opacity: 1;
-}
-.wx-cells:focus-within {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wx-green) 45%, transparent);
 }
 .wx-unit {
   flex: 0 0 auto;
@@ -434,7 +438,7 @@
   flex: 0 0 auto;
   font-family: var(--font-num);
   font-size: 30px;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
 }
 .wx-tf-amount input,
 .wx-tf-note input {
@@ -451,7 +455,7 @@
 .wx-tf-amount input {
   font-family: var(--font-num);
   font-size: 46px;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
 }
 .wx-tf-note {
   margin-top: 16px;
@@ -790,6 +794,9 @@
 }
 .wx-detail-page .detail-header h2 {
   visibility: hidden;
+}
+.wx-detail-page .detail-header .icon-button {
+  color: var(--wx-gold-light);
 }
 .wx-detail-top {
   position: relative;

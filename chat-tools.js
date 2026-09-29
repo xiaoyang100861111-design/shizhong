@@ -2733,6 +2733,12 @@
     if (v !== raw) input.value = v;
     return v;
   }
+  /** Right-aligned inputs hug their text (so "RM" sits right before the amount, like WeChat's "¥"). */
+  function fitInput(input) {
+    const text = input.value || input.placeholder || '';
+    const width = [...text].reduce((w, c) => w + (c.charCodeAt(0) > 255 ? 1.9 : 1), 0);
+    input.style.width = `calc(${Math.max(1, width)}ch + 4px)`;
+  }
   function moneyForm(view, kind, draft = {}, mode = 'auto') {
     if (!SZ.requireLogin(t('chat.loginReason'))) return;
     closePanels(view);
@@ -2795,7 +2801,9 @@
       submit.disabled = !ok;
       return ok ? { count, cents, total, normal } : null;
     };
-    form.addEventListener('input', () => check());
+    const fit = () => form.querySelectorAll('.wx-cell-value input').forEach(fitInput);
+    form.addEventListener('input', () => (check(), fit()));
+    fit();
     layer.el.addEventListener('click', e => {
       const b = e.target.closest('[data-wx-mode]');
       if (!b) return;
@@ -3052,7 +3060,7 @@
     const layer = SZ.overlay.of(button);
     if (!layer || layer.meta.busy) return;
     layer.meta.busy = true;
-    const card = layer.el.querySelector('.wx-open');
+    const card = layer.el.matches('.wx-open') ? layer.el : layer.el.querySelector('.wx-open');
     button.disabled = true;
     card.classList.add('is-spinning');
     const started = Date.now();
