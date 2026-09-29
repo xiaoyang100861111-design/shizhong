@@ -1,0 +1,16 @@
+{
+  "appId": "my.shizhong.app",
+  "appName": "适中",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.example.com/",
+    "cleartext": false,
+    "allowNavigation": ["app.example.com"]
+  },
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "always", "limitsNavigationsToAppBoundDomains": true },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#f6f5f2" },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
+  }
+}

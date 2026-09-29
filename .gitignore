@@ -18,3 +18,6 @@ server/**/*.user
 # local tooling
 .claude/
 __pycache__/
+app/node_modules/
+app/android/
+app/ios/
