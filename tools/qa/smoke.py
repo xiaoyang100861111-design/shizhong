@@ -250,7 +250,13 @@ async def run(args):
                 booted = await cdp.wait_for("window.SZ_BOOTED===true || !!document.querySelector('.boot-error')", 15)
                 await cdp.drain(0.6)
                 steps_log, step_fail = [], []
-                for i, st in enumerate(sc.get("serverSteps", sc.get("steps", [])) if args.server else sc.get("steps", [])):
+                steps = sc.get("serverSteps", sc.get("steps", [])) if args.server else sc.get("steps", [])
+                if args.server:  # the server's demo account talks to personas: p1–p3's chats (offline seed) → seeded ones
+                    text = json.dumps(steps)
+                    for legacy, persona in (("p1", "u0040"), ("p2", "u0058"), ("p3", "u0033")):
+                        text = re.sub(r"(=|'|:)%s(\]|')" % legacy, r"\g<1>%s\g<2>" % persona, text)
+                    steps = json.loads(text)
+                for i, st in enumerate(steps):
                     try:
                         res = True
                         if "click" in st:

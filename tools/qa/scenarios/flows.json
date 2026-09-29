@@ -241,7 +241,9 @@
     "expect": "SZ.overlay.top()?.el.matches('.flows-wallet')",
     "msg": "back on wallet"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "server mode: top-ups are crypto / bank transfer (tools/qa/server_smoke.py)"
  },
  {
   "name": "flows-recharge-guest",
@@ -285,7 +287,9 @@
     "expect": "document.querySelectorAll('.flows-day.is-done').length===3",
     "msg": "3 days lit"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "rewrites the streak history client-side; the server keeps the calendar"
  },
  {
   "name": "flows-checkin-reload",
@@ -654,7 +658,9 @@
     "expect": "state.friendRequests.outgoing[0].status==='accepted'",
     "msg": "demo request accepted"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "the offline demo accepts any ID; the server looks the account up"
  },
  {
   "name": "flows-invite",
@@ -864,7 +870,9 @@
     "expect": "!!SZ.overlay.top().el.querySelector('.sz-confirm')",
     "msg": "confirmation first"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "photos live on the server: no local media to clear"
  },
  {
   "name": "flows-compose-photo",
@@ -928,7 +936,9 @@
     "expect": "state.profile.photo.startsWith('data:image/jpeg') && state.profile.photo.length<=40000",
     "msg": "avatar is a small data URL"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "the server stores the photo as media: (AuthModule.AvatarAsync)"
  },
  {
   "name": "flows-settings-account",
@@ -1031,7 +1041,9 @@
     "expect": "SZ.overlay.$('input[name=interest][value=pets]').disabled",
     "msg": "at most five interests"
    }
-  ]
+  ],
+  "serverSkip": true,
+  "serverNote": "the server's demo profile already has interests (toggles differ)"
  },
  {
   "name": "flows-wallet-bills",
