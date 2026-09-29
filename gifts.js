@@ -35,8 +35,22 @@
     demoSenders: ['p1', 'p2', 'p3', 'p4'], // friends whose example gifts the demo account already accepted
   };
 
-  const gifts = data.gifts.slice().sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
-  const byId = new Map(gifts.map(g => [g.id, g]));
+  /*
+   * Server mode: prices are gold beans (the database catalogue), the balance is state.points, and every
+   * purchase, gift, acceptance and decoration goes through the API (state.gifts is projected by the server).
+   * Tunables come from the console settings with the prototype values as fallbacks.
+   */
+  const SERVER = !!SZ.server && data.currency === 'beans';
+  if (SERVER) {
+    CONFIG.quantities = SZ.config('gifts.quantities', CONFIG.quantities);
+    CONFIG.noteMax = SZ.config('gifts.noteMax', CONFIG.noteMax);
+    CONFIG.confirmFrom = SZ.config('gifts.confirmFrom', 10000);
+    CONFIG.sticker.max = SZ.config('gifts.stickerMax', CONFIG.sticker.max);
+  }
+  // Gifts that exist only in live rooms / 1:1 calls are known (bubbles, histories) but not listed in the shop.
+  const allGifts = data.gifts.slice().sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
+  const gifts = allGifts.filter(g => !g.hidden);
+  const byId = new Map(allGifts.map(g => [g.id, g]));
   const bgById = new Map(data.backgrounds.map(b => [b.id, b]));
   const categories = [...new Set(gifts.map(g => g.category))];
   const featuredSeries = gifts.find(g => g.series)?.series || '';
@@ -47,8 +61,18 @@
   const gDesc = g => tc('gifts', g.id, 'description', g.description);
   const label = (field, value) => td('gifts.' + field, value); // category | rarity | series | subseries | tier
   const bgName = b => tc('giftBackgrounds', b.id, 'name', b.name);
-  const money = v => SZ.fmt.money(v);
-  const balanceText = v => (Math.abs(v) >= 100000 ? 'RM ' + SZ.fmt.compact(v) : SZ.fmt.money(v));
+  const beansText = v => tn('srvlive.beans', Math.round(Number(v) || 0));
+  const money = v => (SERVER ? beansText(v) : SZ.fmt.money(v));
+  const balanceText = v =>
+    SERVER
+      ? v >= 100000
+        ? tn('srvlive.beansCompact', v, { amount: SZ.fmt.compact(v) })
+        : beansText(v)
+      : Math.abs(v) >= 100000
+        ? 'RM ' + SZ.fmt.compact(v)
+        : SZ.fmt.money(v);
+  /** What gifts are paid with: gold beans in server mode, the demo RM wallet offline. */
+  const funds = () => (SERVER ? Number(state.points) || 0 : Number(state.wallet) || 0);
   const round2 = v => Math.round(v * 100) / 100;
   const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : (lo + hi) / 2));
   const effectName = g =>
@@ -104,6 +128,7 @@
     purchases: [],
     sent: [],
     received: [],
+    pending: [], // server mode: gifts from friends waiting to be accepted
     transactions: [],
     decoration: { backgroundId: CONFIG.defaultBackground, customImage: '', stickers: [], avatarFrameId: '' },
     chatBackgroundId: 'default',
@@ -253,7 +278,9 @@
     return `<div class="empty-state">${icon(ico)}<h3>${esc(title)}</h3><p>${esc(body)}</p>${action ? `<button type="button" class="btn btn-primary" data-action="${action}">${esc(actionLabel)}</button>` : ''}</div>`;
   }
   function balanceBar() {
-    return `<div class="gf-balance">${icon('wallet')}<span class="gf-balance-label">${esc(t('gifts.balance.label'))}</span><strong class="gf-balance-value num" data-gf-balance title="${esc(money(state.wallet))}">${esc(balanceText(state.wallet))}</strong><button type="button" class="btn btn-sm btn-tonal" data-action="gift-topup">${esc(t('gifts.balance.topup'))}</button></div>`;
+    const label = SERVER ? t('srvlive.gifts.beanBalance') : t('gifts.balance.label');
+    const topup = SERVER ? t('srvlive.gifts.buyBeans') : t('gifts.balance.topup');
+    return `<div class="gf-balance">${icon('wallet')}<span class="gf-balance-label">${esc(label)}</span><strong class="gf-balance-value num" data-gf-balance title="${esc(money(funds()))}">${esc(balanceText(funds()))}</strong><button type="button" class="btn btn-sm btn-tonal" data-action="gift-topup">${esc(topup)}</button></div>`;
   }
   function segmented(items, current, action, ariaLabel) {
     return `<div class="segmented gf-segmented" role="tablist" aria-label="${esc(ariaLabel)}">${items.map(([id, text]) => `<button type="button" role="tab" data-action="${action}" data-id="${esc(id)}" aria-selected="${id === current}">${esc(text)}</button>`).join('')}</div>`;
@@ -279,7 +306,7 @@
   /** Re-render every open gift layer (after a purchase, a top-up or an accepted gift) and the Me hero. */
   function refreshAll() {
     for (const l of SZ.overlay.layers()) l.gfRefresh?.();
-    document.querySelectorAll('[data-gf-balance]').forEach(n => (n.textContent = balanceText(state.wallet)));
+    document.querySelectorAll('[data-gf-balance]').forEach(n => (n.textContent = balanceText(funds())));
     refreshHero();
   }
   function refreshHero() {
@@ -394,7 +421,7 @@
     const feature = featuredSeries
       ? `<button type="button" class="gf-feature" data-action="gift-filter" data-id="${esc(featuredSeries)}"><span class="gf-feature-copy"><span class="gf-feature-kicker">${esc(t('gifts.shop.featureKicker'))}</span><strong>${esc(label('series', featuredSeries))}</strong><span>${esc(tn('gifts.shop.featureBody', gifts.filter(g => g.series === featuredSeries).length))}</span></span><span class="gf-feature-art" aria-hidden="true">${featureArt}</span></button>`
       : '';
-    return `<div class="gf-page gf-shop">${balanceBar()}${feature}<div class="gf-shortcuts"><button type="button" class="gf-shortcut" data-action="gift-collection">${icon('gift')}<span>${esc(t('gifts.menu.collection'))}</span><span class="gf-shortcut-meta num">${esc(SZ.fmt.number(sum(G().owned)))}</span></button><button type="button" class="gf-shortcut" data-action="gift-studio">${icon('edit')}<span>${esc(t('gifts.menu.studio'))}</span></button></div><div class="gf-results">${shopResults(view)}</div><p class="caption gf-disclaimer">${esc(t('gifts.shop.disclaimer'))}</p></div>`;
+    return `<div class="gf-page gf-shop">${balanceBar()}${feature}<div class="gf-shortcuts"><button type="button" class="gf-shortcut" data-action="gift-collection">${icon('gift')}<span>${esc(t('gifts.menu.collection'))}</span><span class="gf-shortcut-meta num">${esc(SZ.fmt.number(sum(G().owned)))}</span></button><button type="button" class="gf-shortcut" data-action="gift-studio">${icon('edit')}<span>${esc(t('gifts.menu.studio'))}</span></button></div><div class="gf-results">${shopResults(view)}</div><p class="caption gf-disclaimer">${esc(t(SERVER ? 'srvlive.gifts.disclaimer' : 'gifts.shop.disclaimer'))}</p></div>`;
   }
   function openShop(opts = {}) {
     const view = { filter: opts.filter || 'all', branch: 'all' };
@@ -443,7 +470,7 @@
     const facts = [
       [t('gifts.detail.effect'), effectName(g)],
       [t('gifts.detail.uses'), SZ.fmt.list(uses)],
-      ...(g.goldBeanPrice ? [[t('gifts.detail.livePrice'), tn('gifts.detail.beans', g.goldBeanPrice)]] : []),
+      ...(g.goldBeanPrice && !SERVER ? [[t('gifts.detail.livePrice'), tn('gifts.detail.beans', g.goldBeanPrice)]] : []),
       [t('gifts.detail.owned'), tn('gifts.detail.ownedCount', owned)],
     ];
     const kicker = [
@@ -479,7 +506,7 @@
       cta = owned
         ? `<div class="button-row"><button type="button" class="btn btn-secondary btn-lg" data-action="gift-wear" data-id="${esc(g.id)}">${esc(wearLabel)}</button><button type="button" class="btn btn-primary btn-lg" data-action="gift-buy" data-id="${esc(g.id)}">${esc(t('gifts.detail.buyAgain'))}</button></div>`
         : `<button type="button" class="btn btn-primary btn-lg btn-block" data-action="gift-buy" data-id="${esc(g.id)}">${esc(t('gifts.detail.buy', { price: money(g.price) }))}</button>`;
-      note = t('gifts.detail.demoNote');
+      note = t(SERVER ? 'srvlive.gifts.buyNote' : 'gifts.detail.demoNote');
     }
     return `<div class="gf-detail" style="--gf-accent:${esc(g.accent)}">
       <div class="gf-detail-stage">${stage}</div>${tools}
@@ -525,7 +552,7 @@
       fromOwned,
       buy: buyCount,
       cost,
-      short: Math.max(0, round2(cost - (Number(state.wallet) || 0))),
+      short: Math.max(0, round2(cost - funds())),
     };
   }
   function sendLabel(plan) {
@@ -555,7 +582,7 @@
     const g = byId.get(giftId);
     if (!g || busy || !SZ.requireLogin(t('gifts.auth.buy'))) return;
     const cost = round2(g.price * qty);
-    if (cost > (Number(state.wallet) || 0)) return openTopup(cost - state.wallet);
+    if (cost > funds()) return openTopup(cost - funds());
     busy = true;
     try {
       const ok = await SZ.confirm({
@@ -564,11 +591,30 @@
           summaryHtml(g, [
             [t('gifts.confirm.item'), qty > 1 ? `${gName(g)} ×${qty}` : gName(g)],
             [t('gifts.confirm.pay'), money(cost)],
-            [t('gifts.confirm.after'), money(round2(state.wallet - cost))],
-          ]) + `<p class="caption gf-confirm-note">${esc(t('gifts.confirm.demo'))}</p>`,
+            [t('gifts.confirm.after'), money(round2(funds() - cost))],
+          ]) + `<p class="caption gf-confirm-note">${esc(t(SERVER ? 'srvlive.gifts.buyNote' : 'gifts.confirm.demo'))}</p>`,
         confirmText: t('gifts.confirm.buy'),
       });
       if (!ok) return;
+      if (SERVER) {
+        try {
+          await SZ.api.act('POST', 'gifts/buy', { giftId: g.id, quantity: qty });
+        } catch (e) {
+          if (e?.code === 'beans.insufficient') return openTopup(cost - funds());
+          return SZ.api.fail(e);
+        }
+        checked = null;
+        refreshAll();
+        playEffect(g.id, { caption: t('gifts.effect.added') });
+        SZ.toast(t('gifts.toast.bought', { name: gName(g) }), {
+          type: 'success',
+          action: {
+            label: t(g.wearable === 'avatar' ? 'gifts.detail.wearCharm' : 'gifts.detail.decorate'),
+            run: () => wear(g.id),
+          },
+        });
+        return;
+      }
       const now = Date.now();
       const id = SZ.uid('gp');
       const done = SZ.store.commit(s => {
@@ -623,11 +669,48 @@
             [t('gifts.confirm.item'), `${gName(g)} ×${qty}`],
             ...(plan.fromOwned ? [[t('gifts.confirm.fromCollection'), `×${plan.fromOwned}`]] : []),
             [t('gifts.confirm.pay'), money(plan.cost)],
-            [t('gifts.confirm.after'), money(round2(state.wallet - plan.cost))],
+            [t('gifts.confirm.after'), money(round2(funds() - plan.cost))],
           ]),
           confirmText: t('gifts.confirm.send'),
         });
         if (!ok) return false;
+      }
+      if (SERVER) {
+        let res;
+        try {
+          res = await SZ.api.act('POST', 'gifts/send', { to: chatId, giftId: g.id, quantity: qty, note });
+        } catch (e) {
+          if (e?.code === 'beans.insufficient') openTopup(plan.cost - funds());
+          else SZ.api.fail(e);
+          return false;
+        }
+        checked = null;
+        // Without the messaging service the bubble is kept in this device's chat only; the friend still gets
+        // the gift (pending in their collection, with a notice).
+        if (!res.chatDelivered && window.ShizhongChat?.append)
+          window.ShizhongChat.append(chatId, {
+            id: res.id,
+            self: true,
+            type: 'gift',
+            giftId: g.id,
+            giftTx: res.txId,
+            quantity: qty,
+            price: g.price,
+            currency: 'beans',
+            note,
+            text: t('gifts.message.text', { name: gName(g), count: qty }),
+            time: Date.now(),
+          });
+        const list = SZ.overlay.layers();
+        const top = [findLayer('picker'), findLayer('detail')]
+          .filter(Boolean)
+          .sort((a, b) => list.indexOf(a) - list.indexOf(b))[0];
+        if (top) await closeAbove(top, true);
+        window.ShizhongChat?.refresh?.(chatId);
+        refreshAll();
+        playEffect(g.id, { caption: t('gifts.effect.sentTo', { name: personName(person) }), count: qty });
+        SZ.toast(t('gifts.toast.sent', { name: personName(person) }), { type: 'success' });
+        return true;
       }
       const now = Date.now();
       const id = SZ.uid('gift');
@@ -708,7 +791,80 @@
       busy = false;
     }
   }
+  // ------------------------------------------------------------------ gold bean packs (server mode)
+  /**
+   * Buy gold beans with the RM wallet (packs, prices per platform and the rate are console settings).
+   * Shared with live rooms and 1:1 calls: ShizhongGifts.openBeanPacks(need, { onDone }).
+   */
+  async function openBeanPacks(need = 0, { onDone } = {}) {
+    if (!SZ.requireLogin(t('gifts.auth.buy'))) return null;
+    need = Math.max(0, Math.ceil(Number(need) || 0));
+    let info;
+    try {
+      info = await SZ.api.get('beans/packs');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    const packs = info.packs || [];
+    const closed = info.enabled === false;
+    const suggested = need > 0 ? packs.find(p => p.beans + (p.bonus || 0) >= need)?.id : '';
+    const html = `<div class="gf-topup gf-beans">
+      <p class="gf-topup-balance">${esc(t('srvlive.packs.beans'))} <strong class="num" data-gf-balance>${esc(balanceText(funds()))}</strong> · ${esc(t('srvlive.packs.wallet'))} <strong class="num">${esc(SZ.fmt.money(Number(state.wallet) || 0))}</strong></p>
+      ${need > 0 ? `<p class="gf-topup-need">${esc(t('srvlive.packs.need', { n: SZ.fmt.number(need) }))}</p>` : ''}
+      ${closed ? `<p class="gf-topup-need">${esc(t('srvlive.packs.closed'))}</p>` : ''}
+      <div class="gf-topup-grid">${packs
+        .map(
+          p =>
+            `<button type="button" class="gf-topup-option${p.id === suggested ? ' is-suggested' : ''}" data-action="gift-bean-pack" data-id="${esc(p.id)}"${closed ? ' disabled' : ''}><strong class="num">${esc(beansText(p.beans))}</strong>${p.bonus ? `<span>${esc(t('srvlive.packs.bonus', { n: SZ.fmt.number(p.bonus) }))}</span>` : ''}<span class="num">${esc(SZ.fmt.money(p.price))}</span></button>`
+        )
+        .join('')}</div>
+      <p class="caption gf-topup-note">${icon('shield')}<span>${esc(t('srvlive.packs.note', { rate: info.rate || 10 }))}</span></p>
+      <div class="sheet-footer"><button type="button" class="btn btn-secondary" data-action="recharge">${esc(t('srvlive.packs.recharge'))}</button></div></div>`;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      mode: 'push',
+      title: t('srvlive.packs.title'),
+      className: 'gf-sheet gf-beans-sheet',
+      meta: { gift: 'beans' },
+      html,
+    });
+    layer.gfPacks = packs;
+    layer.gfDone = onDone;
+    return layer;
+  }
+  async function buyPack(id, el) {
+    const layer = (el && SZ.overlay.of(el)) || findLayer('beans');
+    const p = layer?.gfPacks?.find(x => x.id === id);
+    if (!p || busy) return;
+    const total = p.beans + (p.bonus || 0);
+    const ok = await SZ.confirm({
+      title: t('srvlive.packs.confirmTitle'),
+      message: t('srvlive.packs.confirm', { beans: SZ.fmt.number(total), price: SZ.fmt.money(p.price) }),
+      confirmText: t('srvlive.packs.buy'),
+    });
+    if (!ok) return;
+    busy = true;
+    try {
+      await SZ.api.act('POST', 'beans/exchange', { packId: p.id });
+    } catch (e) {
+      if (e?.code === 'wallet.insufficient')
+        return SZ.toast(t('srvlive.packs.noMoney'), {
+          type: 'error',
+          action: { label: t('srvlive.packs.recharge'), run: () => SZ.actions.dispatch('recharge') },
+        });
+      return SZ.api.fail(e);
+    } finally {
+      busy = false;
+    }
+    const done = layer.gfDone;
+    await SZ.overlay.close({ layer, force: true, reason: 'done' });
+    refreshAll();
+    SZ.emit('beans:changed', state.points);
+    SZ.toast(t('srvlive.packs.done', { n: SZ.fmt.number(total) }), { type: 'success' });
+    done?.();
+  }
   function openTopup(need = 0) {
+    if (SERVER) return openBeanPacks(need);
     need = Math.max(0, Math.ceil(Number(need) || 0));
     const max = CONFIG.topup.max;
     const suggested = need > 0 ? Math.min(need, max) : 0;
@@ -886,6 +1042,17 @@
             t('gifts.collection.emptyHistoryTitle'),
             tk('gifts.collection.emptyHistory', view.tab)
           );
+      const pending = view.tab === 'received' ? gs.pending || [] : [];
+      if (pending.length)
+        panel = `<section class="gf-pending" aria-labelledby="gf-pending-title"><h3 class="gf-section-title" id="gf-pending-title">${esc(tn('srvlive.gifts.pending', pending.length))}</h3><div class="list gf-history">${pending
+          .map(r => {
+            const g = byId.get(r.giftId);
+            if (!g) return '';
+            const from = personById(r.fromId);
+            const qty = r.quantity || 1;
+            return `<div class="list-row gf-history-row"><span class="gf-history-art">${art(g, 'thumb')}</span><span class="list-row-main"><strong class="gf-history-name">${esc(gName(g))}${qty > 1 ? ` <span class="num">×${qty}</span>` : ''}</strong><span class="gf-history-meta">${esc(t('gifts.history.from', { name: from ? personName(from) : r.fromName || '' }))}${r.note ? ' · ' + esc(r.note) : ''}</span></span><button type="button" class="btn btn-sm btn-primary" data-action="gift-accept-pending" data-id="${esc(r.txId)}" data-gift="${esc(g.id)}">${esc(t('gifts.bubble.accept'))}</button></div>`;
+          })
+          .join('')}</div></section>${rows ? panel : ''}`;
       if (view.tab === 'sent' && Array.isArray(state.sentGifts) && state.sentGifts.length)
         panel += `<div class="list gf-live-link"><button type="button" class="list-row" data-action="gift-wall">${icon('live')}<span>${esc(t('gifts.collection.liveGifts'))}</span><span class="row-value num">${esc(SZ.fmt.number(state.sentGifts.length))}</span>${icon('chevron', 'chevron')}</button></div>`;
     }
@@ -1246,6 +1413,26 @@
     }
     const previous = G().decoration.customImage;
     const next = SZ.clone(s.draft);
+    if (SERVER) {
+      try {
+        await SZ.api.act('PUT', 'gifts/decoration', {
+          backgroundId: next.backgroundId,
+          customImage: next.customImage || '',
+          stickers: next.stickers,
+          avatarFrameId: next.avatarFrameId || '',
+        });
+      } catch (e) {
+        return SZ.api.fail(e, { max: CONFIG.sticker.max });
+      }
+      checked = null;
+      if (previous && previous !== next.customImage && SZ.media.isRef(previous))
+        SZ.media.remove(previous).catch(() => {});
+      s.saved = true;
+      await SZ.overlay.close({ layer, force: true, reason: 'done' });
+      refreshAll();
+      SZ.toast(t('gifts.studio.saved'), { type: 'success' });
+      return;
+    }
     const ok = SZ.store.commit(() => {
       const gs = G();
       gs.decoration = next;
@@ -1290,7 +1477,11 @@
           : '';
     return charmed(imageHtml, frame, placement);
   }
-  const isReceived = id => !!id && G().received.some(r => r.id === id);
+  const isReceived = (id, tx = '') =>
+    !!(id || tx) && G().received.some(r => (id && (r.id === id || r.messageId === id)) || (tx && r.txId === tx));
+  /** Server mode: the pending (not yet accepted) record behind a chat bubble, by message id or gift tx. */
+  const pendingFor = (id, tx = '') =>
+    (G().pending || []).find(r => (tx && r.txId === tx) || (id && (r.id === id || r.messageId === id))) || null;
   function messageBubble(m = {}, who = {}) {
     const g = byId.get(m.giftId);
     const line = inner =>
@@ -1303,12 +1494,16 @@
         ? tc('giftNotes', m.noteIndex, m.self ? 'sent' : 'received', m.note)
         : m.note;
     const fromId = m.person || who.id || '';
-    const canAccept = !m.self && m.id && personById(fromId);
+    const tx = m.giftTx ? 'gt' + m.giftTx : '';
+    // Server mode: only real gifts (with a server record) can be accepted; example bubbles are just shown.
+    const canAccept = SERVER
+      ? !m.self && !m.demo && !!(tx || pendingFor(m.id) || isReceived(m.id))
+      : !m.self && m.id && personById(fromId);
     let foot = '';
     if (canAccept)
-      foot = isReceived(m.id)
+      foot = isReceived(m.id, tx)
         ? `<p class="gf-bubble-status">${icon('check')}${esc(t('gifts.bubble.accepted'))}</p>`
-        : `<button type="button" class="btn btn-sm btn-tonal gf-bubble-accept" data-action="gift-accept" data-id="${esc(m.id)}" data-gift="${esc(g.id)}" data-qty="${qty}" data-from="${esc(fromId)}" data-price="${unit}" data-time="${Number(m.time) || ''}">${esc(t('gifts.bubble.accept'))}</button>`;
+        : `<button type="button" class="btn btn-sm btn-tonal gf-bubble-accept" data-action="gift-accept" data-id="${esc(m.id)}" data-tx="${esc(tx)}" data-gift="${esc(g.id)}" data-qty="${qty}" data-from="${esc(fromId)}" data-price="${unit}" data-time="${Number(m.time) || ''}">${esc(t('gifts.bubble.accept'))}</button>`;
     const heading =
       t(m.self ? 'gifts.bubble.sent' : 'gifts.bubble.received') +
       (m.demo ? ' · ' + t('gifts.bubble.demo') : '');
@@ -1317,9 +1512,37 @@
       `<div class="gf-bubble" style="--gf-accent:${esc(g.accent)}"><button type="button" class="gf-bubble-main" data-action="gift-message-detail" data-id="${esc(g.id)}" aria-label="${esc(t('gifts.bubble.aria', { heading, name: gName(g), count: qty, price: total }))}"><span class="gf-bubble-label">${esc(heading)}</span><span class="gf-bubble-body"><span class="gf-bubble-art">${art(g, 'thumb')}</span><span class="gf-bubble-text"><strong>${esc(gName(g))}${qty > 1 ? ` <span class="num">×${qty}</span>` : ''}</strong><span class="gf-bubble-price num">${esc(total)}</span><span class="gf-bubble-replay">${icon('spark')}${esc(t('gifts.bubble.replay'))}</span></span></span></button>${note ? `<p class="gf-bubble-note">${esc(note)}</p>` : ''}${foot}</div>`
     );
   }
+  async function acceptOnServer(txId, el) {
+    if (!txId || busy) return;
+    busy = true;
+    try {
+      await SZ.api.act('POST', `gifts/received/${encodeURIComponent(txId)}/accept`);
+    } catch (e) {
+      return SZ.api.fail(e);
+    } finally {
+      busy = false;
+    }
+    checked = null;
+    const r = G().received.find(x => x.txId === txId);
+    const g = byId.get(r?.giftId || el?.dataset.gift);
+    if (el?.isConnected && el.classList.contains('gf-bubble-accept')) {
+      const status = document.createElement('p');
+      status.className = 'gf-bubble-status';
+      status.tabIndex = -1;
+      status.innerHTML = icon('check') + esc(t('gifts.bubble.accepted'));
+      el.replaceWith(status);
+      status.focus({ preventScroll: true });
+    }
+    refreshAll();
+    SZ.toast(t('gifts.toast.accepted', { name: g ? gName(g) : '' }), {
+      type: 'success',
+      action: { label: t('gifts.toast.view'), run: () => openCollection('received') },
+    });
+  }
   function accept(el) {
     if (!SZ.requireLogin(t('gifts.auth.accept'))) return;
     const { id, gift: giftId, from } = el.dataset;
+    if (SERVER) return acceptOnServer(el.dataset.tx || pendingFor(id)?.txId, el);
     const g = byId.get(giftId);
     if (!g || !id || isReceived(id)) return;
     const qty = Math.max(1, Number(el.dataset.qty) || 1);
@@ -1374,6 +1597,18 @@
     const chatId = layer?.meta.chatId;
     if (!chatId || (id !== 'default' && id !== 'custom' && !bgById.has(id))) return;
     const all = !!layer.gfAll;
+    if (SERVER) {
+      try {
+        await SZ.api.act('PUT', 'gifts/wallpaper', { chatId, backgroundId: id, all });
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+      checked = null;
+      await SZ.overlay.close({ layer, force: true, reason: 'done' });
+      window.ShizhongChat?.refresh?.(chatId);
+      SZ.toast(t(all ? 'gifts.wallpaper.savedAll' : 'gifts.wallpaper.saved'), { type: 'success' });
+      return;
+    }
     const ok = SZ.store.commit(() => {
       const gs = G();
       if (all) {
@@ -1537,6 +1772,8 @@
       openTopup(g && (v || ctx) ? sendPlan(g, (v || ctx).qty || 1).short : 0);
     },
     'gift-topup-amount': (id, el) => addBalance(id, el),
+    'gift-bean-pack': (id, el) => buyPack(id, el),
+    'gift-accept-pending': (id, el) => acceptOnServer(id, el),
     'gift-collection': id => openCollection(id || 'owned'),
     'gift-collection-tab': (id, el) => {
       const layer = layerOf(el);
@@ -1748,9 +1985,59 @@
   }
   SZ.on('boot:ready', () => {
     normalize();
+    if (SERVER) return; // state.gifts is the server's projection
     seedDemo();
     migrateCustomImage();
   });
+  if (SERVER) {
+    // Server-owned keys changed (a purchase elsewhere, an accepted gift, a pack bought): redraw open screens.
+    SZ.on('state:server', keys => {
+      if (!Array.isArray(keys) || !keys.some(k => k === 'gifts' || k === 'points' || k === 'wallet')) return;
+      checked = null;
+      refreshAll();
+    });
+    SZ.realtime.on('gifts:received', p => {
+      if (!p?.giftId) return;
+      const g = byId.get(p.giftId);
+      SZ.toast(t('srvlive.gifts.receivedToast', { name: p.fromName || '', gift: g ? gName(g) : '' }), {
+        action: { label: t('gifts.toast.view'), run: () => openCollection('received') },
+      });
+    });
+  }
+
+  /**
+   * People the server tells us about (live hosts and viewers, 1:1 hosts, gift senders) who are not in the
+   * demo people list yet: add a minimal record so profiles, chats and pickers can resolve them.
+   */
+  function ensurePerson(view) {
+    if (!view?.id || typeof people === 'undefined') return null;
+    const known = personById(view.id);
+    if (known) {
+      if (view.name && known.server) known.name = view.name;
+      if (view.photo && known.server) known.photo = view.photo;
+      return known;
+    }
+    const p = {
+      id: String(view.id),
+      name: view.name || '',
+      photo: view.photo || 'ui/avatar-default.svg',
+      city: view.city || '',
+      gender: view.gender || '',
+      age: view.age || null,
+      area: '',
+      bio: view.bio || '',
+      tags: [],
+      distanceKm: 3,
+      online: !!view.online,
+      liveMode: 'public',
+      topic: view.topic || '',
+      countryCode: 'MY',
+      server: true,
+    };
+    people.push(p);
+    window.ShizhongCatalog?.index?.('people', [p]);
+    return p;
+  }
 
   window.ShizhongGifts = {
     profileHero,
@@ -1774,5 +2061,10 @@
     giftName: id => (byId.has(id) ? gName(byId.get(id)) : ''),
     avatarFrameId: () => G().decoration.avatarFrameId || '',
     config: CONFIG,
+    // server mode
+    openBeanPacks,
+    ensurePerson,
+    beansText,
+    usesBeans: () => SERVER,
   };
 })();

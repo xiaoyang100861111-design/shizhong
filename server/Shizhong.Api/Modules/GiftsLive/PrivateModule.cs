@@ -195,7 +195,7 @@ public sealed class PrivateModule : IModule
             var user = ctx.RequireUser();
             var call = await billing.RowAsync(id) ?? throw ApiError.NotFound("private.callNotFound");
             if (call.CallerId != user.Id && call.HostId != user.Id) throw ApiError.Forbidden();
-            var reason = call.Status == 0 ? (call.CallerId == user.Id ? "cancel" : "declined")
+            var reason = call.Status == 0 ? (call.CallerId == user.Id ? (call.Demo && body.Reason == "timeout" ? "timeout" : "cancel") : "declined")
                 : call.HostId == user.Id || (call.Demo && body.Reason == "host") ? "host"
                 : body.Reason is "blocked" ? "blocked" : "self";
             await billing.EndAsync(id, reason, body.Transcript);

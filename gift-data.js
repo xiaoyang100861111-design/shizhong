@@ -834,3 +834,20 @@ window.SHIZHONG_GIFT_DATA = {
     });
   }
 })();
+
+/*
+ * Server mode: the unified catalogue from the database (data/gift-catalog.js, priced in gold beans and edited in
+ * the console) replaces the built-in lists. Its artwork paths win over the manifest so console uploads show.
+ */
+(function () {
+  const catalog = window.SHIZHONG_GIFT_CATALOG;
+  const data = window.SHIZHONG_GIFT_DATA;
+  if (!catalog || !data || !Array.isArray(catalog.mall)) return;
+  data.gifts = catalog.mall;
+  if (Array.isArray(catalog.backgrounds) && catalog.backgrounds.length) data.backgrounds = catalog.backgrounds;
+  data.currency = 'beans';
+  const art = window.SHIZHONG_GIFT_ART || (window.SHIZHONG_GIFT_ART = {});
+  for (const [id, a] of Object.entries(catalog.art || {}))
+    if (a && (a.full || a.thumb))
+      art[id] = { ...(art[id] || {}), ...Object.fromEntries(Object.entries(a).filter(([, v]) => v)) };
+})();

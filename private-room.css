@@ -1685,3 +1685,31 @@
 .oo-more-sheet .list-row.danger > .ico:first-child {
   color: currentColor;
 }
+
+/* server mode: real video (remote stream over the host photo, own camera in the self tile) */
+.oo-remote {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--c-immersive-bg);
+}
+.oo-has-video .oo-video,
+.oo-has-video .oo-stage-bg {
+  opacity: 0;
+}
+.oo-self-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.oo-self-video + img {
+  opacity: 0;
+}
+.oo-self[data-camera='off'] .oo-self-video {
+  opacity: 0;
+}

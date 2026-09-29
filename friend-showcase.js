@@ -58,7 +58,61 @@
     return giftIndex.get(id) || null;
   }
   const giftName = g => tc('gifts', g.id, 'name', g.name);
-  const money = v => SZ.fmt.money(v);
+  const money = v => (window.ShizhongGifts?.usesBeans?.() ? window.ShizhongGifts.beansText(v) : SZ.fmt.money(v));
+
+  /*
+   * Server mode: members (and the demo account) show their real decoration and collection, loaded from
+   * GET /api/gifts/showcase/<id> and cached; personas keep the generated showcase below.
+   */
+  const isMember = id => !!SZ.server && /^(m\d+|demo)$/.test(String(id));
+  const remote = new Map(); // id → profile | Promise
+  function emptyProfile(personId) {
+    return { personId, seed: 0, signature: personId + ':loading', backgroundId: 'rose-mist', customImage: '', layoutId: 0, owned: [], stickers: [], avatarFrameId: '', real: true };
+  }
+  function loadShowcase(personId) {
+    if (remote.has(personId)) return remote.get(personId);
+    const task = SZ.api
+      .get('gifts/showcase/' + encodeURIComponent(personId))
+      .then(s => {
+        const profile = Object.freeze({
+          personId,
+          seed: 0,
+          signature: personId + ':' + (s.stickers || []).length + ':' + s.backgroundId,
+          backgroundId: s.backgroundId || 'rose-mist',
+          customImage: s.customImage || '',
+          layoutId: 0,
+          owned: (s.owned || []).map(o => ({ giftId: o.giftId, quantity: o.quantity, price: Number(o.price) })),
+          stickers: s.stickers || [],
+          avatarFrameId: s.avatarFrameId || '',
+          real: true,
+        });
+        remote.set(personId, profile);
+        redraw(personId);
+        return profile;
+      })
+      .catch(() => {
+        const p = emptyProfile(personId);
+        remote.set(personId, p);
+        return p;
+      });
+    remote.set(personId, task);
+    return task;
+  }
+  /** Replace any showcase of this person already on screen once the real one has arrived. */
+  function redraw(personId) {
+    const person = personById(personId);
+    if (!person) return;
+    const sel = CSS.escape(personId);
+    document.querySelectorAll(`.fs-hero[data-friend-id="${sel}"]`).forEach(n => (n.outerHTML = profileHero(person)));
+    document.querySelectorAll(`.fs-collection[data-friend-id="${sel}"]`).forEach(n => (n.outerHTML = collection(person)));
+    SZ.emit('showcase:loaded', personId);
+  }
+  /** Re-read a member's showcase (after they change it, or when a profile opens again). */
+  function refreshShowcase(personId) {
+    if (!isMember(personId)) return;
+    remote.delete(String(personId));
+    loadShowcase(String(personId));
+  }
   function personById(id) {
     if (typeof people === 'undefined') return null;
     if (!personById.map || personById.size !== people.length) {
@@ -95,6 +149,12 @@
   function profileFor(id) {
     const personId = String(id == null ? '' : id);
     if (!personId) return null;
+    if (isMember(personId)) {
+      const known = remote.get(personId);
+      if (known && !(known instanceof Promise)) return known;
+      loadShowcase(personId);
+      return emptyProfile(personId);
+    }
     if (cache.has(personId)) return cache.get(personId);
     const data = catalog();
     const pool = tiers();
@@ -166,10 +226,11 @@
     const src = person.animatedAvatar || person.photo || 'avatars/women-000.jpg';
     const img = `<img class="avatar fs-avatar-img" src="${esc(asset(src))}" alt="${esc(t('gifts.friend.avatarAlt', { name }))}" width="88" height="88" decoding="async">`;
     const avatar = api?.charmed ? api.charmed(img, profile.avatarFrameId, 'hero') : img;
+    if (profile.real) refreshSoon(person.id);
     const coverHtml = api?.cover
       ? api.cover({
           backgroundId: profile.backgroundId,
-          customImage: '',
+          customImage: profile.customImage || '',
           stickers: profile.stickers,
           action: 'friend-gift-detail',
         })
@@ -197,8 +258,10 @@
         return `<button type="button" class="gf-card fs-card" data-action="friend-gift-detail" data-id="${esc(g.id)}" style="--gf-accent:${esc(g.accent)}" aria-label="${esc(giftName(g) + ' · ' + money(g.price))}"><span class="gf-card-art"><img src="${esc(window.ShizhongGifts?.giftArt?.(g.id, 'thumb') || asset(g.image))}" alt="" width="256" height="256" loading="lazy" decoding="async" draggable="false"></span><span class="gf-card-name">${esc(giftName(g))}</span><span class="gf-card-foot"><span class="price">${esc(money(g.price))}</span><span class="gf-card-tag">${esc(t(worn ? 'gifts.friend.wearing' : 'gifts.friend.onShow'))}</span></span></button>`;
       })
       .join('');
-    return `<section class="fs-collection" aria-labelledby="fs-collection-${esc(person.id)}">
-      <div class="fs-collection-head"><h3 class="fs-collection-title" id="fs-collection-${esc(person.id)}">${esc(t('gifts.friend.collection'))} <span class="fs-count num">${profile.owned.length}</span></h3><span class="tag">${esc(t('gifts.friend.sample'))}</span></div>
+    if (profile.real && !profile.owned.length)
+      return `<section class="fs-collection" data-friend-id="${esc(person.id)}" hidden></section>`;
+    return `<section class="fs-collection" data-friend-id="${esc(person.id)}" aria-labelledby="fs-collection-${esc(person.id)}">
+      <div class="fs-collection-head"><h3 class="fs-collection-title" id="fs-collection-${esc(person.id)}">${esc(t('gifts.friend.collection'))} <span class="fs-count num">${profile.owned.length}</span></h3>${profile.real ? '' : `<span class="tag">${esc(t('gifts.friend.sample'))}</span>`}</div>
       <div class="gf-grid fs-grid">${cards}</div>
     </section>`;
   }
@@ -206,7 +269,7 @@
   function demoMessages(personId) {
     const person = personById(personId);
     const profile = person && profileFor(person.id);
-    if (!profile || profile.owned.length < 2) return [];
+    if (!profile || profile.real || profile.owned.length < 2) return [];
     const notes = catalog().friendNotes || [];
     const noteIndex = notes.length ? profile.seed % notes.length : 0;
     const baseTime = Date.UTC(2026, 8, 20, 8, 0) + (profile.seed % (6 * 24 * 60)) * 60000;
@@ -229,5 +292,13 @@
       };
     });
   }
-  window.ShizhongFriends = Object.freeze({ profileHero, collection, demoMessages, profileFor });
+  // A profile opened again re-reads the member's showcase (at most every 30 s per person).
+  const fetchedAt = new Map();
+  function refreshSoon(personId) {
+    const last = fetchedAt.get(personId) || 0;
+    if (Date.now() - last < 30000) return;
+    fetchedAt.set(personId, Date.now());
+    if (remote.get(personId) && !(remote.get(personId) instanceof Promise)) setTimeout(() => refreshShowcase(personId), 0);
+  }
+  window.ShizhongFriends = Object.freeze({ profileHero, collection, demoMessages, profileFor, refreshShowcase });
 })();

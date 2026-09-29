@@ -23,9 +23,9 @@
   const HISTORY_CAP = 100;
   const SENT_CAP = 200;
   const COMMENT_CAP = 60;
-  const QUANTITIES = [1, 10, 66, 99];
+  const QUANTITIES = SZ.server ? SZ.config('gifts.quantities', [1, 10, 66, 99]) : [1, 10, 66, 99];
   const CLAIMS = [100, 1000, 10000, 100000];
-  const COMBO_MS = 3000;
+  const COMBO_MS = SZ.server ? SZ.config('live.comboMs', 3000) : 3000;
   const FULL_ENTRANCE_GAP = 30000;
   const REPORT_REASONS = ['harassment', 'inappropriate', 'fake', 'spam', 'scam', 'minor', 'misc'];
   // Live topics are stored as source-language ids; demo comment lines are keyed by these slugs.
@@ -68,7 +68,81 @@
   }
   const avatarOf = p => (p?.self ? state.profile?.photo : avatarSource(p));
   const selfLevel = () => Math.max(1, Number(window.ShizhongVIP?.level?.('self')) || 1);
-  const levelOf = id => (id === 'self' ? selfLevel() : 8 + (hash(id + 'vip') % 53));
+  // Real VIP levels the server sent (members); personas keep their stable demo level.
+  const levels = new Map();
+  const levelOf = id =>
+    id === 'self' || id === SZ.session?.account?.id
+      ? selfLevel()
+      : levels.get(id) || window.ShizhongVIP?.known?.(id) || 8 + (hash(id + 'vip') % 53);
+
+  // ------------------------------------------------------------------ server mode: real rooms
+  /*
+   * With the backend, members go live for real: the host publishes camera + mic through Cloudflare Realtime
+   * (SZ.rtc scope 'live:<sessionId>'), viewers subscribe, and comments / likes / gifts / entrances travel on the
+   * realtime topic 'live:<sessionId>'. Persona rooms stay the prototype's simulated demo rooms (console switch
+   * live.demoRooms); gifts sent there still cost real beans. Without a Cloudflare token the host sees their own
+   * camera and viewers see the cover with a note; everything else works.
+   */
+  const SERVER = !!SZ.server;
+  const me = () => SZ.session?.account?.id || 'self';
+  const realRooms = new Map(); // hostId → { sessionId, title, topic, cover, viewers, likes, giftBeans, startedAt, host }
+  let roomsLoadedAt = 0;
+  let roomsTask = null;
+  let demoRooms = SERVER ? SZ.config('live.demoRooms', true) !== false : true;
+  /** A person the server told us about, as a people record (added to the people list if needed). */
+  function person(view) {
+    if (!view?.id) return null;
+    if (view.id === me()) return findPerson('self');
+    if (view.level) levels.set(view.id, view.level);
+    return window.ShizhongGifts?.ensurePerson?.(view) || findPerson(view.id);
+  }
+  /** The person id a server payload refers to, as this app names it ('self' for the signed-in user). */
+  const pid = view => (!view?.id ? '' : view.id === me() ? 'self' : (person(view), view.id));
+  function refreshRooms({ force = false } = {}) {
+    if (!SERVER || !SZ.session.isLoggedIn) return Promise.resolve();
+    if (!force && roomsTask) return roomsTask;
+    if (!force && Date.now() - roomsLoadedAt < 15000) return Promise.resolve();
+    roomsTask = SZ.api
+      .get('live/rooms')
+      .then(res => {
+        const before = [...realRooms.keys()].join(',');
+        realRooms.clear();
+        demoRooms = res.demoRooms !== false;
+        for (const room of res.rooms || []) {
+          if (room.host?.id === me()) continue;
+          person(room.host);
+          realRooms.set(room.host.id, room);
+        }
+        roomsLoadedAt = Date.now();
+        if (before !== [...realRooms.keys()].join(',') && typeof ui !== 'undefined' && ui.page === 'live' && !SZ.overlay.depth())
+          render();
+      })
+      .catch(() => {})
+      .finally(() => (roomsTask = null));
+    return roomsTask;
+  }
+  /** Cards for the live list: real rooms first (cover + title), shaped like the people records liveCard reads. */
+  function realRoomCards() {
+    if (!SERVER) return [];
+    refreshRooms();
+    return [...realRooms.values()]
+      .filter(room => !isBlocked(room.host.id))
+      .map(room => {
+        const p = findPerson(room.host.id) || {};
+        return {
+          ...p,
+          id: room.host.id,
+          name: room.host.name,
+          photo: room.cover || room.host.photo || p.photo,
+          room: room.title,
+          topic: room.topic,
+          watch: Math.max(1, room.viewers),
+          liveMode: 'public',
+          liveSession: room.sessionId,
+        };
+      });
+  }
+  const isReal = id => SERVER && (realRooms.has(id) || /^(m\d+|demo)$/.test(String(id)));
   function levelChip(id) {
     const n = levelOf(id);
     const tier = n >= 45 ? 'royal' : n >= 30 ? 'gold' : n >= 16 ? 'silver' : 'bronze';
@@ -156,6 +230,188 @@
   let roomsThisSession = 0;
   let lastLeftAt = 0;
 
+  // ------------------------------------------------------------------ server mode: the real room
+  const details = new Map(); // hostId → session detail loaded just before showing the room
+  const seen = new Set(); // comment / gift ids already drawn (own actions arrive twice: response + broadcast)
+  function prepare(id) {
+    if (!isReal(id)) return Promise.resolve(null);
+    return SZ.api.get('live/hosts/' + encodeURIComponent(id) + '/live').then(d => {
+      person(d.host);
+      details.set(id, d);
+      return d;
+    });
+  }
+  /** Server comments as room log lines ({ personId, text, kind, fan }). */
+  function lineOf(c) {
+    return { id: c.id, personId: pid(c.user), text: c.text, kind: c.kind === 'host' ? 'host' : c.kind || 'chat', fan: c.user?.fan || 0 };
+  }
+  function loadRealComments(r, detail) {
+    r.model.comments = (detail.comments || []).filter(c => c.user).map(lineOf);
+    for (const c of detail.comments || []) seen.add(c.id);
+    r.model.comments.push({ personId: detail.host.id, kind: 'system', text: t('srvlive.live.welcome', { name: detail.host.name }) });
+  }
+  const scopeOf = r => 'live:' + r.real.sessionId;
+  /** Join the room's realtime topic and pull the host's audio/video. */
+  async function startReal(r) {
+    const token = (r.realToken = SZ.uid('rt'));
+    const sid = r.real.sessionId;
+    SZ.realtime.join('live:' + sid);
+    const note = r.el.querySelector('.lr-novideo');
+    const status = await SZ.rtc.status();
+    if (r.realToken !== token) return;
+    if (!status.configured) {
+      if (note) {
+        note.textContent = t('srvlive.live.noVideo');
+        note.hidden = false;
+      }
+      return;
+    }
+    try {
+      const room = await SZ.rtc.join(scopeOf(r), {
+        onTrack: (track, pub, stream) => {
+          if (r.realToken !== token) return;
+          attachRemote(r, track, stream);
+        },
+        onTrackEnded: () => {
+          const video = r.el.querySelector('.lr-video');
+          if (video && !video.srcObject?.getVideoTracks().some(x => x.readyState === 'live')) video.hidden = true;
+        },
+      });
+      if (r.realToken !== token) return room.leave();
+      r.rtc = room;
+    } catch (e) {
+      if (r.realToken !== token || !note) return;
+      note.textContent = SZ.api.errorText(e);
+      note.hidden = false;
+    }
+  }
+  function attachRemote(r, track, stream) {
+    const video = r.el.querySelector('.lr-video');
+    if (!video) return;
+    const media = video.srcObject instanceof MediaStream ? video.srcObject : new MediaStream();
+    if (!media.getTracks().includes(track)) media.addTrack(track);
+    if (video.srcObject !== media) video.srcObject = media;
+    video.hidden = false;
+    r.el.querySelector('.lr-novideo')?.setAttribute('hidden', '');
+    video.muted = false;
+    video.play().catch(() => {
+      // Autoplay with sound was refused: play muted and offer a tap to unmute.
+      video.muted = true;
+      video.play().catch(() => {});
+      const b = r.el.querySelector('.lr-unmute');
+      if (b) b.hidden = false;
+    });
+  }
+  function stopReal(r) {
+    if (!r?.real) return;
+    r.realToken = null;
+    flushLikes(r);
+    SZ.realtime.leave('live:' + r.real.sessionId);
+    const rtc = r.rtc;
+    r.rtc = null;
+    rtc?.leave().catch(() => {});
+  }
+  // Double-tap likes are drawn at once and sent in batches.
+  function flushLikes(r) {
+    clearTimeout(r?.likeTimer);
+    const n = r?.pendingLikes || 0;
+    if (!n || !r.real) return;
+    r.pendingLikes = 0;
+    SZ.api.post(`live/sessions/${r.real.sessionId}/likes`, { count: Math.min(50, n) }).catch(() => {});
+  }
+  /** The open room (viewer or host) a realtime payload belongs to. */
+  function roomFor(p) {
+    if (!p?.sessionId) return null;
+    if (R?.real?.sessionId === p.sessionId) return R;
+    if (H?.real?.sessionId === p.sessionId) return H;
+    return null;
+  }
+  if (SERVER) {
+    SZ.realtime.on('live:comment', p => {
+      const r = roomFor(p);
+      if (!r || seen.has(p.id)) return;
+      seen.add(p.id);
+      pushComment(r, lineOf(p));
+      if (r.mode === 'host') r.comments = (r.comments || 0) + 1;
+    });
+    SZ.realtime.on('live:likes', p => {
+      const r = roomFor(p);
+      if (!r) return;
+      if (r.mode === 'host') {
+        r.likes = p.total;
+        const n = r.el.querySelector('.lr-stat-likes .num');
+        if (n) n.textContent = compact(p.total);
+        return;
+      }
+      r.real.likes = Math.max(Number(r.real.likes) || 0, p.total + (r.pendingLikes || 0));
+      const label = r.el.querySelector('.lr-likes');
+      if (label) label.textContent = t('live.room.likes', { count: compact(r.real.likes) });
+    });
+    SZ.realtime.on('live:viewers', p => {
+      const r = roomFor(p);
+      if (!r) return;
+      r.watch = p.count;
+      if (r.mode === 'host') r.peak = Math.max(r.peak || 0, p.count);
+      const n = r.el.querySelector('.lr-viewer-count');
+      if (n) n.textContent = compact(p.count);
+    });
+    SZ.realtime.on('live:enter', p => {
+      const r = roomFor(p);
+      if (!r || !p.user || p.user.id === me()) return;
+      const who = person(p.user);
+      if (p.user.level) levels.set(p.user.id, p.user.level);
+      const entry = r.el.querySelector('.lr-entry');
+      if (entry) entry.textContent = t('live.entry.arrived', { name: p.user.name });
+      if (p.entrance && !r.covered && !r.fxPlaying && window.ShizhongVipEntry?.banner)
+        window.ShizhongVipEntry.banner({ container: r.el, level: p.level, name: p.user.name, avatar: asset(avatarOf(who) || p.user.photo), theme: p.theme });
+    });
+    SZ.realtime.on('live:gift', p => {
+      const r = roomFor(p);
+      if (!r || seen.has(p.id)) return;
+      seen.add(p.id);
+      const g = gift(p.giftId);
+      if (!g) return;
+      const from = pid(p.user);
+      if (r.mode === 'host') {
+        r.giftBeans = p.giftBeans;
+        const n = r.el.querySelector('.lr-stat-gifts > span');
+        if (n) n.textContent = tn('live.host.gifts', p.giftBeans, { amount: compact(p.giftBeans) });
+        r.lastGiver = from;
+      }
+      // Combo taps of the same gift draw one line and one effect per burst.
+      if (p.n === 1 || p.n % 5 === 0)
+        pushComment(r, { personId: from, text: t('live.gift.sentLine', { gift: g.name, qty: fmt().number(p.quantity) }) + (p.n > 1 ? ' ×' + p.n : ''), kind: 'gift', fan: p.user?.fan || 0 });
+      if (!r.fxPlaying || p.n === 1) {
+        if (r.mode !== 'host') r.lastGiver = from;
+        playEffect(r, g, p.quantity * p.n, p.user?.name || '');
+      }
+    });
+    SZ.realtime.on('live:ended', p => {
+      const r = roomFor(p);
+      if (!r) return;
+      if (r.mode === 'host') {
+        if (p.reason === 'admin' || p.reason === 'lost' || p.reason === 'max') {
+          toast(t('srvlive.live.stopped.' + p.reason), { type: 'error' });
+          r.ended = p.reason;
+          SZ.overlay.close({ layer: r.layer, force: true });
+        }
+        return;
+      }
+      stopReal(r);
+      r.real.status = 'ended';
+      const box = r.el.querySelector('.lr-ended');
+      const html = `<div class="lr-ended-box" role="status"><h3>${esc(t('srvlive.live.endedTitle'))}</h3><p>${esc(t('srvlive.live.endedText', { name: nameOf(r.host) }))}</p><div class="lr-ended-actions"><button type="button" class="btn btn-primary" data-action="lr-next">${esc(t('srvlive.live.nextRoom'))}</button><button type="button" class="btn btn-secondary" data-action="lr-exit">${esc(t('live.more.leave'))}</button></div></div>`;
+      if (box) box.innerHTML = html;
+      else r.el.querySelector('.lr-pane')?.insertAdjacentHTML('beforeend', `<div class="lr-ended">${html}</div>`);
+      refreshRooms({ force: true });
+    });
+    SZ.on('boot:done', () => refreshRooms({ force: true }));
+    // Keep the list fresh while the Live tab is showing.
+    setInterval(() => {
+      if (typeof ui !== 'undefined' && ui.page === 'live' && !document.hidden) refreshRooms();
+    }, 20000);
+  }
+
   function audienceFor(hostId, size = 24) {
     const pool = (typeof people !== 'undefined' ? people : []).filter(
       p => p.id !== hostId && !isBlocked(p.id)
@@ -203,7 +459,8 @@
     if (!p) return '';
     const isHost = m.personId === r.id || m.kind === 'host';
     let fan = 0;
-    if (p.self) fan = r.mode === 'viewer' && own().fanclubs.includes(r.id) ? 6 : 0;
+    if (r.real) fan = Number(m.fan) || 0;
+    else if (p.self) fan = r.mode === 'viewer' && own().fanclubs.includes(r.id) ? 6 : 0;
     else if (hash(p.id) % 3 === 0) fan = 1 + (hash(p.id) % 20);
     const cls = [
       'lr-msg',
@@ -286,20 +543,26 @@
       id = r.id,
       m = r.model,
       name = nameOf(host);
-    const title = lc('people', host, 'room') || t('live.room.label', { name });
-    const language = lc('people', host, 'language') || '';
+    const real = r.real;
+    const title = real ? real.title : lc('people', host, 'room') || t('live.room.label', { name });
+    const language = real ? '' : lc('people', host, 'language') || '';
+    const topic = real ? real.topic : host.topic;
+    const likes = real ? Number(real.likes) || 0 : likesBase(id) + myLikes(id);
     const faces = r.audience.slice(0, 3);
-    return `<div class="lr-media" aria-hidden="true">${img(host.photo, '', 'lr-cover')}</div><div class="lr-shade" aria-hidden="true"></div>
+    const media = real
+      ? `<div class="lr-media" aria-hidden="true">${img(real.cover || host.photo, '', 'lr-cover')}<video class="lr-video" autoplay playsinline hidden></video></div><p class="lr-novideo" role="status" hidden></p><button type="button" class="lr-unmute" data-action="lr-unmute" hidden>${icon('volume')}<span>${esc(t('srvlive.live.unmute'))}</span></button>`
+      : `<div class="lr-media" aria-hidden="true">${img(host.photo, '', 'lr-cover')}</div>`;
+    return `${media}<div class="lr-shade" aria-hidden="true"></div>
       <header class="lr-top">
         <div class="lr-host">
-          <button type="button" class="lr-host-main" data-action="lr-user" data-id="${esc(id)}" aria-label="${esc(t('live.card.open', { name }))}">${img(avatarOf(host), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lr-title-${r.uid}">${esc(name)}</strong><span class="lr-likes num">${esc(t('live.room.likes', { count: compact(likesBase(id) + myLikes(id)) }))}</span></span></button>
+          <button type="button" class="lr-host-main" data-action="lr-user" data-id="${esc(id)}" aria-label="${esc(t('live.card.open', { name }))}">${img(avatarOf(host), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lr-title-${r.uid}">${esc(name)}</strong><span class="lr-likes num">${esc(t('live.room.likes', { count: compact(likes) }))}</span></span></button>
           ${followButton(id, 'lr-follow lr-follow-pill')}
         </div>
         <button type="button" class="lr-viewers" data-action="lr-audience" aria-label="${esc(t('live.audience.open', { count: fmt().number(r.watch) }))}"><span class="lr-faces" aria-hidden="true">${faces.map(p => img(avatarOf(p))).join('')}</span><span class="lr-viewer-count num">${esc(compact(r.watch))}</span></button>
         <button type="button" class="lr-icon lr-close" data-action="lr-exit" aria-label="${esc(t('live.room.close'))}">${icon('close')}</button>
       </header>
       <div class="lr-chips">
-        <button type="button" class="lr-chip" data-action="lr-rank">${glyph('trophy')}<span>${esc(t('live.room.rank', { n: (hash(id) % 18) + 1 }))}</span></button>
+        <button type="button" class="lr-chip" data-action="lr-rank">${glyph('trophy')}<span>${esc(t('live.room.rank', { n: real ? r.rankPos || 1 : (hash(id) % 18) + 1 }))}</span></button>
         <button type="button" class="lr-chip" data-action="lr-fanclub"><span class="lr-chip-mark" aria-hidden="true">♥</span><span>${esc(t('live.room.fanClub'))}</span></button>
         <button type="button" class="lr-chip" data-action="lr-tasks"><span class="lr-chip-mark" aria-hidden="true">✦</span><span>${esc(t('live.room.tasks'))}</span></button>
         <button type="button" class="lr-chip lr-chip-square" data-action="lr-square"><span>${esc(t('live.room.square'))}</span>${icon('chevron')}</button>
@@ -311,7 +574,7 @@
       </div>
       <button type="button" class="lr-restore" data-action="lr-clean" aria-pressed="true">${glyph('eye')}<span>${esc(t('live.room.restore'))}</span></button>
       <div class="lr-bottom">
-        <div class="lr-caption"><h2 class="lr-room-title">${esc(title)}</h2><p>${[topicLabel(host.topic), cityLabel(host.city), language].filter(Boolean).map(esc).join(' · ')}</p></div>
+        <div class="lr-caption"><h2 class="lr-room-title">${esc(title)}</h2><p>${[topicLabel(topic), cityLabel(host.city), language].filter(Boolean).map(esc).join(' · ')}</p></div>
         <div class="lr-comment-area">
           <div class="lr-comments" role="log" aria-live="off" aria-label="${esc(t('live.comments.label'))}" tabindex="0">${m.comments.map(c => messageHTML(r, c)).join('')}</div>
           <button type="button" class="lr-icon lr-scroll-toggle" data-action="lr-scroll-toggle" aria-pressed="${m.scrollPaused}" aria-label="${esc(t(m.scrollPaused ? 'live.comments.resume' : 'live.comments.pause'))}">${glyph(m.scrollPaused ? 'play' : 'pause')}</button>
@@ -339,7 +602,7 @@
     if (typeof livePeople === 'function' && typeof ui !== 'undefined' && ui.liveTab !== 'private')
       list = livePeople();
     if (!R || !list.some(p => p.id === R.id))
-      list = (typeof people !== 'undefined' ? people : []).filter(p => p.liveMode !== 'private');
+      list = (typeof people !== 'undefined' ? people : []).filter(p => p.liveMode !== 'private' && !p.server);
     return list.filter(p => !isBlocked(p.id));
   }
   function neighbor(dir) {
@@ -377,6 +640,18 @@
   // ------------------------------------------------------------------ open / switch / close
   function open(hostId, { resume = false } = {}) {
     hostId = String(hostId || '');
+    // A member's room: load the session first (it may have ended since the list was drawn).
+    if (isReal(hostId) && !details.has(hostId) && !(R?.real && R.id === hostId)) {
+      if (H) return toast(t('live.host.busy'));
+      prepare(hostId).then(
+        () => open(hostId, { resume }),
+        () => {
+          toast(t('srvlive.live.notLive'));
+          refreshRooms({ force: true });
+        }
+      );
+      return null;
+    }
     const host = findPerson(hostId);
     if (!host || host.self) return toast(t('live.room.missing'));
     if (isBlocked(hostId)) return toast(t('live.room.blocked'));
@@ -412,17 +687,22 @@
     const host = findPerson(id);
     if (!r || !host) return;
     if (!first) leaveHost(r);
+    const detail = details.get(id) || null;
+    details.delete(id);
     Object.assign(r, {
       id,
       host,
       model: model(id),
-      audience: audienceFor(id),
-      watch: viewerBase(host),
+      audience: detail ? [] : audienceFor(id),
+      watch: detail ? detail.viewers : viewerBase(host),
       unseen: 0,
       beat: 0,
       uid: SZ.uid('lr'),
+      real: detail,
+      rankPos: detail ? 1 + [...realRooms.values()].filter(x => x.giftBeans > detail.giftBeans).length : 0,
     });
-    seedComments(r);
+    if (detail) loadRealComments(r, detail);
+    else seedComments(r);
     r.el.querySelector('.lr-pane').innerHTML = paneHTML(r);
     r.el.classList.toggle('lr-clean', r.model.clean);
     r.el.setAttribute('aria-labelledby', 'lr-title-' + r.uid);
@@ -431,9 +711,11 @@
     bindComments(r);
     prewarm();
     if (entrance !== 'none') window.ShizhongVIP?.entry?.(r.el, { quick: entrance === 'quick' });
+    if (detail) startReal(r);
   }
   /** Keep what belongs to the host we are leaving (the draft) and stop anything still playing. */
   function leaveHost(r) {
+    stopReal(r);
     const input = r.el.querySelector('.lr-input');
     if (input && r.model) r.model.draft = input.value;
     stopEffects(r);
@@ -462,7 +744,7 @@
   }
   function tick() {
     const r = R;
-    if (!r || r.covered || r.switching || document.hidden || !r.el.isConnected) return;
+    if (!r || r.real || r.covered || r.switching || document.hidden || !r.el.isConnected) return;
     pushComment(r, demoLine(r));
     r.beat++;
     const visitor = r.audience[(r.beat * 3) % Math.max(1, r.audience.length)];
@@ -576,7 +858,7 @@
       return toast(t('live.room.noMore'));
     }
     r.switching = true;
-    Promise.all([ensureChunks(chunksFor(target.id)), settle(r, dir > 0 ? -100 : 100)])
+    Promise.all([ensureChunks(chunksFor(target.id)), prepare(target.id), settle(r, dir > 0 ? -100 : 100)])
       .then(
         () => {
           if (R !== r) return;
@@ -603,6 +885,26 @@
     const text = input.value.trim();
     if (!text) return input.focus();
     if (!SZ.requireLogin(t('auth.reason.comment'))) return;
+    if (r.real) {
+      input.value = '';
+      r.model.draft = '';
+      r.model.said = true;
+      SZ.api.post(`live/sessions/${r.real.sessionId}/comments`, { text }).then(
+        c => {
+          if (!seen.has(c.id)) {
+            seen.add(c.id);
+            pushComment(r, lineOf(c));
+            if (r.mode === 'host') r.comments = (r.comments || 0) + 1;
+          }
+          jumpToLatest(r);
+        },
+        e => {
+          if (!input.value) input.value = text;
+          SZ.api.fail(e, { max: SZ.config('live.commentMax', 160) });
+        }
+      );
+      return;
+    }
     pushComment(r, { personId: 'self', text: text.slice(0, 160), kind: r.mode === 'host' ? 'host' : 'self' });
     input.value = '';
     r.model.draft = '';
@@ -616,7 +918,13 @@
     likes[r.id] = myLikes(r.id) + 1;
     SZ.store.saveSoon();
     const label = r.el.querySelector('.lr-likes');
-    if (label) label.textContent = t('live.room.likes', { count: compact(likesBase(r.id) + myLikes(r.id)) });
+    if (r.real) {
+      r.real.likes = (Number(r.real.likes) || 0) + 1;
+      r.pendingLikes = (r.pendingLikes || 0) + 1;
+      clearTimeout(r.likeTimer);
+      r.likeTimer = setTimeout(() => flushLikes(r), r.pendingLikes >= 40 ? 0 : 800);
+      if (label) label.textContent = t('live.room.likes', { count: compact(r.real.likes) });
+    } else if (label) label.textContent = t('live.room.likes', { count: compact(likesBase(r.id) + myLikes(r.id)) });
     const button = r.el.querySelector('.lr-like');
     if (button) {
       button.classList.remove('lr-pop');
@@ -650,10 +958,37 @@
         }
       });
   }
+  /**
+   * Server mode: follow / block / report go to the social area's endpoints (POST|DELETE /api/follows/{id},
+   * /api/blocks/{id}, POST /api/reports). When the answer carries no state, the local list follows it.
+   */
+  async function socialCall(method, path, key, id, add, body) {
+    try {
+      const res = await SZ.api.act(method, path, body);
+      if (key && !res?.state?.[key]) {
+        const list = Array.isArray(state[key]) ? state[key] : [];
+        state[key] = add ? [...new Set([...list, id])] : list.filter(x => x !== id);
+        SZ.store.saveSoon?.();
+      }
+      return true;
+    } catch (e) {
+      SZ.api.fail(e);
+      return false;
+    }
+  }
   function toggleFollow(id) {
     const p = findPerson(id);
     if (!p || p.self || !SZ.requireLogin(t('auth.reason.follow'))) return;
     const on = following(id);
+    if (SERVER) {
+      socialCall(on ? 'DELETE' : 'POST', 'follows/' + encodeURIComponent(id), 'follows', id, !on).then(ok => {
+        if (!ok) return;
+        refreshFollow(id);
+        if (R && id === R.id) hideNudge(R);
+        toast(t(on ? 'live.follow.undone' : 'live.follow.done', { name: nameOf(p) }), on ? {} : { type: 'success' });
+      });
+      return;
+    }
     if (
       !SZ.store.commit(s => {
         s.follows = on ? s.follows.filter(x => x !== id) : [...s.follows, id];
@@ -748,7 +1083,7 @@
   // --- gift panel (updates in place: selection, quantity and tab switches keep scroll and focus)
   function giftTiles(r) {
     const m = r.model;
-    let list = G().filter(g => g.category === m.category);
+    let list = G().filter(g => g.category === m.category && !g.privateOnly);
     if (m.category === '盛世华章' || m.category === '大马风情')
       list = list.slice().sort((a, b) => a.price - b.price);
     if (!list.some(g => g.id === m.giftId)) m.giftId = list[0]?.id || m.giftId;
@@ -796,8 +1131,8 @@
       <div class="lr-gift-body" role="tabpanel">${history ? giftHistoryHTML() : `<div class="lr-gift-grid">${giftTiles(r)}</div>`}</div>
       <div class="lr-gift-detail" aria-live="polite"${history ? ' hidden' : ''}>${giftDetail(r)}</div>
       <div class="lr-qty" role="group" aria-label="${esc(t('live.gift.quantity'))}"${history ? ' hidden' : ''}><span class="lr-qty-label" aria-hidden="true">${esc(t('live.gift.quantity'))}</span><div class="segmented">${QUANTITIES.map(n => `<button type="button" data-action="lr-qty" data-id="${n}" class="${n === m.quantity ? 'active' : ''}" aria-pressed="${n === m.quantity}">×${n}</button>`).join('')}</div></div>
-      <p class="caption lr-demo-note">${esc(t('live.gift.demoNote'))}</p>
-      <div class="sheet-footer lr-gift-footer"><div class="lr-balance"><span>${esc(t('live.gift.balance'))}</span><b class="num">${esc(compact(state.points))}</b><button type="button" class="lr-link" data-action="lr-topup">${esc(t('live.gift.getBeans'))}</button></div><button type="button" class="btn btn-primary lr-send-gift" data-action="lr-send-gift"${history ? ' hidden' : ''}>${esc(sendLabel(r))}</button></div>`;
+      <p class="caption lr-demo-note">${esc(t(SERVER ? 'srvlive.live.giftNote' : 'live.gift.demoNote'))}</p>
+      <div class="sheet-footer lr-gift-footer"><div class="lr-balance"><span>${esc(t('live.gift.balance'))}</span><b class="num">${esc(compact(state.points))}</b><button type="button" class="lr-link" data-action="lr-topup">${esc(t(SERVER ? 'srvlive.gifts.buyBeans' : 'live.gift.getBeans'))}</button></div><button type="button" class="btn btn-primary lr-send-gift" data-action="lr-send-gift"${history ? ' hidden' : ''}>${esc(sendLabel(r))}</button></div>`;
     return sheet('gifts', t('live.gift.title'), body);
   }
   function giftLayer() {
@@ -859,8 +1194,9 @@
       toast(t('live.gift.notEnough'));
       return topup(total - state.points);
     }
-    r.sending = true;
     const before = selfLevel();
+    if (SERVER) return sendGiftServer(r, g, qty, total, before);
+    r.sending = true;
     const record = { id: SZ.uid('lg'), giftId: g.id, hostId: r.id, quantity: qty, total, time: Date.now() };
     const ok = SZ.store.commit(s => {
       s.points -= total;
@@ -875,23 +1211,57 @@
     r.sending = false;
     if (!ok) return;
     const n = r.combo && r.combo.giftId === g.id && r.combo.qty === qty ? r.combo.n + 1 : 1;
+    afterGift(r, g, qty, n, record.id, before);
+  }
+  /** Server mode: real rooms bill the host's room (income, rank, broadcast); demo rooms only debit the beans. */
+  async function sendGiftServer(r, g, qty, total, before) {
+    r.sending = true;
+    const url = r.real
+      ? `live/sessions/${r.real.sessionId}/gifts`
+      : `live/demo/${encodeURIComponent(r.id)}/gifts`;
+    let res;
+    try {
+      res = await SZ.api.act('POST', url, { giftId: g.id, quantity: qty });
+    } catch (e) {
+      endCombo(r);
+      if (e?.code === 'beans.insufficient') {
+        toast(t('live.gift.notEnough'));
+        return topup(total - state.points);
+      }
+      return SZ.api.fail(e);
+    } finally {
+      r.sending = false;
+    }
+    if (R !== r) return;
+    let n = r.combo && r.combo.giftId === g.id && r.combo.qty === qty ? r.combo.n + 1 : 1;
+    if (res?.gift) {
+      seen.add(res.gift.id);
+      n = res.gift.n;
+    }
+    afterGift(r, g, qty, n, res?.gift?.id || SZ.uid('lg'), before);
+  }
+  function afterGift(r, g, qty, n, recordId, before) {
     const layer = giftLayer();
     if (layer) SZ.overlay.close({ layer, force: true });
-    pushComment(r, {
-      personId: 'self',
-      text: t('live.gift.sentLine', { gift: g.name, qty: fmt().number(qty) }),
-      kind: 'gift',
-    });
+    if (!r.real || n === 1 || n % 5 === 0)
+      pushComment(r, {
+        personId: 'self',
+        text: t('live.gift.sentLine', { gift: g.name, qty: fmt().number(qty) }) + (r.real && n > 1 ? ' ×' + n : ''),
+        kind: 'gift',
+        fan: r.real?.fan?.level || 0,
+      });
     jumpToLatest(r);
     playEffect(r, g, qty * n, myName(), info => {
       if (info.reason === 'complete' || info.reason === 'skipped') showNudge(r);
     });
     startCombo(r, g.id, qty, n);
-    if (n === 1 || n % 5 === 0) {
+    // Scripted thank-you lines belong to the demo rooms; a real host thanks you in person.
+    if (!r.real && (n === 1 || n % 5 === 0)) {
       clearTimeout(r.thanksTimer);
+      const hostId = r.id;
       r.thanksTimer = setTimeout(() => {
-        if (R !== r || r.id !== record.hostId) return;
-        const line = `live.thanks.${hash(record.id) % 4}`;
+        if (R !== r || r.id !== hostId) return;
+        const line = `live.thanks.${hash(recordId) % 4}`;
         pushComment(r, { personId: r.id, kind: 'host', text: t(line, { name: myName(), gift: g.name }) });
       }, 1600);
     }
@@ -934,6 +1304,10 @@
   }
   function topup(shortfall = 0) {
     if (!R) return;
+    if (SERVER && window.ShizhongGifts?.openBeanPacks)
+      return window.ShizhongGifts.openBeanPacks(shortfall, {
+        onDone: () => (giftLayer() ? refreshGiftPanel() : R && giftPanel()),
+      });
     const body = `<div class="lr-topup-hero"><b class="num">${esc(compact(state.points))}</b><span>${esc(t('live.gift.balance'))}</span></div><p class="lr-sheet-intro">${esc(shortfall ? t('live.topup.short', { amount: compact(shortfall) }) : t('live.topup.pick'))}</p><div class="lr-claims">${CLAIMS.map(n => `<button type="button" class="btn btn-secondary" data-action="lr-claim" data-id="${n}" aria-label="${esc(t('live.topup.claimLabel', { amount: fmt().number(n) }))}">+${esc(compact(n))}</button>`).join('')}</div><p class="caption">${esc(t('live.topup.note'))}</p><div class="sheet-footer"><button type="button" class="btn btn-outline" data-action="lr-gifts">${esc(t('live.topup.back'))}</button></div>`;
     sheet('topup', t('live.topup.title'), body);
   }
@@ -983,17 +1357,68 @@
             .join('')}</div>`
         : ''
     }<div class="lr-card-actions">${actions}</div>${hostRows}${safety}`;
-    sheet('card', t('live.card.title'), body);
+    const layer = sheet('card', t('live.card.title'), body);
+    // Members: real fan-club size and VIP level instead of the demo numbers.
+    if (SERVER && !p.self && /^(m\d+|demo)$/.test(id))
+      SZ.api.get(`live/hosts/${encodeURIComponent(id)}/card`).then(c => {
+        if (!layer.el.isConnected) return;
+        if (c.person?.level) levels.set(id, c.person.level);
+        const stats = layer.el.querySelector('.lr-card-stats');
+        if (stats)
+          stats.innerHTML = `<div><dt>${esc(t('srvlive.live.fans'))}</dt><dd class="num">${esc(fmt().number(c.fans))}</dd></div><div><dt>${esc(t('srvlive.live.vip'))}</dt><dd class="num">${esc(String(c.person?.level || 1))}</dd></div>${c.fan ? `<div><dt>${esc(t('srvlive.live.myFan'))}</dt><dd class="num">${esc(String(c.fan.level))}</dd></div>` : ''}`;
+        const chip = layer.el.querySelector('.lr-card-name .lr-lv');
+        if (chip) chip.outerHTML = levelChip(id);
+      }, () => {});
   }
   function peopleSheet(view) {
     const r = R;
     if (!r) return;
+    if (r.real) return realPeopleSheet(r, view);
     const rank = view === 'rank';
     const rows = r.audience.slice(0, rank ? 12 : 24);
     const row = (p, i) =>
       `<li><button type="button" class="list-row lr-person" data-action="lr-user" data-id="${esc(p.id)}">${rank ? `<b class="lr-rank-no num" data-top="${i < 3}">${i + 1}</b>` : ''}${img(avatarOf(p), '', 'avatar avatar-40')}<span class="list-row-main"><span class="lr-person-name">${esc(nameOf(p))}</span>${levelChip(p.id)}</span><span class="row-value num">${esc(rank ? t('live.rank.heat', { amount: compact(Math.max(25, 8300 - i * 631)) }) : t(hash(p.id) % 2 ? 'live.card.fanMember' : 'live.card.watching'))}</span></button></li>`;
     const body = `<p class="lr-sheet-intro">${esc(t(rank ? 'live.rank.intro' : 'live.audience.intro'))}</p><ol class="list lr-people">${rows.map(row).join('')}</ol>`;
     sheet(view, t(rank ? 'live.rank.title' : 'live.audience.title'), body);
+  }
+  /** Real rooms: who is watching now, and who gave the most (this room / today). */
+  async function realPeopleSheet(r, view, period = 'room') {
+    const rank = view === 'rank';
+    let rows;
+    try {
+      rows = rank
+        ? (await SZ.api.get(`live/hosts/${encodeURIComponent(r.id)}/rank`, { period, sessionId: r.real.sessionId })).items.map(x => ({
+            user: x.user,
+            value: t('srvlive.live.contributed', { n: compact(x.beans) }),
+          }))
+        : (await SZ.api.get(`live/sessions/${r.real.sessionId}/audience`)).items.map(u => ({
+            user: u,
+            value: u.fan ? t('srvlive.live.fanLevel', { n: u.fan }) : t('live.card.watching'),
+          }));
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    if (R !== r) return;
+    const row = ({ user, value }, i) => {
+      const id = pid(user);
+      const p = findPerson(id);
+      if (!p) return '';
+      return `<li><button type="button" class="list-row lr-person" data-action="lr-user" data-id="${esc(id)}">${rank ? `<b class="lr-rank-no num" data-top="${i < 3}">${i + 1}</b>` : ''}${img(avatarOf(p), '', 'avatar avatar-40')}<span class="list-row-main"><span class="lr-person-name">${esc(nameOf(p))}</span>${levelChip(id)}</span><span class="row-value num">${esc(value)}</span></button></li>`;
+    };
+    const tabs = rank
+      ? `<div class="segmented lr-rank-tabs" role="tablist">${['room', 'day'].map(k => `<button type="button" role="tab" data-action="lr-rank-period" data-id="${k}" class="${k === period ? 'active' : ''}" aria-selected="${k === period}">${esc(t('srvlive.live.rank.' + k))}</button>`).join('')}</div>`
+      : '';
+    const list = rows.length
+      ? `<ol class="list lr-people">${rows.map(row).join('')}</ol>`
+      : `<div class="empty-state lr-empty">${icon(rank ? 'gift' : 'user')}<h3>${esc(t(rank ? 'srvlive.live.rankEmpty' : 'srvlive.live.noViewers'))}</h3></div>`;
+    const body = `${tabs}<p class="lr-sheet-intro">${esc(t(rank ? 'live.rank.intro' : 'live.audience.intro'))}</p><div class="lr-people-list">${list}</div>`;
+    const top = SZ.overlay.top();
+    if (top?.meta.kind === 'lr-' + view) {
+      const box = top.el.querySelector('.sheet-body');
+      if (box) box.innerHTML = body;
+      return top;
+    }
+    return sheet(view, t(rank ? 'live.rank.title' : 'live.audience.title'), body);
   }
   function fanclub() {
     const r = R;
@@ -1005,7 +1430,7 @@
           `<li class="list-row"><b class="lr-row-ico" aria-hidden="true">✦</b><span class="list-row-main">${esc(t(`live.fans.perk.${k}`))}</span></li>`
       )
       .join('');
-    const body = `<div class="lr-fan-hero">${img(avatarOf(r.host), '', 'avatar avatar-72')}<h3>${esc(t('live.fans.title', { name: nameOf(r.host) }))}</h3><p>${esc(t(joined ? 'live.fans.joinedText' : 'live.fans.text'))}</p><span class="tag tag-gold">${esc(t('live.fans.level', { n: joined ? 6 : 1 }))}</span></div><ul class="list lr-perks">${perks}</ul><p class="caption">${esc(t('live.fans.note'))}</p><div class="sheet-footer"><button type="button" class="btn ${joined ? 'btn-secondary' : 'btn-primary'} btn-lg" data-action="lr-join-fans"${joined ? ' disabled' : ''}>${esc(t(joined ? 'live.fans.joined' : 'live.fans.join'))}</button></div>`;
+    const body = `<div class="lr-fan-hero">${img(avatarOf(r.host), '', 'avatar avatar-72')}<h3>${esc(t('live.fans.title', { name: nameOf(r.host) }))}</h3><p>${esc(t(joined ? 'live.fans.joinedText' : 'live.fans.text'))}</p><span class="tag tag-gold">${esc(t('live.fans.level', { n: joined ? (SERVER ? r.real?.fan?.level || 1 : 6) : 1 }))}</span></div><ul class="list lr-perks">${perks}</ul><p class="caption">${esc(t('live.fans.note'))}</p><div class="sheet-footer"><button type="button" class="btn ${joined ? 'btn-secondary' : 'btn-primary'} btn-lg" data-action="lr-join-fans"${joined ? ' disabled' : ''}>${esc(t(joined ? 'live.fans.joined' : 'live.fans.join'))}</button></div>`;
     sheet('fanclub', t('live.room.fanClub'), body);
   }
   function tasks() {
@@ -1088,6 +1513,24 @@
       }
       const alsoBlock = !!form.elements.alsoBlock?.checked;
       if (alsoBlock && !SZ.requireLogin(t('live.block.login'))) return;
+      if (SERVER) {
+        const body = {
+          targetType: isHost ? 'live-room' : 'person',
+          targetId,
+          reason,
+          details: String(form.elements.details.value || '').slice(0, 500),
+          context: 'live',
+          roomId: r.real ? String(r.real.sessionId) : r.id,
+        };
+        (async () => {
+          if (!(await socialCall('POST', 'reports', null, null, false, body))) return;
+          if (alsoBlock) await socialCall('POST', 'blocks/' + encodeURIComponent(targetId), 'blocked', targetId, true);
+          SZ.overlay.close({ layer, force: true });
+          toast(t('live.report.done'), { type: 'success' });
+          if (alsoBlock && (state.blocked || []).includes(targetId)) afterBlock(targetId);
+        })();
+        return;
+      }
       const ok = SZ.store.commit(s => {
         s.feedback = Array.isArray(s.feedback) ? s.feedback : [];
         s.feedback.unshift({
@@ -1122,6 +1565,12 @@
       danger: true,
     });
     if (!ok || R !== r) return;
+    if (SERVER) {
+      if (!(await socialCall('POST', 'blocks/' + encodeURIComponent(targetId), 'blocked', targetId, true))) return;
+      afterBlock(targetId);
+      toast(t('live.block.done', { name: nameOf(p) }));
+      return;
+    }
     if (
       !SZ.store.commit(s => {
         if (!s.blocked.includes(targetId)) s.blocked.push(targetId);
@@ -1163,16 +1612,17 @@
     if (!SZ.requireLogin(t('auth.reason.live'))) return;
     if (H) return;
     const last = own().myLives[0];
-    const topics = Object.keys(TOPIC_KEYS);
+    const topics = SERVER ? SZ.config('live.topics', Object.keys(TOPIC_KEYS)) : Object.keys(TOPIC_KEYS);
+    const max = SERVER ? Number(SZ.config('live.titleMax', 40)) || 40 : 40;
     const startTitle = last?.title || '';
     let cover = last?.cover || '';
     let fresh = '';
     let used = false;
     const body = `<form class="lr-start" novalidate>
-      <div class="form-group"><label class="form-label" for="lr-start-title">${esc(t('live.start.name'))}<span class="required" aria-hidden="true">*</span></label><input id="lr-start-title" class="field" name="title" maxlength="40" required autocomplete="off" placeholder="${esc(t('live.start.namePlaceholder'))}" value="${esc(startTitle)}" aria-describedby="lr-start-count"><p class="form-hint lr-count" id="lr-start-count">${esc(t('live.start.count', { n: startTitle.length, max: 40 }))}</p><p class="form-error" id="lr-start-error" role="alert" hidden>${esc(t('live.start.nameRequired'))}</p></div>
+      <div class="form-group"><label class="form-label" for="lr-start-title">${esc(t('live.start.name'))}<span class="required" aria-hidden="true">*</span></label><input id="lr-start-title" class="field" name="title" maxlength="${max}" required autocomplete="off" placeholder="${esc(t('live.start.namePlaceholder'))}" value="${esc(startTitle)}" aria-describedby="lr-start-count"><p class="form-hint lr-count" id="lr-start-count">${esc(t('live.start.count', { n: startTitle.length, max }))}</p><p class="form-error" id="lr-start-error" role="alert" hidden>${esc(t('live.start.nameRequired'))}</p></div>
       <div class="form-group"><label class="form-label" for="lr-start-topic">${esc(t('live.start.topic'))}</label><select id="lr-start-topic" class="field" name="topic">${topics.map(x => `<option value="${esc(x)}"${x === (last?.topic || topics[0]) ? ' selected' : ''}>${esc(topicLabel(x))}</option>`).join('')}</select></div>
       <div class="form-group"><span class="form-label" id="lr-start-cover-label">${esc(t('live.start.cover'))}</span><label class="lr-cover-pick"><input type="file" name="cover" accept="image/*" class="sr-only" aria-labelledby="lr-start-cover-label"><span class="lr-cover-frame">${img(cover || DEFAULT_COVER, '', 'lr-cover-img')}</span><span class="lr-cover-text"><b>${esc(t(cover ? 'live.start.coverChange' : 'live.start.coverPick'))}</b><span class="caption">${esc(t('live.start.coverHint'))}</span></span></label></div>
-      <p class="caption lr-start-note">${esc(t('live.start.note'))}</p>
+      <p class="caption lr-start-note">${esc(t(SERVER ? 'srvlive.live.startNote' : 'live.start.note'))}</p>
       <div class="sheet-footer"><button type="submit" class="btn btn-primary btn-lg">${icon('video')}<span>${esc(t('live.start.submit'))}</span></button></div></form>`;
     const layer = SZ.overlay.open({
       kind: 'sheet',
@@ -1187,7 +1637,7 @@
     const form = layer.el.querySelector('form');
     const title = form.elements.title;
     title.addEventListener('input', () => {
-      form.querySelector('.lr-count').textContent = t('live.start.count', { n: title.value.length, max: 40 });
+      form.querySelector('.lr-count').textContent = t('live.start.count', { n: title.value.length, max });
       if (!title.value.trim()) return;
       title.removeAttribute('aria-invalid');
       form.querySelector('#lr-start-error').hidden = true;
@@ -1220,11 +1670,27 @@
       }
       used = true;
       const topic = topics.includes(form.elements.topic.value) ? form.elements.topic.value : topics[0];
+      if (SERVER) {
+        const submit = form.querySelector('[type=submit]');
+        submit.disabled = true;
+        SZ.api.act('POST', 'live/sessions', { title: value.slice(0, max), topic, cover: cover || '' }).then(
+          res => {
+            SZ.overlay.close({ layer, force: true });
+            openHost({ title: res.session.title, topic: res.session.topic, cover, session: res.session });
+          },
+          e => {
+            used = false;
+            submit.disabled = false;
+            SZ.api.fail(e, { max });
+          }
+        );
+        return;
+      }
       SZ.overlay.close({ layer, force: true });
       openHost({ title: value.slice(0, 40), topic, cover });
     });
   }
-  function openHost({ title, topic, cover }) {
+  function openHost({ title, topic, cover, session = null }) {
     const uid = SZ.uid('lh');
     const layer = SZ.overlay.open({
       kind: 'raw',
@@ -1257,7 +1723,8 @@
       title,
       topic,
       cover,
-      startedAt: Date.now(),
+      startedAt: session?.startedAt || Date.now(),
+      real: session,
       watch: 0,
       peak: 0,
       likes: 0,
@@ -1276,11 +1743,104 @@
     });
     bindComments(h);
     pushComment(h, { personId: 'self', kind: 'system', text: t('live.host.started') });
-    h.timer = setInterval(() => hostTick(h), 1800);
+    if (session) startHost(h);
+    else h.timer = setInterval(() => hostTick(h), 1800);
     h.clock = setInterval(() => {
       const c = h.el.querySelector('.lr-clock');
       if (c) c.textContent = clock(Date.now() - h.startedAt);
     }, 1000);
+  }
+  /** Server mode: publish camera + mic (or preview only without Cloudflare), heartbeats, room stats. */
+  async function startHost(h) {
+    const sid = h.real.sessionId;
+    SZ.realtime.join('live:' + sid);
+    h.beatTimer = setInterval(() => {
+      if (H !== h) return;
+      SZ.api.post(`live/sessions/${sid}/beat`).then(
+        b => {
+          if (H !== h) return;
+          h.watch = b.viewers;
+          h.peak = Math.max(h.peak, b.peakViewers, b.viewers);
+          h.likes = b.likes;
+          h.giftBeans = b.giftBeans;
+          const set = (sel, text) => {
+            const n = h.el.querySelector(sel);
+            if (n) n.textContent = text;
+          };
+          set('.lr-viewer-count', compact(b.viewers));
+          set('.lr-stat-likes .num', compact(b.likes));
+          set('.lr-stat-gifts > span', tn('live.host.gifts', b.giftBeans, { amount: compact(b.giftBeans) }));
+        },
+        e => {
+          if (e?.code === 'live.ended' && H === h) SZ.overlay.close({ layer: h.layer, force: true });
+        }
+      );
+    }, 20000);
+    const video = h.el.querySelector('.lr-video');
+    const note = h.el.querySelector('.lr-novideo');
+    const say = text => {
+      if (!note) return;
+      note.textContent = text;
+      note.hidden = !text;
+    };
+    const show = stream => {
+      h.stream = stream;
+      if (!video || !stream) return;
+      video.srcObject = stream;
+      video.hidden = false;
+      video.play().catch(() => {});
+    };
+    let status = { configured: false };
+    try {
+      status = await SZ.rtc.status();
+    } catch (_) {}
+    if (H !== h) return;
+    if (status.configured) {
+      try {
+        const room = await SZ.rtc.join('live:' + sid, { audio: true, video: true });
+        if (H !== h) return room.leave();
+        h.rtc = room;
+        return show(room.localStream);
+      } catch (e) {
+        if (H !== h) return;
+        if (e?.code === 'rtc.denied' || e?.code === 'rtc.noDevice') return say(SZ.api.errorText(e));
+        say(SZ.api.errorText(e));
+      }
+    } else say(t('srvlive.live.hostNoRtc'));
+    // No Cloudflare (or it failed): the host still sees their own camera; viewers see the cover.
+    try {
+      const preview = await SZ.rtc.capture({ audio: false, video: true });
+      if (H !== h) return preview.getTracks().forEach(x => x.stop());
+      show(preview);
+    } catch (e) {
+      if (H === h) say(SZ.api.errorText(e));
+    }
+  }
+  function endReal(h) {
+    const sid = h.real.sessionId;
+    const rtc = h.rtc;
+    h.rtc = null;
+    if (rtc) rtc.leave().catch(() => {});
+    else h.stream?.getTracks().forEach(x => x.stop());
+    SZ.realtime.leave('live:' + sid);
+    const local = {
+      id: 'ls' + sid,
+      title: h.title,
+      topic: h.topic,
+      cover: h.cover,
+      startedAt: h.startedAt,
+      endedAt: Date.now(),
+      peakViewers: h.peak,
+      likes: h.likes,
+      giftBeans: h.giftBeans,
+      followers: h.followers,
+      comments: h.comments,
+    };
+    SZ.api.act('POST', `live/sessions/${sid}/end`).then(
+      res => summary(res?.summary ? { ...local, ...res.summary, cover: h.cover } : local),
+      () => summary(local)
+    );
+    refreshRooms({ force: true });
   }
   function clock(ms) {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -1291,7 +1851,10 @@
   }
   function hostHTML(h) {
     const self = findPerson('self');
-    return `<div class="lr-media" aria-hidden="true">${img(h.cover || DEFAULT_COVER, '', 'lr-cover')}</div><div class="lr-shade" aria-hidden="true"></div>
+    const media = h.real
+      ? `<div class="lr-media" aria-hidden="true">${img(h.cover || DEFAULT_COVER, '', 'lr-cover')}<video class="lr-video lr-self-video" autoplay playsinline muted hidden></video></div><p class="lr-novideo" role="status" hidden></p>`
+      : `<div class="lr-media" aria-hidden="true">${img(h.cover || DEFAULT_COVER, '', 'lr-cover')}</div>`;
+    return `${media}<div class="lr-shade" aria-hidden="true"></div>
       <header class="lr-top">
         <div class="lr-host"><div class="lr-host-main">${img(avatarOf(self), '', 'lr-host-avatar')}<span class="lr-host-text"><strong id="lh-title-${h.uid}">${esc(t('live.host.label'))}</strong><span class="lr-live-line"><span class="lr-live-dot">${esc(t('live.host.live'))}</span><span class="lr-clock num">00:00</span></span></span></div></div>
         <span class="lr-viewers lr-viewers-static">${icon('user')}<span class="lr-viewer-count num">0</span><span class="sr-text">${esc(t('live.host.viewersLabel'))}</span></span>
@@ -1303,7 +1866,7 @@
         <span class="lr-chip lr-stat-followers">${icon('plususer')}<span class="num">0</span><span class="sr-text">${esc(t('live.summary.followers'))}</span></span>
       </div>
       <div class="lr-bottom">
-        <div class="lr-caption"><h2 class="lr-room-title">${esc(h.title)}</h2><p>${esc(topicLabel(h.topic))} · ${esc(t('live.host.note'))}</p></div>
+        <div class="lr-caption"><h2 class="lr-room-title">${esc(h.title)}</h2><p>${esc(topicLabel(h.topic))} · ${esc(t(h.real ? 'srvlive.live.hostNote' : 'live.host.note'))}</p></div>
         <div class="lr-comment-area"><div class="lr-comments" role="log" aria-live="polite" aria-label="${esc(t('live.comments.label'))}" tabindex="0"></div><button type="button" class="lr-new-pill" data-action="lr-new-comments" hidden></button></div>
         <p class="lr-entry">${esc(t('live.host.waiting'))}</p>
         <div class="lr-bar"><form class="lr-composer" novalidate><input class="lr-input" name="liveText" aria-label="${esc(t('live.comments.input'))}" placeholder="${esc(t('live.host.placeholder'))}" maxlength="160" autocomplete="off" enterkeyhint="send"><button type="submit" class="lr-send" aria-label="${esc(t('live.comments.send'))}">${glyph('send')}</button></form><button type="button" class="btn btn-danger lr-end" data-action="lr-end-live">${esc(t('live.host.end'))}</button></div>
@@ -1365,8 +1928,10 @@
     if (!h) return;
     clearInterval(h.timer);
     clearInterval(h.clock);
+    clearInterval(h.beatTimer);
     stopEffects(h);
     H = null;
+    if (h.real) return endReal(h);
     const record = {
       id: SZ.uid('ml'),
       title: h.title,
@@ -1394,7 +1959,7 @@
   function summary(rec) {
     const stat = (key, value) =>
       `<div><dt>${esc(t(`live.summary.${key}`))}</dt><dd class="num">${esc(value)}</dd></div>`;
-    const body = `<div class="lr-summary-head">${img(rec.cover || DEFAULT_COVER, '', 'lr-summary-cover')}<div><h3>${esc(rec.title)}</h3><p class="caption">${esc(topicLabel(rec.topic))} · ${esc(fmt().dateTime(rec.startedAt))}</p></div></div><dl class="lr-summary">${stat('duration', clock(rec.endedAt - rec.startedAt))}${stat('viewers', fmt().number(rec.peakViewers))}${stat('likes', compact(rec.likes))}${stat('gifts', beans(rec.giftBeans))}${stat('followers', fmt().number(rec.followers))}${stat('comments', fmt().number(rec.comments))}</dl><p class="caption">${esc(t('live.summary.note'))}</p><div class="sheet-footer"><button type="button" class="btn btn-primary btn-lg" data-action="close">${esc(t('live.summary.done'))}</button></div>`;
+    const body = `<div class="lr-summary-head">${img(rec.cover || DEFAULT_COVER, '', 'lr-summary-cover')}<div><h3>${esc(rec.title)}</h3><p class="caption">${esc(topicLabel(rec.topic))} · ${esc(fmt().dateTime(rec.startedAt))}</p></div></div><dl class="lr-summary">${stat('duration', clock(rec.endedAt - rec.startedAt))}${stat('viewers', fmt().number(rec.peakViewers))}${stat('likes', compact(rec.likes))}${stat('gifts', beans(rec.giftBeans))}${stat('followers', fmt().number(rec.followers))}${stat('comments', fmt().number(rec.comments))}${rec.income != null ? `<div><dt>${esc(t('srvlive.live.income'))}</dt><dd class="num">${esc(SZ.fmt.money(rec.income))}</dd></div>` : ''}</dl><p class="caption">${esc(t(rec.income != null ? 'srvlive.live.summaryNote' : 'live.summary.note', { days: SZ.config('host.holdDays', 7) }))}</p><div class="sheet-footer"><button type="button" class="btn btn-primary btn-lg" data-action="close">${esc(t('live.summary.done'))}</button></div>`;
     SZ.overlay.open({
       kind: 'sheet',
       title: t('live.summary.title'),
@@ -1441,9 +2006,21 @@
     'lr-audience': () => peopleSheet('audience'),
     'lr-rank': () => peopleSheet('rank'),
     'lr-fanclub': () => fanclub(),
+    'lr-rank-period': id => R?.real && realPeopleSheet(R, 'rank', id === 'day' ? 'day' : 'room'),
     'lr-join-fans': () => {
       const r = R;
       if (!r || !SZ.requireLogin(t('auth.reason.join'))) return;
+      if (SERVER) {
+        SZ.api.act('POST', `live/hosts/${encodeURIComponent(r.id)}/fanclub`).then(
+          () => {
+            if (r.real) r.real.fan = { joined: true, level: 1, points: 0 };
+            closeSheetsAboveRoom();
+            toast(t('live.fans.done'), { type: 'success' });
+          },
+          e => SZ.api.fail(e)
+        );
+        return;
+      }
       if (!own().fanclubs.includes(r.id) && !SZ.store.commit(s => s.live.fanclubs.push(r.id))) return;
       closeSheetsAboveRoom();
       toast(t('live.fans.done'), { type: 'success' });
@@ -1452,6 +2029,16 @@
       id = id || R?.id;
       if (!id || !SZ.requireLogin(t('auth.reason.follow'))) return;
       const has = own().reminders.includes(id);
+      if (SERVER) {
+        SZ.api.act(has ? 'DELETE' : 'POST', `live/hosts/${encodeURIComponent(id)}/reminder`).then(
+          () => {
+            el?.setAttribute('aria-checked', String(!has));
+            toast(t(has ? 'live.reminder.off' : 'live.reminder.on'));
+          },
+          e => SZ.api.fail(e)
+        );
+        return;
+      }
       if (
         !SZ.store.commit(s => {
           s.live.reminders = has ? s.live.reminders.filter(x => x !== id) : [...s.live.reminders, id];
@@ -1525,6 +2112,13 @@
     'lr-report': id => report(id || R?.id),
     'lr-block': id => block(id || R?.id),
     'lr-nudge-close': () => hideNudge(R),
+    'lr-unmute': (id, el) => {
+      const video = R?.el.querySelector('.lr-video');
+      if (!video) return;
+      video.muted = false;
+      video.play().catch(() => {});
+      if (el) el.hidden = true;
+    },
     'lr-end-live': () => H && SZ.overlay.close({ layer: H.layer }),
   };
   SZ.actions.register('lr-', (action, id, el) => {
@@ -1574,5 +2168,11 @@
     },
     showVip: () => window.ShizhongVIP?.open?.(),
     catalog: () => G(),
+    /** Server mode: real rooms for the live list (cards first), whether demo rooms are shown, refresh. */
+    realRooms: realRoomCards,
+    demoRoomsOn: () => demoRooms,
+    refreshRooms,
+    /** Open a room by its host (used by notices: action 'room'). */
+    isLive: id => realRooms.has(id),
   });
 })();

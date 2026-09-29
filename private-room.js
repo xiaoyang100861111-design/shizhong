@@ -22,6 +22,38 @@
     hostEndMinutes: 90,
     timeScale: 1,
   };
+  /*
+   * Server mode: calls are real. The server rings the host (member hosts answer themselves; persona hosts keep
+   * this file's simulated host when the console allows it), bills each started minute from the RM wallet, warns
+   * when the balance runs low and ends the call when the next minute cannot be paid. Both sides publish camera +
+   * mic in SZ.rtc scope 'private:<callId>'. Timings and limits come from the console settings.
+   */
+  const SERVER = !!SZ.server;
+  if (SERVER) {
+    CONFIG.lowSeconds = Number(SZ.config('private.lowSeconds', CONFIG.lowSeconds)) || CONFIG.lowSeconds;
+    CONFIG.hostEndMinutes = Number(SZ.config('private.maxMinutes', CONFIG.hostEndMinutes)) || CONFIG.hostEndMinutes;
+  }
+  const memberHosts = new Map(); // id → person record (+ rate, online) of approved member hosts
+  let hostsLoadedAt = 0;
+  function loadHosts(force = false) {
+    if (!SERVER || !SZ.session.isLoggedIn || (!force && Date.now() - hostsLoadedAt < 20000)) return Promise.resolve();
+    hostsLoadedAt = Date.now();
+    return SZ.api
+      .get('private/hosts')
+      .then(res => {
+        memberHosts.clear();
+        for (const h of res.items || []) {
+          if (h.person.id === SZ.session.account?.id) continue;
+          const p = window.ShizhongGifts?.ensurePerson?.(h.person) || findPerson(h.person.id);
+          if (!p) continue;
+          Object.assign(p, { rate: Number(h.rate) || 0, online: !!h.online, memberHost: true, theme: h.intro || p.theme || '' });
+          memberHosts.set(p.id, p);
+        }
+        refreshLobby();
+      })
+      .catch(() => {});
+  }
+  const personaDemo = () => !SERVER || SZ.config('private.personaDemo', true) !== false;
   // Host topics are stored in the source language; ids pick the label and the scripted lines.
   const TOPICS = { 同城聊天: 'local', 旅行分享: 'travel', 语言交流: 'language', 音乐时光: 'music' };
   const FILTERS = ['all', 'local', 'travel', 'language'];
@@ -41,7 +73,7 @@
   const topicId = p => TOPICS[p?.topic] || 'local';
   const topicName = p => t(`private.topic.${topicId(p)}`);
   const cityOf = p => (p?.city ? td('city', p.city) : '');
-  const rateOf = p => Math.max(0, Number(p?.price) || 0) / 10;
+  const rateOf = p => (p?.memberHost ? Math.max(0, Number(p.rate) || 0) : Math.max(0, Number(p?.price) || 0) / 10);
   const rateText = rate =>
     rate > 0 ? t('private.rate', { price: SZ.fmt.money(rate, { digits: 2 }) }) : t('private.free');
   const moneyText = n => SZ.fmt.money(n, { cents: true });
@@ -80,7 +112,7 @@
   }
 
   // ------------------------------------------------------------------ gifts (catalogue owned by live)
-  const giftList = () => window.ShizhongLive?.gifts?.() || window.SHIZHONG_LIVE_GIFTS || [];
+  const giftList = () => (window.ShizhongLive?.gifts?.() || window.SHIZHONG_LIVE_GIFTS || []).filter(g => !g.liveOnly);
   const findGift = id => giftList().find(g => g.id === id) || null;
   function giftName(g) {
     if (!g) return '';
@@ -138,7 +170,11 @@
   }
   function lobby() {
     const filter = FILTERS.includes(ui.liveFilter) ? ui.liveFilter : 'all';
-    const hosts = [...livePeople()].sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+    loadHosts();
+    const personas = personaDemo() ? livePeople() : [];
+    const hosts = [...memberHosts.values(), ...personas.filter(p => !memberHosts.has(p.id))]
+      .filter(p => !state.blocked.includes(p.id))
+      .sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
     const online = hosts.filter(p => p.online).length;
     const chips = `<div class="chip-row oo-chips" role="group" aria-label="${esc(t('private.lobby.topicLabel'))}">${FILTERS.map(
       id => act('live-filter', id, esc(t(`private.topic.${id}`)), 'chip', `aria-pressed="${filter === id}"`)
@@ -164,7 +200,7 @@
     const body = hosts.length
       ? pagedList('private:' + filter, hosts, card, 'oo-grid', 20)
       : `<div class="empty-state oo-empty">${icon('video')}<h3>${esc(t('private.lobby.emptyTitle'))}</h3><p>${esc(t('private.lobby.emptyText'))}</p>${filter !== 'all' ? act('live-filter', 'all', esc(t('private.lobby.showAll')), 'btn btn-tonal btn-sm') : ''}</div>`;
-    return `<div class="oo-lobby">${chips}${recentHTML}<div class="oo-lobby-bar"><p class="oo-count"><i class="oo-count-dot" aria-hidden="true"></i>${esc(tn('private.lobby.count', hosts.length, { online: SZ.fmt.number(online) }))}</p>${act('oo-history', '', `${icon('clock')}<span>${esc(t('private.lobby.history'))}</span>`, 'btn btn-ghost btn-sm oo-history-link')}</div>${body}${blockedHTML}<p class="oo-footnote">${esc(t('private.lobby.footnote'))}</p></div>`;
+    return `<div class="oo-lobby">${chips}${recentHTML}<div class="oo-lobby-bar"><p class="oo-count"><i class="oo-count-dot" aria-hidden="true"></i>${esc(tn('private.lobby.count', hosts.length, { online: SZ.fmt.number(online) }))}</p>${SERVER ? act('oo-host-settings', '', icon('settings'), 'icon-button oo-host-settings-btn', `aria-label="${esc(t('srvlive.private.hostSettings'))}" title="${esc(t('srvlive.private.hostSettings'))}"`) : ''}${act('oo-history', '', `${icon('clock')}<span>${esc(t('private.lobby.history'))}</span>`, 'btn btn-ghost btn-sm oo-history-link')}</div>${body}${blockedHTML}<p class="oo-footnote">${esc(t('private.lobby.footnote'))}</p></div>`;
   }
 
   // ------------------------------------------------------------------ host preview sheet
@@ -220,11 +256,11 @@
     if (!SZ.requireLogin(t('auth.reason.call'))) return;
     return demand(profileChunks(id), () => start(id));
   }
-  function start(id) {
+  function start(id, incoming = null) {
     const host = findPerson(id);
     if (!host || state.blocked.includes(id)) return toast(t('private.toast.unavailable'), { type: 'error' });
-    const rate = rateOf(host);
-    if (rate > 0 && Number(state.wallet) < rate) return topupSheet(host);
+    const rate = incoming ? Number(incoming.rate) || 0 : rateOf(host);
+    if (!incoming && rate > 0 && Number(state.wallet) < rate) return topupSheet(host);
     if (session) closeRoom(session);
     const s = {
       key: 'OO-' + Date.now().toString(36) + '-' + ++serial,
@@ -250,6 +286,9 @@
       speaker: true,
       front: true,
       saved: false,
+      role: incoming ? 'host' : 'caller',
+      callId: incoming?.callId || 0,
+      demo: false,
     };
     session = s;
     s.layer = SZ.overlay.open({
@@ -262,6 +301,11 @@
     });
     s.el = s.layer.el;
     setPhase(s, 'ringing');
+    if (SERVER) {
+      if (incoming) acceptIncoming(s);
+      else ring(s);
+      return s.layer;
+    }
     later(
       s,
       () => (host.online ? connect(s) : end(s, 'timeout')),
@@ -269,6 +313,217 @@
       ['ringing']
     );
     return s.layer;
+  }
+  // ------------------------------------------------------------------ server mode: the real call
+  async function ring(s) {
+    let res;
+    try {
+      res = await SZ.api.post('private/calls', { hostId: s.host.id });
+    } catch (e) {
+      if (session !== s) return;
+      end(s, 'cancel', { quiet: true });
+      closeRoom(s);
+      if (e?.code === 'wallet.insufficient') return topupSheet(s.host);
+      return SZ.api.fail(e);
+    }
+    if (session !== s || s.phase !== 'ringing') {
+      if (res?.call) SZ.api.post(`private/calls/${res.call.id}/end`, {}).catch(() => {});
+      return;
+    }
+    const call = res.call;
+    s.callId = call.id;
+    s.key = call.key;
+    s.demo = call.demo;
+    s.rate = Number(call.rate) || 0;
+    s.scale = 60 / Math.max(5, Number(res.minuteSeconds) || 60);
+    $in(s, '.oo-meter-rate').textContent = rateText(s.rate);
+    if (!s.demo) return; // a member host answers (private:connected) or not (private:ended)
+    // Persona hosts: the prototype's simulated host answers when online.
+    later(
+      s,
+      async () => {
+        if (!s.host.online) return end(s, 'timeout');
+        try {
+          const r = await SZ.api.post(`private/calls/${s.callId}/connect`);
+          if (session === s) connected(s, r.call);
+        } catch (e) {
+          if (session !== s) return;
+          end(s, e?.code === 'wallet.insufficient' ? 'balance' : 'cancel');
+          if (e?.code !== 'wallet.insufficient') SZ.api.fail(e);
+        }
+      },
+      s.host.online ? CONFIG.answerMs : CONFIG.noAnswerMs,
+      ['ringing']
+    );
+  }
+  async function acceptIncoming(s) {
+    try {
+      const r = await SZ.api.post(`private/calls/${s.callId}/accept`);
+      if (session === s) connected(s, r.call);
+    } catch (e) {
+      if (session !== s) return;
+      end(s, 'cancel', { quiet: true });
+      closeRoom(s);
+      SZ.api.fail(e);
+    }
+  }
+  /** The server says the call is live: start the clock and the media. */
+  function connected(s, call) {
+    if (session !== s || s.phase !== 'ringing') return;
+    s.minutesPaid = call?.minutesPaid || 1;
+    s.cost = Number(call?.cost) || 0;
+    if (call?.balance != null) state.wallet = Number(call.balance);
+    connect(s);
+    startMedia(s);
+  }
+  async function startMedia(s) {
+    const token = (s.mediaToken = SZ.uid('oo'));
+    const stage = $in(s, '.oo-stage');
+    const selfTile = $in(s, '.oo-self');
+    const showSelf = stream => {
+      if (!selfTile || !stream) return;
+      let v = selfTile.querySelector('video');
+      if (!v) {
+        v = document.createElement('video');
+        v.className = 'oo-self-video';
+        v.muted = true;
+        v.autoplay = true;
+        v.playsInline = true;
+        selfTile.prepend(v);
+      }
+      v.srcObject = stream;
+      v.play().catch(() => {});
+      s.localStream = stream;
+    };
+    let status = { configured: false };
+    try {
+      status = await SZ.rtc.status();
+    } catch (_) {}
+    if (s.mediaToken !== token || session !== s) return;
+    if (status.configured) {
+      try {
+        const room = await SZ.rtc.join('private:' + s.callId, {
+          audio: true,
+          video: true,
+          onTrack: (track, pub, stream) => {
+            if (s.mediaToken !== token || !stage) return;
+            let v = stage.querySelector('.oo-remote');
+            if (!v) {
+              v = document.createElement('video');
+              v.className = 'oo-remote';
+              v.autoplay = true;
+              v.playsInline = true;
+              stage.append(v);
+            }
+            const media = v.srcObject instanceof MediaStream ? v.srcObject : new MediaStream();
+            if (!media.getTracks().includes(track)) media.addTrack(track);
+            if (v.srcObject !== media) v.srcObject = media;
+            v.play().catch(() => {});
+            s.el.classList.add('oo-has-video');
+          },
+          onTrackEnded: () => s.el?.classList.remove('oo-has-video'),
+        });
+        if (s.mediaToken !== token || session !== s) return room.leave();
+        s.rtc = room;
+        showSelf(room.localStream);
+        return;
+      } catch (e) {
+        if (s.mediaToken !== token) return;
+        if (!s.demo) addMessage(s, { side: 'system', text: SZ.api.errorText(e) });
+      }
+    } else if (!s.demo) addMessage(s, { side: 'system', key: 'srvlive.private.noVideo' });
+    // Without Cloudflare: the caller still sees their own camera; billing, chat and gifts work.
+    try {
+      const preview = await SZ.rtc.capture({ audio: false, video: true });
+      if (s.mediaToken !== token || session !== s) return preview.getTracks().forEach(x => x.stop());
+      showSelf(preview);
+    } catch (_) {}
+  }
+  function stopMedia(s) {
+    s.mediaToken = null;
+    const rtc = s.rtc;
+    s.rtc = null;
+    if (rtc) rtc.leave().catch(() => {});
+    else s.localStream?.getTracks().forEach(x => x.stop());
+    s.localStream = null;
+  }
+  /** Tell the server (once) and keep its record: cost, reason and transcript. */
+  function endOnServer(s) {
+    if (!SERVER || !s.callId || s.serverEnded) return;
+    s.serverEnded = true;
+    const transcript = s.demo ? s.messages.slice(-40) : undefined;
+    SZ.api
+      .act('POST', `private/calls/${s.callId}/end`, { reason: s.reason, transcript })
+      .then(res => {
+        if (res?.call) {
+          s.cost = Number(res.call.cost) || s.cost;
+          s.saved = true;
+          if (s.phase === 'ended' && $in(s, '.oo-ended') && !$in(s, '.oo-ended').hidden) renderEnded(s);
+        }
+        refreshHistory();
+      })
+      .catch(() => {});
+  }
+  if (SERVER) {
+    const mine = p => session && p?.callId && p.callId === session.callId;
+    SZ.realtime.on('private:connected', p => {
+      if (!mine(p)) return;
+      SZ.api.get(`private/calls/${p.callId}`).then(r => connected(session, r.call), () => connected(session, null));
+    });
+    SZ.realtime.on('private:tick', p => {
+      if (!mine(p)) return;
+      session.minutesPaid = Math.max(session.minutesPaid, p.minutesPaid);
+      session.cost = Number(p.cost) || session.cost;
+      if (p.balance != null) state.wallet = Number(p.balance);
+      tick(session);
+    });
+    SZ.realtime.on('private:low', p => {
+      if (!mine(p)) return;
+      if (p.balance != null) state.wallet = Number(p.balance);
+      tick(session);
+    });
+    SZ.realtime.on('private:say', p => {
+      if (!mine(p)) return;
+      addMessage(session, { side: 'host', text: p.text });
+    });
+    SZ.realtime.on('private:gift', p => {
+      if (!mine(p) || session.role !== 'host') return;
+      const g = findGift(p.giftId);
+      addMessage(session, { side: 'host', key: 'srvlive.private.giftFrom', params: { name: p.fromName, n: p.quantity }, giftId: p.giftId });
+      if (g) play(session, g, p.quantity);
+    });
+    SZ.realtime.on('private:ended', p => {
+      if (!mine(p)) return;
+      const s = session;
+      s.serverEnded = true;
+      s.cost = Number(p.cost) || s.cost;
+      const reason = { declined: 'timeout', cancel: s.role === 'host' ? 'host' : 'self', self: s.role === 'host' ? 'host' : 'self', host: s.role === 'host' ? 'self' : 'host' }[p.reason] || p.reason;
+      if (s.phase !== 'ended') end(s, reason);
+      s.saved = true;
+      refreshHistory();
+    });
+    // A member host: someone is calling.
+    SZ.realtime.on('private:ring', p => incomingSheet(p));
+  }
+  function incomingSheet(p) {
+    if (!p?.callId || !p.caller) return;
+    if (session && session.phase !== 'ended') {
+      SZ.api.post(`private/calls/${p.callId}/decline`).catch(() => {});
+      return;
+    }
+    const caller = window.ShizhongGifts?.ensurePerson?.(p.caller) || findPerson(p.caller.id);
+    if (!caller) return;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: t('srvlive.private.incoming'),
+      className: 'oo-host-sheet oo-incoming',
+      meta: { view: 'private-incoming', callId: p.callId },
+      html: `<div class="oo-host-head"><img class="avatar avatar-72" src="${esc(photoOf(caller))}" alt=""><div class="oo-host-id"><h3>${html(nameOf(caller))}</h3><p>${esc(t('srvlive.private.incomingText', { rate: rateText(Number(p.rate) || 0) }))}</p></div></div><div class="sheet-footer">${act('oo-decline', String(p.callId), esc(t('srvlive.private.decline')), 'btn btn-secondary')}${act('oo-accept', String(p.callId), `${icon('video')}<span>${esc(t('srvlive.private.accept'))}</span>`, 'btn btn-primary')}</div>`,
+    });
+    layer.ooCall = { ...p, callerId: caller.id };
+    setTimeout(() => {
+      if (layer.el.isConnected) SZ.overlay.close({ layer, force: true });
+    }, (Number(p.ringSeconds) || 30) * 1000);
   }
   function control(id, symbol, label, pressed) {
     const attr = pressed == null ? '' : ` aria-pressed="${pressed}"`;
@@ -385,7 +640,9 @@
     if (s.phase !== 'connected') return;
     s.ticker = setInterval(() => tick(s), s.scale > 1 ? 250 : 1000);
     addMessage(s, { side: 'system', key: 'private.sys.connected' });
-    later(s, () => addMessage(s, { side: 'host', key: 'private.say.opener.' + topicId(s.host) }), 900);
+    // Scripted host lines are the persona simulation only; a member host talks for real.
+    if (!SERVER || s.demo)
+      later(s, () => addMessage(s, { side: 'host', key: 'private.say.opener.' + topicId(s.host) }), 900);
   }
   /** Bill each started minute; false when the wallet cannot pay it. One bill per call. */
   function charge(s) {
@@ -419,7 +676,7 @@
     return true;
   }
   function runwaySeconds(s, sec) {
-    if (s.rate <= 0) return Infinity;
+    if (s.rate <= 0 || s.role === 'host') return Infinity;
     const paidLeft = s.minutesPaid * 60 - sec;
     return Math.max(0, paidLeft + Math.floor((Number(state.wallet) + 1e-9) / s.rate) * 60);
   }
@@ -427,13 +684,13 @@
     if (session !== s || !LIVE_PHASES.includes(s.phase)) return;
     const sec = callSeconds(s);
     const due = Math.floor(sec / 60) + 1;
-    while (s.minutesPaid < due) {
+    while (!SERVER && s.minutesPaid < due) {
       if (!charge(s)) {
         end(s, 'balance');
         return;
       }
     }
-    if (!s.hostLeaving && sec >= CONFIG.hostEndMinutes * 60) hostEnd(s);
+    if (!s.hostLeaving && !(SERVER && !s.demo) && sec >= CONFIG.hostEndMinutes * 60) hostEnd(s);
     const time = clock(sec);
     const timeEl = $in(s, '.oo-time');
     if (timeEl && timeEl.textContent !== time) timeEl.textContent = time;
@@ -528,6 +785,10 @@
     addMessage(s, { side: 'self', text });
     const input = $in(s, '.oo-composer input');
     if (input) input.value = '';
+    if (SERVER && !s.demo) {
+      SZ.api.post(`private/calls/${s.callId}/say`, { text }).catch(e => SZ.api.fail(e));
+      return;
+    }
     if (s.phase !== 'connected') return;
     const key =
       s.replies === 0 ? 'private.say.greet' : `private.say.reply.${topicId(s.host)}.${(s.replies - 1) % 4}`;
@@ -539,9 +800,11 @@
   function toggle(s, id, button) {
     if (!s || s.phase === 'ended') return;
     const self = $in(s, '.oo-self');
+    const scripted = !SERVER || s.demo;
     if (id === 'flip') {
       if (!s.camera) return toast(t('private.room.flipNeedsCamera'));
       s.front = !s.front;
+      s.rtc?.switchCamera().catch(() => {});
       self?.classList.toggle('is-rear', !s.front);
       toast(s.front ? t('private.room.flipFront') : t('private.room.flipRear'));
       return;
@@ -551,8 +814,9 @@
     button?.setAttribute('aria-pressed', String(s[id]));
     if (id === 'mic') {
       self.dataset.mic = s.mic ? 'on' : 'off';
+      s.rtc?.mute('audio', !s.mic);
       if (s.mic) s.micHinted = false;
-      else if (!s.micHinted) {
+      else if (!s.micHinted && scripted) {
         s.micHinted = true;
         later(s, () => !s.mic && addMessage(s, { side: 'host', key: 'private.say.cantHear' }), 2600, [
           'connected',
@@ -560,21 +824,41 @@
       }
     } else if (id === 'camera') {
       self.dataset.camera = s.camera ? 'on' : 'off';
+      s.rtc?.mute('video', !s.camera);
+      s.localStream?.getVideoTracks().forEach(x => (x.enabled = s.camera));
       const flip = $in(s, '[data-action="oo-toggle"][data-id="flip"]');
       if (s.camera) flip?.removeAttribute('aria-disabled');
       else flip?.setAttribute('aria-disabled', 'true');
-      if (!s.camera && !s.cameraHinted) {
+      if (!s.camera && !s.cameraHinted && scripted) {
         s.cameraHinted = true;
         later(s, () => !s.camera && addMessage(s, { side: 'host', key: 'private.say.cameraOff' }), 2200, [
           'connected',
         ]);
       }
-    } else updateBanner(s);
+    } else {
+      $in(s, '.oo-remote')?.toggleAttribute('muted', !s.speaker);
+      const remote = $in(s, '.oo-remote');
+      if (remote) remote.muted = !s.speaker;
+      updateBanner(s);
+    }
   }
-  function follow(id) {
+  /** Server mode: follows and blocks belong to the social area's endpoints. */
+  async function social(method, path, key, id, add) {
+    try {
+      const res = await SZ.api.act(method, path);
+      if (!res?.state?.[key]) state[key] = add ? [...new Set([...(state[key] || []), id])] : (state[key] || []).filter(x => x !== id);
+      return true;
+    } catch (e) {
+      SZ.api.fail(e);
+      return false;
+    }
+  }
+  async function follow(id) {
     if (!id || !SZ.requireLogin(t('auth.reason.follow'))) return;
     const on = state.follows.includes(id);
-    if (
+    if (SERVER) {
+      if (!(await social(on ? 'DELETE' : 'POST', 'follows/' + encodeURIComponent(id), 'follows', id, !on))) return;
+    } else if (
       !SZ.store.commit(st => {
         st.follows = on ? st.follows.filter(x => x !== id) : [...st.follows, id];
       })
@@ -668,6 +952,8 @@
     updateGiftFooter(layer);
   }
   function beansSheet() {
+    if (SERVER && window.ShizhongGifts?.openBeanPacks)
+      return window.ShizhongGifts.openBeanPacks(0, { onDone: () => updateGiftFooter() });
     return SZ.overlay.open({
       kind: 'sheet',
       mode: 'push',
@@ -696,8 +982,9 @@
       else toast(tn('private.gift.short', total - state.points), { type: 'error' });
       return beansSheet();
     }
-    s.sending = true;
     const before = window.ShizhongVIP?.level?.('self');
+    if (SERVER) return sendGiftServer(s, g, quantity, total, before);
+    s.sending = true;
     const record = {
       id: s.key + '-g' + s.sent.length,
       callId: s.key,
@@ -737,6 +1024,28 @@
       2100,
       ['connected']
     );
+    showCombo(s, g, quantity);
+    window.ShizhongVIP?.afterGift?.(before);
+  }
+  async function sendGiftServer(s, g, quantity, total, before) {
+    s.sending = true;
+    try {
+      await SZ.api.act('POST', `private/calls/${s.callId}/gifts`, { giftId: g.id, quantity });
+    } catch (e) {
+      if (e?.code === 'beans.insufficient') return beansSheet();
+      return SZ.api.fail(e);
+    } finally {
+      s.sending = false;
+    }
+    if (session !== s) return;
+    s.sent.push({ id: s.key + '-g' + s.sent.length, giftId: g.id, name: g.name, quantity, total, time: Date.now() });
+    s.spent += total;
+    const top = SZ.overlay.top();
+    if (top?.meta.view === 'private-gifts') SZ.overlay.close({ layer: top, force: true });
+    addMessage(s, { side: 'self', key: 'private.gift.sentMsg', giftId: g.id, giftName: g.name, params: { n: quantity } });
+    play(s, g, quantity);
+    if (s.demo)
+      later(s, () => addMessage(s, { side: 'host', key: 'private.say.thanks', giftId: g.id, giftName: g.name }), 2100, ['connected']);
     showCombo(s, g, quantity);
     window.ShizhongVIP?.afterGift?.(before);
   }
@@ -821,7 +1130,9 @@
       danger: true,
     });
     if (!ok || session !== s) return;
-    if (!SZ.store.commit(st => !st.blocked.includes(id) && st.blocked.push(id))) return;
+    if (SERVER) {
+      if (!(await social('POST', 'blocks/' + encodeURIComponent(id), 'blocked', id, true))) return;
+    } else if (!SZ.store.commit(st => !st.blocked.includes(id) && st.blocked.push(id))) return;
     end(s, 'blocked', { quiet: true });
     closeRoom(s);
     toast(t('private.block.done', { name }), {
@@ -877,11 +1188,18 @@
     stopEffects();
     s.fx = false;
     setPhase(s, 'ended');
+    if (SERVER) {
+      stopMedia(s);
+      endOnServer(s);
+      if (!quiet) renderEnded(s);
+      return;
+    }
     if (s.startedAt || reason === 'timeout') saveCall(s);
     if (!quiet) renderEnded(s);
   }
   function saveCall(s) {
     if (s.saved) return true;
+    if (SERVER) return false; // the server keeps the record
     const record = {
       id: s.key,
       v: 2,
@@ -926,7 +1244,7 @@
       actions = `${act('oo-message', p.id, `${icon('chat')}<span>${esc(t('private.end.leaveMessage'))}</span>`, 'btn btn-primary btn-lg btn-block')}${act('close', '', esc(t('private.end.others')), 'btn oo-link')}`;
     else
       actions = `${act('oo-again', p.id, `${icon('video')}<span>${esc(t('private.end.again'))}</span>`, 'btn btn-primary btn-lg btn-block')}<div class="oo-end-row">${act('oo-message', p.id, esc(t('private.end.message')), 'btn oo-glass')}${state.follows.includes(p.id) ? '' : act('oo-follow', p.id, esc(t('private.host.follow')), 'btn oo-glass oo-follow-btn', 'aria-pressed="false"')}</div>${back}`;
-    const unsaved = !s.saved && (connected || s.reason === 'timeout');
+    const unsaved = !SERVER && !s.saved && (connected || s.reason === 'timeout');
     box.innerHTML = `<img class="avatar avatar-72" src="${esc(photoOf(p))}" alt=""><h2 tabindex="-1">${esc(t('private.end.title'))}</h2><p class="oo-end-reason">${html(t(`private.end.reason.${s.reason}`, { name }))}</p>${stats}${unsaved ? `<p class="oo-end-warn" role="alert">${esc(t('private.end.saveFailed'))}${act('oo-save', '', esc(t('common.retry')), 'btn btn-sm oo-glass')}</p>` : ''}<div class="oo-end-actions">${actions}</div>`;
     box.hidden = false;
     box.querySelector('h2')?.focus({ preventScroll: true });
@@ -1062,6 +1380,16 @@
     const index = calls.findIndex(c => c.id === id);
     if (index < 0) return;
     const record = calls[index];
+    if (SERVER) {
+      SZ.api.act('DELETE', `private/calls/${record.callId || String(id).replace(/^pc/, '')}`).then(() => {
+        const layer = SZ.overlay.of(button);
+        if (layer?.meta.view === 'private-call') SZ.overlay.close({ layer, force: true });
+        refreshHistory();
+        refreshLobby();
+        toast(t('private.history.deleted'));
+      }, e => SZ.api.fail(e));
+      return;
+    }
     if (!SZ.store.commit(st => (own(st).calls = own(st).calls.filter(c => c.id !== id)))) return;
     const layer = SZ.overlay.of(button);
     if (layer?.meta.view === 'private-call') SZ.overlay.close({ layer, force: true });
@@ -1091,10 +1419,71 @@
       confirmText: t('private.history.clear'),
       danger: true,
     });
-    if (!ok || !SZ.store.commit(st => (own(st).calls = []))) return;
+    if (!ok) return;
+    if (SERVER) {
+      try {
+        await SZ.api.act('DELETE', 'private/calls');
+      } catch (e) {
+        return SZ.api.fail(e);
+      }
+    } else if (!SZ.store.commit(st => (own(st).calls = []))) return;
     refreshHistory();
     refreshLobby();
     toast(t('private.history.cleared'));
+  }
+
+  // ------------------------------------------------------------------ host application & settings (server mode)
+  async function hostSettings() {
+    if (!SZ.requireLogin(t('auth.reason.call'))) return;
+    let h;
+    try {
+      h = await SZ.api.get('private/me/host');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    const range = t('srvlive.private.rateRange', { min: SZ.fmt.money(h.minRate), max: SZ.fmt.money(h.maxRate) });
+    const rateField = `<div class="form-group"><label class="form-label" for="oo-host-rate">${esc(t('srvlive.private.rate'))}</label><input id="oo-host-rate" class="field" name="rate" type="number" inputmode="decimal" step="0.1" min="${h.minRate}" max="${h.maxRate}" value="${esc(String(h.rate))}"><p class="form-hint">${esc(range)}</p></div>`;
+    const introField = `<div class="form-group"><label class="form-label" for="oo-host-intro">${esc(t('srvlive.private.intro'))}</label><textarea id="oo-host-intro" class="field" name="intro" rows="3" maxlength="300">${esc(h.intro || '')}</textarea></div>`;
+    let body;
+    if (h.status === 'approved')
+      body = `<p class="oo-host-status is-online"><i aria-hidden="true"></i>${esc(t('srvlive.private.approved'))}</p><form class="oo-host-form" novalidate>${rateField}${introField}<div class="list"><div class="list-row"><span class="list-row-main" id="oo-host-accepting">${esc(t('srvlive.private.accepting'))}</span><button type="button" class="switch" role="switch" aria-labelledby="oo-host-accepting" aria-checked="${!!h.accepting}" data-oo-accepting></button></div></div></form><dl class="oo-facts"><div><dt>${esc(t('srvlive.private.held'))}</dt><dd class="price">${esc(SZ.fmt.money(h.earnings.held))}</dd></div><div><dt>${esc(t('srvlive.private.released'))}</dt><dd class="price">${esc(SZ.fmt.money(h.earnings.released))}</dd></div></dl><p class="form-hint">${esc(t('srvlive.private.shareNote', { share: Math.round(h.share * 100), days: SZ.config('host.holdDays', 7) }))}</p><div class="sheet-footer">${act('oo-host-save', '', esc(t('common.save')), 'btn btn-primary')}</div>`;
+    else if (h.status === 'pending')
+      body = `<div class="empty-state">${icon('clock')}<h3>${esc(t('srvlive.private.pending'))}</h3><p>${esc(t('srvlive.private.pendingText'))}</p></div>`;
+    else if (h.status === 'suspended')
+      body = `<div class="empty-state">${icon('shield')}<h3>${esc(t('srvlive.private.suspended'))}</h3></div>`;
+    else
+      body = `<p>${esc(t('srvlive.private.applyText', { share: Math.round(h.share * 100) }))}</p>${h.status === 'rejected' ? `<p class="form-error">${esc(t('srvlive.private.rejected', { note: h.note || '' }))}</p>` : ''}<form class="oo-host-form" novalidate>${rateField}${introField}</form><div class="sheet-footer">${act('oo-host-apply', '', esc(t('srvlive.private.apply')), 'btn btn-primary')}</div>`;
+    const layer = SZ.overlay.open({
+      kind: 'sheet',
+      title: t('srvlive.private.hostSettings'),
+      className: 'oo-host-sheet oo-host-settings',
+      meta: { view: 'private-host-settings' },
+      html: body,
+    });
+    layer.el.querySelector('[data-oo-accepting]')?.addEventListener('click', e => {
+      const b = e.currentTarget;
+      b.setAttribute('aria-checked', String(b.getAttribute('aria-checked') !== 'true'));
+    });
+    return layer;
+  }
+  async function saveHost(el, apply) {
+    const layer = SZ.overlay.of(el);
+    const form = layer?.el.querySelector('.oo-host-form');
+    if (!form) return;
+    const body = {
+      rate: Number(form.elements.rate.value),
+      intro: form.elements.intro.value.trim(),
+    };
+    const accepting = layer.el.querySelector('[data-oo-accepting]');
+    if (accepting) body.accepting = accepting.getAttribute('aria-checked') === 'true';
+    try {
+      await (apply ? SZ.api.post('private/me/host/apply', body) : SZ.api.put('private/me/host', body));
+    } catch (e) {
+      return SZ.api.fail(e, { min: '', max: '' });
+    }
+    SZ.overlay.close({ layer, force: true });
+    toast(t(apply ? 'srvlive.private.applied' : 'srvlive.private.saved'), { type: 'success' });
+    loadHosts(true);
   }
 
   // ------------------------------------------------------------------ QA / demo hook
@@ -1155,13 +1544,27 @@
         return SZ.actions.dispatch('recharge', '', el);
       case 'oo-beans':
         return beansSheet();
+      case 'oo-host-settings':
+        return hostSettings();
+      case 'oo-accept':
+      case 'oo-decline': {
+        const layer = SZ.overlay.of(el);
+        const call = layer?.ooCall;
+        if (layer) SZ.overlay.close({ layer, force: true });
+        if (!call) return;
+        if (action === 'oo-decline') return SZ.api.post(`private/calls/${call.callId}/decline`).catch(() => {});
+        return start(call.callerId, call);
+      }
+      case 'oo-host-apply':
+      case 'oo-host-save':
+        return saveHost(el, action === 'oo-host-apply');
       case 'oo-claim':
         return claimBeans(Number(id), el);
     }
     if (!s) return;
     switch (action) {
       case 'oo-hangup':
-        if (s.phase !== 'ringing') return end(s, 'self');
+        if (s.phase !== 'ringing') return end(s, s.role === 'host' ? 'host' : 'self');
         end(s, 'cancel', { quiet: true });
         return closeRoom(s);
       case 'oo-profile':
@@ -1228,7 +1631,7 @@
   // Leaving the page (app switch, screen lock) drops the simulated media link; coming back reconnects.
   document.addEventListener('visibilitychange', () => {
     const s = session;
-    if (!s || s.phase !== 'connected') return;
+    if (!s || s.phase !== 'connected' || (SERVER && !s.demo)) return;
     if (document.hidden) s.hiddenAt = Date.now();
     else if (s.hiddenAt) {
       const gone = Date.now() - s.hiddenAt;
