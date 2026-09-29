@@ -7,3 +7,9 @@ dist/
 .qa/
 .l10n-work/
 .qa-*.log
+
+# backend
+server/**/bin/
+server/**/obj/
+server/**/appsettings.Local.json
+server/**/*.user
