@@ -1,0 +1,59 @@
+ok   auth-welcome                     top='raw' depth=1
+ok   auth-welcome-language            top='raw' depth=1
+ok   auth-welcome-terms               top='Privacy Policy (summary)' depth=2
+ok   auth-phone-register              top='-' depth=0
+ok   auth-phone-back                  top='raw' depth=1
+ok   auth-phone-existing              top='-' depth=0
+ok   auth-country-picker              top='raw' depth=2
+ok   auth-email-signin                top='-' depth=0
+ok   auth-email-wrong-password        top='raw' depth=2
+ok   auth-email-create                top='raw' depth=3
+ok   auth-forgot                      top='raw' depth=4
+ok   auth-provider-google             top='raw' depth=2
+ok   auth-guest-gated                 top='Sign in to continue' depth=1
+ok   auth-login-sheet-back            top='-' depth=0
+ok   auth-switcher                    top='Switch account' depth=1
+ok   auth-switcher-add                top='-' depth=0
+ok   auth-switcher-signout            top='Sign out?' depth=2
+ok   auth-demo-one-tap                top='-' depth=0
+ok   auth-switcher-from-me            top='-' depth=0
+ok   auth-leave-detached              top='-' depth=0
+ok   catalog-home                     top='-' depth=0
+ok   catalog-home-scrolled            top='-' depth=0
+ok   catalog-home-load-more           top='-' depth=0
+ok   catalog-all-categories           top='All services' depth=1
+ok   catalog-category                 top='Home services' depth=1
+ok   catalog-category-sort            top='Food delivery' depth=1
+ok   catalog-category-search          top='Home services' depth=1
+ok   catalog-service-detail           top='Service details' depth=2
+ok   catalog-detail-scrolled          top='Service details' depth=2
+ok   catalog-detail-back              top='Home services' depth=1
+ok   catalog-save-toggle              top='Service details' depth=1
+ok   catalog-request-form             top='Booking details' depth=3
+ok   catalog-request-validation       top='Booking details' depth=3
+ok   catalog-confirm                  top='Review order' depth=4
+ok   catalog-confirm-back             top='Booking details' depth=3
+ok   catalog-pay-wallet               top='Payment successful' depth=3
+ok   catalog-pay-tng                  top='Payment successful' depth=3
+ok   catalog-order-confirmed          top='Order details' depth=3
+ok   catalog-order-cancel             top='Order details' depth=3
+ok   catalog-order-review             top='Service details' depth=2
+ok   catalog-goods-cart               top='Review order' depth=3
+ok   catalog-goods-buy                top='Review order' depth=3
+ok   catalog-job-apply                top='Application sent' depth=3
+ok   catalog-post-request             top='Request posted' depth=2
+ok   catalog-search                   top='Search' depth=1
+ok   catalog-search-back              top='Search' depth=1
+ok   catalog-orders                   top='My orders' depth=1
+ok   catalog-order-detail             top='My orders' depth=1
+ok   catalog-social                   top='-' depth=0
+ok   catalog-social-feed              top='-' depth=0
+ok   catalog-social-filter            top='-' depth=0
+ok   catalog-person                   top='Profile' depth=1
+ok   catalog-person-back              top='-' depth=0
+ok   catalog-comments                 top='3 comments' depth=1
+ok   catalog-live                     top='-' depth=0
+ok   catalog-live-topic               top='-' depth=0
+ok   catalog-comms                    top='-' depth=0
+ok   catalog-comms-groups             top='-' depth=0
+ok   catalog-comms-contacts           top='-' depth=0

@@ -101,3 +101,20 @@ Loaded by index.html before gift-data.js. `ShizhongGifts.giftArt()` and the live
 - **layout**: task CTAs go in `<div class="sheet-footer">` / `<div class="screen-footer">` as the last element of a layer.
   Visually hidden text: `.sr-text` (not reported as clipped by QA).
 - **scenarios**: select by `data-action`/`data-id`, never by visible text, so they work in every language.
+
+## Additions from wave 2 (implemented)
+
+- **live**: `ShizhongLive.gift(id)`, `giftName(id)`, `giftArt(id, size)`, `startLive()`, `openHistory()`, `stop()`; actions
+  `room`, `next-room`, `start-live`, `gift-wall`; route `#room/<id>`. `window.SHIZHONG_LIVE_GIFTS` helpers `.byId(id)`,
+  `.art(id, size)`, `.categories`, `.legacyIds` (old douyin-* ids → new ids, migrated on load). Gift history records
+  `{ giftId, hostId, quantity, total, time }`; `state.live.likes[hostId]`; `state.live.myLives` (own broadcasts).
+- **vip**: `ShizhongVIP.open()`, `openLevels(level)`, `refresh()`, `themes()`, `rankName(level)`, `progress()`,
+  `afterGift(levelBefore)`; `ShizhongVipEntry.banner()`, `stop(container)`. Gifting adds beans to `state.live.honorXp`.
+- **regions**: `ShizhongRegions.pick({ selected }) → Promise<location|null>` (SZ.overlay, mode 'push'),
+  `label(location, 'short'|'long')`, `normalize(loc)`, `isService(loc)`, `serviceCities()`; location fields
+  `countryEn`, `cityEn`, `stateEn`; event `location:change` `{ location }`.
+- **private**: `ShizhongPrivate.lobby()`, `enter(hostId)`, `history()`; action `book-call`; call bills
+  `{ kind:'call', hostId, i18n:{ key:'private.bill.title', params } }`.
+- **flows**: `ShizhongNotices.push` also accepts `titleKey`, `bodyKey`, `params`, `silent`.
+- **catalog**: service detail specs/FAQ/reviews read translated content fields `detailLabels[]`, `detailValues[]`,
+  `faqQ[]`, `faqA[]`, `reviewTexts[]`, `reviewAuthors[]` (index-aligned; data/i18n/<locale>/services-<cat>.js).

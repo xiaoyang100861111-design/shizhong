@@ -131,7 +131,7 @@ button:disabled {
   padding: 0 var(--sp-3);
 }
 .btn-danger {
-  background: var(--c-danger);
+  background: var(--c-danger-fill);
   color: #fff;
 }
 .btn-accent {

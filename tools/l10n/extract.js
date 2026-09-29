@@ -2,7 +2,8 @@
 /*
  * Demo-content translation pipeline, step 1: extract.
  *
- *   node tools/l10n/extract.js <locale> [--chunks catalog-index,people,posts,groups,conversations,profiles]
+ *   node tools/l10n/extract.js <locale> [--chunks catalog-index,people,posts,groups,conversations,profiles,services] [--work <dir>]
+ *   ('services' = the 13 data/services-<category>.js detail chunks; --work keeps a separate work folder)
  *
  * Reads data/*.js, collects every translatable source-language string, de-duplicates it and writes
  * work files to .l10n-work/<locale>/:
@@ -27,7 +28,8 @@ if (!locale) {
 }
 const chunkArg = process.argv.indexOf('--chunks');
 const CHUNKS = (chunkArg > 0 ? process.argv[chunkArg + 1] : 'catalog-index,people,posts,groups,conversations,profiles').split(',');
-const WORK = path.join(ROOT, '.l10n-work', locale);
+const workArg = process.argv.indexOf('--work');
+const WORK = path.join(ROOT, '.l10n-work', workArg > 0 ? process.argv[workArg + 1] : locale);
 const CJK = /[㐀-鿿]/;
 
 function load(file) {
@@ -114,6 +116,35 @@ if (CHUNKS.includes('profiles')) {
       addList(key, 'profiles', p.id, 'callTopics', p.callTopics, 'suggested conversation topic (a short prompt)');
       (p.roomComments || []).forEach((c, i) => add(key, 'profiles', p.id, 'roomComments', c.text, 'live-room viewer comment', false, i));
       add(key, 'profiles', p.id, 'friendMessage', p.friendMessage, 'first friendly message to a new contact');
+    }
+  }
+}
+
+if (CHUNKS.includes('services')) {
+  for (const file of fs.readdirSync(path.join(ROOT, 'data')).filter(f => /^services-[a-z]+\.js$/.test(f))) {
+    const key = file.replace(/\.js$/, '');
+    for (const s of rows(load(file).SHIZHONG_CHUNKS[key])) {
+      add(key, 'services', s.id, 'description', s.description, 'service / product / job description (practical, clear)');
+      addList(key, 'services', s.id, 'includes', s.includes, 'what is included (short bullet)');
+      addList(key, 'services', s.id, 'excludes', s.excludes, 'what is not included (short bullet)');
+      addList(key, 'services', s.id, 'requirements', s.requirements, 'job requirement (short bullet)');
+      addList(key, 'services', s.id, 'benefits', s.benefits, 'job benefit (short bullet)');
+      add(key, 'services', s.id, 'pricingNote', s.pricingNote, 'pricing note');
+      add(key, 'services', s.id, 'notice', s.notice, 'booking notice');
+      add(key, 'services', s.id, 'duration', s.duration, 'duration / schedule line', true);
+      add(key, 'services', s.id, 'availability', s.availability, 'availability line', true);
+      (s.details || []).forEach((d, i) => {
+        add(key, 'services', s.id, 'detailLabels', d.label, 'short spec label (1-3 words)', true, i);
+        add(key, 'services', s.id, 'detailValues', d.value, 'spec value (short)', false, i);
+      });
+      (s.faq || []).forEach((f, i) => {
+        add(key, 'services', s.id, 'faqQ', f.q, 'FAQ question', false, i);
+        add(key, 'services', s.id, 'faqA', f.a, 'FAQ answer', false, i);
+      });
+      (s.reviews || []).forEach((r, i) => {
+        add(key, 'services', s.id, 'reviewAuthors', r.author, 'PERSON NAME (reviewer): romanise Chinese names (Hanyu Pinyin, e.g. 佩宁 -> Peining, 阿哲 -> Ah Zhe); keep Latin names', true, i);
+        add(key, 'services', s.id, 'reviewTexts', r.text, 'customer review, first person, casual', false, i);
+      });
     }
   }
 }

@@ -975,7 +975,3 @@ Object.defineProperty(window, 'currentOverlay', {
     if (top && value && typeof value === 'object') Object.assign(top.meta, value);
   },
 });
-// Transitional no-ops for modules not yet migrated to SZ.overlay (remove once unused).
-let previousFocus = null,
-  bodyScroll = 0;
-function focusOverlay() {}

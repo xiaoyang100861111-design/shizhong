@@ -1283,6 +1283,17 @@
   }
 
   // ------------------------------------------------------------------ service detail
+  /** Spec table rows in the active language (translations are index-aligned with s.details). */
+  function detailPairs(s) {
+    const labels = contentList('services', s, 'detailLabels');
+    const values = contentList('services', s, 'detailValues');
+    return (s.details || []).map((d, i) => [labels[i] || d.label, values[i] || d.value]);
+  }
+  function faqItems(s) {
+    const qs = contentList('services', s, 'faqQ');
+    const as = contentList('services', s, 'faqA');
+    return (s.faq || []).map((f, i) => ({ q: qs[i] || f.q, a: as[i] || f.a }));
+  }
   function detailRows(s) {
     const rows = [
       [
@@ -1293,9 +1304,9 @@
         t('catalog.detail.languages'),
         (s.languages || ['中文', 'English']).map(v => td('catalog.language', v)).join(' · '),
       ],
-      [t('catalog.detail.duration'), s.duration || t('catalog.detail.durationTbc')],
-      [t('catalog.detail.availability'), s.availability || t('catalog.detail.availabilityTbc')],
-      ...(s.details || []).map(d => [d.label, d.value]),
+      [t('catalog.detail.duration'), txt('services', s, 'duration') || t('catalog.detail.durationTbc')],
+      [t('catalog.detail.availability'), txt('services', s, 'availability') || t('catalog.detail.availabilityTbc')],
+      ...detailPairs(s),
     ];
     return `<dl class="checkout-facts">${rows.map(([k, v]) => `<div><dt>${html(k)}</dt><dd>${html(v)}</dd></div>`).join('')}</dl>`;
   }
@@ -1304,7 +1315,10 @@
     return `<ul class="checkout-bullets${iconName ? ' checkout-bullets-' + iconName : ''}">${items.map(i => `<li>${iconName ? icon(iconName) : ''}<span>${html(i)}</span></li>`).join('')}</ul>`;
   }
   function allReviews(s) {
-    return [...userReviews(s.id).map(r => ({ ...r, own: true })), ...(s.reviews || [])];
+    const texts = contentList('services', s, 'reviewTexts');
+    const authors = contentList('services', s, 'reviewAuthors');
+    const samples = (s.reviews || []).map((r, i) => ({ ...r, text: texts[i] || r.text, author: authors[i] || r.author }));
+    return [...userReviews(s.id).map(r => ({ ...r, own: true })), ...samples];
   }
   function reviewItem(r) {
     const author = r.own ? selfName() : r.author;
@@ -1372,7 +1386,7 @@
           : ''
       }<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.facts'))}</h3>${detailRows(s)}</section><section class="checkout-block">${facts}</section>${
         s.notice || s.faq?.length
-          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(txt('services', s, 'notice'))}</p>` : ''}${(s.faq || []).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
+          ? `<section class="checkout-block"><h3 class="checkout-block-title">${esc(t('catalog.detail.beforeBooking'))}</h3>${s.notice ? `<p class="checkout-muted">${html(txt('services', s, 'notice'))}</p>` : ''}${faqItems(s).map(f => `<details class="checkout-faq"><summary>${html(f.q)}</summary><p>${html(f.a)}</p></details>`).join('')}</section>`
           : ''
       }<div data-part="reviews">${reviewsSection(s)}</div><p class="checkout-footnote">${esc(t('catalog.detail.demoNote'))}</p></div><div class="checkout-bottom-bar">${act('service-chat', id, `${icon('chat')}<span>${esc(t('catalog.detail.askShort'))}</span>`, 'checkout-bar-icon')}${cart}${act('book-service', id, esc(t(`catalog.detail.cta.${flow}`)), 'btn btn-lg btn-primary checkout-cta')}</div>`,
     });
@@ -2421,8 +2435,5 @@
     nextRoom,
     openChat,
     messageBubble,
-    // Transitional: private-room.js on main still reassigns privateCard at load (strict mode would
-    // throw without the global). Remove once the wave-2 private module no longer does.
-    privateCard,
   });
 })();

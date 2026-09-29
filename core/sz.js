@@ -209,10 +209,10 @@
     const prev = stack[stack.length - 1];
     let mode = opts.mode;
     if (mode === 'auto') mode = prev && prev.kind === 'sheet' ? 'replace' : 'push';
-    if (!stack.length) {
-      returnFocus = document.activeElement;
-      armHistory();
-    }
+    if (!stack.length) returnFocus = document.activeElement;
+    // Also re-arm while a back-button close is waiting on beforeClose (e.g. a "leave call?" confirm),
+    // so a second back press closes the confirm instead of leaving the app.
+    armHistory();
     const id = String(++serial);
     const layer = {
       id,
@@ -253,7 +253,7 @@
       else focusLayer(next);
     }
     if (!stack.length) {
-      if (reason !== 'popstate') releaseHistory();
+      releaseHistory(); // no-op unless a sentinel entry is still armed
       if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
       returnFocus = null;
       emit('overlay:empty');
@@ -261,6 +261,7 @@
     return true;
   }
   function closeAll(reason = 'navigate') {
+    const hadLayers = stack.length > 0;
     while (stack.length) removeLayer(stack[stack.length - 1], reason);
     setInert();
     if (sentinel) {
@@ -270,7 +271,7 @@
       sentinel = false;
     }
     returnFocus = null;
-    emit('overlay:empty');
+    if (hadLayers) emit('overlay:empty');
   }
   window.addEventListener('popstate', () => {
     if (ignorePops) {

@@ -25,6 +25,8 @@ EXCLUDE_ASSETS = [
     "assets/hero.png",
     "assets/logo.png",
 ]
+# Whole folders superseded by assets/gift-art (originals stay in the repo for re-processing).
+EXCLUDE_ASSET_DIRS = ["assets/oriental/", "assets/live-gifts/"]
 KEEP_ALWAYS = {"assets/gifts/LICENSE-MICROSOFT.txt", "assets/gifts/ATTRIBUTION.txt", "vendor/QR-LICENSE.txt"}
 
 HEADERS = """/*
@@ -62,6 +64,8 @@ def included(rel):
         if "/".join(parts[:i]) in EXCLUDE_DIRS or parts[i - 1] in EXCLUDE_DIRS:
             return False
     if rel in EXCLUDE_ASSETS or EXCLUDE_FILES.search(rel):
+        return False
+    if any(rel.startswith(d) for d in EXCLUDE_ASSET_DIRS) and not rel.endswith((".txt", ".md")):
         return False
     return True
 

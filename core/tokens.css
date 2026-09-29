@@ -43,6 +43,7 @@
   --c-warning-soft: #fdf1dc;
   --c-danger: #c21f2e;
   --c-danger-soft: #fdecee;
+  --c-danger-fill: #c21f2e; /* destructive button background, white text 5.9:1 */
   --c-info: #2459c4;
   --c-info-soft: #e8effc;
 
@@ -177,6 +178,7 @@
   --c-warning-soft: #3a2a12;
   --c-danger: #ff7a84;
   --c-danger-soft: #3a1c21;
+  --c-danger-fill: #c9303c; /* white text 5.2:1 */
   --c-info: #7aa7ff;
   --c-info-soft: #1a2640;
   --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px #8ab4ff;

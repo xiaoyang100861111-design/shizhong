@@ -12,17 +12,6 @@
  * for actions other modules have not registered yet.
  */
 
-// ------------------------------------------------------------------ compat globals
-// live-room.js and private-room.js on main still assign these names (strict mode would throw if they
-// were gone). Remove once the wave-2 live and private modules no longer reference them.
-let activeRoom = 'p1'; // eslint-disable-line no-unused-vars
-function callBooking(id) {
-  return window.ShizhongPrivate?.enter(id);
-}
-function connectCall(id) {
-  return window.ShizhongPrivate?.enter(id);
-}
-function giftPanel() {}
 // City values are stored in the source language (shared with catalog.js); show them with td('city', value).
 const cities = ['吉隆坡', '八打灵再也', '槟城', '新山', '马六甲', '怡保'];
 

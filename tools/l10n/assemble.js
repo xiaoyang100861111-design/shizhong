@@ -19,7 +19,8 @@ if (!locale) {
   console.error('usage: node tools/l10n/assemble.js <locale>');
   process.exit(1);
 }
-const WORK = path.join(ROOT, '.l10n-work', locale);
+const workArg = process.argv.indexOf('--work');
+const WORK = path.join(ROOT, '.l10n-work', workArg > 0 ? process.argv[workArg + 1] : locale);
 const OUT = path.join(ROOT, 'data', 'i18n', locale);
 const CJK = /[㐀-鿿]/;
 
