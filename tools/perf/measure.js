@@ -127,7 +127,7 @@ async function imagesSettled(page, max = 30000) {
       const vh = innerHeight;
       return [...document.querySelectorAll('img')].filter(i => {
         const r = i.getBoundingClientRect();
-        return r.width > 0 && r.bottom > 0 && r.top < vh && !i.complete;
+        return r.width > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < innerWidth && !i.complete;
       }).length;
     });
     if (!pending) return Date.now() - t0;
