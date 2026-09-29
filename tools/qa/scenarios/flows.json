@@ -1,1074 +1,1074 @@
 [
-  {
-    "name": "flows-settings",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "expect": "!!SZ.overlay.top()?.el.matches('.flows-settings')",
-        "msg": "settings screen open"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-settings [data-action=flows-logout]')",
-        "msg": "sign-out row for a signed-in account"
-      }
-    ]
-  },
-  {
-    "name": "flows-settings-scrolled",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "eval": "SZ.overlay.top().el.scrollTo(0, 99999),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-settings-back",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "click": ".flows-settings [data-action=addresses]"
-      },
-      {
-        "expect": "SZ.overlay.depth()===2",
-        "msg": "addresses pushed over settings"
-      },
-      {
-        "back": true
-      },
-      {
-        "wait": 500
-      },
-      {
-        "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().el.matches('.flows-settings')",
-        "msg": "back returns to settings"
-      },
-      {
-        "back": true
-      },
-      {
-        "wait": 500
-      },
-      {
-        "expect": "SZ.overlay.depth()===0",
-        "msg": "second back closes settings"
-      }
-    ]
-  },
-  {
-    "name": "flows-settings-guest",
-    "hash": "me",
-    "session": "guest",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-account-card.is-guest')",
-        "msg": "guest sees sign-in card"
-      }
-    ]
-  },
-  {
-    "name": "flows-theme-dark",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "click": "[data-action=flows-theme]"
-      },
-      {
-        "click": "[data-action=flows-theme-set][data-id=dark]"
-      },
-      {
-        "expect": "document.documentElement.dataset.theme==='dark'",
-        "msg": "dark theme applied"
-      },
-      {
-        "shot": "sheet"
-      },
-      {
-        "key": "Escape"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "shot": "settings-dark"
-      },
-      {
-        "eval": "SZ_THEME.set('light'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-password-demo",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "click": "[data-action=flows-password]"
-      },
-      {
-        "expect": "SZ.overlay.top().el.matches('.overlay-backdrop') && !!SZ.overlay.top().el.querySelector('.flows-password')",
-        "msg": "password sheet open"
-      }
-    ]
-  },
-  {
-    "name": "flows-language",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('language'),true"
-      },
-      {
-        "expect": "document.querySelectorAll('.flows-language [data-action=flows-locale]').length>=2",
-        "msg": "languages listed"
-      }
-    ]
-  },
-  {
-    "name": "flows-export",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('export-data'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-block-unblock",
-    "hash": "social",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('block','p4'),true"
-      },
-      {
-        "click": "[data-sz-confirm='1']"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.blocked.includes('p4')",
-        "msg": "blocked"
-      },
-      {
-        "eval": "SZ.actions.dispatch('flows-blocked'),true"
-      },
-      {
-        "shot": "list"
-      },
-      {
-        "click": "[data-action=flows-unblock][data-id=p4]"
-      },
-      {
-        "expect": "!state.blocked.includes('p4')",
-        "msg": "unblocked"
-      }
-    ]
-  },
-  {
-    "name": "flows-wallet",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('wallet'),true"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-balance-amount')",
-        "msg": "balance shown"
-      }
-    ]
-  },
-  {
-    "name": "flows-recharge",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "window.__before=state.wallet; SZ.actions.dispatch('wallet'); SZ.actions.dispatch('recharge'); true"
-      },
-      {
-        "click": ".flows-amount input[value='200']"
-      },
-      {
-        "click": ".flows-method input[value=fpx]"
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "submit": ".flows-recharge form"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "shot": "authorising"
-      },
-      {
-        "wait": 1800
-      },
-      {
-        "expect": "Math.abs(state.wallet-(window.__before+200))<0.001",
-        "msg": "wallet credited"
-      },
-      {
-        "expect": "state.bills[0].kind==='recharge' && state.bills[0].method==='fpx'",
-        "msg": "bill recorded"
-      },
-      {
-        "click": ".flows-recharge [data-action=close]"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "SZ.overlay.top()?.el.matches('.flows-wallet')",
-        "msg": "back on wallet"
-      }
-    ]
-  },
-  {
-    "name": "flows-recharge-guest",
-    "hash": "me",
-    "session": "guest",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('recharge'),true"
-      },
-      {
-        "expect": "!document.querySelector('.flows-recharge')",
-        "msg": "guest cannot top up"
-      }
-    ]
-  },
-  {
-    "name": "flows-checkin",
-    "hash": "me",
-    "setup": [
-      "(()=>{const k='sz:v2:state:demo';const s=JSON.parse(localStorage.getItem(k)||'{}');const iso=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Date.now()-86400000));s.checkin={streak:2,lastDate:iso,history:[iso]};localStorage.setItem(k,JSON.stringify(s));})()"
-    ],
-    "steps": [
-      {
-        "eval": "window.__pts=state.points; SZ.actions.dispatch('checkin'); true"
-      },
-      {
-        "shot": "before"
-      },
-      {
-        "click": ".flows-checkin [data-action=do-checkin]"
-      },
-      {
-        "expect": "state.checkin.lastDate===localDate() && state.checkin.streak===3",
-        "msg": "streak continued"
-      },
-      {
-        "expect": "state.points===window.__pts+10",
-        "msg": "10 beans added"
-      },
-      {
-        "expect": "document.querySelectorAll('.flows-day.is-done').length===3",
-        "msg": "3 days lit"
-      }
-    ]
-  },
-  {
-    "name": "flows-checkin-reload",
-    "hash": "me",
-    "steps": [
-      {
-        "expect": "typeof state.checkin==='object' && state.checkin.lastDate===localDate()",
-        "msg": "check-in survives reload"
-      },
-      {
-        "eval": "SZ.actions.dispatch('checkin'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-tasks",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('tasks'),true"
-      },
-      {
-        "expect": "document.querySelectorAll('.flows-task').length===5",
-        "msg": "five tasks"
-      }
-    ]
-  },
-  {
-    "name": "flows-coupons",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('coupons'),true"
-      },
-      {
-        "expect": "document.querySelectorAll('.flows-coupon').length>=1",
-        "msg": "coupons listed"
-      },
-      {
-        "expect": "ShizhongCoupons.available(100).length>=1 && ShizhongCoupons.available(10).length===0",
-        "msg": "coupon API honours minimum spend"
-      },
-      {
-        "click": "[data-action=flows-coupon-tab][data-id=expired]"
-      },
-      {
-        "expect": "document.querySelector('[data-action=flows-coupon-tab][data-id=expired]').getAttribute('aria-selected')==='true'",
-        "msg": "tab switched"
-      }
-    ]
-  },
-  {
-    "name": "flows-addresses",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "window.__n=state.address.length; SZ.actions.dispatch('addresses'); true"
-      },
-      {
-        "click": "[data-action=edit-address][data-id=new]"
-      },
-      {
-        "type": ".flows-address-form [name=name]",
-        "value": "Mei Ling"
-      },
-      {
-        "type": ".flows-address-form [name=phone]",
-        "value": "+60 12-888 1234"
-      },
-      {
-        "type": ".flows-address-form [name=address]",
-        "value": "Level 12, Menara Example, Jalan Ampang"
-      },
-      {
-        "type": ".flows-address-form [name=postcode]",
-        "value": "5045"
-      },
-      {
-        "submit": ".flows-address-form form"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-address-form [aria-invalid=true]')",
-        "msg": "bad postcode flagged"
-      },
-      {
-        "shot": "error"
-      },
-      {
-        "type": ".flows-address-form [name=postcode]",
-        "value": "50450"
-      },
-      {
-        "submit": ".flows-address-form form"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.address.length===window.__n+1",
-        "msg": "address saved"
-      },
-      {
-        "expect": "!!ShizhongAddresses.defaultFor()",
-        "msg": "address API"
-      }
-    ]
-  },
-  {
-    "name": "flows-address-delete-undo",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "window.__n=state.address.length; SZ.actions.dispatch('addresses'); true"
-      },
-      {
-        "click": ".flows-addresses [data-action=remove-address]"
-      },
-      {
-        "click": "[data-sz-confirm='1']"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.address.length===window.__n-1",
-        "msg": "deleted"
-      },
-      {
-        "click": "#toast .toast-action"
-      },
-      {
-        "expect": "state.address.length===window.__n",
-        "msg": "undo restores"
-      }
-    ]
-  },
-  {
-    "name": "flows-form-dirty-guard",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('addresses'); SZ.actions.dispatch('edit-address','new'); true"
-      },
-      {
-        "type": ".flows-address-form [name=address]",
-        "value": "Something typed"
-      },
-      {
-        "back": true
-      },
-      {
-        "wait": 500
-      },
-      {
-        "expect": "!!SZ.overlay.top().el.querySelector('.sz-confirm')",
-        "msg": "asks before discarding"
-      },
-      {
-        "shot": "confirm"
-      },
-      {
-        "click": "[data-sz-confirm='0']"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "document.querySelector('.flows-address-form [name=address]')?.value==='Something typed'",
-        "msg": "draft kept"
-      }
-    ]
-  },
-  {
-    "name": "flows-notifications",
-    "hash": "home",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('notifications'),true"
-      },
-      {
-        "expect": "document.querySelectorAll('.flows-notice').length>=1",
-        "msg": "seeded notices"
-      },
-      {
-        "shot": "list"
-      },
-      {
-        "click": "[data-action=flows-notice-filter][data-id=social]"
-      },
-      {
-        "expect": "[...document.querySelectorAll('.flows-notice-icon')].every(e=>e.classList.contains('type-social'))",
-        "msg": "social filter"
-      },
-      {
-        "click": "[data-action=flows-notices-read]"
-      },
-      {
-        "expect": "ShizhongNotices.unread()===0",
-        "msg": "all read"
-      }
-    ]
-  },
-  {
-    "name": "flows-notice-push",
-    "hash": "home",
-    "steps": [
-      {
-        "eval": "ShizhongNotices.push({type:'order',title:'Order SZ123 confirmed',body:'The merchant confirmed your booking.',action:{name:'orders',id:''}}),true"
-      },
-      {
-        "expect": "ShizhongNotices.unread()>=1 && document.querySelector('#toast').classList.contains('visible')",
-        "msg": "toast shown when alerts are on"
-      },
-      {
-        "eval": "state.settings.notifications=false; ShizhongNotices.push({type:'system',title:'Quiet'}); true"
-      },
-      {
-        "expect": "document.querySelector('#toast .toast-text').textContent!=='Quiet'",
-        "msg": "no toast when alerts are off"
-      },
-      {
-        "eval": "state.settings.notifications=true; save(); true"
-      }
-    ]
-  },
-  {
-    "name": "flows-edit-profile",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('edit-profile'),true"
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "type": ".flows-profile [name=bio]",
-        "value": "Weekend hiker, weekday coffee person."
-      },
-      {
-        "submit": ".flows-profile form"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.profile.bio==='Weekend hiker, weekday coffee person.' && !document.querySelector('.flows-profile')",
-        "msg": "profile saved and closed"
-      }
-    ]
-  },
-  {
-    "name": "flows-compose",
-    "hash": "social",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('compose'),true"
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "type": ".flows-compose [name=text]",
-        "value": "Found a quiet little café near Petaling Street."
-      },
-      {
-        "click": ".flows-compose .flows-chip input[value=food]"
-      },
-      {
-        "submit": ".flows-compose form"
-      },
-      {
-        "wait": 600
-      },
-      {
-        "expect": "state.posts[0].text.startsWith('Found a quiet') && state.posts[0].topicId==='food' && ui.page==='social'",
-        "msg": "post published"
-      }
-    ]
-  },
-  {
-    "name": "flows-greet",
-    "hash": "social",
-    "steps": [
-      {
-        "eval": "window.__p=people.find(p=>!state.greeted.includes(p.id)&&!state.blocked.includes(p.id)).id; SZ.actions.dispatch('greet', window.__p); true"
-      },
-      {
-        "wait": 600
-      },
-      {
-        "shot": "sheet"
-      },
-      {
-        "click": ".flows-greet [data-action=greeting-text]:nth-child(2)"
-      },
-      {
-        "submit": ".flows-greet form"
-      },
-      {
-        "wait": 600
-      },
-      {
-        "expect": "state.greeted.includes(window.__p)",
-        "msg": "greeted"
-      }
-    ]
-  },
-  {
-    "name": "flows-friends",
-    "hash": "comms",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('new-friends'),true"
-      },
-      {
-        "wait": 600
-      },
-      {
-        "shot": "list"
-      },
-      {
-        "eval": "window.__in=state.friendRequests.incoming.length,true"
-      },
-      {
-        "click": ".flows-friends [data-action=accept-friend]"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.friendRequests.incoming.length===window.__in-1",
-        "msg": "request accepted"
-      }
-    ]
-  },
-  {
-    "name": "flows-add-friend",
-    "hash": "comms",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('add-friend'),true"
-      },
-      {
-        "type": ".flows-add-friend [name=account]",
-        "value": "12"
-      },
-      {
-        "submit": ".flows-add-friend form"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-add-friend [aria-invalid=true]')",
-        "msg": "invalid id flagged"
-      },
-      {
-        "type": ".flows-add-friend [name=account]",
-        "value": "12345678"
-      },
-      {
-        "submit": ".flows-add-friend form"
-      },
-      {
-        "wait": 5500
-      },
-      {
-        "expect": "state.friendRequests.outgoing[0].status==='accepted'",
-        "msg": "demo request accepted"
-      }
-    ]
-  },
-  {
-    "name": "flows-invite",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('invite'),true"
-      },
-      {
-        "expect": "document.querySelector('.flows-invite-code strong').textContent==='SZ88002688'",
-        "msg": "code from display id"
-      }
-    ]
-  },
-  {
-    "name": "flows-merchant",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('merchant'),true"
-      },
-      {
-        "type": ".flows-merchant [name=name]",
-        "value": "Sunny Home Care"
-      },
-      {
-        "type": ".flows-merchant [name=text]",
-        "value": "Weekly cleaning around Petaling Jaya."
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "submit": ".flows-merchant form"
-      },
-      {
-        "wait": 400
-      },
-      {
-        "expect": "state.feedback[0].kind==='merchant'",
-        "msg": "application stored"
-      }
-    ]
-  },
-  {
-    "name": "flows-feedback",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('feedback'),true"
-      },
-      {
-        "submit": ".flows-feedback form"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-feedback .form-error')",
-        "msg": "required message shown"
-      },
-      {
-        "type": ".flows-feedback [name=text]",
-        "value": "Dark mode looks great."
-      },
-      {
-        "submit": ".flows-feedback form"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "!!document.querySelector('.flows-success-sheet')",
-        "msg": "thanks sheet"
-      }
-    ]
-  },
-  {
-    "name": "flows-after-sales",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('after-sales'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-report",
-    "hash": "social",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('report','p3'),true"
-      },
-      {
-        "submit": ".flows-report form"
-      },
-      {
-        "expect": "!!document.querySelector('.flows-report .form-error')",
-        "msg": "reason required"
-      },
-      {
-        "click": ".flows-report input[value=spam]"
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "submit": ".flows-report form"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "state.feedback[0].kind==='report' && state.feedback[0].reason==='spam'",
-        "msg": "report stored"
-      }
-    ]
-  },
-  {
-    "name": "flows-leave-group",
-    "hash": "comms",
-    "steps": [
-      {
-        "eval": "if(!state.joined.includes('g1')){state.joined.push('g1');save()} SZ.actions.dispatch('leave-group','g1'); true"
-      },
-      {
-        "shot": "confirm"
-      },
-      {
-        "click": "[data-sz-confirm='1']"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "!state.joined.includes('g1')",
-        "msg": "left group"
-      }
-    ]
-  },
-  {
-    "name": "flows-help",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('help'),true"
-      },
-      {
-        "click": ".flows-faq summary"
-      }
-    ]
-  },
-  {
-    "name": "flows-privacy",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('privacy'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-about",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('about'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-licences",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('about'),true"
-      },
-      {
-        "click": "[data-action=flows-licences]"
-      },
-      {
-        "expect": "SZ.overlay.depth()===2",
-        "msg": "licences pushed over about"
-      }
-    ]
-  },
-  {
-    "name": "flows-membership",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('membership'),true"
-      }
-    ]
-  },
-  {
-    "name": "flows-clear-media-confirm",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'),true"
-      },
-      {
-        "click": "[data-action=flows-clear-media]"
-      },
-      {
-        "wait": 400
-      },
-      {
-        "expect": "!!SZ.overlay.top().el.querySelector('.sz-confirm')",
-        "msg": "confirmation first"
-      }
-    ]
-  },
-  {
-    "name": "flows-compose-photo",
-    "hash": "social",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('compose'),true"
-      },
-      {
-        "eval": "(async()=>{await new Promise(r=>setTimeout(r,300));const c=document.createElement('canvas');c.width=900;c.height=600;const g=c.getContext('2d');g.fillStyle='rgb(230,120,90)';g.fillRect(0,0,900,600);g.fillStyle='rgb(40,90,160)';g.fillRect(300,150,300,300);const blob=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([blob],'photo.png',{type:'image/png'});const dt=new DataTransfer();dt.items.add(f);const inp=document.querySelector('.flows-compose [data-flows-upload]');inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
-      },
-      {
-        "wait": 1500
-      },
-      {
-        "expect": "!!document.querySelector('.flows-compose .flows-upload.has-file img')",
-        "msg": "photo preview shown"
-      },
-      {
-        "shot": "preview"
-      },
-      {
-        "type": ".flows-compose [name=text]",
-        "value": "Sunset colours tonight."
-      },
-      {
-        "submit": ".flows-compose form"
-      },
-      {
-        "wait": 800
-      },
-      {
-        "expect": "SZ.media.isRef(state.posts[0].image) && !JSON.stringify(state).includes('data:image/png')",
-        "msg": "photo stored in SZ.media, not in state"
-      }
-    ]
-  },
-  {
-    "name": "flows-avatar-upload",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('edit-profile'),true"
-      },
-      {
-        "eval": "(async()=>{await new Promise(r=>setTimeout(r,300));const c=document.createElement('canvas');c.width=900;c.height=600;const g=c.getContext('2d');g.fillStyle='rgb(230,120,90)';g.fillRect(0,0,900,600);g.fillStyle='rgb(40,90,160)';g.fillRect(300,150,300,300);const blob=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([blob],'photo.png',{type:'image/png'});const dt=new DataTransfer();dt.items.add(f);const inp=document.querySelector('.flows-profile [data-flows-upload]');inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
-      },
-      {
-        "wait": 1500
-      },
-      {
-        "shot": "preview"
-      },
-      {
-        "submit": ".flows-profile form"
-      },
-      {
-        "wait": 500
-      },
-      {
-        "expect": "state.profile.photo.startsWith('data:image/jpeg') && state.profile.photo.length<=40000",
-        "msg": "avatar is a small data URL"
-      }
-    ]
-  },
-  {
-    "name": "flows-settings-account",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('settings'), true"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "!!SZ.overlay.$('[data-action=flows-switch-account]') && !!SZ.overlay.$('[data-action=flows-logout]')",
-        "msg": "switch account and sign out"
-      },
-      {
-        "expect": "(SZ.overlay.$('[data-action=language] .row-value')?.textContent||'').trim()===SZ_I18N.meta().name",
-        "msg": "language row shows the language name"
-      },
-      {
-        "expect": "!/88002688|8800 2688/.test(SZ.overlay.top().el.textContent) || SZ.session.account.displayId==='88002688'",
-        "msg": "account ID comes from the session"
-      },
-      {
-        "click": "[data-sz-layer]:last-child [data-action=flows-toggle][data-id=marketing]"
-      },
-      {
-        "expect": "state.settings.marketing===true",
-        "msg": "marketing opt-in toggles"
-      },
-      {
-        "click": "[data-sz-layer]:last-child [data-action=flows-logout]"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "!!SZ.overlay.$('.sz-confirm-actions')",
-        "msg": "sign out asks first"
-      },
-      {
-        "shot": "confirm"
-      },
-      {
-        "click": "[data-sz-layer]:last-child [data-sz-confirm='0']"
-      },
-      {
-        "wait": 200
-      },
-      {
-        "expect": "SZ.session.isDemo && SZ.overlay.top().meta.flowsKey==='settings'",
-        "msg": "cancel keeps the session"
-      }
-    ]
-  },
-  {
-    "name": "flows-profile-interests",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "SZ.actions.dispatch('edit-profile'), true"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "eval": "['food','travel'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
-      },
-      {
-        "type": "[data-sz-layer]:last-child input[name=email]",
-        "value": "me@example.my"
-      },
-      {
-        "shot": "form"
-      },
-      {
-        "submit": "[data-sz-layer]:last-child form"
-      },
-      {
-        "wait": 400
-      },
-      {
-        "expect": "state.profile.interests.join()==='food,travel' && state.profile.email==='me@example.my' && SZ.overlay.depth()===0",
-        "msg": "interests and email saved"
-      },
-      {
-        "eval": "SZ.actions.dispatch('edit-profile'), true"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "SZ.overlay.$('input[name=interest][value=food]').checked && SZ.overlay.$('input[name=name]').value===profileName()",
-        "msg": "form shows saved interests and the display name"
-      },
-      {
-        "eval": "['music','movies','gaming'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
-      },
-      {
-        "expect": "SZ.overlay.$('input[name=interest][value=pets]').disabled",
-        "msg": "at most five interests"
-      }
-    ]
-  },
-  {
-    "name": "flows-wallet-bills",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "(()=>{const now=Date.now();state.bills.unshift({id:'qa1',kind:'chat-transfer',chatId:'p1',title:'好友转账 · 小满',amount:-12.5,method:'wallet',time:now-60000,i18n:{key:'chat.money.transferBill',params:{name:'小满'}}},{id:'qa2',kind:'gift',title:'购买礼物',amount:-9.9,method:'演示余额',time:now-120000},{id:'qa3',kind:'recharge',title:'',amount:50,method:'tng',ts:now-180000});return true})()"
-      },
-      {
-        "eval": "SZ.actions.dispatch('wallet'), true"
-      },
-      {
-        "wait": 400
-      },
-      {
-        "expect": "!!SZ.overlay.$('.flows-bill-link[data-kind=transfer][data-id=p1]') && SZ.overlay.$('.flows-bills').textContent.includes(SZ.fmt.time(Date.now()-60000))",
-        "msg": "chat transfer links to the chat, times via SZ.fmt"
-      },
-      {
-        "shot": "wallet"
-      }
-    ]
-  },
-  {
-    "name": "flows-gift-wall",
-    "hash": "me",
-    "steps": [
-      {
-        "eval": "(state.live=state.live||{}, state.live.giftHistory=[{id:'qa',giftId:'rose',name:'心动玫瑰',hostId:'p1',hostName:'小满',quantity:3,total:30,time:Date.now()-3600000}], SZ.actions.dispatch('gift-wall'), true)"
-      },
-      {
-        "wait": 300
-      },
-      {
-        "expect": "SZ.overlay.top().meta.flowsKey==='gift-wall' && SZ.overlay.top().el.querySelectorAll('.flows-bill').length===1",
-        "msg": "live gift history lists sent gifts"
-      }
-    ]
-  }
+ {
+  "name": "flows-settings",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "expect": "!!SZ.overlay.top()?.el.matches('.flows-settings')",
+    "msg": "settings screen open"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-settings [data-action=flows-logout]')",
+    "msg": "sign-out row for a signed-in account"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings-scrolled",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "eval": "SZ.overlay.top().el.scrollTo(0, 99999),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings-back",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "click": ".flows-settings [data-action=addresses]"
+   },
+   {
+    "expect": "SZ.overlay.depth()===2",
+    "msg": "addresses pushed over settings"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth()===1 && SZ.overlay.top().el.matches('.flows-settings')",
+    "msg": "back returns to settings"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth()===0",
+    "msg": "second back closes settings"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings-guest",
+  "hash": "me",
+  "session": "guest",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-account-card.is-guest')",
+    "msg": "guest sees sign-in card"
+   }
+  ]
+ },
+ {
+  "name": "flows-theme-dark",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "click": "[data-action=flows-theme]"
+   },
+   {
+    "click": "[data-action=flows-theme-set][data-id=dark]"
+   },
+   {
+    "expect": "document.documentElement.dataset.theme==='dark'",
+    "msg": "dark theme applied"
+   },
+   {
+    "shot": "sheet"
+   },
+   {
+    "key": "Escape"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "shot": "settings-dark"
+   },
+   {
+    "eval": "SZ_THEME.set('light'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-password-demo",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "click": "[data-action=flows-password]"
+   },
+   {
+    "expect": "SZ.overlay.top().el.matches('.overlay-backdrop') && !!SZ.overlay.top().el.querySelector('.flows-password')",
+    "msg": "password sheet open"
+   }
+  ]
+ },
+ {
+  "name": "flows-language",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('language'),true"
+   },
+   {
+    "expect": "document.querySelectorAll('.flows-language [data-action=flows-locale]').length>=2",
+    "msg": "languages listed"
+   }
+  ]
+ },
+ {
+  "name": "flows-export",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('export-data'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-block-unblock",
+  "hash": "social",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('block','p4'),true"
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.blocked.includes('p4')",
+    "msg": "blocked"
+   },
+   {
+    "eval": "SZ.actions.dispatch('flows-blocked'),true"
+   },
+   {
+    "shot": "list"
+   },
+   {
+    "click": "[data-action=flows-unblock][data-id=p4]"
+   },
+   {
+    "expect": "!state.blocked.includes('p4')",
+    "msg": "unblocked"
+   }
+  ]
+ },
+ {
+  "name": "flows-wallet",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('wallet'),true"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-balance-amount')",
+    "msg": "balance shown"
+   }
+  ]
+ },
+ {
+  "name": "flows-recharge",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "window.__before=state.wallet; SZ.actions.dispatch('wallet'); SZ.actions.dispatch('recharge'); true"
+   },
+   {
+    "click": ".flows-amount input[value='200']"
+   },
+   {
+    "click": ".flows-method input[value=fpx]"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "submit": ".flows-recharge form"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "shot": "authorising"
+   },
+   {
+    "wait": 1800
+   },
+   {
+    "expect": "Math.abs(state.wallet-(window.__before+200))<0.001",
+    "msg": "wallet credited"
+   },
+   {
+    "expect": "state.bills[0].kind==='recharge' && state.bills[0].method==='fpx'",
+    "msg": "bill recorded"
+   },
+   {
+    "click": ".flows-recharge [data-action=close]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.top()?.el.matches('.flows-wallet')",
+    "msg": "back on wallet"
+   }
+  ]
+ },
+ {
+  "name": "flows-recharge-guest",
+  "hash": "me",
+  "session": "guest",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('recharge'),true"
+   },
+   {
+    "expect": "!document.querySelector('.flows-recharge')",
+    "msg": "guest cannot top up"
+   }
+  ]
+ },
+ {
+  "name": "flows-checkin",
+  "hash": "me",
+  "setup": [
+   "(()=>{const k='sz:v2:state:demo';const s=JSON.parse(localStorage.getItem(k)||'{}');const iso=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Date.now()-86400000));s.checkin={streak:2,lastDate:iso,history:[iso]};localStorage.setItem(k,JSON.stringify(s));})()"
+  ],
+  "steps": [
+   {
+    "eval": "window.__pts=state.points; SZ.actions.dispatch('checkin'); true"
+   },
+   {
+    "shot": "before"
+   },
+   {
+    "click": ".flows-checkin [data-action=do-checkin]"
+   },
+   {
+    "expect": "state.checkin.lastDate===localDate() && state.checkin.streak===3",
+    "msg": "streak continued"
+   },
+   {
+    "expect": "state.points===window.__pts+10",
+    "msg": "10 beans added"
+   },
+   {
+    "expect": "document.querySelectorAll('.flows-day.is-done').length===3",
+    "msg": "3 days lit"
+   }
+  ]
+ },
+ {
+  "name": "flows-checkin-reload",
+  "hash": "me",
+  "steps": [
+   {
+    "expect": "typeof state.checkin==='object' && state.checkin.lastDate===localDate()",
+    "msg": "check-in survives reload"
+   },
+   {
+    "eval": "SZ.actions.dispatch('checkin'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-tasks",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('tasks'),true"
+   },
+   {
+    "expect": "document.querySelectorAll('.flows-task').length===5",
+    "msg": "five tasks"
+   }
+  ]
+ },
+ {
+  "name": "flows-coupons",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('coupons'),true"
+   },
+   {
+    "expect": "document.querySelectorAll('.flows-coupon').length>=1",
+    "msg": "coupons listed"
+   },
+   {
+    "expect": "ShizhongCoupons.available(100).length>=1 && ShizhongCoupons.available(10).length===0",
+    "msg": "coupon API honours minimum spend"
+   },
+   {
+    "click": "[data-action=flows-coupon-tab][data-id=expired]"
+   },
+   {
+    "expect": "document.querySelector('[data-action=flows-coupon-tab][data-id=expired]').getAttribute('aria-selected')==='true'",
+    "msg": "tab switched"
+   }
+  ]
+ },
+ {
+  "name": "flows-addresses",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "window.__n=state.address.length; SZ.actions.dispatch('addresses'); true"
+   },
+   {
+    "click": "[data-action=edit-address][data-id=new]"
+   },
+   {
+    "type": ".flows-address-form [name=name]",
+    "value": "Mei Ling"
+   },
+   {
+    "type": ".flows-address-form [name=phone]",
+    "value": "+60 12-888 1234"
+   },
+   {
+    "type": ".flows-address-form [name=address]",
+    "value": "Level 12, Menara Example, Jalan Ampang"
+   },
+   {
+    "type": ".flows-address-form [name=postcode]",
+    "value": "5045"
+   },
+   {
+    "submit": ".flows-address-form form"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-address-form [aria-invalid=true]')",
+    "msg": "bad postcode flagged"
+   },
+   {
+    "shot": "error"
+   },
+   {
+    "type": ".flows-address-form [name=postcode]",
+    "value": "50450"
+   },
+   {
+    "submit": ".flows-address-form form"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.address.length===window.__n+1",
+    "msg": "address saved"
+   },
+   {
+    "expect": "!!ShizhongAddresses.defaultFor()",
+    "msg": "address API"
+   }
+  ]
+ },
+ {
+  "name": "flows-address-delete-undo",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "window.__n=state.address.length; SZ.actions.dispatch('addresses'); true"
+   },
+   {
+    "click": ".flows-addresses [data-action=remove-address]"
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.address.length===window.__n-1",
+    "msg": "deleted"
+   },
+   {
+    "click": "#toast .toast-action"
+   },
+   {
+    "expect": "state.address.length===window.__n",
+    "msg": "undo restores"
+   }
+  ]
+ },
+ {
+  "name": "flows-form-dirty-guard",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('addresses'); SZ.actions.dispatch('edit-address','new'); true"
+   },
+   {
+    "type": ".flows-address-form [name=address]",
+    "value": "Something typed"
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!SZ.overlay.top().el.querySelector('.sz-confirm')",
+    "msg": "asks before discarding"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-confirm='0']"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "document.querySelector('.flows-address-form [name=address]')?.value==='Something typed'",
+    "msg": "draft kept"
+   }
+  ]
+ },
+ {
+  "name": "flows-notifications",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('notifications'),true"
+   },
+   {
+    "expect": "document.querySelectorAll('.flows-notice').length>=1",
+    "msg": "seeded notices"
+   },
+   {
+    "shot": "list"
+   },
+   {
+    "click": "[data-action=flows-notice-filter][data-id=social]"
+   },
+   {
+    "expect": "[...document.querySelectorAll('.flows-notice-icon')].every(e=>e.classList.contains('type-social'))",
+    "msg": "social filter"
+   },
+   {
+    "click": "[data-action=flows-notices-read]"
+   },
+   {
+    "expect": "ShizhongNotices.unread()===0",
+    "msg": "all read"
+   }
+  ]
+ },
+ {
+  "name": "flows-notice-push",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongNotices.push({type:'order',title:'Order SZ123 confirmed',body:'The merchant confirmed your booking.',action:{name:'orders',id:''}}),true"
+   },
+   {
+    "expect": "ShizhongNotices.unread()>=1 && document.querySelector('#toast').classList.contains('visible')",
+    "msg": "toast shown when alerts are on"
+   },
+   {
+    "eval": "state.settings.notifications=false; ShizhongNotices.push({type:'system',title:'Quiet'}); true"
+   },
+   {
+    "expect": "document.querySelector('#toast .toast-text').textContent!=='Quiet'",
+    "msg": "no toast when alerts are off"
+   },
+   {
+    "eval": "state.settings.notifications=true; save(); true"
+   }
+  ]
+ },
+ {
+  "name": "flows-edit-profile",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('edit-profile'),true"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "type": ".flows-profile [name=bio]",
+    "value": "Weekend hiker, weekday coffee person."
+   },
+   {
+    "submit": ".flows-profile form"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.profile.bio==='Weekend hiker, weekday coffee person.' && !document.querySelector('.flows-profile')",
+    "msg": "profile saved and closed"
+   }
+  ]
+ },
+ {
+  "name": "flows-compose",
+  "hash": "social",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('compose'),true"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "type": ".flows-compose [name=text]",
+    "value": "Found a quiet little café near Petaling Street."
+   },
+   {
+    "click": ".flows-compose .flows-chip input[value=food]"
+   },
+   {
+    "submit": ".flows-compose form"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "state.posts[0].text.startsWith('Found a quiet') && state.posts[0].topicId==='food' && ui.page==='social'",
+    "msg": "post published"
+   }
+  ]
+ },
+ {
+  "name": "flows-greet",
+  "hash": "social",
+  "steps": [
+   {
+    "eval": "window.__p=people.find(p=>!state.greeted.includes(p.id)&&!state.blocked.includes(p.id)).id; SZ.actions.dispatch('greet', window.__p); true"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "shot": "sheet"
+   },
+   {
+    "click": ".flows-greet [data-action=greeting-text]:nth-child(2)"
+   },
+   {
+    "submit": ".flows-greet form"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "state.greeted.includes(window.__p)",
+    "msg": "greeted"
+   }
+  ]
+ },
+ {
+  "name": "flows-friends",
+  "hash": "comms",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('new-friends'),true"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "shot": "list"
+   },
+   {
+    "eval": "window.__in=state.friendRequests.incoming.length,true"
+   },
+   {
+    "click": ".flows-friends [data-action=accept-friend]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.friendRequests.incoming.length===window.__in-1",
+    "msg": "request accepted"
+   }
+  ]
+ },
+ {
+  "name": "flows-add-friend",
+  "hash": "comms",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('add-friend'),true"
+   },
+   {
+    "type": ".flows-add-friend [name=account]",
+    "value": "12"
+   },
+   {
+    "submit": ".flows-add-friend form"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-add-friend [aria-invalid=true]')",
+    "msg": "invalid id flagged"
+   },
+   {
+    "type": ".flows-add-friend [name=account]",
+    "value": "12345678"
+   },
+   {
+    "submit": ".flows-add-friend form"
+   },
+   {
+    "wait": 5500
+   },
+   {
+    "expect": "state.friendRequests.outgoing[0].status==='accepted'",
+    "msg": "demo request accepted"
+   }
+  ]
+ },
+ {
+  "name": "flows-invite",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('invite'),true"
+   },
+   {
+    "expect": "document.querySelector('.flows-invite-code strong').textContent==='SZ88002688'",
+    "msg": "code from display id"
+   }
+  ]
+ },
+ {
+  "name": "flows-merchant",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('merchant'),true"
+   },
+   {
+    "type": ".flows-merchant [name=name]",
+    "value": "Sunny Home Care"
+   },
+   {
+    "type": ".flows-merchant [name=text]",
+    "value": "Weekly cleaning around Petaling Jaya."
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "submit": ".flows-merchant form"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "state.feedback[0].kind==='merchant'",
+    "msg": "application stored"
+   }
+  ]
+ },
+ {
+  "name": "flows-feedback",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('feedback'),true"
+   },
+   {
+    "submit": ".flows-feedback form"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-feedback .form-error')",
+    "msg": "required message shown"
+   },
+   {
+    "type": ".flows-feedback [name=text]",
+    "value": "Dark mode looks great."
+   },
+   {
+    "submit": ".flows-feedback form"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!document.querySelector('.flows-success-sheet')",
+    "msg": "thanks sheet"
+   }
+  ]
+ },
+ {
+  "name": "flows-after-sales",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('after-sales'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-report",
+  "hash": "social",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('report','p3'),true"
+   },
+   {
+    "submit": ".flows-report form"
+   },
+   {
+    "expect": "!!document.querySelector('.flows-report .form-error')",
+    "msg": "reason required"
+   },
+   {
+    "click": ".flows-report input[value=spam]"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "submit": ".flows-report form"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "state.feedback[0].kind==='report' && state.feedback[0].reason==='spam'",
+    "msg": "report stored"
+   }
+  ]
+ },
+ {
+  "name": "flows-leave-group",
+  "hash": "comms",
+  "steps": [
+   {
+    "eval": "if(!state.joined.includes('g1')){state.joined.push('g1');save()} SZ.actions.dispatch('leave-group','g1'); true"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-confirm='1']"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!state.joined.includes('g1')",
+    "msg": "left group"
+   }
+  ]
+ },
+ {
+  "name": "flows-help",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('help'),true"
+   },
+   {
+    "click": ".flows-faq summary"
+   }
+  ]
+ },
+ {
+  "name": "flows-privacy",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('privacy'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-about",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('about'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-licences",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('about'),true"
+   },
+   {
+    "click": "[data-action=flows-licences]"
+   },
+   {
+    "expect": "SZ.overlay.depth()===2",
+    "msg": "licences pushed over about"
+   }
+  ]
+ },
+ {
+  "name": "flows-membership",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('membership'),true"
+   }
+  ]
+ },
+ {
+  "name": "flows-clear-media-confirm",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'),true"
+   },
+   {
+    "click": "[data-action=flows-clear-media]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!SZ.overlay.top().el.querySelector('.sz-confirm')",
+    "msg": "confirmation first"
+   }
+  ]
+ },
+ {
+  "name": "flows-compose-photo",
+  "hash": "social",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('compose'),true"
+   },
+   {
+    "eval": "(async()=>{await new Promise(r=>setTimeout(r,300));const c=document.createElement('canvas');c.width=900;c.height=600;const g=c.getContext('2d');g.fillStyle='rgb(230,120,90)';g.fillRect(0,0,900,600);g.fillStyle='rgb(40,90,160)';g.fillRect(300,150,300,300);const blob=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([blob],'photo.png',{type:'image/png'});const dt=new DataTransfer();dt.items.add(f);const inp=document.querySelector('.flows-compose [data-flows-upload]');inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "expect": "!!document.querySelector('.flows-compose .flows-upload.has-file img')",
+    "msg": "photo preview shown"
+   },
+   {
+    "shot": "preview"
+   },
+   {
+    "type": ".flows-compose [name=text]",
+    "value": "Sunset colours tonight."
+   },
+   {
+    "submit": ".flows-compose form"
+   },
+   {
+    "wait": 800
+   },
+   {
+    "expect": "SZ.media.isRef(state.posts[0].image) && !JSON.stringify(state).includes('data:image/png')",
+    "msg": "photo stored in SZ.media, not in state"
+   }
+  ]
+ },
+ {
+  "name": "flows-avatar-upload",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('edit-profile'),true"
+   },
+   {
+    "eval": "(async()=>{await new Promise(r=>setTimeout(r,300));const c=document.createElement('canvas');c.width=900;c.height=600;const g=c.getContext('2d');g.fillStyle='rgb(230,120,90)';g.fillRect(0,0,900,600);g.fillStyle='rgb(40,90,160)';g.fillRect(300,150,300,300);const blob=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([blob],'photo.png',{type:'image/png'});const dt=new DataTransfer();dt.items.add(f);const inp=document.querySelector('.flows-profile [data-flows-upload]');inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true})()"
+   },
+   {
+    "wait": 1500
+   },
+   {
+    "shot": "preview"
+   },
+   {
+    "submit": ".flows-profile form"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "state.profile.photo.startsWith('data:image/jpeg') && state.profile.photo.length<=40000",
+    "msg": "avatar is a small data URL"
+   }
+  ]
+ },
+ {
+  "name": "flows-settings-account",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('settings'), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!SZ.overlay.$('[data-action=flows-switch-account]') && !!SZ.overlay.$('[data-action=flows-logout]')",
+    "msg": "switch account and sign out"
+   },
+   {
+    "expect": "(SZ.overlay.$('[data-action=language] .row-value')?.textContent||'').trim()===SZ_I18N.meta().name",
+    "msg": "language row shows the language name"
+   },
+   {
+    "expect": "!/88002688|8800 2688/.test(SZ.overlay.top().el.textContent) || SZ.session.account.displayId==='88002688'",
+    "msg": "account ID comes from the session"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=flows-toggle][data-id=marketing]"
+   },
+   {
+    "expect": "state.settings.marketing===true",
+    "msg": "marketing opt-in toggles"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-action=flows-logout]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "!!SZ.overlay.$('.sz-confirm-actions')",
+    "msg": "sign out asks first"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": "[data-sz-layer]:last-child [data-sz-confirm='0']"
+   },
+   {
+    "wait": 200
+   },
+   {
+    "expect": "SZ.session.isDemo && SZ.overlay.top().meta.flowsKey==='settings'",
+    "msg": "cancel keeps the session"
+   }
+  ]
+ },
+ {
+  "name": "flows-profile-interests",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "SZ.actions.dispatch('edit-profile'), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "eval": "['food','travel'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
+   },
+   {
+    "type": "[data-sz-layer]:last-child input[name=email]",
+    "value": "me@example.my"
+   },
+   {
+    "shot": "form"
+   },
+   {
+    "submit": "[data-sz-layer]:last-child form"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "state.profile.interests.join()==='food,travel' && state.profile.email==='me@example.my' && SZ.overlay.depth()===0",
+    "msg": "interests and email saved"
+   },
+   {
+    "eval": "SZ.actions.dispatch('edit-profile'), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.$('input[name=interest][value=food]').checked && SZ.overlay.$('input[name=name]').value===profileName()",
+    "msg": "form shows saved interests and the display name"
+   },
+   {
+    "eval": "['music','movies','gaming'].forEach(v=>SZ.overlay.$('input[name=interest][value='+v+']').click()), true"
+   },
+   {
+    "expect": "SZ.overlay.$('input[name=interest][value=pets]').disabled",
+    "msg": "at most five interests"
+   }
+  ]
+ },
+ {
+  "name": "flows-wallet-bills",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "(()=>{const now=Date.now();state.bills.unshift({id:'qa1',kind:'chat-transfer',chatId:'p1',title:'好友转账 · 小满',amount:-12.5,method:'wallet',time:now-60000,i18n:{key:'chat.money.transferBill',params:{name:'小满'}}},{id:'qa2',kind:'gift',title:'购买礼物',amount:-9.9,method:'演示余额',time:now-120000},{id:'qa3',kind:'recharge',title:'',amount:50,method:'tng',ts:now-180000});return true})()"
+   },
+   {
+    "eval": "SZ.actions.dispatch('wallet'), true"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!SZ.overlay.$('.flows-bill-link[data-kind=transfer][data-id=p1]') && SZ.overlay.$('.flows-bills').textContent.includes(SZ.fmt.time(Date.now()-60000))",
+    "msg": "chat transfer links to the chat, times via SZ.fmt"
+   },
+   {
+    "shot": "wallet"
+   }
+  ]
+ },
+ {
+  "name": "flows-gift-wall",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "(state.live=state.live||{}, state.live.giftHistory=[{id:'qa',giftId:'rose',name:'心动玫瑰',hostId:'p1',hostName:'小满',quantity:3,total:30,time:Date.now()-3600000}], SZ.actions.dispatch('gift-wall'), true)"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "SZ.overlay.top() && SZ.overlay.top().el.querySelectorAll('.lr-history-row, .flows-bill').length===1",
+    "msg": "live gift history lists sent gifts (screen owned by the live module)"
+   }
+  ]
+ }
 ]

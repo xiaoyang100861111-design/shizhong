@@ -57,3 +57,218 @@ ok   catalog-live-topic               top='-' depth=0
 ok   catalog-comms                    top='-' depth=0
 ok   catalog-comms-groups             top='-' depth=0
 ok   catalog-comms-contacts           top='-' depth=0
+ok   catalog-group-detail             top='Group details' depth=1
+ok   catalog-chat-search              top='Search chats' depth=1
+ok   catalog-guest-book               top='Sign in to continue' depth=3
+ok   catalog-deeplink                 top='Service details' depth=1
+ok   catalog-campaign                 top='Hello, Malaysia' depth=1
+ok   catalog-all-services             top='All services' depth=1
+ok   catalog-saved                    top='Saved' depth=1
+ok   catalog-stat-follows             top='Following' depth=1
+ok   catalog-coupon                   top='Payment successful' depth=3
+ok   catalog-topup                    top='Review order' depth=3
+ok   catalog-visa-enquiry             top='Question sent' depth=2
+ok   catalog-reorder                  top='Booking details' depth=2
+ok   catalog-group-join-leave         top='-' depth=0
+ok   catalog-create-group             top='Test crew' depth=1
+ok   catalog-block-person             top='-' depth=0
+ok   catalog-guest-follow             top='Sign in to continue' depth=1
+ok   catalog-live-private             top='-' depth=0
+ok   catalog-picker-back              top='-' depth=0
+ok   catalog-auth-back                top='Review order' depth=4
+ok   e2e-order-lifecycle              top='Order details' depth=6
+ok   e2e-guest-clean                  top='My orders' depth=1
+ok   e2e-orders-filters               top='My orders' depth=1
+ok   e2e-comms-refresh                top='-' depth=0
+ok   chat-friend                      top='ManMan' depth=1
+ok   chat-back                        top='-' depth=0
+ok   chat-plus-panel                  top='ManMan' depth=1
+ok   chat-emoji-panel                 top='ManMan' depth=1
+ok   chat-send-reply                  top='ManMan' depth=1
+ok   chat-message-menu                top='Message' depth=2
+ok   chat-quote-reply                 top='ManMan' depth=1
+ok   chat-recall                      top='ManMan' depth=1
+ok   chat-delete-undo                 top='ManMan' depth=1
+ok   chat-forward                     top='ManMan' depth=1
+ok   chat-search                      top='ManMan' depth=1
+ok   chat-voice-call                  top='ManMan' depth=2
+ok   chat-call-end                    top='ManMan' depth=1
+ok   chat-video-call                  top='ManMan' depth=2
+ok   chat-redpacket                   top='Send a red packet' depth=2
+ok   chat-redpacket-send              top='ManMan' depth=1
+ok   chat-redpacket-detail            top='Transfer details' depth=2
+ok   chat-money-back                  top='ManMan' depth=1
+ok   chat-group                       top='KL · Weekend Hangouts' depth=1
+ok   chat-group-redpacket             top='KL · Weekend Hangouts' depth=1
+ok   chat-location                    top='ManMan' depth=1
+ok   chat-card                        top='ManMan' depth=1
+ok   chat-image                       top='ManMan' depth=1
+ok   chat-file                        top='File' depth=2
+ok   chat-voice                       top='ManMan' depth=1
+ok   chat-support                     top='Shizhong Assistant' depth=1
+ok   chat-merchant                    top='Anxin Home Care' depth=1
+ok   chat-unread-reply                top='-' depth=0
+ok   chat-guest                       top='Sign in to continue' depth=2
+ok   chat-expiry-refund               top='Kelsey' depth=1
+ok   chat-clear                       top='Alex' depth=1
+ok   chat-legacy-media                top='File' depth=2
+ok   chat-hold-to-talk                top='ManMan' depth=1
+ok   chat-longpress                   top='ManMan' depth=1
+ok   e2e-chat-reply-badge             top='-' depth=0
+ok   e2e-redpacket-wallet             top='ManMan' depth=1
+ok   core-switch-keeps-data           top='-' depth=0
+ok   core-back-button                 top='-' depth=0
+ok   flows-settings                   top='Settings' depth=1
+ok   flows-settings-scrolled          top='Settings' depth=1
+ok   flows-settings-back              top='-' depth=0
+ok   flows-settings-guest             top='Settings' depth=1
+ok   flows-theme-dark                 top='Settings' depth=1
+ok   flows-password-demo              top='Change password' depth=2
+ok   flows-language                   top='Language & region' depth=1
+ok   flows-export                     top='Export my data' depth=1
+ok   flows-block-unblock              top='Blocked people' depth=1
+ok   flows-wallet                     top='Wallet' depth=1
+ok   flows-recharge                   top='Wallet' depth=1
+ok   flows-recharge-guest             top='Sign in to continue' depth=1
+ok   flows-checkin                    top='Daily check-in' depth=1
+ok   flows-checkin-reload             top='Daily check-in' depth=1
+ok   flows-tasks                      top='Tasks' depth=1
+ok   flows-coupons                    top='Coupons' depth=1
+ok   flows-addresses                  top='Saved addresses' depth=1
+ok   flows-address-delete-undo        top='Saved addresses' depth=1
+ok   flows-form-dirty-guard           top='Add address' depth=2
+ok   flows-notifications              top='Notifications' depth=1
+ok   flows-notice-push                top='-' depth=0
+ok   flows-edit-profile               top='-' depth=0
+ok   flows-compose                    top='-' depth=0
+ok   flows-greet                      top='ManMan' depth=1
+ok   flows-friends                    top='New friends' depth=1
+ok   flows-add-friend                 top='-' depth=0
+ok   flows-invite                     top='Invite friends' depth=1
+ok   flows-merchant                   top='Application sent' depth=1
+ok   flows-feedback                   top='Thanks for your feedback' depth=1
+ok   flows-after-sales                top='Order help' depth=1
+ok   flows-report                     top='Report received' depth=1
+ok   flows-leave-group                top='-' depth=0
+ok   flows-help                       top='Help & feedback' depth=1
+ok   flows-privacy                    top='Privacy policy' depth=1
+ok   flows-about                      top='About Shizhong' depth=1
+ok   flows-licences                   top='Licences & credits' depth=2
+ok   flows-membership                 top='Shizhong PLUS' depth=1
+ok   flows-clear-media-confirm        top='Clear chat attachments?' depth=2
+ok   flows-compose-photo              top='-' depth=0
+ok   flows-avatar-upload              top='-' depth=0
+ok   flows-settings-account           top='Settings' depth=1
+ok   flows-profile-interests          top='Edit profile' depth=1
+ok   flows-wallet-bills               top='Wallet' depth=1
+FAIL flows-gift-wall                  top='Live gifts sent' depth=1
+      expect failed: live gift history lists sent gifts -> False
+ok   gifts-me-hero                    top='-' depth=0
+ok   gifts-shop-malaysia              top='Gift details' depth=2
+ok   gifts-me-guest                   top='-' depth=0
+ok   gifts-shop                       top='Gift shop' depth=1
+ok   gifts-shop-oriental              top='Gift shop' depth=1
+ok   gifts-shop-back                  top='-' depth=0
+ok   gifts-detail                     top='Gift details' depth=2
+ok   gifts-detail-tryon               top='Gift details' depth=1
+ok   gifts-buy                        top='Gift details' depth=1
+ok   gifts-topup                      top='Gift details' depth=1
+ok   gifts-collection                 top='My collection' depth=1
+ok   gifts-collection-purchases       top='My collection' depth=1
+ok   gifts-studio                     top='Decorate profile' depth=1
+ok   gifts-studio-edit                top='Decorate profile' depth=1
+ok   gifts-studio-save                top='-' depth=0
+ok   gifts-studio-discard             top='-' depth=0
+ok   gifts-studio-upload              top='-' depth=0
+ok   gifts-migrate-cover              top='-' depth=0
+ok   gifts-studio-roundtrip           top='Decorate profile' depth=1
+ok   gifts-studio-charm-tryon         top='Decorate profile' depth=1
+ok   gifts-picker                     top='-' depth=0
+ok   gifts-picker-back                top='Send a gift' depth=1
+ok   gifts-bubbles                    top='QA' depth=1
+ok   gifts-wallpaper                  top='Chat wallpaper' depth=1
+ok   gifts-qr-card                    top='My QR code' depth=1
+ok   gifts-qr-image                   top='My QR code' depth=1
+ok   gifts-qr-public                  top='Profile card' depth=1
+ok   gifts-friend-profile             top='Profile' depth=1
+ok   gifts-effect                     top='-' depth=0
+ok   gifts-chat-picker                top='ManMan' depth=1
+ok   live-room                        top='Tonight, leave your worries at the door' depth=1
+ok   live-room-back                   top='-' depth=0
+ok   live-profile-card-back           top='Tonight, leave your worries at the door' depth=1
+ok   live-gift-panel                  top='Send a gift' depth=2
+ok   live-gift-select-inplace         top='Send a gift' depth=2
+ok   live-gift-combo                  top='Tonight, leave your worries at the door' depth=1
+ok   live-swipe                       top='Tonight, leave your worries at the door' depth=1
+ok   live-next-filter                 top='Swap a song for today: my easy outing ro' depth=1
+ok   live-likes                       top='Tonight, leave your worries at the door' depth=1
+ok   live-report                      top='Tonight, leave your worries at the door' depth=1
+ok   live-block-host                  top='Waiting for a gentle sunset together' depth=1
+ok   live-square                      top='-' depth=0
+ok   live-deeplink                    top='Waiting for a gentle sunset together' depth=1
+ok   live-guest-gift                  top='Sign in to continue' depth=3
+ok   live-start                       top='Live summary' depth=1
+ok   live-gift-wall                   top='Live gifts sent' depth=1
+ok   private-lobby                    top='-' depth=0
+ok   private-recent                   top='-' depth=0
+ok   private-host-sheet               top='Pan Yutong' depth=1
+ok   private-room                     top='Pan Yutong' depth=1
+ok   private-controls                 top='Pan Yutong' depth=1
+ok   private-states                   top='Pan Yutong' depth=1
+ok   private-gifts                    top='Pan Yutong' depth=1
+ok   private-back-confirm             top='-' depth=0
+ok   private-ended                    top='Pan Yutong' depth=1
+ok   private-low-balance              top='Pan Yutong' depth=1
+ok   private-no-answer                top='Gu Yuxin' depth=1
+ok   private-history                  top='Call history' depth=1
+ok   private-block                    top='-' depth=0
+ok   private-guest                    top='Sign in to continue' depth=1
+ok   private-more                     top='Gifts on this call' depth=2
+ok   private-dark                     top='Host profile' depth=1
+ok   regions-picker                   top='Choose your location' depth=1
+ok   regions-search-select            top='Choose your location' depth=1
+ok   regions-data-fixes               top='Choose your location' depth=1
+ok   regions-fuzzy                    top='Choose your location' depth=1
+ok   regions-global                   top='-' depth=0
+ok   regions-field-push               top='Edit profile' depth=1
+ok   regions-pick-api                 top='-' depth=0
+ok   regions-locate                   top='Choose your location' depth=1
+ok   regions-custom                   top='-' depth=0
+ok   regions-state-filter             top='Choose your location' depth=1
+ok   regions-info                     top='Choose your location' depth=1
+ok   regions-back-button              top='-' depth=0
+ok   shell-home                       top='-' depth=0
+ok   shell-home-scrolled              top='-' depth=0
+ok   shell-social                     top='-' depth=0
+ok   shell-live                       top='-' depth=0
+ok   shell-comms                      top='-' depth=0
+ok   shell-nav-switch                 top='-' depth=0
+ok   shell-tabs-keyboard              top='-' depth=0
+ok   shell-me                         top='-' depth=0
+ok   shell-me-scrolled                top='-' depth=0
+ok   shell-me-fallback-hero           top='-' depth=0
+ok   shell-me-orders                  top='-' depth=0
+ok   shell-me-settings-back           top='-' depth=0
+ok   shell-me-language-row            top='-' depth=0
+ok   shell-guest-me                   top='-' depth=0
+ok   shell-guest-sign-in              top='Sign in to continue' depth=1
+ok   shell-sheet-footer               top='-' depth=0
+ok   shell-screen-stack               top='One' depth=1
+ok   shell-desktop                    top='-' depth=0
+ok   shell-me-checkin-refresh         top='-' depth=0
+ok   shell-module-defaults            top='-' depth=0
+ok   vip-me-card                      top='-' depth=0
+ok   vip-me-guest                     top='-' depth=0
+ok   vip-badge                        top='-' depth=0
+ok   vip-centre                       top='VIP Centre' depth=1
+ok   vip-centre-themes                top='VIP Centre' depth=1
+ok   vip-centre-earn                  top='VIP Centre' depth=1
+ok   vip-levels                       top='VIP Centre' depth=1
+ok   vip-levels-current               top='VIP levels' depth=2
+ok   vip-preview                      top='-' depth=0
+ok   vip-wear                         top='VIP Centre' depth=1
+ok   vip-toggle                       top='VIP Centre' depth=1
+ok   vip-entry-quick                  top='-' depth=0
+ok   vip-entry-auto                   top='-' depth=0
+
+271 scenarios, 1 failing. Report: E:\python\shizhongapp\.qa\en-320\report.json
