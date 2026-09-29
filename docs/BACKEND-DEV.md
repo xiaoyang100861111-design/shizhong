@@ -98,6 +98,11 @@ public sealed class CommerceModule : IModule {
 - Strings: add a file `locales/server-<area>.js` with `SZ_I18N.extend('zh-CN', {...}); SZ_I18N.extend('en', {...});`
   (error texts under `server.error.<code>`), and a `<script ... defer>` line in index.html right after `locales/server.js`.
 - Media: `SZ.media.put(blob)` uploads in server mode and returns a `media:` ref; `SZ.media.src(ref)` is a URL.
+- Images in `assets/` are WebP. Add a new picture as .jpg/.png and run `python3 tools/perf/optimize_images.py` (converts,
+  makes the 320-px copies of photos, rewrites every reference, deletes the original; `--check` in CI). In templates use
+  `asset(ref)`, `thumbAsset(ref)` for avatars/thumbnails ≤ 100 px, `srcsetAttr(ref, sizes)` for photos, and
+  `loading="lazy" decoding="async"` below the fold. Fonts: `var(--font-sans | --font-num | --font-mono)` only (core/tokens.css).
+  Details and measurements: `docs/性能优化报告.md`.
 - Voice/video: `SZ.rtc` (core/rtc.js) — see the header comment. Scope authorisation is server-side (`IRtcScope`).
 - Fake behaviour of the prototype (auto replies, simulated merchants, free bean claims, random acceptances…) must be off in server mode
   unless it is operations content (personas), and then it should be configurable.
