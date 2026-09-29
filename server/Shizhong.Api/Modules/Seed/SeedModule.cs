@@ -234,10 +234,11 @@ public sealed class SeedRunner(Db db, ConfigService cfg, IServiceProvider servic
     }
 }
 
-/// <summary>Command line: <c>--seed [--scale 1.0] [--reset] [--seed-random N]</c>, <c>--seed-clear</c>, <c>--seed-verify</c>. Runs after migrations and bootstraps, then exits.</summary>
+/// <summary>Command line: <c>--seed [--scale 1.0] [--reset] [--seed-random N]</c>, <c>--seed-clear</c>, <c>--seed-verify</c>,
+/// <c>--seed-risk [--reset]</c> (top-up of the risk / Blue V data only). Runs after migrations and bootstraps, then exits.</summary>
 public static class SeedCli
 {
-    static readonly string[] Flags = ["--seed", "--seed-clear", "--seed-verify"];
+    static readonly string[] Flags = ["--seed", "--seed-clear", "--seed-verify", "--seed-risk"];
 
     public static bool Requested(string[] args) => args.Any(a => Flags.Contains(a));
 
@@ -276,7 +277,13 @@ public static class SeedCli
                 Console.WriteLine($"Seed finished in {job.Seconds:0.0}s");
                 Console.WriteLine(Json.Serialize(job.Summary));
             }
-            if (args.Contains("--seed-verify") || args.Contains("--seed"))
+            if (args.Contains("--seed-risk"))
+            {
+                // top-up: only the 风控中心 / Blue V data, on a database that already has generated members (--reset redoes just this part)
+                var summary = await SeedRisk.TopUpAsync(db, args.Contains("--reset"), (int)Arg("--seed-random", SeedGenerator.DefaultRandomSeed), Print);
+                Console.WriteLine("Risk seed: " + Json.Serialize(summary));
+            }
+            if (args.Contains("--seed-verify") || args.Contains("--seed") || args.Contains("--seed-risk"))
             {
                 var checks = await SeedCleaner.VerifyAsync(db);
                 Console.WriteLine("Consistency checks:");
