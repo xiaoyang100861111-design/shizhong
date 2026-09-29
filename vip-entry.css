@@ -1,4 +1,8 @@
-/* Original gold / rose / cosmic / imperial entrances. Below room drawers (120). */
+/*
+ * VIP entrances (vip-entry.js): full-screen gold / rose / cosmic / imperial stages and the quick
+ * "joined" banner. Immersive artwork, so theme colours are literal (always on a dark stage).
+ * Stacks below room drawers (120).
+ */
 .vpe-stage {
   --vpe-duration: 3800ms;
   --vpe-light: #ffe7ae;
@@ -198,19 +202,22 @@
 .vpe-eyebrow {
   margin: 0 0 8px;
   padding-left: 7px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
   line-height: 1.5;
+  text-transform: uppercase;
   color: var(--vpe-metal);
 }
 .vpe-headline {
   margin: 0;
-  font-size: clamp(30px, 8.8vw, 39px);
+  max-width: 100%;
+  font-size: clamp(28px, 8.4vw, 38px);
   font-weight: 800;
-  line-height: 1.4;
-  letter-spacing: 4px;
-  padding-left: 4px;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  padding-left: 0.08em;
+  text-wrap: balance;
   color: var(--vpe-light);
   text-shadow:
     0 1px 0 #fff3,
@@ -351,9 +358,9 @@
   width: 100%;
   margin-top: 28px;
   color: var(--vpe-metal);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
-  letter-spacing: 3px;
+  letter-spacing: 0.2em;
 }
 .vpe-welcome-rule {
   width: 43px;
@@ -369,8 +376,8 @@
   font-size: 16px;
   font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 5px;
-  padding-left: 5px;
+  letter-spacing: 0.16em;
+  padding-left: 0.16em;
 }
 .vpe-stage .vpe-skip {
   position: absolute;
@@ -385,9 +392,10 @@
   border: 1px solid #fff2;
   border-radius: 24px;
   background: #08060d3d;
-  color: #efe2d0;
+  color: #f6efe4;
   font: inherit;
-  font-size: 11px;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
   pointer-events: auto;
@@ -405,9 +413,9 @@
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   color: var(--vpe-metal);
   text-align: center;
-  font-size: 10px;
-  letter-spacing: 2px;
-  opacity: 0.75;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  opacity: 0.85;
 }
 .vpe-announcement {
   position: absolute;
@@ -565,7 +573,7 @@
     top: 48%;
   }
   .vpe-eyebrow {
-    font-size: 9px;
+    font-size: 11px;
     margin-bottom: 3px;
   }
   .vpe-headline {
@@ -637,7 +645,7 @@
   }
   .vpe-preview-label {
     bottom: 7px;
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 /* A keyboard can shorten the live-room container without resizing the layout viewport. */
@@ -672,7 +680,7 @@
     top: 48%;
   }
   .vpe-eyebrow {
-    font-size: 9px;
+    font-size: 11px;
     margin-bottom: 3px;
   }
   .vpe-headline {
@@ -744,7 +752,7 @@
   }
   .vpe-preview-label {
     bottom: 7px;
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -768,5 +776,104 @@
   .vpe-crown {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- quick "joined" banner (re-entering rooms) ---------- */
+.vpe-banner {
+  --vpe-light: #ffe7ae;
+  --vpe-metal: #d7aa55;
+  --vpe-tint: #3a2616;
+  position: absolute;
+  z-index: 110;
+  top: 38%;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+  animation: vpe-banner-slide var(--vpe-banner-duration, 2000ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.vpe-banner-rose {
+  --vpe-light: #ffe0d3;
+  --vpe-metal: #e3a0a3;
+  --vpe-tint: #3d1627;
+}
+.vpe-banner-cosmic {
+  --vpe-light: #eee1ff;
+  --vpe-metal: #b6b2ec;
+  --vpe-tint: #1d1d44;
+}
+.vpe-banner-imperial {
+  --vpe-light: #fff0bd;
+  --vpe-metal: #e8bd62;
+  --vpe-tint: #4a1119;
+}
+.vpe-banner-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vpe-tint), rgba(18, 14, 20, 0.74) 70%, rgba(18, 14, 20, 0.56));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vpe-metal) 55%, transparent);
+  color: #fff8ee;
+}
+.vpe-banner-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1.5px var(--vpe-metal);
+}
+.vpe-banner-plaque {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, var(--vpe-light), var(--vpe-metal));
+  color: #2a1a08;
+  font-family: var(--font-num, system-ui, sans-serif);
+  line-height: 1.2;
+}
+.vpe-banner-plaque small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.vpe-banner-plaque b {
+  font-size: 13px;
+  font-weight: 800;
+}
+.vpe-banner-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+@keyframes vpe-banner-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  14%,
+  82% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vpe-banner {
+    animation: none;
   }
 }
