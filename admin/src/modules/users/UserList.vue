@@ -31,7 +31,7 @@
       <el-table v-loading="list.loading.value" :data="list.items.value" stripe @sort-change="onSort">
         <el-table-column :label="t('common.user')" min-width="200">
           <template #default="{ row }">
-            <UserCell :id="row.id" :name="row.name" :avatar="row.avatar" :display-id="row.displayId" />
+            <UserCell :id="row.id" :name="row.name" :avatar="row.avatar" :display-id="row.displayId" :verified="row.verified" :verified-label="row.verifiedLabel" />
           </template>
         </el-table-column>
         <el-table-column :label="t('common.phone') + ' / ' + t('common.email')" min-width="180">

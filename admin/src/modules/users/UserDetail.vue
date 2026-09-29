@@ -2,7 +2,7 @@
   <div class="page" v-loading="loading">
     <div class="page-head">
       <el-button :icon="IconBack" circle @click="$router.back()" />
-      <UserCell v-if="u" :name="u.name" :avatar="u.avatar" :display-id="u.displayId" :size="44" :link="false" />
+      <UserCell v-if="u" :name="u.name" :avatar="u.avatar" :display-id="u.displayId" :size="44" :link="false" :verified="u.verified" :verified-label="u.verifiedLabel" />
       <el-tag v-if="u?.status === 1" type="danger">{{ t('users.disabledTag') }}</el-tag>
       <el-tag v-if="u?.mutedUntil && u.mutedUntil > Date.now()" type="warning">{{ t('users.muted', { time: dateTime(u.mutedUntil) }) }}</el-tag>
       <el-tag v-if="u?.online" type="success">{{ t('users.online') }}</el-tag>
