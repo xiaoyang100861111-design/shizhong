@@ -559,7 +559,7 @@
 <div class="oo-quick" role="group" aria-label="${esc(t('private.room.quick'))}">${heart ? act('oo-heart', heart.id, `<img src="${esc(giftArt(heart))}" alt="">${esc(t('private.room.sendHeart'))}`, 'oo-quick-chip oo-quick-gift') : ''}${quick.map((text, i) => act('oo-quick', String(i), `<span>${html(text)}</span>`, 'oo-quick-chip', topics.length ? 'data-kind="topic"' : '')).join('')}</div>
 <form class="oo-composer" data-form="oo-message"><input name="text" maxlength="160" autocomplete="off" enterkeyhint="send" placeholder="${esc(t('private.room.placeholder'))}" aria-label="${esc(t('private.room.messageLabel'))}"><button type="submit" class="oo-send" aria-label="${esc(t('private.room.send'))}">${icon('plane')}</button>${act('oo-gifts', '', icon('gift'), 'oo-gift-btn', `aria-label="${esc(t('private.room.gifts'))}"`)}</form>
 <div class="oo-controls">${control('mic', 'mic', t('private.ctrl.mic'), true)}${control('camera', 'video', t('private.ctrl.camera'), true)}${control('flip', 'camera', t('private.ctrl.flip'))}${control('speaker', 'volume', t('private.ctrl.speaker'), true)}<button type="button" class="oo-ctrl oo-hangup" data-action="oo-hangup" aria-label="${esc(t('private.ctrl.cancel'))}"><span class="oo-ctrl-icon">${icon('phone')}</span><span class="oo-ctrl-label" aria-hidden="true"></span></button></div>
-<p class="oo-demo-note">${esc(t('private.room.demoNote'))}</p>
+<p class="oo-demo-note">${esc(t(SERVER ? 'srvlive.private.billingNote' : 'private.room.demoNote'))}</p>
 </div>
 </section>`;
   }

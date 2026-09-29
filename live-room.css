@@ -1479,7 +1479,7 @@
 .lr-novideo,
 .lr-unmute {
   position: absolute;
-  top: calc(var(--safe-top, 0px) + 116px);
+  top: calc(var(--safe-top, 0px) + 176px);
   left: 50%;
   z-index: 2;
   max-width: calc(100% - 32px);
@@ -1496,7 +1496,7 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  top: calc(var(--safe-top, 0px) + 150px);
+  top: calc(var(--safe-top, 0px) + 214px);
   border: 0;
 }
 .lr-unmute[hidden],

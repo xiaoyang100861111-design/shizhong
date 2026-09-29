@@ -60,6 +60,7 @@ SZ_I18N.extend('zh-CN', {
     private: {
       hostSettings: '主播设置',
       noVideo: '视频服务尚未开通，你们仍可以聊天和送礼',
+      billingNote: '按分钟从余额扣费，余额不足时自动挂断',
       incoming: '一对一视频来电',
       incomingText: '按 {rate} 计费，接听后开始计时',
       accept: '接听',
@@ -222,6 +223,7 @@ SZ_I18N.extend('en', {
     private: {
       hostSettings: 'Host settings',
       noVideo: "Video service isn't set up yet. You can still chat and send gifts.",
+      billingNote: 'Billed per minute from your balance; the call ends when it runs out.',
       incoming: 'Incoming 1:1 video call',
       incomingText: 'Billed at {rate}; the clock starts when you answer.',
       accept: 'Answer',

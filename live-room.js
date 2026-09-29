@@ -327,9 +327,10 @@
     return null;
   }
   if (SERVER) {
+    // Own comments and gifts are drawn from the API answer (the broadcast can arrive first).
     SZ.realtime.on('live:comment', p => {
       const r = roomFor(p);
-      if (!r || seen.has(p.id)) return;
+      if (!r || seen.has(p.id) || p.user?.id === me()) return;
       seen.add(p.id);
       pushComment(r, lineOf(p));
       if (r.mode === 'host') r.comments = (r.comments || 0) + 1;
@@ -367,7 +368,7 @@
     });
     SZ.realtime.on('live:gift', p => {
       const r = roomFor(p);
-      if (!r || seen.has(p.id)) return;
+      if (!r || seen.has(p.id) || p.user?.id === me()) return;
       seen.add(p.id);
       const g = gift(p.giftId);
       if (!g) return;
