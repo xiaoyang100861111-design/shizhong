@@ -15,7 +15,7 @@ public sealed partial class PlatformModule : IModule
     public int Order => 0;
     public const string Build = "20260929-v3";
 
-    public IEnumerable<string> OwnedStateKeys => ["notices", "profile", "city", "location"];
+    public IEnumerable<string> OwnedStateKeys => ["notices", "profile", "city", "location", "feedback"];
 
     public IEnumerable<ConfigDef> Configs =>
     [
@@ -45,6 +45,7 @@ public sealed partial class PlatformModule : IModule
     {
         services.AddSingleton<MediaStore>();
         services.AddSingleton<DemoData>();
+        services.AddSingleton<Tickets>();
     }
 
     public void Map(WebApplication app)
@@ -175,6 +176,17 @@ public sealed partial class PlatformModule : IModule
             return Results.Ok(new { ok = true });
         }).RequireUser();
 
+        // ------------------------------------------------------------ feedback form (other ticket kinds have their own endpoints)
+        api.MapPost("/tickets/feedback", async (HttpContext ctx, Tickets tickets, StateService states, FeedbackBody body) =>
+        {
+            var user = ctx.RequireUser();
+            var text = (body.Text ?? "").Trim();
+            if (text.Length == 0) throw ApiError.BadRequest("tickets.textRequired");
+            await tickets.CreateAsync(new TicketInput(user.Id, "feedback", Reason: body.Type is { Length: <= 40 } ? body.Type : "misc",
+                Details: text, Data: new { contact = body.Contact is { Length: > 120 } c ? c[..120] : body.Contact }));
+            return Results.Ok(new { ok = true, state = await states.ProjectKeysAsync(user, "feedback") });
+        }).RequireUser().RequireRateLimiting("write");
+
         // ------------------------------------------------------------ /data chunk overrides
         app.Use(async (ctx, next) =>
         {
@@ -236,6 +248,33 @@ public sealed partial class PlatformModule : IModule
         ctx.State["notices"] = notices
             .Select(n => Notices.View(n.Id, n.Type, n.Title, n.Body, n.TitleKey, n.BodyKey, n.Params, n.Action, n.CreatedAt, n.ReadAt, n.Silent))
             .ToJsonArray();
+        await ProjectFeedbackAsync(ctx);
+    }
+
+    /// <summary>state.feedback: the member's tickets ({ id, ts, status, kind, …form fields, reply }).</summary>
+    static async Task ProjectFeedbackAsync(StateContext ctx)
+    {
+        var rows = await ctx.Connection.QueryAsync<TicketRow>("""
+            SELECT TOP (200) Id, Kind, TargetType, TargetId, Reason, Details, Data, Status, Reply, CreatedAt, HandledAt
+            FROM dbo.Tickets WHERE UserId = @UserId ORDER BY Id DESC
+            """, new { ctx.UserId });
+        var list = new JsonArray();
+        foreach (var r in rows)
+        {
+            var o = Json.Node(r.Data) as JsonObject ?? new JsonObject();
+            o["id"] = "t" + r.Id;
+            o["kind"] = r.Kind;
+            o["ts"] = Json.Ms(r.CreatedAt);
+            o["status"] = r.Status;
+            if (r.TargetType != null) o["targetType"] = r.TargetType;
+            if (r.TargetId != null) o["targetId"] = r.TargetId;
+            if (r.Reason != null) { o["reason"] = r.Reason; o["type"] ??= r.Reason; }
+            if (r.Details != null) { o["details"] = r.Details; o["text"] ??= r.Details; }
+            if (r.Reply != null) o["reply"] = r.Reply;
+            if (r.HandledAt != null) o["handledAt"] = Json.Ms(r.HandledAt);
+            list.Add(o);
+        }
+        ctx.State["feedback"] = list;
     }
 
     /// <summary>The signed-in account as the app's account record (SZ.session.account).</summary>
@@ -272,6 +311,9 @@ public sealed partial class PlatformModule : IModule
     public sealed record RefreshBody(string[]? Keys);
     public sealed record NoticeRead(string[]? Ids, bool All);
     public sealed record DeviceBody(string Token);
+    public sealed record FeedbackBody(string? Type, string? Text, string? Contact);
+    sealed record TicketRow(long Id, string Kind, string? TargetType, string? TargetId, string? Reason, string? Details, string? Data,
+        string Status, string? Reply, DateTime CreatedAt, DateTime? HandledAt);
 }
 
 public sealed record MediaItem(string Mime, string? Name, byte[] Data);
