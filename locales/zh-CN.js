@@ -2139,7 +2139,12 @@ SZ_I18N.register(
         welcome:
           '你好，欢迎来到适中！找服务、查订单、生活小事都可以问我。发来服务名称或需求编号，我能更快帮到你。',
       },
-      header: { menu: '聊天选项', profile: '查看 {name} 的主页', unknown: '新朋友' },
+      header: {
+        menu: '聊天选项',
+        profile: '查看 {name} 的主页',
+        group: '查看群聊「{name}」的资料',
+        unknown: '新朋友',
+      },
       status: {
         online: '在线',
         away: '最近来过',

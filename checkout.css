@@ -2199,17 +2199,6 @@
   padding: var(--sp-4);
   border-radius: var(--r-lg);
   background: var(--c-surface);
-  box-shadow: inset 4px 0 0 var(--status, var(--c-border-strong));
-}
-.checkout-status-card.is-pending {
-  --status: var(--c-warning);
-}
-.checkout-status-card.is-confirmed,
-.checkout-status-card.is-serving {
-  --status: var(--c-info);
-}
-.checkout-status-card.is-done {
-  --status: var(--c-success);
 }
 .checkout-status-title .tag {
   font-size: var(--fs-14);

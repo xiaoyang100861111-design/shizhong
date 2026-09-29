@@ -682,6 +682,18 @@
     </form>`;
   }
   function headerAvatar(info) {
+    // Groups: a small grid of member faces (like the Messages list), opening the group's page.
+    if (info.kind === 'group') {
+      const faces = info.memberIds.map(personById).filter(Boolean).slice(0, 4);
+      if (faces.length >= 2)
+        return act(
+          'group-detail',
+          info.id,
+          `<span class="cx-group-av" data-count="${faces.length}">${faces.map(p => `<img ${imgSrc(p.photo)} alt="" loading="lazy">`).join('')}</span>`,
+          'cx-head-av',
+          `aria-label="${esc(t('chat.header.group', { name: info.name }))}"`
+        );
+    }
     const gifts = window.ShizhongGifts?.avatar;
     if (gifts && info.person) {
       try {

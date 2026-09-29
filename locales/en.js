@@ -2228,7 +2228,12 @@ SZ_I18N.register(
         welcome:
           'Hi, welcome to Shizhong! Ask me about services, orders or anything about daily life. Send a service name or request number and I can help faster.',
       },
-      header: { menu: 'Chat options', profile: "View {name}'s profile", unknown: 'New friend' },
+      header: {
+        menu: 'Chat options',
+        profile: "View {name}'s profile",
+        group: 'Group info: {name}',
+        unknown: 'New friend',
+      },
       status: {
         online: 'Online',
         away: 'Active recently',
