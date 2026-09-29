@@ -688,7 +688,11 @@
   }
   function livePeople() {
     const topic = LIVE_TOPICS[ui.liveFilter] || '';
-    return people.filter(
+    // Server mode: members' real rooms come first; the persona demo rooms follow when the console allows them.
+    const real = ui.liveTab === 'private' ? [] : window.ShizhongLive?.realRooms?.() || [];
+    const demo = ui.liveTab !== 'private' && window.ShizhongLive?.demoRoomsOn?.() === false ? [] : people;
+    const ids = new Set(real.map(p => p.id));
+    return [...real, ...demo.filter(p => !p.server && !ids.has(p.id))].filter(
       p =>
         !state.blocked.includes(p.id) &&
         (ui.liveTab === 'private' ? p.liveMode === 'private' : p.liveMode !== 'private') &&

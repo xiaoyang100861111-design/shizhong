@@ -16,12 +16,17 @@
 (() => {
   const VERSION = 'vip2';
   const LEGACY_VERSION = '20260927-vip1';
-  const MAX_LEVEL = 75;
-  const ENTRANCE_LEVEL = 10; // entrance effects are a VIP 10+ benefit
+  /*
+   * Server mode: xp is computed by the server from the gift ledger (state.vip.xp); the level table, rank names,
+   * badge tiers, entrance themes and unlock levels are console settings (the values below are the defaults).
+   */
+  const SERVER = !!SZ.server;
+  const cfg = (key, fallback) => (SERVER ? SZ.config(key, fallback) : fallback);
+  const ENTRANCE_LEVEL = Number(cfg('vip.entranceLevel', 10)) || 10; // entrance effects are a VIP 10+ benefit
   const QUICK_WINDOW = 30000; // re-entering within 30 s (or swiping rooms) shows the quick banner
 
   // Cumulative growth at milestone levels; levels in between are interpolated.
-  const anchors = [
+  const DEFAULT_ANCHORS = [
     [1, 0],
     [2, 5],
     [3, 10],
@@ -47,6 +52,12 @@
     [70, 70000000],
     [75, 100000000],
   ];
+  const anchors = (() => {
+    const list = cfg('vip.anchors', DEFAULT_ANCHORS);
+    const ok = Array.isArray(list) && list.length >= 2 && list.every(a => Array.isArray(a) && a.length >= 2);
+    return (ok ? list : DEFAULT_ANCHORS).map(a => [Number(a[0]), Number(a[1])]).sort((a, b) => a[0] - b[0]);
+  })();
+  const MAX_LEVEL = anchors[anchors.length - 1][0];
   const thresholds = Array.from({ length: MAX_LEVEL }, (_, i) => {
     const level = i + 1;
     const upper = anchors.findIndex(a => a[0] >= level);
@@ -56,23 +67,41 @@
     return Math.round(low + ((high - low) * (level - lowLevel)) / (highLevel - lowLevel));
   });
   const DEMO_GRANT = thresholds[ENTRANCE_LEVEL - 1];
-  const THEMES = [
-    { id: 'gold', level: 10 },
-    { id: 'rose', level: 20 },
-    { id: 'cosmic', level: 35 },
-    { id: 'imperial', level: 50 },
-  ];
-  const RANKS = [
-    [60, 'legend'],
-    [50, 'crimson'],
-    [35, 'galaxy'],
-    [20, 'radiant'],
-    [10, 'crown'],
-    [1, 'first'],
-  ];
-  const MILESTONES = [1, 10, 20, 35, 50, 60, 75];
+  const THEME_IDS = ['gold', 'rose', 'cosmic', 'imperial'];
+  const THEMES = (() => {
+    const list = cfg('vip.themes', null);
+    const valid = Array.isArray(list) ? list.filter(x => THEME_IDS.includes(x?.id) && Number(x.level) > 0) : [];
+    return valid.length
+      ? valid.map(x => ({ id: x.id, level: Number(x.level) }))
+      : [
+          { id: 'gold', level: 10 },
+          { id: 'rose', level: 20 },
+          { id: 'cosmic', level: 35 },
+          { id: 'imperial', level: 50 },
+        ];
+  })();
+  // [min level, rank id, custom names?] — custom names (console) win over the locale texts.
+  const RANKS = (() => {
+    const list = cfg('vip.ranks', null);
+    const valid = Array.isArray(list) ? list.filter(x => x && Number(x.min) > 0 && x.id) : [];
+    const ranks = valid.length
+      ? valid.map(x => [Number(x.min), String(x.id), x.zh || x.en ? { zh: x.zh, en: x.en } : null])
+      : [
+          [60, 'legend'],
+          [50, 'crimson'],
+          [35, 'galaxy'],
+          [20, 'radiant'],
+          [10, 'crown'],
+          [1, 'first'],
+        ];
+    ranks.sort((a, b) => b[0] - a[0]);
+    if (ranks[ranks.length - 1][0] > 1) ranks.push([1, 'first']);
+    return ranks;
+  })();
+  const TIERS = { gold: ENTRANCE_LEVEL, royal: 50, ...(cfg('vip.badgeTiers', null) || {}) };
+  const MILESTONES = [...new Set([1, 10, 20, 35, 50, 60, MAX_LEVEL].filter(lv => lv <= MAX_LEVEL))];
   const RANGE = 15;
-  const RANGES = [1, 16, 31, 46, 61];
+  const RANGES = Array.from({ length: Math.ceil(MAX_LEVEL / RANGE) }, (_, i) => 1 + i * RANGE);
 
   // ---------------------------------------------------------------- state
   const defaults = { version: VERSION, bonusXp: 0, baselineHonorXp: 0, entranceEnabled: true, theme: 'gold' };
@@ -101,7 +130,9 @@
   }
   function progress() {
     const v = data();
-    const xp = Math.max(0, Number(v.bonusXp) || 0) + Math.max(0, rawXp() - (Number(v.baselineHonorXp) || 0));
+    const xp = SERVER
+      ? Math.max(0, Number(v.xp) || 0)
+      : Math.max(0, Number(v.bonusXp) || 0) + Math.max(0, rawXp() - (Number(v.baselineHonorXp) || 0));
     let level = 1;
     while (level < MAX_LEVEL && xp >= thresholds[level]) level++;
     const start = thresholds[level - 1];
@@ -124,18 +155,59 @@
     return h >>> 0;
   }
   const isSelf = id => id == null || id === '' || id === 'self';
-  /** Own level, or a stable demo level (8–60) for other people. */
+  /*
+   * Other people: members' real levels (sent by the server with live comments, audiences, cards — or fetched
+   * in small batches), personas keep a stable demo level (8–60).
+   */
+  const knownLevels = new Map();
+  const wanted = new Set();
+  const fetchLevels = SZ.debounce
+    ? SZ.debounce(() => {
+        const ids = [...wanted].slice(0, 100);
+        wanted.clear();
+        if (!ids.length) return;
+        SZ.api
+          .get('vip/levels', { ids: ids.join(',') })
+          .then(map => {
+            let changed = false;
+            for (const [id, lv] of Object.entries(map || {}))
+              if (knownLevels.get(id) !== lv) {
+                knownLevels.set(id, lv);
+                changed = true;
+              }
+            if (changed) SZ.emit('vip:levels');
+          })
+          .catch(() => {});
+      }, 300)
+    : () => {};
+  const isMember = id => /^(m\d+|demo)$/.test(String(id));
   function level(personId = 'self') {
-    return isSelf(personId) ? progress().level : 8 + (hash(personId + ':vip') % 53);
+    if (isSelf(personId) || (SERVER && personId === SZ.session?.account?.id)) return progress().level;
+    if (knownLevels.has(personId)) return knownLevels.get(personId);
+    if (SERVER && isMember(personId)) {
+      wanted.add(String(personId));
+      fetchLevels();
+      return 1;
+    }
+    return 8 + (hash(personId + ':vip') % 53);
+  }
+  /** Levels the server sent elsewhere ({ id: level }). */
+  function remember(map) {
+    for (const [id, lv] of Object.entries(map || {})) if (Number(lv) > 0) knownLevels.set(id, Number(lv));
   }
 
   // ---------------------------------------------------------------- text helpers
   const num = n => SZ.fmt.number(Math.round(Number(n) || 0));
   const stepNum = n => (n >= 100000 ? SZ.fmt.compact(n) : num(n));
-  const rankId = lv => RANKS.find(([min]) => lv >= min)[1];
-  const rankName = lv => t(`vip.rank.${rankId(lv)}`);
+  const rankOf = lv => RANKS.find(([min]) => lv >= min) || RANKS[RANKS.length - 1];
+  const rankId = lv => rankOf(lv)[1];
+  const rankName = lv => {
+    const custom = rankOf(lv)[2];
+    if (custom) return (/^zh/.test(window.SZ_I18N?.locale || 'zh') ? custom.zh : custom.en) || custom.zh || custom.en;
+    return t.has?.(`vip.rank.${rankId(lv)}`) === false ? rankId(lv) : t(`vip.rank.${rankId(lv)}`);
+  };
   const themeName = id => t(`vip.theme.${id}.name`);
-  const tier = lv => (lv >= 50 ? 'royal' : lv >= ENTRANCE_LEVEL ? 'gold' : 'base');
+  const tier = lv => (lv >= TIERS.royal ? 'royal' : lv >= TIERS.gold ? 'gold' : 'base');
   const selfName = () => (typeof profileName === 'function' ? profileName() : state.profile?.name || '');
   const photoAttrs = ref =>
     `src="${esc(asset(ref))}"${SZ.media.isRef(ref) ? ` data-media="${esc(ref)}"` : ''}`;
@@ -554,6 +626,16 @@
       return;
     }
     if (data().theme === id) return;
+    if (SERVER) {
+      SZ.api.act('PUT', 'vip/prefs', { theme: id }).then(
+        () => {
+          refresh();
+          toast(t('vip.themes.worn', { name: themeName(id) }), { type: 'success' });
+        },
+        e => SZ.api.fail(e)
+      );
+      return;
+    }
     if (!SZ.store.commit(s => void (s.vip.theme = id))) return;
     refresh();
     toast(t('vip.themes.worn', { name: themeName(id) }), { type: 'success' });
@@ -561,6 +643,16 @@
   function toggleEntrance() {
     if (progress().level < ENTRANCE_LEVEL) return;
     const on = !data().entranceEnabled;
+    if (SERVER) {
+      SZ.api.act('PUT', 'vip/prefs', { entranceEnabled: on }).then(
+        () => {
+          refresh();
+          toast(on ? t('vip.entrance.on') : t('vip.entrance.off'));
+        },
+        e => SZ.api.fail(e)
+      );
+      return;
+    }
     if (!SZ.store.commit(s => void (s.vip.entranceEnabled = on))) return;
     refresh();
     toast(on ? t('vip.entrance.on') : t('vip.entrance.off'));
@@ -632,5 +724,8 @@
     afterGift,
     refresh,
     thresholds: Object.freeze(thresholds.slice()),
+    /** Server mode: a member's real level if known (else null), and levels learnt from other payloads. */
+    known: id => knownLevels.get(id) ?? null,
+    remember,
   });
 })();

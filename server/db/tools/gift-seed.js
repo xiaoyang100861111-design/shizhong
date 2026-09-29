@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+/*
+ * Builds server/db/migrations/0401_gift_catalog_seed.sql from the prototype's three gift catalogues:
+ *   gift-data.js (mall, RM prices + goldBeanPrice), assets/gift-art/manifest.js (artwork + Malaysia series)
+ *   and live-data.js (live-room gifts in gold beans), plus the English overlays in data/i18n/en/.
+ *
+ * Reconciliation rule (one row per gift id, price in gold beans):
+ *   1. the live-room price when the live catalogue has the gift (live ids are canonical; 'my-twin-towers' is
+ *      the same gift as the mall's 'my-petronas' and becomes an alias of it);
+ *   2. else the mall's own bean price (goldBeanPrice / goldBeans);
+ *   3. else the mall RM price × 10 (RM 1 = 10 beans).
+ *   Names/descriptions: the mall text when the gift is in the mall, the live text otherwise; a different live
+ *   name is kept as LiveName. Contexts: mall gifts → mall + chat, live gifts → live + private (both → all four).
+ *
+ * Run: node server/db/tools/gift-seed.js  (from the repository root)
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.resolve(__dirname, '../../..');
+const read = f => fs.readFileSync(path.join(root, f), 'utf8');
+const en = {};
+const ctx = {
+  console,
+  SZ_I18N: { addContent: (code, kind, recs) => (en[kind] = { ...(en[kind] || {}), ...recs }) },
+};
+ctx.window = ctx;
+vm.createContext(ctx);
+for (const f of ['assets/gift-art/manifest.js', 'gift-data.js', 'live-data.js', 'data/i18n/en/gifts.js', 'data/i18n/en/live-gifts.js'])
+  vm.runInContext(read(f), ctx, { filename: f });
+
+const RATE = 10;
+const mall = ctx.SHIZHONG_GIFT_DATA;
+const live = ctx.SHIZHONG_LIVE_GIFTS;
+const art = ctx.SHIZHONG_GIFT_ART;
+const malaysia = ctx.SHIZHONG_GIFT_ART_SERIES.malaysia;
+const aliases = { ...live.legacyIds, 'my-twin-towers': 'my-petronas' };
+const canon = id => (id === 'my-twin-towers' ? 'my-petronas' : id);
+// Live effect family → mall effect family (and back) so a gift can be switched into the other context.
+const toMall = { heart: 'hearts', flowers: 'hearts', celebration: 'confetti', car: 'launch', crown: 'royal', rocket: 'launch', galaxy: 'orbit' };
+const toLive = { hearts: 'heart', confetti: 'celebration', stars: 'galaxy', orbit: 'galaxy', royal: 'crown', launch: 'rocket' };
+
+const rows = new Map();
+mall.gifts.forEach((g, i) => {
+  const my = malaysia.find(m => m.id === g.id);
+  rows.set(g.id, {
+    id: g.id,
+    name: g.name,
+    nameEn: en.gifts?.[g.id]?.name || my?.name_en || null,
+    description: g.description || '',
+    descriptionEn: en.gifts?.[g.id]?.description || my?.description_en || null,
+    mallRm: g.price,
+    beans: Number(g.goldBeanPrice) > 0 ? Number(g.goldBeanPrice) : Math.round(g.price * RATE),
+    category: g.category,
+    liveCategory: null,
+    series: g.series || null,
+    subseries: g.subseries || null,
+    tier: g.tier || null,
+    rarity: g.rarity || null,
+    accent: g.accent,
+    effect: g.effect || 'stars',
+    liveEffect: toLive[g.effect] || 'galaxy',
+    oriental: g.orientalEffect || null,
+    wearable: g.wearable === 'avatar',
+    image: g.image,
+    contexts: ['mall', 'chat'],
+    order: 1000 + i,
+  });
+});
+live.forEach((g, i) => {
+  const id = canon(g.id);
+  const r = rows.get(id);
+  const liveName = g.sourceName;
+  const liveNameEn = en.liveGifts?.[g.id]?.name || null;
+  if (r) {
+    r.beans = g.price;
+    r.liveCategory = g.category;
+    r.liveEffect = g.effect;
+    if (liveName !== r.name) {
+      r.liveName = liveName;
+      r.liveNameEn = liveNameEn;
+    }
+    r.contexts = ['mall', 'chat', 'live', 'private'];
+    r.order = i;
+    if (!r.oriental && g.orientalEffect) r.oriental = g.orientalEffect;
+    r.artKey = g.artKey || null;
+  } else {
+    rows.set(id, {
+      id,
+      name: liveName,
+      nameEn: liveNameEn,
+      description: '',
+      descriptionEn: null,
+      mallRm: null,
+      beans: g.price,
+      category: null,
+      liveCategory: g.category,
+      series: null,
+      subseries: null,
+      tier: null,
+      rarity: null,
+      accent: g.accent,
+      effect: toMall[g.effect] || 'stars',
+      liveEffect: g.effect,
+      oriental: g.orientalEffect || null,
+      wearable: false,
+      image: g.fallbackImage || null,
+      artKey: g.artKey || null,
+      contexts: ['live', 'private'],
+      order: i,
+    });
+  }
+});
+for (const r of rows.values()) {
+  const legacy = Object.keys(aliases).find(k => aliases[k] === r.id);
+  const a = art[r.id] || (r.artKey && art[r.artKey]) || (legacy && art[legacy]) || null;
+  r.full = a?.full || r.image || null;
+  r.thumb = a?.thumb || a?.full || r.image || null;
+  r.charm = a?.charm || a?.thumb || r.image || null;
+}
+
+const q = v => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : typeof v === 'boolean' ? (v ? '1' : '0') : "N'" + String(v).replace(/'/g, "''") + "'");
+const out = [];
+out.push('-- 0401 gift catalogue seed, generated by server/db/tools/gift-seed.js from gift-data.js, live-data.js,');
+out.push('-- assets/gift-art/manifest.js and data/i18n/en/*. Price rule: live bean price, else mall bean price, else RM × 10.');
+out.push('');
+for (const r of rows.values())
+  out.push(
+    `INSERT INTO dbo.Gifts(Id, Name, NameEn, LiveName, LiveNameEn, Description, DescriptionEn, Beans, MallPriceRm, Category, LiveCategory, Series, Subseries, Tier, Rarity, Accent, Effect, LiveEffect, OrientalEffect, ArtFull, ArtThumb, ArtCharm, Wearable, Contexts, Enabled, SortOrder) VALUES (${[
+      r.id, r.name, r.nameEn, r.liveName || null, r.liveNameEn || null, r.description, r.descriptionEn, r.beans, r.mallRm, r.category, r.liveCategory,
+      r.series, r.subseries, r.tier, r.rarity, r.accent, r.effect, r.liveEffect, r.oriental, r.full, r.thumb, r.charm, r.wearable, r.contexts.join(','), true, r.order,
+    ].map(q).join(', ')});`
+  );
+out.push('');
+for (const [from, to] of Object.entries(aliases)) out.push(`INSERT INTO dbo.GiftAliases(Alias, GiftId) VALUES (${q(from)}, ${q(to)});`);
+out.push('');
+mall.backgrounds.forEach((b, i) =>
+  out.push(
+    `INSERT INTO dbo.GiftBackgrounds(Id, Name, NameEn, Description, DescriptionEn, Kind, Tone, Ink, Css, Image, Enabled, SortOrder) VALUES (${[
+      b.id, b.name, en.giftBackgrounds?.[b.id]?.name || null, b.description, en.giftBackgrounds?.[b.id]?.description || null,
+      b.kind, b.tone, b.ink, b.background || '', b.image || null, true, i,
+    ].map(q).join(', ')});`
+  )
+);
+out.push('');
+fs.writeFileSync(path.join(root, 'server/db/migrations/0401_gift_catalog_seed.sql'), out.join('\n'));
+console.log(`gifts ${rows.size}, aliases ${Object.keys(aliases).length}, backgrounds ${mall.backgrounds.length}`);

@@ -32,8 +32,11 @@
     'douyin-rare-treasure': 'lucky-bag',
     'douyin-lucky-cube': 'lucky-dice',
   };
+  // Server mode: the database catalogue (data/gift-catalog.js) replaces SOURCE and CATEGORIES and adds its aliases.
+  const CATALOG = Array.isArray(window.SHIZHONG_GIFT_CATALOG?.live) ? window.SHIZHONG_GIFT_CATALOG : null;
+  if (CATALOG) for (const [from, to] of Object.entries(CATALOG.aliases || {})) LEGACY_IDS[from] ??= to;
   const ART_KEYS = Object.fromEntries(Object.entries(LEGACY_IDS).map(([from, to]) => [to, from]));
-  const SOURCE = [
+  const BUILT_IN = [
     { id: 'heart', name: '小心心', price: 1, category: '推荐', effect: 'heart', accent: '#ff4d87' },
     { id: 'flowers', name: '鲜花', price: 10, category: '推荐', effect: 'flowers', accent: '#fb6888' },
     { id: 'rose', name: '心动玫瑰', price: 19, category: '推荐', effect: 'flowers', accent: '#ff467a' },
@@ -579,7 +582,10 @@
       description: '适中熊猫眨眨眼、抱紧爱心，把最好的祝福留给最特别的你。',
     },
   ];
-  const CATEGORIES = ['推荐', '互动', '大马风情', '典藏', '盛世华章'];
+  const SOURCE = CATALOG ? CATALOG.live : BUILT_IN;
+  const CATEGORIES = CATALOG?.liveCategories?.length
+    ? CATALOG.liveCategories
+    : ['推荐', '互动', '大马风情', '典藏', '盛世华章'];
   const index = new Map();
   function byId(id) {
     return index.get(id) || index.get(LEGACY_IDS[id]) || null;
