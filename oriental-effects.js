@@ -1,102 +1,76 @@
-/* Original canvas/CSS Oriental gift celebrations. Load oriental-effects.css first. */
+/*
+ * Original canvas/CSS Oriental gift celebrations (owner: live). Load oriental-effects.css first.
+ * window.ShizhongOrientalEffects = { play(options, onEnd) -> stop(), stop(), resolveTheme(gift, theme), themes }
+ * (same options as ShizhongLiveEffects plus theme / duration). Ceremony titles: t('live.fx.theme.<family>')
+ * and t('live.fx.edition.<edition>'). Reduced motion: no particles, a short static card.
+ */
 (function () {
   'use strict';
   const TAU = Math.PI * 2;
+  const tr = (key, params, fallback) => (typeof t === 'function' ? t(key, params) : fallback);
+  const number = n => (window.SZ?.fmt ? SZ.fmt.number(n) : String(n));
   const THEMES = Object.freeze({
-    lantern: { title: '灯火盈门', colors: ['#f9d89a', '#df654e', '#ffbb76'], duration: 3900 },
-    fan: { title: '水墨折扇', colors: ['#e9e0d0', '#b5aea6', '#c4a979'], duration: 3900 },
-    porcelain: { title: '青花流韵', colors: ['#b8d7ef', '#7199c7', '#f1e9db'], duration: 4000 },
-    phoenix: { title: '凤羽霓光', colors: ['#ffdda3', '#ec9d7b', '#ffecd2'], duration: 4200 },
-    dragon: { title: '龙腾祥云', colors: ['#ffe2a0', '#c99950', '#f1bd6c'], duration: 4400 },
-    qilin: { title: '瑞兽呈祥', colors: ['#f6dcac', '#d8a059', '#eec47e'], duration: 4200 },
-    scroll: { title: '江山入画', colors: ['#ede2ca', '#c8b9a1', '#a7b0a5'], duration: 4200 },
-    crown: { title: '凤冠华仪', colors: ['#ffe1a7', '#dc9a5d', '#f6c1aa'], duration: 4200 },
-    guardian: { title: '四灵守护', colors: ['#e5d6aa', '#b2d2c4', '#cebbdd', '#eec88c'], duration: 4400 },
-    scholar: { title: '金榜题名', colors: ['#f6ddb1', '#e3bd75', '#eae2ca'], duration: 4000 },
+    lantern: { colors: ['#f9d89a', '#df654e', '#ffbb76'], duration: 3900 },
+    fan: { colors: ['#e9e0d0', '#b5aea6', '#c4a979'], duration: 3900 },
+    porcelain: { colors: ['#b8d7ef', '#7199c7', '#f1e9db'], duration: 4000 },
+    phoenix: { colors: ['#ffdda3', '#ec9d7b', '#ffecd2'], duration: 4200 },
+    dragon: { colors: ['#ffe2a0', '#c99950', '#f1bd6c'], duration: 4400 },
+    qilin: { colors: ['#f6dcac', '#d8a059', '#eec47e'], duration: 4200 },
+    scroll: { colors: ['#ede2ca', '#c8b9a1', '#a7b0a5'], duration: 4200 },
+    crown: { colors: ['#ffe1a7', '#dc9a5d', '#f6c1aa'], duration: 4200 },
+    guardian: { colors: ['#e5d6aa', '#b2d2c4', '#cebbdd', '#eec88c'], duration: 4400 },
+    scholar: { colors: ['#f6ddb1', '#e3bd75', '#eae2ca'], duration: 4000 },
   });
   // Each catalog edition keeps its own ceremony title and pigments while reusing a motion family.
-  // [family, title, primary pigment, glint, deep backdrop]
+  // [family, primary pigment, glint, deep backdrop]; titles are t('live.fx.edition.<key>')
   const EDITIONS = Object.freeze({
-    knot: ['crown', '同心永结', '#be2534', '#f9cf9b', '#481623'],
-    lantern: ['lantern', '宫灯夜升', '#d44627', '#ffd277', '#651b20'],
-    fan: ['fan', '墨扇开山', '#966747', '#e1cba2', '#2e2f34'],
-    porcelain: ['porcelain', '青花流韵', '#386898', '#e5f0e8', '#142c4c'],
-    phoenix: ['phoenix', '凤凰于飞', '#c84c42', '#f5c27d', '#4e2032'],
-    pipa: ['fan', '琵琶清音', '#b28355', '#f1d5a7', '#3b292e'],
-    dragon: ['dragon', '金龙腾云', '#d29b37', '#f4d68e', '#413223'],
-    ding: ['qilin', '九鼎镇山', '#a9783d', '#d4c393', '#30372f'],
-    qilin: ['qilin', '麒麟献瑞', '#c88b3f', '#ffe1a5', '#4c3027'],
-    scroll: ['scroll', '千里江山', '#887451', '#d5cfad', '#313632'],
-    crown: ['crown', '凤冠华仪', '#c59042', '#f6b99e', '#581b34'],
-    craft: ['qilin', '天工开物', '#d19b55', '#e9d49c', '#483027'],
-    'azure-dragon': ['guardian', '青龙出海', '#4a9a91', '#b9e3bd', '#16393e'],
-    'white-tiger': ['guardian', '白虎踏星', '#aeb9c9', '#f2dfb9', '#253349'],
-    'vermilion-bird': ['phoenix', '朱雀涅槃', '#d15036', '#ffc577', '#541e2b'],
-    'black-tortoise': ['guardian', '玄武御天', '#637c79', '#b8d6aa', '#1b3135'],
-    calligraphy: ['scholar', '一字千金', '#a78147', '#e5d6af', '#2d302d'],
-    scholar: ['scholar', '高中状元', '#c33e35', '#f3cc86', '#4f1e29'],
-    carp: ['phoenix', '鱼跃龙门', '#d39b54', '#b6d9df', '#174056'],
-    ao: ['qilin', '独占鳌头', '#b8833e', '#e9c890', '#493124'],
-    pagoda: ['scholar', '子时琉璃', '#6274a1', '#dbd5bb', '#1c2944'],
-    dawn: ['lantern', '卯时紫气', '#8e6795', '#dfbba4', '#42304f'],
-    noon: ['porcelain', '午时耀金', '#d19d44', '#fff0a8', '#533b26'],
-    dusk: ['phoenix', '酉时落雁', '#b45e59', '#e9b491', '#4d293d'],
+    knot: ['crown', '#be2534', '#f9cf9b', '#481623'],
+    lantern: ['lantern', '#d44627', '#ffd277', '#651b20'],
+    fan: ['fan', '#966747', '#e1cba2', '#2e2f34'],
+    porcelain: ['porcelain', '#386898', '#e5f0e8', '#142c4c'],
+    phoenix: ['phoenix', '#c84c42', '#f5c27d', '#4e2032'],
+    pipa: ['fan', '#b28355', '#f1d5a7', '#3b292e'],
+    dragon: ['dragon', '#d29b37', '#f4d68e', '#413223'],
+    ding: ['qilin', '#a9783d', '#d4c393', '#30372f'],
+    qilin: ['qilin', '#c88b3f', '#ffe1a5', '#4c3027'],
+    scroll: ['scroll', '#887451', '#d5cfad', '#313632'],
+    crown: ['crown', '#c59042', '#f6b99e', '#581b34'],
+    craft: ['qilin', '#d19b55', '#e9d49c', '#483027'],
+    'azure-dragon': ['guardian', '#4a9a91', '#b9e3bd', '#16393e'],
+    'white-tiger': ['guardian', '#aeb9c9', '#f2dfb9', '#253349'],
+    'vermilion-bird': ['phoenix', '#d15036', '#ffc577', '#541e2b'],
+    'black-tortoise': ['guardian', '#637c79', '#b8d6aa', '#1b3135'],
+    calligraphy: ['scholar', '#a78147', '#e5d6af', '#2d302d'],
+    scholar: ['scholar', '#c33e35', '#f3cc86', '#4f1e29'],
+    carp: ['phoenix', '#d39b54', '#b6d9df', '#174056'],
+    ao: ['qilin', '#b8833e', '#e9c890', '#493124'],
+    pagoda: ['scholar', '#6274a1', '#dbd5bb', '#1c2944'],
+    dawn: ['lantern', '#8e6795', '#dfbba4', '#42304f'],
+    noon: ['porcelain', '#d19d44', '#fff0a8', '#533b26'],
+    dusk: ['phoenix', '#b45e59', '#e9b491', '#4d293d'],
   });
   const ALIASES = Object.freeze({
     lantern: 'lantern',
     lamp: 'lantern',
-    灯笼: 'lantern',
-    灯火: 'lantern',
     fan: 'fan',
     foldingfan: 'fan',
-    折扇: 'fan',
-    墨山: 'fan',
     porcelain: 'porcelain',
     china: 'porcelain',
-    青花: 'porcelain',
-    瓷: 'porcelain',
     phoenix: 'phoenix',
-    凤羽: 'phoenix',
-    凤凰: 'phoenix',
     dragon: 'dragon',
-    龙: 'dragon',
-    金云: 'dragon',
     qilin: 'qilin',
     treasure: 'qilin',
     ding: 'qilin',
     bronze: 'qilin',
-    宝箱: 'qilin',
-    麒麟: 'qilin',
-    鼎: 'qilin',
     scroll: 'scroll',
-    江山: 'scroll',
-    画卷: 'scroll',
     crown: 'crown',
-    凤冠: 'crown',
-    流苏: 'crown',
     guardian: 'guardian',
     'azure-dragon': 'guardian',
     'white-tiger': 'guardian',
     'vermilion-bird': 'guardian',
     'black-tortoise': 'guardian',
-    四灵: 'guardian',
-    朱雀: 'guardian',
-    玄武: 'guardian',
-    青龙: 'guardian',
-    白虎: 'guardian',
     scholar: 'scholar',
     calligraphy: 'scholar',
-    科举: 'scholar',
-    状元: 'scholar',
-    金榜: 'scholar',
-    书法: 'scholar',
-    craft: 'fan',
-    carp: 'scroll',
-    ao: 'guardian',
-    pagoda: 'scholar',
-    dawn: 'lantern',
-    noon: 'dragon',
-    dusk: 'crown',
   });
   let active = null;
   const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -123,13 +97,6 @@
       if (EDITIONS[key]) return EDITIONS[key][0];
       if (ALIASES[key]) return ALIASES[key];
       if (THEMES[key]) return key;
-    }
-    const name = String(gift?.name || '');
-    const chineseAliases = Object.entries(ALIASES)
-      .filter(([keyword]) => /[\u3400-\u9fff]/.test(keyword))
-      .sort((a, b) => b[0].length - a[0].length);
-    for (const [keyword, theme] of chineseAliases) {
-      if (/[\u3400-\u9fff]/.test(keyword) && name.includes(keyword)) return theme;
     }
     return 'lantern';
   }
@@ -193,11 +160,11 @@
     const edition = editionFor(gift, input.theme);
     const themeData = edition
       ? {
-          title: edition.value[1],
-          colors: [edition.value[2], edition.value[3], THEMES[theme].colors[0]],
+          title: tr(`live.fx.edition.${edition.key}`, null, ''),
+          colors: [edition.value[1], edition.value[2], THEMES[theme].colors[0]],
           duration: THEMES[theme].duration,
         }
-      : THEMES[theme];
+      : { ...THEMES[theme], title: tr(`live.fx.theme.${theme}`, null, '') };
     const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false };
     const reduced = !!motion.matches;
     const duration = reduced ? 1150 : clamp(Number(input.duration) || themeData.duration, 1500, 7000);
@@ -208,7 +175,7 @@
     stage.setAttribute('data-oriental-effect', theme);
     if (edition) stage.setAttribute('data-oriental-edition', edition.key);
     stage.style.setProperty('--soe-duration', duration + 'ms');
-    const giftAccent = gift.accent || input.accent || (edition && edition.value[2]);
+    const giftAccent = gift.accent || input.accent || (edition && edition.value[1]);
     if (typeof giftAccent === 'string' && /^#[0-9a-f]{3,8}$/i.test(giftAccent))
       stage.style.setProperty('--soe-accent', giftAccent);
     const veil = element('div', 'soe-veil'),
@@ -217,9 +184,9 @@
     if (edition)
       veil.style.background =
         'radial-gradient(ellipse 62% 48% at 50% 45%,' +
-        edition.value[2] +
+        edition.value[1] +
         '55,transparent 82%),linear-gradient(153deg,' +
-        edition.value[4] +
+        edition.value[3] +
         ',#140f1b 98%)';
     veil.setAttribute('aria-hidden', 'true');
     ornament.setAttribute('aria-hidden', 'true');
@@ -245,22 +212,22 @@
       avatar.addEventListener('error', () => avatar.remove(), { once: true });
       sender.append(avatar);
     }
-    sender.append(element('span', '', String(input.sender || '一位朋友').slice(0, 80) + ' 送出'));
+    const who = String(input.sender || tr('live.fx.someone', null, '')).slice(0, 80);
+    sender.append(element('span', '', tr('live.fx.sent', { name: who }, who)));
     const line = element('div', 'soe-gift-line');
     line.append(element('strong', 'soe-gift-name', String(gift.name || themeData.title).slice(0, 80)));
     const count = clamp(Math.floor(Number(input.count) || 1), 1, 999999);
-    line.append(element('span', 'soe-count', '× ' + count.toLocaleString('zh-CN')));
+    line.append(element('span', 'soe-count', '× ' + number(count)));
     copy.append(element('small', 'soe-eyebrow', themeData.title), sender, line);
-    const skip = element('button', 'soe-skip', '跳过');
+    const skip = element('button', 'soe-skip', tr('live.fx.skip', null, 'Skip'));
     skip.type = 'button';
-    skip.setAttribute('aria-label', '跳过礼物特效');
+    skip.setAttribute('aria-label', tr('live.fx.skipLabel', null, 'Skip'));
     const canvas = element('canvas', 'soe-canvas');
     canvas.setAttribute('aria-hidden', 'true');
     stage.append(veil, ornament, halo, canvas, artWrap, copy, skip);
     let ended = false,
       frame = 0,
       timer = 0,
-      observer = null,
       resizeObserver = null,
       ctx = null;
     let width = 1,
@@ -277,7 +244,6 @@
       ended = true;
       cancelAnimationFrame(frame);
       clearTimeout(timer);
-      observer?.disconnect();
       resizeObserver?.disconnect();
       window.removeEventListener('resize', resize);
       window.removeEventListener('pagehide', hidden);
@@ -316,10 +282,6 @@
     window.addEventListener('pagehide', hidden);
     if (motion.addEventListener) motion.addEventListener('change', motionChanged);
     else if (motion.addListener) motion.addListener(motionChanged);
-    observer = new MutationObserver(() => {
-      if (!container.isConnected || !stage.isConnected || stage.parentNode !== container) finish('removed');
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
     timer = setTimeout(() => finish('complete'), duration);
     if (reduced) return finish;
     try {
