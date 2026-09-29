@@ -736,7 +736,8 @@ function flowsCouponStatus(c, now = Date.now()) {
   return c.status === 'available' && c.expiresAt && c.expiresAt < now ? 'expired' : c.status;
 }
 function flowsCouponTitle(c) {
-  return c.preset ? t(`flows.coupon.preset.${c.preset}`) : c.title || t('flows.coupon.generic');
+  if (c.preset) return t(`flows.coupon.preset.${c.preset}`);
+  return (!SZ_I18N.isSource && c.titleEn) || c.title || t('flows.coupon.generic');
 }
 function flowsCouponView(c) {
   return { ...c, title: flowsCouponTitle(c), status: flowsCouponStatus(c) };
@@ -1682,11 +1683,32 @@ function flowsAddressForm(id) {
     title: isNew ? t('flows.address.addTitle') : t('flows.address.editTitle'),
     body: () =>
       `<form><div class="form-row">${field(t('flows.address.name'), 'name', 'text', t('flows.address.namePlaceholder'), true, a.name || (isNew ? flowsProfileName() : ''), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.address.phone'), 'phone', 'tel', t('flows.address.phonePlaceholder'), true, a.phone || (isNew ? state.profile.phone || SZ.session.account?.phone || '' : ''), { maxlength: 20 })}</div>${selectField(t('flows.address.city'), 'city', cities, a.location || a.city || state.location || state.city)}${field(t('flows.address.detail'), 'address', 'textarea', t('flows.address.detailPlaceholder'), true, a.address || '', { maxlength: 200, rows: 3, autocomplete: 'street-address' })}${field(t('flows.address.postcode'), 'postcode', 'text', '', false, a.postcode || '', { maxlength: 10, inputmode: 'numeric', autocomplete: 'postal-code', hint: t('flows.address.postcodeHint') })}${isNew && state.address.length ? `<label class="flows-check-row"><input type="checkbox" name="makeDefault" value="1"><span>${t('flows.address.makeDefault')}</span></label>` : ''}${submitButton(t('flows.address.save'))}</form>`,
-    form(data, form, layer) {
+    async form(data, form, layer) {
       const location = flowsFormLocation(form);
       const postcode = form.querySelector('[name="postcode"]');
       if ((location?.countryCode || 'MY') === 'MY' && !/^\d{5}$/.test(data.postcode || ''))
         return flowsFieldError(postcode, t('flows.address.postcodeError'));
+      if (SZ.server && SZ.session.isLoggedIn) {
+        try {
+          await SZ.api.act(isNew ? 'POST' : 'PUT', isNew ? 'addresses' : 'addresses/' + encodeURIComponent(a.id), {
+            name: data.name,
+            phone: data.phone,
+            address: data.address,
+            postcode: data.postcode || '',
+            city: location?.cityName || data.city || state.city,
+            location: location || null,
+            makeDefault: !!data.makeDefault,
+          });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+        // The first-address beans belong to the growth module's task "address" (server-verified).
+        const reward = state.addressReward ? null : await window.ShizhongTasks?.claim?.('address')?.catch?.(() => null);
+        flowsDone(layer);
+        flowsRefresh('addresses', 'settings', 'tasks');
+        toast(reward?.points ? t('flows.address.savedReward', { n: reward.points }) : t('flows.address.saved'), { type: 'success' });
+        return;
+      }
       const record = {
         id: isNew ? SZ.uid('addr') : a.id,
         name: data.name,
@@ -1716,9 +1738,18 @@ function flowsAddressForm(id) {
     },
   });
 }
-function flowsDefaultAddress(id) {
+async function flowsDefaultAddress(id) {
   const i = state.address.findIndex(a => a.id === id);
   if (i <= 0) return;
+  if (SZ.server && SZ.session.isLoggedIn) {
+    try {
+      await SZ.api.act('POST', 'addresses/' + encodeURIComponent(id) + '/default');
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    flowsRefresh('addresses');
+    return toast(t('flows.address.defaultSet'));
+  }
   if (!SZ.store.commit(s => s.address.unshift(s.address.splice(i, 1)[0]))) return;
   flowsRefresh('addresses');
   toast(t('flows.address.defaultSet'));
@@ -1733,7 +1764,26 @@ async function flowsRemoveAddress(id) {
     confirmText: t('common.delete'),
     danger: true,
   });
-  if (!ok || !SZ.store.commit(s => s.address.splice(i, 1))) return;
+  if (!ok) return;
+  if (SZ.server && SZ.session.isLoggedIn) {
+    try {
+      await SZ.api.act('DELETE', 'addresses/' + encodeURIComponent(id));
+    } catch (e) {
+      return SZ.api.fail(e);
+    }
+    flowsRefresh('addresses', 'settings');
+    return toast(t('flows.address.deleted'), {
+      action: {
+        label: t('common.undo'),
+        run: () =>
+          SZ.api
+            .act('POST', 'addresses', { ...record, id: undefined, makeDefault: i === 0 })
+            .then(() => flowsRefresh('addresses', 'settings'))
+            .catch(e => SZ.api.fail(e)),
+      },
+    });
+  }
+  if (!SZ.store.commit(s => s.address.splice(i, 1))) return;
   flowsRefresh('addresses', 'settings');
   toast(t('flows.address.deleted'), {
     action: {
@@ -2272,10 +2322,25 @@ function flowsMerchant() {
   return flowsOpen('merchant', {
     title: t('flows.merchant.title'),
     body: () =>
-      `<form class="flows-form"><div class="flows-intro">${flowsIcon('bag')}<div><h3>${t('flows.merchant.headline')}</h3><p>${t('flows.merchant.sub')}</p></div></div>${field(t('flows.merchant.name'), 'name', 'text', t('flows.merchant.namePlaceholder'), true, '', { maxlength: 60, autocomplete: 'organization' })}${selectField(t('flows.merchant.category'), 'category', cats)}${selectField(t('flows.merchant.city'), 'city', cities, state.location || state.city)}${field(t('flows.merchant.contact'), 'contact', 'text', t('flows.merchant.contactPlaceholder'), true, flowsProfileName(), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.merchant.phone'), 'phone', 'tel', t('flows.merchant.phonePlaceholder'), true, SZ.session.account?.phone || state.profile.phone || '', { maxlength: 20 })}${field(t('flows.merchant.about'), 'text', 'textarea', t('flows.merchant.aboutPlaceholder'), true, '', { maxlength: 500, counter: true })}${formNote(t('flows.merchant.note'))}${submitButton(t('flows.merchant.submit'))}</form>`,
-    form(data, form, layer) {
+      `<form class="flows-form"><div class="flows-intro">${flowsIcon('bag')}<div><h3>${t('flows.merchant.headline')}</h3><p>${t('flows.merchant.sub')}</p></div></div>${field(t('flows.merchant.name'), 'name', 'text', t('flows.merchant.namePlaceholder'), true, '', { maxlength: 60, autocomplete: 'organization' })}${selectField(t('flows.merchant.category'), 'category', cats)}${selectField(t('flows.merchant.city'), 'city', cities, state.location || state.city)}${field(t('flows.merchant.contact'), 'contact', 'text', t('flows.merchant.contactPlaceholder'), true, flowsProfileName(), { maxlength: 40, autocomplete: 'name' })}${field(t('flows.merchant.phone'), 'phone', 'tel', t('flows.merchant.phonePlaceholder'), true, SZ.session.account?.phone || state.profile.phone || '', { maxlength: 20 })}${field(t('flows.merchant.about'), 'text', 'textarea', t('flows.merchant.aboutPlaceholder'), true, '', { maxlength: 500, counter: true })}${formNote(SZ.server ? t('commerce.real.merchantNote') : t('flows.merchant.note'))}${submitButton(t('flows.merchant.submit'))}</form>`,
+    async form(data, form, layer) {
       const location = flowsFormLocation(form);
-      if (!flowsRecordFeedback({ kind: 'merchant', ...data, location })) return;
+      if (SZ.server && SZ.session.isLoggedIn) {
+        try {
+          // Becomes a 'merchant' ticket reviewed in the console (商家管理 › 入驻申请).
+          await SZ.api.act('POST', 'merchants/apply', {
+            name: data.name,
+            category: data.category,
+            city: location?.cityName || data.city || '',
+            contact: data.contact,
+            phone: data.phone,
+            text: data.text,
+            location,
+          });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (!flowsRecordFeedback({ kind: 'merchant', ...data, location })) return;
       flowsDone(layer);
       flowsSuccess({
         title: t('flows.merchant.doneTitle'),
@@ -2331,11 +2396,18 @@ function flowsAfterSales(orderId) {
     kind: 'sheet',
     title: t('flows.afterSales.title'),
     body: () =>
-      `<form class="flows-form">${selectField(t('flows.afterSales.order'), 'orderId', options, orderId || orders[0].id)}${selectField(t('flows.afterSales.reasonLabel'), 'reason', reasons)}${field(t('flows.afterSales.text'), 'text', 'textarea', t('flows.afterSales.placeholder'), true, '', { maxlength: 800, counter: true })}${formNote(t('flows.afterSales.note'))}${submitButton(t('flows.afterSales.submit'))}</form>`,
-    form(data, form, layer) {
-      if (!flowsRecordFeedback({ kind: 'after-sales', ...data })) return;
+      `<form class="flows-form">${selectField(t('flows.afterSales.order'), 'orderId', options, orderId || orders[0].id)}${selectField(t('flows.afterSales.reasonLabel'), 'reason', reasons)}${field(t('flows.afterSales.text'), 'text', 'textarea', t('flows.afterSales.placeholder'), true, '', { maxlength: 800, counter: true })}${formNote(SZ.server ? t('commerce.real.afterSalesNote') : t('flows.afterSales.note'))}${submitButton(t('flows.afterSales.submit'))}</form>`,
+    async form(data, form, layer) {
+      if (SZ.server && SZ.session.isLoggedIn) {
+        try {
+          // An 'after-sales' ticket for the order; the server also writes the notice.
+          await SZ.api.act('POST', 'aftersales', { orderId: data.orderId, reason: data.reason, text: data.text });
+        } catch (e) {
+          return SZ.api.fail(e);
+        }
+      } else if (!flowsRecordFeedback({ kind: 'after-sales', ...data })) return;
       layer.meta.flowsDone = true;
-      window.ShizhongNotices.push({
+      if (!SZ.server) window.ShizhongNotices.push({
         type: 'order',
         titleKey: 'flows.notice.afterSales',
         bodyKey: 'flows.notice.afterSalesBody',

@@ -102,7 +102,7 @@ const menus = computed(() => {
   return modules
     .filter(m => m.menu === null || allowed.has(m.menu))
     .map(m => ({
-      key: m.menu || m.title?.en || m.title?.zh,
+      key: (m.menu || '') + ':' + (m.title?.en || m.title?.zh || ''),
       icon: m.icon || 'Menu',
       title: m.title,
       items: (m.routes || []).filter(r => r.menu && can(r.meta?.perm)).map(r => ({ path: r.path, title: r.meta?.title || m.title })),
