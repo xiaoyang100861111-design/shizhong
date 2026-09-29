@@ -5,6 +5,12 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shizhong.Api", "Shizhong.Api\Shizhong.Api.csproj", "{E0E62552-E51A-4551-B6E8-9083A5A799B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shizhong.Tests", "Shizhong.Tests\Shizhong.Tests.csproj", "{2B8CC9E8-2A94-4926-B1CC-4F09D9665EFC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{93C89903-DBC7-466E-BAD0-86DDD907F956}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XpubTool", "tools\XpubTool\XpubTool.csproj", "{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +24,16 @@ Global
 		{E0E62552-E51A-4551-B6E8-9083A5A799B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0E62552-E51A-4551-B6E8-9083A5A799B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0E62552-E51A-4551-B6E8-9083A5A799B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B8CC9E8-2A94-4926-B1CC-4F09D9665EFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B8CC9E8-2A94-4926-B1CC-4F09D9665EFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B8CC9E8-2A94-4926-B1CC-4F09D9665EFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B8CC9E8-2A94-4926-B1CC-4F09D9665EFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B0C8A2F3-9FEF-4101-B65F-CCC73AB6C946} = {93C89903-DBC7-466E-BAD0-86DDD907F956}
 	EndGlobalSection
 EndGlobal
