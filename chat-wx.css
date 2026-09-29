@@ -1,0 +1,1062 @@
+/*
+ * Red packets (红包) and transfers (转账), WeChat 8 style: send pages, payment sheet, bubbles,
+ * the 開 card, 红包详情 and the transfer receive page. Everything is drawn with CSS / inline SVG.
+ * Markup: chat-tools.js (section "red packets & transfers"); strings: locales/chat-money.js.
+ */
+.wx-page,
+.wx-pay-sheet,
+.wx-open,
+.cx-bubble.wx-bubble,
+.cx-sys {
+  --wx-bg: #ededed;
+  --wx-cell: #ffffff;
+  --wx-text: rgba(0, 0, 0, 0.9);
+  --wx-text-2: rgba(0, 0, 0, 0.5);
+  --wx-text-3: rgba(0, 0, 0, 0.3);
+  --wx-line: rgba(0, 0, 0, 0.1);
+  --wx-link: #576b95;
+  --wx-green: #07c160;
+  --wx-red: #f25542;
+  --wx-red-deep: #e64a39;
+  --wx-orange: #fa9d3b;
+  --wx-orange-done: #fbd3a6;
+  --wx-gold: #ebcd9a;
+  --wx-gold-ink: #4b3a20;
+  --wx-gold-light: #fce1b4;
+  --wx-gold-text: #c8a05a;
+  --wx-err-bg: #fdeceb;
+  --wx-err: #fa5151;
+}
+:root[data-theme='dark'] :is(.wx-page, .wx-pay-sheet, .wx-open, .cx-bubble.wx-bubble, .cx-sys) {
+  --wx-bg: #111111;
+  --wx-cell: #191919;
+  --wx-text: rgba(255, 255, 255, 0.85);
+  --wx-text-2: rgba(255, 255, 255, 0.5);
+  --wx-text-3: rgba(255, 255, 255, 0.3);
+  --wx-line: rgba(255, 255, 255, 0.08);
+  --wx-link: #7d90a9;
+  --wx-red: #d9493a;
+  --wx-red-deep: #c83f31;
+  --wx-orange: #d8862f;
+  --wx-orange-done: #6b4c2c;
+  --wx-gold-text: #c8a05a;
+  --wx-err-bg: rgba(250, 81, 81, 0.14);
+}
+
+/* ------------------------------------------------------------------ bubble */
+.cx-bubble.wx-bubble,
+.cx-row.is-self .cx-bubble.wx-bubble {
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 6px;
+  background: var(--wx-orange);
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+/* the little tail WeChat bubbles have */
+.wx-bubble::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.cx-row.is-self .wx-bubble::before {
+  right: -4px;
+  left: auto;
+}
+.cx-bubble.wx-bubble.is-settled,
+.cx-row.is-self .cx-bubble.wx-bubble.is-settled {
+  background: var(--wx-orange-done);
+}
+.wx-bubble:active {
+  filter: brightness(0.94);
+}
+.wx-b-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 66px;
+  padding: 12px 12px 11px;
+}
+.wx-pk-ico {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 38px;
+}
+.wx-bubble.is-settled .wx-pk-ico {
+  opacity: 0.9;
+}
+.wx-tf-ico {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wx-b-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wx-b-title {
+  overflow: hidden;
+  font-size: var(--fs-16);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wx-bubble.is-transfer .wx-b-title {
+  font-family: var(--font-num);
+  font-weight: var(--fw-medium);
+}
+.wx-b-sub {
+  overflow: hidden;
+  font-size: var(--fs-12);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+.wx-b-foot {
+  position: relative;
+  padding: 4px 12px 5px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--fs-11);
+  line-height: 15px;
+}
+.wx-b-foot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 12px;
+  left: 12px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scaleY(0.5);
+}
+
+/* system line: "你领取了 X 的红包" */
+.wx-sys-ico {
+  width: 11px;
+  height: 14px;
+  margin-inline-end: 4px;
+  vertical-align: -2px;
+}
+.wx-sys-word {
+  color: var(--wx-orange);
+  font-style: normal;
+}
+
+/* ------------------------------------------------------------------ shared page bits */
+.full-screen.wx-page {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  background: var(--wx-bg);
+  color: var(--wx-text);
+  font-family: var(--font-sans);
+}
+.full-screen.wx-page > * {
+  flex-shrink: 0;
+}
+.wx-page .detail-header {
+  background: var(--wx-bg);
+  box-shadow: none;
+  color: var(--wx-text);
+}
+.wx-page .detail-header h2 {
+  font-size: 1.0625rem;
+  font-weight: var(--fw-medium);
+}
+.wx-amt {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.12em;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.wx-amt small {
+  font-size: 0.55em;
+  font-weight: var(--fw-semibold);
+}
+.wx-amt b {
+  font-weight: var(--fw-semibold);
+}
+.wx-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--wx-link);
+  font: inherit;
+  cursor: pointer;
+}
+.wx-btn {
+  display: block;
+  width: 184px;
+  max-width: 100%;
+  height: 48px;
+  margin: 0 auto;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+.wx-btn:active:not(:disabled) {
+  filter: brightness(0.92);
+}
+.wx-btn:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.wx-btn-block {
+  width: 100%;
+}
+.wx-btn-red {
+  background: var(--wx-red);
+}
+.wx-btn-green {
+  background: var(--wx-green);
+}
+.wx-btn:focus-visible,
+.wx-link:focus-visible,
+.wx-open-btn:focus-visible,
+.wx-open-link:focus-visible,
+.wx-open-close:focus-visible,
+.wx-detail-saved:focus-visible {
+  outline: 2px solid #8ab4ff;
+  outline-offset: 2px;
+}
+.wx-foot-note {
+  margin: 0;
+  color: var(--wx-text-3);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  text-align: center;
+}
+.wx-pin {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: #e9a53a;
+  color: #fff;
+  font-size: var(--fs-11);
+  font-style: normal;
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+.wx-pin[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ 发红包 / 转账 pages */
+.wx-send {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  padding: 0 16px;
+}
+.wx-err {
+  margin: 0 -16px;
+  padding: 9px 16px;
+  background: var(--wx-err-bg);
+  color: var(--wx-err);
+  font-size: var(--fs-14);
+  line-height: 1.4;
+  text-align: center;
+}
+.wx-err[hidden] {
+  display: none;
+}
+.wx-cells {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-top: 16px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--wx-cell);
+}
+.wx-cell-label {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.0625rem;
+}
+.wx-cell-value {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  font-size: 1.0625rem;
+}
+.wx-cells input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--wx-text);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  caret-color: var(--wx-green);
+}
+.wx-cell-value input {
+  text-align: right;
+}
+.wx-cells input::placeholder {
+  color: var(--wx-text-3);
+  opacity: 1;
+}
+.wx-cells:focus-within {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wx-green) 45%, transparent);
+}
+.wx-unit {
+  flex: 0 0 auto;
+}
+.wx-unit:empty {
+  display: none;
+}
+.wx-cell-tip {
+  margin: 8px 16px 0;
+  color: var(--wx-text-2);
+  font-size: var(--fs-14);
+  line-height: 1.45;
+}
+.wx-greet {
+  min-height: 56px;
+}
+.wx-big {
+  margin: 40px 0 0;
+  color: var(--wx-text);
+  text-align: center;
+}
+.wx-big .wx-amt {
+  font-size: 46px;
+}
+.wx-big .wx-amt small {
+  font-size: 28px;
+}
+.wx-send-packet .wx-btn {
+  margin-top: 26px;
+}
+.wx-send .wx-foot-note {
+  margin-top: auto;
+  padding: 40px 8px calc(24px + var(--safe-bottom));
+}
+
+.wx-transfer-page .detail-header h2 {
+  visibility: hidden;
+}
+.wx-send-transfer {
+  padding: 0;
+}
+.wx-send-transfer .wx-err {
+  margin: 0;
+}
+.wx-tf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+.wx-tf-to {
+  min-width: 0;
+}
+.wx-tf-to strong {
+  display: block;
+  overflow: hidden;
+  font-size: 1.0625rem;
+  font-weight: var(--fw-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wx-tf-av {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.wx-tf-card {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  padding: 24px 24px calc(24px + var(--safe-bottom));
+  border-radius: 12px 12px 0 0;
+  background: var(--wx-cell);
+}
+.wx-tf-label {
+  margin: 0;
+  font-size: var(--fs-14);
+}
+.wx-tf-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 76px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--wx-line);
+}
+.wx-tf-cur {
+  flex: 0 0 auto;
+  font-family: var(--font-num);
+  font-size: 30px;
+  font-weight: var(--fw-semibold);
+}
+.wx-tf-amount input,
+.wx-tf-note input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--wx-text);
+  caret-color: var(--wx-green);
+}
+.wx-tf-amount input {
+  font-family: var(--font-num);
+  font-size: 46px;
+  font-weight: var(--fw-semibold);
+}
+.wx-tf-note {
+  margin-top: 16px;
+  font-size: var(--fs-14);
+}
+.wx-tf-note input {
+  height: 36px;
+  border-bottom: 1px solid var(--wx-line);
+  font-family: var(--font-sans);
+  font-size: var(--fs-16);
+}
+.wx-tf-note input::placeholder {
+  color: var(--wx-text-3);
+}
+.wx-tf-note [hidden] {
+  display: none;
+}
+.wx-tf-card .wx-btn {
+  margin-top: 40px;
+}
+.wx-tf-card .wx-foot-note {
+  margin-top: 16px;
+}
+
+/* ------------------------------------------------------------------ payment sheet */
+.sheet.wx-pay-sheet {
+  border-radius: 12px 12px 0 0;
+  background: var(--wx-cell);
+  color: var(--wx-text);
+}
+.wx-pay-sheet .sheet-handle {
+  display: none;
+}
+.wx-pay-sheet .sheet-header {
+  flex-direction: row-reverse;
+  padding: 6px 8px 0;
+  background: var(--wx-cell);
+}
+.wx-pay-sheet .sheet-header h2 {
+  padding-inline-end: var(--tap);
+  font-size: 1.0625rem;
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+.wx-pay-sheet .sheet-close {
+  color: var(--wx-text);
+}
+.wx-pay {
+  padding: 4px 4px 8px;
+  text-align: center;
+}
+.wx-pay-what {
+  margin: 8px 0 0;
+  font-size: var(--fs-16);
+}
+.wx-pay-amt {
+  margin: 10px 0 0;
+}
+.wx-pay-amt .wx-amt {
+  font-size: 40px;
+}
+.wx-pay-amt .wx-amt small {
+  font-size: 28px;
+}
+.wx-pay-detail {
+  margin: 6px 0 0;
+  color: var(--wx-text-2);
+  font-size: var(--fs-14);
+}
+.wx-pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+  padding: 16px 0;
+  border-top: 1px solid var(--wx-line);
+  border-bottom: 1px solid var(--wx-line);
+  font-size: var(--fs-14);
+  text-align: left;
+}
+.wx-pay-k {
+  color: var(--wx-text-2);
+}
+.wx-pay-v {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px 6px;
+}
+.wx-pay-v small {
+  color: var(--wx-text-2);
+  font-size: var(--fs-13);
+}
+.wx-pay-wallet {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--wx-orange);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.wx-pay-warn {
+  margin: 10px 0 0;
+  color: var(--wx-err);
+  font-size: var(--fs-14);
+}
+.wx-pay .wx-btn {
+  margin-top: 28px;
+}
+
+/* ------------------------------------------------------------------ the 開 card */
+.wx-open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  background: rgba(0, 0, 0, 0.62);
+  animation: sz-fade-in 0.2s var(--ease-out);
+}
+.wx-open-card {
+  position: relative;
+  width: min(78%, 300px);
+  aspect-ratio: 300 / 460;
+  max-height: calc(100% - 80px);
+  outline: none;
+  animation: wx-pop 0.38s cubic-bezier(0.2, 1.25, 0.4, 1) both;
+}
+@keyframes wx-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wx-open-lower {
+  position: absolute;
+  inset: 50% 0 0;
+  border-radius: 0 0 10px 10px;
+  background: var(--wx-red-deep);
+  transition: transform 0.42s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.42s;
+}
+.wx-open-upper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: 74%;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.18));
+  transition: transform 0.42s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.42s;
+}
+.wx-open-flap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px 10px 0 0;
+  fill: var(--wx-red);
+}
+.wx-open-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 26% 24px 0;
+  color: var(--wx-gold-light);
+  text-align: center;
+}
+.wx-open-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 0;
+  font-size: var(--fs-16);
+  line-height: 1.3;
+}
+.wx-open-from img {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.wx-open-greet {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: var(--fw-medium);
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.wx-open-greet.is-state {
+  font-size: 20px;
+}
+.wx-open-btn {
+  position: absolute;
+  top: calc(67% - 48px);
+  left: 50%;
+  z-index: 2;
+  width: 96px;
+  height: 96px;
+  margin-left: -48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  perspective: 500px;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.wx-coin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--wx-gold);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.22),
+    inset 0 -3px 0 rgba(120, 80, 20, 0.12);
+  transform-style: preserve-3d;
+}
+.wx-coin-face {
+  color: var(--wx-gold-ink);
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+.wx-open-btn:active .wx-coin {
+  transform: scale(0.96);
+}
+.wx-open.is-spinning .wx-coin {
+  animation: wx-coin-spin 0.72s linear infinite;
+}
+@keyframes wx-coin-spin {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+.wx-open.is-opening .wx-open-upper {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+.wx-open.is-opening .wx-open-lower {
+  transform: translateY(110%);
+  opacity: 0;
+}
+.wx-open.is-opening .wx-open-btn,
+.wx-open.is-opening .wx-open-link {
+  opacity: 0;
+  transform: scale(0.6);
+}
+.wx-open.is-opening {
+  background: rgba(0, 0, 0, 0.25);
+  transition: background-color 0.42s;
+}
+.wx-open-link {
+  position: absolute;
+  right: 0;
+  bottom: 22px;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: var(--wx-gold-light);
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  cursor: pointer;
+  transition: opacity 0.25s;
+}
+.wx-open-link svg,
+.wx-detail-saved svg {
+  width: 7px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wx-open-close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+.wx-open-close svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.wx-open.is-opening .wx-open-close {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------ 红包详情 */
+.full-screen.wx-detail-page {
+  background: var(--wx-cell);
+}
+.wx-detail-page .detail-header {
+  background: var(--wx-red);
+  color: var(--wx-gold-light);
+}
+.wx-detail-page .detail-header h2 {
+  visibility: hidden;
+}
+.wx-detail-top {
+  position: relative;
+  height: 58px;
+  margin-top: -1px;
+  overflow: hidden;
+}
+.wx-detail-top::before {
+  content: '';
+  position: absolute;
+  top: -58px;
+  right: -30%;
+  left: -30%;
+  height: 116px;
+  border-radius: 0 0 50% 50%;
+  background: var(--wx-red);
+}
+.wx-detail-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 16px 32px;
+  text-align: center;
+}
+.wx-detail-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 0;
+}
+.wx-detail-from img {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.wx-detail-from strong {
+  overflow: hidden;
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wx-detail-greet {
+  margin: 10px 0 0;
+  color: var(--wx-text-2);
+  font-size: var(--fs-14);
+  line-height: 1.45;
+}
+.wx-detail-amt {
+  margin: 30px 0 0;
+  color: var(--wx-gold-text);
+}
+.wx-detail-amt .wx-amt {
+  font-size: 48px;
+}
+.wx-detail-amt .wx-amt b {
+  font-weight: var(--fw-medium);
+}
+.wx-detail-amt .wx-amt small {
+  font-size: 22px;
+  font-weight: var(--fw-medium);
+}
+.wx-detail-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--wx-gold-text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+.wx-detail-list {
+  border-top: 8px solid var(--wx-bg);
+}
+.wx-detail-list h3 {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--wx-line);
+  color: var(--wx-text-2);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-regular);
+  line-height: 1.4;
+}
+.wx-detail-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wx-claim {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 16px;
+}
+.wx-claim + .wx-claim::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 68px;
+  height: 1px;
+  background: var(--wx-line);
+}
+.wx-claim > img {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.wx-claim-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.wx-claim-main strong {
+  overflow: hidden;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wx-claim-main small {
+  color: var(--wx-text-3);
+  font-size: var(--fs-13);
+}
+.wx-claim-amt {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.wx-claim-amt b {
+  font-family: var(--font-num);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-regular);
+}
+.wx-best {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #e9a53a;
+  font-size: var(--fs-12);
+}
+.wx-best svg {
+  width: 13px;
+  height: 11px;
+  fill: currentColor;
+}
+.wx-detail-note {
+  margin-top: auto;
+  padding: 32px 16px calc(24px + var(--safe-bottom));
+}
+
+/* ------------------------------------------------------------------ transfer receive page */
+.full-screen.wx-receive-page {
+  background: var(--wx-cell);
+}
+.wx-receive-page .detail-header {
+  background: var(--wx-cell);
+}
+.wx-receive-page .detail-header h2 {
+  visibility: hidden;
+}
+.wx-tf-status {
+  --wx-st: #10aeff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 24px 0;
+  text-align: center;
+}
+.wx-tf-status[data-state='received'] {
+  --wx-st: var(--wx-green);
+}
+.wx-tf-status[data-state='returned'] {
+  --wx-st: var(--wx-orange);
+}
+.wx-tf-status[data-state='expired'] {
+  --wx-st: #b2b2b2;
+}
+.wx-tf-big .wx-tf-ico {
+  width: 64px;
+  height: 64px;
+  stroke-width: 2;
+}
+.wx-tf-big .wx-tf-ico circle {
+  fill: var(--wx-st);
+  stroke: none;
+}
+.wx-tf-title {
+  margin: 24px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+.wx-tf-amt {
+  margin: 14px 0 0;
+}
+.wx-tf-amt .wx-amt {
+  font-size: 44px;
+}
+.wx-tf-amt .wx-amt small {
+  font-size: 26px;
+}
+.wx-tf-memo {
+  margin: 10px 0 0;
+  color: var(--wx-text-2);
+  font-size: var(--fs-15);
+  overflow-wrap: anywhere;
+}
+.wx-tf-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 44px;
+}
+.wx-tf-hint {
+  margin: 16px 0 0;
+  color: var(--wx-text-2);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+.wx-tf-actions > .wx-tf-hint:first-child {
+  margin-top: 0;
+}
+.wx-tf-saved {
+  font-size: var(--fs-14);
+}
+.wx-tf-times {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: auto 0 0;
+  padding: 40px 16px calc(28px + var(--safe-bottom));
+  color: var(--wx-text-3);
+  font-size: var(--fs-13);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ motion */
+@media (prefers-reduced-motion: reduce) {
+  .wx-open,
+  .wx-open-card {
+    animation: none;
+  }
+  .wx-open.is-spinning .wx-coin {
+    animation: none;
+    opacity: 0.75;
+  }
+  .wx-open-upper,
+  .wx-open-lower,
+  .wx-open-btn,
+  .wx-open-link,
+  .wx-open.is-opening {
+    transition: none;
+  }
+}

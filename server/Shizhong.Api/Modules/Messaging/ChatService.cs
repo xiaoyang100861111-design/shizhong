@@ -237,6 +237,7 @@ public sealed class ChatService(Db db, Realtime realtime, ConfigService cfg, ISe
             o["status"] = packet.Status switch { 1 => "received", 2 => "refunded", _ => "pending" };
             o["expiresAt"] = Json.Ms(packet.ExpiresAt);
             if (packet.RefundedCents > 0) o["refundedCents"] = packet.RefundedCents;
+            if (packet.SettledAt is { } settled) o["settledAt"] = Json.Ms(settled);
             if (packet.RecipientPublicId != null) o["recipient"] = packet.RecipientPublicId;
             o["claims"] = new JsonArray(list.Select(k => (JsonNode)new JsonObject
             {

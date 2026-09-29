@@ -601,75 +601,7 @@ button.cx-bubble {
   font-size: var(--fs-12);
 }
 
-/* money: red packet (brand) and transfer (panda yellow) */
-.cx-bubble.cx-b-money.is-packet,
-.cx-row.is-self .cx-bubble.cx-b-money.is-packet {
-  background: linear-gradient(135deg, var(--c-brand), var(--c-brand-hover));
-  color: var(--c-on-brand);
-}
-.cx-bubble.cx-b-money.is-transfer,
-.cx-row.is-self .cx-bubble.cx-b-money.is-transfer {
-  background: var(--c-accent);
-  color: var(--c-on-accent);
-}
-.cx-b-money .cx-card-main small {
-  color: inherit;
-  opacity: 0.88;
-}
-.cx-b-money .cx-card-foot {
-  border-top-color: color-mix(in srgb, currentColor 22%, transparent);
-  color: inherit;
-  opacity: 0.85;
-}
-.cx-money-ico {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--r-sm);
-  background: color-mix(in srgb, currentColor 16%, transparent);
-}
-.cx-money-ico .ico {
-  width: 24px;
-  height: 24px;
-}
-.cx-bubble.cx-b-money.is-settled,
-.cx-row.is-self .cx-bubble.cx-b-money.is-settled {
-  background: var(--c-surface);
-  color: var(--c-text);
-}
-.cx-b-money.is-settled .cx-money-ico {
-  background: var(--c-brand-soft);
-  color: var(--c-brand-text);
-}
-.cx-b-money.is-transfer.is-settled .cx-money-ico {
-  background: var(--c-warning-soft);
-  color: var(--c-warning);
-}
-.cx-b-money.is-settled .cx-card-main small,
-.cx-b-money.is-settled .cx-card-foot {
-  color: var(--c-text-3);
-  opacity: 1;
-}
-.cx-money-ico.is-large {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--r-lg);
-}
-.cx-money-ico.is-large .ico {
-  width: 32px;
-  height: 32px;
-}
-.cx-money-ico.is-large.is-packet {
-  background: var(--c-brand);
-  color: var(--c-on-brand);
-}
-.cx-money-ico.is-large.is-transfer {
-  background: var(--c-accent);
-  color: var(--c-on-accent);
-}
+/* money bubbles (red packet, transfer): chat-wx.css */
 
 /* location: text on top, a small map tile below (illustration) */
 .cx-loc-text {

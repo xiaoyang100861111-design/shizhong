@@ -539,22 +539,6 @@
     if (!q) return '';
     return `<button type="button" class="cx-quote-ref" data-action="cx-jump" data-id="${esc(q.id || '')}"><b>${esc(q.author || '')}</b><span>${esc(q.text || '')}</span></button>`;
   }
-  function moneyStatus(m) {
-    const claims = Array.isArray(m.claims) ? m.claims : [];
-    if (m.type === 'transfer') {
-      if (m.status === 'received') return m.self ? t('chat.money.transferAccepted') : t('server.chat.money.transferTaken');
-      if (m.status === 'refunded') return t('chat.money.transferRefunded');
-      return m.self ? t('chat.money.transferPending') : t('chat.money.transferIncoming');
-    }
-    if (m.status === 'refunded') return t('chat.money.packetRefunded');
-    if (!m.self && m.mine != null) return t('server.chat.money.youGot', { amount: money(m.mine) });
-    if ((m.count || 1) > 1) {
-      if (m.status === 'received') return t('chat.money.packetAllOpened');
-      return t('chat.money.packetProgress', { n: claims.length, total: m.count });
-    }
-    if (m.status === 'received') return t('chat.money.packetOpened');
-    return m.self ? t('chat.money.packetWaiting') : t('chat.money.packetOpen');
-  }
   function bubbleHTML(m, key, ctx) {
     const id = esc(key);
     const tgBubble = TG()?.bubble?.(m, key, ctx); // [tg hook] album, video, file, captioned photo
@@ -580,13 +564,8 @@
         return `<button type="button" class="cx-bubble cx-card cx-b-file" data-action="cx-file" data-id="${id}"><span class="cx-card-body"><span class="cx-card-main"><strong>${esc(m.name || t('chat.msg.file'))}</strong><small>${esc(bytes(m.size))}</small></span><span class="cx-file-ico" aria-hidden="true">${ico('file')}${ext ? `<b>${esc(ext)}</b>` : ''}</span></span><span class="cx-card-foot">${esc(t('chat.msg.fileFoot'))}</span></button>`;
       }
       case 'envelope':
-      case 'transfer': {
-        const packet = m.type === 'envelope';
-        const settled = m.status && m.status !== 'pending';
-        const title = packet ? m.note || t('chat.money.defaultNote') : money(m.cents);
-        const sub = !packet && m.note ? `${m.note} · ${moneyStatus(m)}` : moneyStatus(m);
-        return `<button type="button" class="cx-bubble cx-card cx-b-money ${packet ? 'is-packet' : 'is-transfer'}${settled ? ' is-settled' : ''}" data-action="cx-money" data-id="${id}"><span class="cx-card-body"><span class="cx-money-ico" aria-hidden="true">${ico(packet ? 'envelope' : 'transfer')}</span><span class="cx-card-main"><strong>${esc(title)}</strong><small>${esc(sub)}</small></span></span><span class="cx-card-foot">${esc(t(packet ? 'chat.money.packetBrand' : 'chat.money.transferBrand'))}</span></button>`;
-      }
+      case 'transfer':
+        return moneyBubbleHTML(m, id);
       case 'location':
         return `<button type="button" class="cx-bubble cx-card cx-b-location" data-action="cx-location" data-id="${id}"><span class="cx-card-main cx-loc-text"><strong>${esc(m.name || '')}</strong><small>${esc(m.address || '')}</small></span><span class="cx-map" aria-hidden="true"><span class="cx-map-pin">${icon('pin')}</span></span></button>`;
       case 'contact': {
@@ -661,7 +640,7 @@
     const type = m.type || 'text';
     if (type === 'system' || type === 'recalled') {
       let body;
-      if (type === 'system') body = esc(systemText(m));
+      if (type === 'system') body = sysHTML(m);
       else if (m.self)
         body = `${esc(t('chat.msg.youRecalled'))}${recalledText.has(m.id) ? ` <button type="button" class="cx-link" data-action="cx-reedit" data-id="${esc(m.id)}">${esc(t('chat.msg.editAgain'))}</button>` : ''}`;
       else body = esc(t('chat.msg.peerRecalled', { name: authorName(m, ctx) }));
@@ -1314,7 +1293,7 @@
       if (!(state.messages[chatId] || []).some(x => x?.id === message.id)) return upsert(chatId, message, { quiet: true });
       upsert(chatId, message);
       const view = views.get(chatId);
-      if (view?.pay === undefined && view?.el.isConnected) refreshMoneySheet(view, message.id);
+      if (view?.el.isConnected) refreshMoneySheet(view, message.id);
     });
     SZ.realtime.on('chat:typing', payload => {
       const { chatId, person, name } = payload || {};
@@ -2605,82 +2584,239 @@
   }
 
   // ------------------------------------------------------------------ red packets & transfers
+  /*
+   * WeChat-style money screens (styles in chat-wx.css, strings under chat.wx.* in locales/chat-money.js):
+   *   发红包 / 转账 pages → payment sheet (cx-pay) → bubble → 開 card (cx-claim) → 红包详情 / 转账 receive page.
+   * The page layers carry meta.cxMoneyFlow so a successful payment closes the form and the sheet together.
+   */
+  const expireMinutes = () => Math.max(1, Math.round(EXPIRE_MS / 60000));
+  /** "24小时" for red packets, "1天" for transfers (WeChat's wording), from chat.packetExpireMinutes. */
+  function spanText(minutes, prefer = 'hour') {
+    if (prefer === 'day' && minutes % 1440 === 0) return tn('chat.wx.unit.day', minutes / 1440);
+    if (minutes % 60 === 0) return tn('chat.wx.unit.hour', minutes / 60);
+    return tn('chat.wx.unit.minute', minutes);
+  }
+  /** Short duration for "15秒被抢光". */
+  function lapseText(ms) {
+    const s = Math.max(1, Math.round(ms / 1000));
+    if (s < 60) return tn('chat.wx.unit.second', s);
+    if (s < 3600) return tn('chat.wx.unit.minute', Math.round(s / 60));
+    if (s < 86400) return tn('chat.wx.unit.hour', Math.round(s / 3600));
+    return tn('chat.wx.unit.day', Math.round(s / 86400));
+  }
+  const moneyNum = cents => money(cents).replace(/^-?RM\s*/, '');
+  const bigAmount = (cents, cls = '') =>
+    `<span class="wx-amt ${cls}"><small>RM</small><b class="num">${esc(moneyNum(cents))}</b></span>`;
+  const expiresOf = m => Number(m.expiresAt) || timeOf(m) + EXPIRE_MS;
+  function fullTime(ts) {
+    const d = new Date(ts);
+    if (!Number.isFinite(d.getTime())) return '';
+    const clockText = new Intl.DateTimeFormat('en-GB', {
+      timeZone: SZ.fmt.TZ || 'Asia/Kuala_Lumpur',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(d);
+    return SZ.fmt.date(d, 'iso') + ' ' + clockText;
+  }
+  function claimTime(ts) {
+    const now = Date.now();
+    return SZ.fmt.date(ts, 'iso') === SZ.fmt.date(now, 'iso')
+      ? SZ.fmt.time(ts)
+      : SZ.fmt.date(ts, 'iso').slice(5) + ' ' + SZ.fmt.time(ts);
+  }
+  function meInfo() {
+    const name = (typeof profileName === 'function' ? profileName() : state.profile?.name) || t('chat.msg.you');
+    return { name, photo: state.profile?.photo || 'logo.png' };
+  }
+  function senderOf(view, m) {
+    if (m.self) return meInfo();
+    const p = m.person ? personById(m.person) : view.info.kind === 'friend' ? view.info.person : null;
+    return {
+      name: p ? personName(p) : m.author || view.info.name,
+      photo: p ? avatarSource(p) : m.photo || view.info.photo,
+    };
+  }
+  /** pending | opened (I took a share) | claimed (my 1:1 packet was opened) | empty | expired */
+  function packetStatus(m) {
+    const claims = Array.isArray(m.claims) ? m.claims : [];
+    const count = m.count || 1;
+    if (!m.self && m.mine != null) return 'opened';
+    if (m.status === 'received' || claims.length >= count) return m.self && count === 1 ? 'claimed' : 'empty';
+    if (m.status === 'refunded' || expiresOf(m) <= Date.now()) return 'expired';
+    return 'pending';
+  }
+  /** pending | received | returned (the recipient sent it back) | expired */
+  function transferStatus(m) {
+    if (m.status === 'received') return 'received';
+    if (m.status === 'refunded') {
+      const settled = Number(m.settledAt) || 0;
+      return settled && settled < expiresOf(m) - 1000 ? 'returned' : 'expired';
+    }
+    return expiresOf(m) <= Date.now() ? 'expired' : 'pending';
+  }
+  // Drawn icons (no images): a small red packet and the transfer glyphs.
+  const PACKET_SVG = open =>
+    open
+      ? '<svg class="wx-pk-ico" viewBox="0 0 30 38" aria-hidden="true"><path d="M2 12 15 3l13 9z" fill="#F7836F"/><rect x="1" y="9" width="28" height="28" rx="3" fill="#F25542"/><path d="M1 12q14 7 28 0" fill="none" stroke="#D9412F" stroke-width="1.2"/><circle cx="15" cy="20" r="4.4" fill="#F9D27C"/></svg>'
+      : '<svg class="wx-pk-ico" viewBox="0 0 30 38" aria-hidden="true"><rect x="1" y="1" width="28" height="36" rx="3" fill="#F25542"/><path d="M1 4a3 3 0 0 1 3-3h22a3 3 0 0 1 3 3v8.5Q15 20 1 12.5z" fill="#F7735E"/><circle cx="15" cy="16.2" r="4.6" fill="#F9D27C"/><circle cx="15" cy="16.2" r="2.7" fill="none" stroke="#E0A43F" stroke-width="1"/></svg>';
+  const TRANSFER_GLYPH = {
+    pending: '<path d="M10.5 14.5h15l-4.2-4.2M25.5 21.5h-15l4.2 4.2"/>',
+    received: '<path d="m11 18.5 4.8 4.8 9.7-10"/>',
+    returned: '<path d="m15 11.5-4.5 4.5 4.5 4.5"/><path d="M10.5 16h9.3a5 5 0 0 1 0 10h-3.3"/>',
+    expired: '<path d="M18 11v7.5l4.8 2.8"/>',
+  };
+  const TRANSFER_SVG = st =>
+    `<svg class="wx-tf-ico" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16.2"/>${TRANSFER_GLYPH[st] || TRANSFER_GLYPH.pending}</svg>`;
+  const SYS_PACKET_ICO =
+    '<svg class="wx-sys-ico" viewBox="0 0 12 15" aria-hidden="true"><rect x=".5" y=".5" width="11" height="14" rx="1.6" fill="#F25542"/><path d="M.5 2.1a1.6 1.6 0 0 1 1.6-1.6h7.8a1.6 1.6 0 0 1 1.6 1.6v2.8Q6 8 .5 4.9z" fill="#F7735E"/><circle cx="6" cy="6.4" r="1.8" fill="#F9D27C"/></svg>';
+  /** The chat bubble: orange card, drawn icon, greeting / amount, "红包" / "转账" under a thin line. */
+  function moneyBubbleHTML(m, id) {
+    const packet = m.type === 'envelope';
+    let st, main, sub, done;
+    if (packet) {
+      st = packetStatus(m);
+      done = st !== 'pending';
+      main = `<span class="wx-b-title">${esc(m.note || t('chat.money.defaultNote'))}</span>`;
+      sub = done ? t('chat.wx.bubble.' + st) : '';
+    } else {
+      st = transferStatus(m);
+      done = st !== 'pending';
+      main = `<span class="wx-b-title num">${esc(money(m.cents))}</span>`;
+      sub =
+        st === 'pending'
+          ? m.note || t(m.self ? 'chat.wx.bubble.tfSent' : 'chat.wx.bubble.tfIncoming')
+          : t(`chat.wx.bubble.tf${st[0].toUpperCase() + st.slice(1)}${m.self ? 'Self' : ''}`);
+    }
+    const brand = t(packet ? 'chat.wx.packetBrand' : 'chat.wx.transferBrand');
+    const label = [brand, packet ? m.note || t('chat.money.defaultNote') : money(m.cents), sub].filter(Boolean).join(' · ');
+    return `<button type="button" class="cx-bubble cx-b-money wx-bubble ${packet ? 'is-packet' : 'is-transfer'}${done ? ' is-settled' : ''}" data-action="cx-money" data-id="${id}" data-state="${st}" aria-label="${esc(label)}"><span class="wx-b-top">${packet ? PACKET_SVG(done) : TRANSFER_SVG(st)}<span class="wx-b-main">${main}${sub ? `<span class="wx-b-sub">${esc(sub)}</span>` : ''}</span></span><span class="wx-b-foot">${esc(brand)}</span></button>`;
+  }
+  /** "你领取了 X 的红包": 红包 in orange with a tiny packet in front, like WeChat. */
+  function sysHTML(m) {
+    const text = systemText(m);
+    const key = m.sys?.key;
+    if (!['packetClaim', 'chat.system.packetClaimed', 'chat.system.packetEmpty'].includes(key)) return esc(text);
+    const html = esc(text);
+    const word = esc(t('chat.wx.sysWord'));
+    const at = html.lastIndexOf(word);
+    const body = at < 0 ? html : `${html.slice(0, at)}<em class="wx-sys-word">${word}</em>${html.slice(at + word.length)}`;
+    return SYS_PACKET_ICO + body;
+  }
+
+  function moneyPage(view, title, html, opts = {}) {
+    return SZ.overlay.open({
+      kind: 'screen',
+      title,
+      html,
+      className: 'wx-page ' + (opts.cls || ''),
+      mode: opts.mode || 'auto',
+      meta: { cxChat: view.chatId, ...(opts.meta || {}) },
+    });
+  }
+  /** Close the send page and the payment sheet (after paying). */
+  function closeMoneyFlow(view) {
+    for (const layer of SZ.overlay.layers().reverse())
+      if (layer.meta?.cxChat === view.chatId && layer.meta.cxMoneyFlow) SZ.overlay.close({ layer, force: true });
+  }
+  /** Keep only digits and one dot with two decimals, like WeChat's amount keypad. */
+  function cleanAmount(input) {
+    const raw = String(input.value || '');
+    let v = raw.replace(/[。，,]/g, '.').replace(/[^\d.]/g, '');
+    const dot = v.indexOf('.');
+    if (dot >= 0) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    if (v.startsWith('.')) v = '0' + v;
+    v = v.replace(/^0+(?=\d)/, '');
+    const [whole, frac] = v.split('.');
+    v = whole.slice(0, 9) + (frac != null ? '.' + frac : '');
+    if (v !== raw) input.value = v;
+    return v;
+  }
   function moneyForm(view, kind, draft = {}, mode = 'auto') {
     if (!SZ.requireLogin(t('chat.loginReason'))) return;
     closePanels(view);
+    return kind === 'envelope' ? packetForm(view, draft, mode) : transferForm(view, draft, mode);
+  }
+  function packetForm(view, draft, mode) {
     const { info } = view;
-    const packet = kind === 'envelope';
-    const group = packet && info.kind === 'group';
+    const group = info.kind === 'group';
     const members = clamp(Number(info.group?.count || info.memberIds.length) || 1, 1, LIMIT.packetCount);
-    const split = draft.mode || 'lucky';
-    const amountLabel = group
-      ? t(split === 'normal' ? 'chat.money.perAmount' : 'chat.money.total')
-      : t('chat.money.amount');
-    const layer = sheet(
+    const split = group ? draft.mode || 'lucky' : 'normal';
+    const modeTip = next =>
+      `${esc(t(next === 'normal' ? 'chat.wx.form.nowLucky' : 'chat.wx.form.nowNormal'))}<button type="button" class="wx-link" data-wx-mode="${next}">${esc(t(next === 'normal' ? 'chat.wx.form.toNormal' : 'chat.wx.form.toLucky'))}</button>`;
+    const layer = moneyPage(
       view,
-      t(packet ? 'chat.money.packetTitle' : 'chat.money.transferTitle'),
-      `<form class="cx-form" novalidate>
-        <div class="cx-recipient"><img class="avatar avatar-40" ${imgSrc(info.photo)} alt=""><span>${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: info.name }))}</span></div>
+      t('chat.money.packetTitle'),
+      `<form class="wx-send wx-send-packet" novalidate>
+        <p class="wx-err" role="alert" hidden></p>
         ${
           group
-            ? `<div class="segmented cx-mode-switch" role="radiogroup" aria-label="${esc(t('chat.money.modeLabel'))}"><button type="button" role="radio" data-cx-mode="lucky" aria-checked="${split === 'lucky'}" aria-selected="${split === 'lucky'}">${esc(t('chat.money.lucky'))}</button><button type="button" role="radio" data-cx-mode="normal" aria-checked="${split === 'normal'}" aria-selected="${split === 'normal'}">${esc(t('chat.money.normal'))}</button></div><p class="form-hint cx-mode-hint">${esc(t(split === 'lucky' ? 'chat.money.luckyHint' : 'chat.money.normalHint'))}</p><input type="hidden" name="mode" value="${split}">
-        <label class="form-group"><span class="form-label">${esc(t('chat.money.count'))}</span><input class="field" name="count" type="number" inputmode="numeric" min="1" max="${members}" step="1" required value="${esc(draft.count || '')}" placeholder="${esc(t('chat.money.countHint', { n: members }))}"></label>`
+            ? `<label class="wx-cells wx-cell"><span class="wx-cell-label">${esc(t('chat.money.count'))}</span><span class="wx-cell-value"><input name="count" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="${esc(t('chat.wx.form.countPh'))}" value="${esc(draft.count || '')}"><span class="wx-unit">${esc(t('chat.wx.form.countUnit'))}</span></span></label><p class="wx-cell-tip">${esc(t('chat.money.countHint', { n: members }))}</p>`
             : ''
         }
-        <label class="form-group"><span class="form-label cx-amount-label">${esc(amountLabel)}</span><span class="cx-amount-field"><span class="cx-currency" aria-hidden="true">RM</span><input class="field num" name="amount" inputmode="decimal" autocomplete="off" maxlength="12" required placeholder="0.00" value="${esc(draft.amount || '')}"></span></label>
-        <label class="form-group"><span class="form-label">${esc(t(packet ? 'chat.money.greeting' : 'chat.money.note'))} <span class="cx-optional">${esc(t('common.optional'))}</span></span><input class="field" name="note" maxlength="${LIMIT.note}" autocomplete="off" placeholder="${esc(t(packet ? 'chat.money.defaultNote' : 'chat.money.notePlaceholder'))}" value="${esc(draft.note || '')}"></label>
-        <p class="form-hint">${esc(t('chat.money.balance', { amount: money(walletCents()) }))}</p>
-        <p class="form-error" role="alert" hidden></p>
-        <p class="caption cx-sheet-note">${esc(t(SERVER ? 'server.chat.money.realNote' : 'chat.money.demoNote'))}</p>
-        ${foot(`<button type="submit" class="btn btn-primary btn-lg btn-block">${esc(t(packet ? 'chat.money.packetNext' : 'chat.money.transferNext'))}</button>`)}
+        <label class="wx-cells wx-cell"><span class="wx-cell-label"><i class="wx-pin" aria-hidden="true"${split === 'lucky' ? '' : ' hidden'}>${esc(t('chat.wx.pin'))}</i><span class="wx-amount-label">${esc(t(!group ? 'chat.money.perAmount' : split === 'lucky' ? 'chat.money.total' : 'chat.money.perAmount'))}</span></span><span class="wx-cell-value"><span class="wx-cur">RM</span><input name="amount" type="text" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="0.00" value="${esc(draft.amount || '')}"></span></label>
+        ${group ? `<p class="wx-cell-tip wx-mode-tip">${modeTip(split === 'lucky' ? 'normal' : 'lucky')}</p><input type="hidden" name="mode" value="${split}">` : ''}
+        <label class="wx-cells wx-cell wx-greet"><input name="note" maxlength="${LIMIT.note}" autocomplete="off" placeholder="${esc(t('chat.money.defaultNote'))}" aria-label="${esc(t('chat.money.greeting'))}" value="${esc(draft.note || '')}"></label>
+        <p class="wx-big" aria-live="polite">${bigAmount(0)}</p>
+        <button type="submit" class="wx-btn wx-btn-red" disabled>${esc(t('chat.money.packetNext'))}</button>
+        <p class="wx-foot-note">${esc(t('chat.wx.form.refundNote', { time: spanText(expireMinutes()) }))}${SERVER ? '' : `<br>${esc(t('chat.money.demoNote'))}`}</p>
       </form>`,
-      { mode }
+      { mode, cls: 'wx-send-page', meta: { cxMoneyFlow: true } }
     );
     const form = layer.el.querySelector('form');
-    const err = text => {
-      const el = form.querySelector('.form-error');
-      el.hidden = !text;
-      el.textContent = text || '';
-    };
-    layer.el.addEventListener('click', e => {
-      const b = e.target.closest('[data-cx-mode]');
-      if (!b) return;
-      const next = b.dataset.cxMode;
-      form.elements.mode.value = next;
-      for (const x of form.querySelectorAll('[data-cx-mode]')) {
-        x.setAttribute('aria-checked', String(x === b));
-        x.setAttribute('aria-selected', String(x === b));
+    const errEl = form.querySelector('.wx-err');
+    const submit = form.querySelector('[type=submit]');
+    const check = (final = false) => {
+      const data = Object.fromEntries(new FormData(form));
+      const amountText = cleanAmount(form.elements.amount);
+      const count = group ? Number(data.count) : 1;
+      const normal = !group || data.mode === 'normal';
+      const cents = parseCents(amountText) || 0;
+      const total = normal ? cents * (Number.isInteger(count) && count > 0 ? count : 1) : cents;
+      let error = '';
+      if (group && data.count !== '' && (!Number.isInteger(count) || count < 1 || count > members))
+        error = t('chat.money.countError', { n: members });
+      else if (/^\d+\.\d{2}$/.test(amountText) && !cents) error = t('chat.money.tooSmall');
+      else if (cents) {
+        const per = normal ? cents : group && count > 0 ? Math.floor(cents / count) : cents;
+        if (per > LIMIT.packetMax) error = t('chat.money.packetMaxError', { amount: money(LIMIT.packetMax) });
+        else if (group && count > 0 && per < 1) error = t('chat.money.tooSmall');
+        else if (total > walletCents()) error = t('chat.money.balanceError');
       }
-      form.querySelector('.cx-mode-hint').textContent = t(
-        next === 'lucky' ? 'chat.money.luckyHint' : 'chat.money.normalHint'
-      );
-      form.querySelector('.cx-amount-label').textContent = t(
-        next === 'normal' ? 'chat.money.perAmount' : 'chat.money.total'
-      );
+      if (final && !error) {
+        if (group && (!Number.isInteger(count) || count < 1 || count > members)) error = t('chat.money.countError', { n: members });
+        else if (!cents) error = t('chat.money.amountError');
+      }
+      errEl.hidden = !error;
+      errEl.textContent = error;
+      form.querySelector('.wx-big').innerHTML = bigAmount(cents ? total : 0);
+      const ok = !error && cents > 0 && (!group || (Number.isInteger(count) && count >= 1));
+      submit.disabled = !ok;
+      return ok ? { count, cents, total, normal } : null;
+    };
+    form.addEventListener('input', () => check());
+    layer.el.addEventListener('click', e => {
+      const b = e.target.closest('[data-wx-mode]');
+      if (!b) return;
+      const next = b.dataset.wxMode;
+      form.elements.mode.value = next;
+      form.querySelector('.wx-pin').hidden = next !== 'lucky';
+      form.querySelector('.wx-amount-label').textContent = t(next === 'lucky' ? 'chat.money.total' : 'chat.money.perAmount');
+      form.querySelector('.wx-mode-tip').innerHTML = modeTip(next === 'lucky' ? 'normal' : 'lucky');
+      form.elements.amount.focus({ preventScroll: true });
+      check();
     });
     form.addEventListener('submit', e => {
       e.preventDefault();
+      const r = check(true);
+      if (!r) return;
       const data = Object.fromEntries(new FormData(form));
-      const count = group ? Number(data.count) : 1;
-      if (group && (!Number.isInteger(count) || count < 1 || count > members))
-        return err(t('chat.money.countError', { n: members }));
-      const cents = parseCents(data.amount);
-      if (cents === null) return err(t('chat.money.amountError'));
-      const normal = group && data.mode === 'normal';
-      const total = normal ? cents * count : cents;
-      const per = normal ? cents : Math.floor(cents / count);
-      if (packet && per < 1) return err(t('chat.money.tooSmall'));
-      if (packet && per > LIMIT.packetMax)
-        return err(t('chat.money.packetMaxError', { amount: money(LIMIT.packetMax) }));
-      if (!packet && total > LIMIT.transferMax)
-        return err(t('chat.money.transferMaxError', { amount: money(LIMIT.transferMax) }));
-      if (total > walletCents()) return err(t('chat.money.balanceError'));
-      err('');
       view.pay = {
         id: SZ.uid('m'),
-        kind,
-        cents: total,
-        count,
+        kind: 'envelope',
+        cents: r.total,
+        count: r.count,
         mode: group ? data.mode : 'normal',
         note: String(data.note || '').trim(),
         draft: data,
@@ -2688,25 +2824,90 @@
       };
       confirmPay(view);
     });
+    check();
   }
+  function transferForm(view, draft, mode) {
+    const { info } = view;
+    const layer = moneyPage(
+      view,
+      '',
+      `<form class="wx-send wx-send-transfer" novalidate>
+        <p class="wx-err" role="alert" hidden></p>
+        <div class="wx-tf-head"><div class="wx-tf-to"><strong>${esc(t('chat.money.transferTo', { name: info.name }))}</strong></div><img class="wx-tf-av" ${imgSrc(info.photo)} alt=""></div>
+        <div class="wx-tf-card">
+          <p class="wx-tf-label">${esc(t('chat.wx.tf.amountLabel'))}</p>
+          <label class="wx-tf-amount"><span class="wx-tf-cur">RM</span><input name="amount" type="text" inputmode="decimal" autocomplete="off" maxlength="12" aria-label="${esc(t('chat.wx.tf.amountLabel'))}" value="${esc(draft.amount || '')}"></label>
+          <div class="wx-tf-note">
+            <button type="button" class="wx-link" data-wx-note${draft.note ? ' hidden' : ''}>${esc(t('chat.wx.tf.addNote'))}</button>
+            <input name="note" maxlength="${LIMIT.note}" autocomplete="off" placeholder="${esc(t('chat.wx.tf.notePh', { n: LIMIT.note }))}" aria-label="${esc(t('chat.money.note'))}" value="${esc(draft.note || '')}"${draft.note ? '' : ' hidden'}>
+          </div>
+          <button type="submit" class="wx-btn wx-btn-green wx-btn-block" disabled>${esc(t('chat.wx.tf.send'))}</button>
+          ${SERVER ? '' : `<p class="wx-foot-note">${esc(t('chat.money.demoNote'))}</p>`}
+        </div>
+      </form>`,
+      { mode, cls: 'wx-send-page wx-transfer-page', meta: { cxMoneyFlow: true } }
+    );
+    const form = layer.el.querySelector('form');
+    const errEl = form.querySelector('.wx-err');
+    const submit = form.querySelector('[type=submit]');
+    const check = (final = false) => {
+      const cents = parseCents(cleanAmount(form.elements.amount)) || 0;
+      let error = '';
+      if (cents > LIMIT.transferMax) error = t('chat.money.transferMaxError', { amount: money(LIMIT.transferMax) });
+      else if (cents > walletCents()) error = t('chat.money.balanceError');
+      else if (final && !cents) error = t('chat.money.amountError');
+      errEl.hidden = !error;
+      errEl.textContent = error;
+      submit.disabled = !!error || !cents;
+      return error || !cents ? null : cents;
+    };
+    form.addEventListener('input', () => check());
+    form.querySelector('[data-wx-note]').addEventListener('click', e => {
+      e.currentTarget.hidden = true;
+      form.elements.note.hidden = false;
+      form.elements.note.focus();
+    });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const cents = check(true);
+      if (!cents) return;
+      const data = Object.fromEntries(new FormData(form));
+      view.pay = {
+        id: SZ.uid('m'),
+        kind: 'transfer',
+        cents,
+        count: 1,
+        mode: 'normal',
+        note: String(data.note || '').trim(),
+        draft: data,
+        done: false,
+      };
+      confirmPay(view);
+    });
+    check();
+    requestAnimationFrame(() => form.elements.amount.isConnected && !form.elements.amount.value && form.elements.amount.focus({ preventScroll: true }));
+  }
+  /** WeChat's payment sheet: close ×, what, big amount, payment method (balance). No PIN on this server. */
   function confirmPay(view) {
     const p = view.pay;
     const packet = p.kind === 'envelope';
+    const balance = walletCents();
+    const short = p.cents > balance;
     const detail =
-      p.count > 1
-        ? t(p.mode === 'lucky' ? 'chat.money.summaryLucky' : 'chat.money.summaryNormal', { n: p.count })
-        : '';
+      p.count > 1 ? t(p.mode === 'lucky' ? 'chat.money.summaryLucky' : 'chat.money.summaryNormal', { n: p.count }) : '';
     sheet(
       view,
-      t(packet ? 'chat.money.confirmPacket' : 'chat.money.confirmTransfer'),
-      `<div class="cx-pay"><img class="avatar avatar-56" ${imgSrc(view.info.photo)} alt=""><p class="cx-pay-to">${esc(t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name }))}</p><strong class="cx-pay-amount num">${esc(money(p.cents))}</strong>${detail ? `<p class="caption">${esc(detail)}</p>` : ''}<p class="cx-pay-note">${esc(p.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p></div><dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.payWith'))}</dt><dd>${esc(t(SERVER ? 'server.chat.money.method' : 'chat.money.method'))}</dd></div><div><dt>${esc(t('chat.money.balanceAfter'))}</dt><dd class="num">${esc(money(walletCents() - p.cents))}</dd></div></dl><p class="caption cx-sheet-note">${esc(SERVER ? t(packet ? 'server.chat.money.expiryNote' : 'server.chat.money.transferExpiryNote', { time: expiryText() }) : t(packet ? 'chat.money.expiryNote' : 'chat.money.transferExpiryNote'))}</p>${foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-pay" data-id="${esc(p.id)}">${esc(t('chat.money.pay', { amount: money(p.cents) }))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-pay-edit">${esc(t('chat.money.edit'))}</button>`)}`,
-      { mode: 'replace' }
+      t('chat.wx.pay.title'),
+      `<div class="wx-pay">
+        <p class="wx-pay-what">${esc(packet ? t('chat.wx.pay.packet') : t('chat.money.transferTo', { name: view.info.name }))}</p>
+        <p class="wx-pay-amt">${bigAmount(p.cents)}</p>
+        ${detail ? `<p class="wx-pay-detail">${esc(detail)}</p>` : ''}
+        <div class="wx-pay-row"><span class="wx-pay-k">${esc(t('chat.wx.pay.method'))}</span><span class="wx-pay-v"><svg class="wx-pay-wallet" viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="4" width="17" height="13" rx="2.5"/><path d="M1.5 8h17M13 12.5h2.5"/></svg>${esc(t(SERVER ? 'chat.wx.pay.balance' : 'chat.money.method'))}<small class="num">${esc(t('chat.wx.pay.left', { amount: money(balance) }))}</small></span></div>
+        ${short ? `<p class="wx-pay-warn" role="alert">${esc(t('chat.money.balanceError'))}</p>` : ''}
+        <button type="button" class="wx-btn wx-btn-green wx-btn-block" data-action="cx-pay" data-id="${esc(p.id)}"${short ? ' disabled' : ''}>${esc(t('chat.wx.pay.confirm'))}</button>
+      </div>`,
+      { mode: 'push', cls: 'wx-pay-sheet', meta: { cxMoneyFlow: true } }
     );
-  }
-  /** How long unclaimed money waits before it is refunded (chat.packetExpireMinutes). */
-  function expiryText() {
-    const minutes = Math.round(EXPIRE_MS / 60000);
-    return minutes % 60 === 0 ? tn('server.chat.money.hours', minutes / 60) : tn('server.chat.money.minutes', minutes);
   }
   function luckySplit(total, count) {
     const out = [];
@@ -2743,7 +2944,7 @@
         })
         .then(res => {
           view.pay = null;
-          closeMenu(view);
+          closeMoneyFlow(view);
           if (res?.message) upsert(view.chatId, res.message);
           toast(t(packet ? 'chat.money.packetSent' : 'chat.money.transferSent'), { type: 'success' });
         })
@@ -2797,64 +2998,213 @@
     }
     listDirty = true;
     view.pay = null;
-    closeMenu(view);
+    closeMoneyFlow(view);
     afterAppend(view.chatId, m);
     toast(t(packet ? 'chat.money.packetSent' : 'chat.money.transferSent'), { type: 'success' });
   }
+  /** Tapping a money bubble: the 開 card for a packet I have not opened, else the detail / transfer page. */
   function moneyDetail(view, key, mode = 'auto') {
     settleExpired(view.chatId);
     const m = localMessage(view.chatId, key) || findItem(view, key)?.m;
     if (!m) return;
-    const packet = m.type === 'envelope';
-    const claims = Array.isArray(m.claims) ? m.claims : [];
-    const claimRows = claims
-      .map(c => {
-        const p = personById(c.person);
-        const name = p ? personName(p) : c.name || view.info.name;
-        const photo = p ? avatarSource(p) : c.photo || view.info.photo;
-        const me = SERVER && c.person === myId();
-        return `<li class="list-row${me ? ' is-me' : ''}"><img class="avatar avatar-32" ${imgSrc(photo)} alt=""><span class="cx-target-main"><strong>${esc(me ? t('chat.msg.you') : name)}</strong><small>${esc(SZ.fmt.time(c.at))}</small></span><span class="row-value num">${esc(money(c.cents))}</span></li>`;
-      })
-      .join('');
-    // Server mode: the receiving side opens red packets and accepts or returns transfers here.
-    const open = SERVER && !m.self && m.status === 'pending' && (m.expiresAt || Infinity) > Date.now();
-    const actions = !open
-      ? ''
-      : packet
-        ? m.mine == null
-          ? foot(`<button type="button" class="btn btn-primary btn-lg btn-block cx-open-packet" data-action="cx-claim" data-id="${esc(key)}">${esc(t('server.chat.money.open'))}</button>`)
-          : ''
-        : foot(`<button type="button" class="btn btn-primary btn-lg btn-block" data-action="cx-accept" data-id="${esc(key)}">${esc(t('server.chat.money.accept'))}</button><button type="button" class="btn btn-ghost btn-block" data-action="cx-return" data-id="${esc(key)}">${esc(t('server.chat.money.return'))}</button>`);
-    const left = (m.expiresAt || timeOf(m) + EXPIRE_MS) - Date.now();
-    const statusCls = m.status === 'received' ? 'tag-success' : m.status === 'refunded' ? '' : 'tag-warning';
-    const who = m.self
-      ? t(packet ? 'chat.money.packetTo' : 'chat.money.transferTo', { name: view.info.name })
-      : t('chat.money.fromName', { name: authorName(m, view.ctx) });
-    sheet(
-      view,
-      t(packet ? 'chat.money.packetDetail' : 'chat.money.transferDetail'),
-      `<div class="cx-pay"><span class="cx-money-ico is-large ${packet ? 'is-packet' : 'is-transfer'}" aria-hidden="true">${ico(packet ? 'envelope' : 'transfer')}</span><p class="cx-pay-to">${esc(who)}</p><strong class="cx-pay-amount num">${esc(money(m.cents))}</strong><p class="cx-pay-note">${esc(m.note || (packet ? t('chat.money.defaultNote') : t('chat.money.noNote')))}</p><span class="tag ${statusCls}">${esc(moneyStatus(m))}</span></div>${claimRows ? `<h3 class="cx-sheet-sub">${esc(t('chat.money.claims', { n: claims.length, total: m.count || 1 }))}</h3><ul class="list cx-claims">${claimRows}</ul>` : ''}<dl class="cx-pay-rows"><div><dt>${esc(t('chat.money.sentAt'))}</dt><dd>${esc(SZ.fmt.dateTime(timeOf(m)))}</dd></div>${m.status === 'refunded' && m.refundedCents ? `<div><dt>${esc(t('chat.money.refundedAmount'))}</dt><dd class="num">${esc(money(m.refundedCents))}</dd></div>` : ''}<div><dt>${esc(t('chat.money.reference'))}</dt><dd class="cx-mono">${esc(m.id)}</dd></div></dl>${m.status === 'pending' && left > 0 ? `<p class="caption cx-sheet-note">${esc(t('chat.money.expiresIn', { time: SZ.fmt.relative(Date.now() + left) }))}</p>` : ''}${actions}`,
-      { mode, meta: { cxMoney: key } }
-    );
+    if (m.type === 'transfer') return transferPage(view, key, m, mode);
+    if (!m.self && m.mine == null) return openCard(view, key, m, mode);
+    return packetDetail(view, key, m, mode);
   }
-  /** Server mode: a money card changed (claimed, accepted, refunded) while its detail sheet is open. */
+  /** Server mode: a money card changed (claimed, accepted, refunded) while its page is open. */
   function refreshMoneySheet(view, key) {
     const top = SZ.overlay.top();
-    if (top?.meta?.cxMoney === key && top.meta.cxChat === view.chatId) moneyDetail(view, key, 'replace');
+    if (top?.meta?.cxMoney === key && top.meta.cxChat === view.chatId && !top.meta.busy) moneyDetail(view, key, 'replace');
+  }
+  const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  /** The red envelope card over a dim backdrop, with the gold 開 coin (or "手慢了" / expired). */
+  function openCard(view, key, m, mode = 'auto') {
+    const st = packetStatus(m); // pending | empty | expired (for a packet I have not opened)
+    const s = senderOf(view, m);
+    const group = view.info.kind === 'group';
+    const titleId = 'wx-open-' + SZ.uid('t');
+    const lead =
+      st === 'pending'
+        ? `<p class="wx-open-greet">${esc(m.note || t('chat.money.defaultNote'))}</p>`
+        : `<p class="wx-open-greet is-state">${esc(st === 'empty' ? t('chat.wx.open.empty') : t('chat.wx.open.expired', { time: spanText(expireMinutes()) }))}</p>`;
+    const link =
+      group || st !== 'pending'
+        ? `<button type="button" class="wx-open-link" data-action="cx-packet-detail" data-id="${esc(key)}">${esc(t(group ? 'chat.wx.open.seeAll' : 'chat.wx.open.seeDetail'))}<svg viewBox="0 0 8 14" aria-hidden="true"><path d="m1.5 1.5 5 5.5-5 5.5"/></svg></button>`
+        : '';
+    const layer = SZ.overlay.open({
+      kind: 'raw',
+      mode,
+      html: `<div class="wx-open" data-dismiss="true" data-state="${st}"><section class="wx-open-card" role="dialog" aria-modal="true" aria-labelledby="${titleId}" tabindex="-1">
+        <div class="wx-open-lower" aria-hidden="true"></div>
+        <div class="wx-open-upper"><svg class="wx-open-flap" viewBox="0 0 300 340" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H300V272Q150 344 0 272Z"/></svg>
+          <div class="wx-open-head"><p class="wx-open-from" id="${titleId}"><img ${imgSrc(s.photo)} alt="">${esc(t('chat.wx.whose', { name: s.name }))}</p>${lead}</div>
+        </div>
+        ${st === 'pending' ? `<button type="button" class="wx-open-btn" data-action="cx-claim" data-id="${esc(key)}" aria-label="${esc(t('chat.wx.open.label'))}"><span class="wx-coin"><span class="wx-coin-face">${esc(t('chat.wx.open.kai'))}</span></span></button>` : ''}
+        ${link}
+      </section><button type="button" class="wx-open-close" data-action="close" aria-label="${esc(t('common.close'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>`,
+      meta: { kind: 'screen', cxChat: view.chatId, cxMoney: key, cxOpen: true },
+    });
+    return layer;
+  }
+  /** 開: spin the coin while the server draws my share, then split the card and show the detail page. */
+  async function claimPacket(view, key, button) {
+    const layer = SZ.overlay.of(button);
+    if (!layer || layer.meta.busy) return;
+    layer.meta.busy = true;
+    const card = layer.el.querySelector('.wx-open');
+    button.disabled = true;
+    card.classList.add('is-spinning');
+    const started = Date.now();
+    let res = null;
+    let error = null;
+    if (SERVER) {
+      try {
+        res = await SZ.api.act('POST', 'packets/' + encodeURIComponent(key) + '/claim');
+      } catch (e) {
+        error = e;
+      }
+    }
+    if (!reduceMotion()) await wait(Math.max(0, 900 - (Date.now() - started)));
+    if (!layer.el.isConnected) return;
+    if (error) {
+      card.classList.remove('is-spinning');
+      layer.meta.busy = false;
+      const code = error?.code;
+      if (['money.empty', 'money.expired', 'money.alreadyClaimed', 'money.settled'].includes(code)) {
+        const r = await SZ.api.get('packets/' + encodeURIComponent(key)).catch(() => null);
+        if (r?.message) upsert(view.chatId, r.message);
+        if (layer.el.isConnected) moneyDetail(view, key, 'replace');
+        return;
+      }
+      button.disabled = false;
+      return SZ.api.fail(error);
+    }
+    if (res?.message) upsert(view.chatId, res.message);
+    card.classList.remove('is-spinning');
+    card.classList.add('is-opening');
+    if (!reduceMotion()) await wait(420);
+    layer.meta.busy = false;
+    if (layer.el.isConnected) packetDetail(view, key, localMessage(view.chatId, key) || findItem(view, key)?.m, 'replace');
+  }
+  /** 红包详情: red curved header, sender, greeting, my amount, the list of who took what (手气最佳). */
+  function packetDetail(view, key, m, mode = 'auto') {
+    if (!m) return;
+    const s = senderOf(view, m);
+    const count = m.count || 1;
+    const claims = Array.isArray(m.claims) ? m.claims : [];
+    const lucky = m.mode === 'lucky' && count > 1;
+    const st = packetStatus(m);
+    const got = claims.reduce((sum, c) => sum + (Number(c.cents) || 0), 0);
+    const total = Number(m.cents) || 0;
+    const finished = m.status === 'received' || claims.length >= count;
+    let best = -1;
+    if (lucky && finished && claims.length > 1)
+      claims.forEach((c, i) => {
+        if (best < 0 || Number(c.cents) > Number(claims[best].cents)) best = i;
+      });
+    const me = myId();
+    const mine = m.self ? null : m.mine != null ? m.mine : claims.find(c => SERVER && c.person === me)?.cents ?? null;
+    let head;
+    if (st === 'expired')
+      head = t('chat.wx.detail.expiredHead', { n: claims.length, total: count, got: money(got), sum: money(total) });
+    else if (finished) {
+      const last = Math.max(...claims.map(c => Number(c.at) || 0), 0);
+      head =
+        count > 1 && last
+          ? t('chat.wx.detail.gone', { total: count, sum: money(total), time: lapseText(last - timeOf(m)) })
+          : t('chat.wx.detail.all', { total: count, sum: money(total) });
+    } else if (m.self && count === 1) head = t('chat.wx.detail.waiting', { sum: money(total) });
+    else head = t('chat.wx.detail.progress', { n: claims.length, total: count, got: money(got), sum: money(total) });
+    const rows = claims
+      .map((c, i) => {
+        const p = personById(c.person);
+        const self = SERVER ? c.person === me : false;
+        const name = self ? meInfo().name : p ? personName(p) : c.name || view.info.name;
+        const photo = self ? meInfo().photo : p ? avatarSource(p) : c.photo || view.info.photo;
+        return `<li class="wx-claim"><img ${imgSrc(photo)} alt="" loading="lazy"><span class="wx-claim-main"><strong>${esc(name)}</strong><small>${esc(claimTime(c.at))}</small></span><span class="wx-claim-amt"><b class="num">${esc(money(c.cents))}</b>${i === best ? `<small class="wx-best"><svg viewBox="0 0 14 12" aria-hidden="true"><path d="M1 3.5 4.2 6 7 1.5 9.8 6 13 3.5 11.8 10.5H2.2z"/></svg>${esc(t('chat.wx.detail.best'))}</small>` : ''}</span></li>`;
+      })
+      .join('');
+    const refundLine =
+      m.self && m.status === 'refunded' && Number(m.refundedCents) > 0
+        ? t('chat.wx.detail.refunded', { amount: money(m.refundedCents) })
+        : m.self && st === 'pending'
+          ? t('chat.wx.form.refundNote', { time: spanText(expireMinutes()) })
+          : '';
+    moneyPage(
+      view,
+      t('chat.money.packetDetail'),
+      `<div class="wx-detail-top" aria-hidden="true"></div>
+      <div class="wx-detail-hero">
+        <p class="wx-detail-from"><img ${imgSrc(s.photo)} alt=""><strong>${esc(t('chat.wx.whose', { name: s.name }))}</strong>${lucky ? `<i class="wx-pin" aria-label="${esc(t('chat.money.lucky'))}">${esc(t('chat.wx.pin'))}</i>` : ''}</p>
+        <p class="wx-detail-greet">${esc(m.note || t('chat.money.defaultNote'))}</p>
+        ${mine != null ? `<p class="wx-detail-amt">${bigAmount(mine)}</p><button type="button" class="wx-detail-saved" data-action="wallet">${esc(t('chat.wx.detail.saved'))}<svg viewBox="0 0 8 14" aria-hidden="true"><path d="m1.5 1.5 5 5.5-5 5.5"/></svg></button>` : ''}
+      </div>
+      <section class="wx-detail-list"><h3>${esc(head)}</h3>${rows ? `<ul>${rows}</ul>` : ''}</section>
+      ${refundLine ? `<p class="wx-foot-note wx-detail-note">${esc(refundLine)}</p>` : ''}`,
+      { mode, cls: 'wx-detail-page', meta: { cxMoney: key } }
+    );
+  }
+  /** Transfer receive / status page: big icon, 待你确认收款 / 你已收款, amount, 确认收款, 退还, times. */
+  function transferPage(view, key, m, mode = 'auto') {
+    const st = transferStatus(m);
+    const s = senderOf(view, m);
+    const peerName = m.self ? view.info.name : s.name;
+    const days = spanText(expireMinutes(), 'day');
+    const title = {
+      pending: m.self ? t('chat.wx.tf.waitPeer', { name: peerName }) : t('chat.wx.tf.waitYou'),
+      received: m.self ? t('chat.wx.tf.peerGot', { name: peerName }) : t('chat.wx.tf.youGot'),
+      returned: m.self ? t('chat.wx.tf.peerReturned', { name: peerName }) : t('chat.wx.tf.youReturned'),
+      expired: t('chat.wx.tf.expired'),
+    }[st];
+    const canAct = SERVER && !m.self && st === 'pending';
+    let below = '';
+    if (canAct)
+      below = `<button type="button" class="wx-btn wx-btn-green" data-action="cx-accept" data-id="${esc(key)}">${esc(t('server.chat.money.accept'))}</button><p class="wx-tf-hint">${esc(t('chat.wx.tf.returnHint', { time: days }))}<button type="button" class="wx-link" data-action="cx-return" data-id="${esc(key)}">${esc(t('chat.wx.tf.return'))}</button></p>`;
+    else if (st === 'pending') below = `<p class="wx-tf-hint">${esc(t(m.self ? 'chat.wx.tf.selfHint' : 'chat.wx.tf.waitHint', { time: days }))}</p>`;
+    else if (st === 'received' && !m.self)
+      below = `<button type="button" class="wx-link wx-tf-saved" data-action="wallet">${esc(t('chat.wx.detail.saved'))}</button>`;
+    else if (st === 'returned') below = `<p class="wx-tf-hint">${esc(t(m.self ? 'chat.wx.tf.backToYou' : 'chat.wx.tf.backToPeer'))}</p>`;
+    else if (st === 'expired') below = `<p class="wx-tf-hint">${esc(t(m.self ? 'chat.wx.tf.backToYou' : 'chat.wx.tf.expiredPeer'))}</p>`;
+    const claim = Array.isArray(m.claims) ? m.claims[0] : null;
+    const times = [
+      t('chat.wx.tf.sentAt', { time: fullTime(timeOf(m)) }),
+      st === 'received' && (claim?.at || m.settledAt) ? t('chat.wx.tf.gotAt', { time: fullTime(claim?.at || m.settledAt) }) : '',
+      (st === 'returned' || st === 'expired') && m.settledAt ? t('chat.wx.tf.backAt', { time: fullTime(m.settledAt) }) : '',
+    ].filter(Boolean);
+    moneyPage(
+      view,
+      '',
+      `<div class="wx-tf-status" data-state="${st}">
+        <span class="wx-tf-big" aria-hidden="true">${TRANSFER_SVG(st)}</span>
+        <p class="wx-tf-title">${esc(title)}</p>
+        <p class="wx-tf-amt">${bigAmount(m.cents)}</p>
+        ${m.note ? `<p class="wx-tf-memo">${esc(m.note)}</p>` : ''}
+        <div class="wx-tf-actions">${below}</div>
+      </div>
+      <p class="wx-tf-times">${times.map(x => `<span>${esc(x)}</span>`).join('')}</p>`,
+      { mode, cls: 'wx-receive-page', meta: { cxMoney: key } }
+    );
   }
   async function settleMoney(view, key, action, button) {
     if (!SZ.requireLogin(t('chat.loginReason'))) return;
-    if (button) button.disabled = true;
+    if (action === 'claim') return claimPacket(view, key, button);
+    if (action === 'return') {
+      const m = localMessage(view.chatId, key) || findItem(view, key)?.m;
+      const ok = await SZ.confirm({
+        title: t('chat.wx.tf.returnTitle'),
+        message: t('chat.wx.tf.returnAsk', { name: m ? senderOf(view, m).name : view.info.name }),
+        confirmText: t('chat.wx.tf.return'),
+      });
+      if (!ok) return;
+    }
+    if (button?.isConnected) button.disabled = true;
     try {
       const res = await SZ.api.act('POST', 'packets/' + encodeURIComponent(key) + '/' + action);
       if (res?.message) upsert(view.chatId, res.message);
-      toast(
-        t(action === 'claim' ? 'server.chat.money.claimed' : action === 'accept' ? 'server.chat.money.accepted' : 'server.chat.money.returned', {
-          amount: money(res?.cents || 0),
-        }),
-        { type: action === 'return' ? 'info' : 'success' }
-      );
-      moneyDetail(view, key, 'replace');
+      if (action === 'return') toast(t('server.chat.money.returned'), { type: 'info' });
+      const top = SZ.overlay.top();
+      if (top?.meta?.cxMoney === key) moneyDetail(view, key, 'replace');
     } catch (e) {
       if (button?.isConnected) button.disabled = false;
       SZ.api.fail(e);
@@ -3566,7 +3916,11 @@
       case 'cx-pay':
         return view && pay(view, id, el);
       case 'cx-pay-edit':
-        return view?.pay && moneyForm(view, view.pay.kind, view.pay.draft, 'replace');
+        return view && closeMenu(view);
+      case 'cx-packet-detail': {
+        const m = view && (localMessage(view.chatId, id) || findItem(view, id)?.m);
+        return m && packetDetail(view, id, m, 'replace');
+      }
       case 'cx-card-pick':
         return view && cardPreview(view, id);
       case 'cx-card-back':
