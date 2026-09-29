@@ -4,7 +4,520 @@
   "hash": "home",
   "steps": [
    {
-    "click": "[data-action=select-city],[data-action=city],[data-action=region-field]"
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "expect": "document.querySelector('.city-pill span').textContent === ShizhongRegions.locationLabel('short')",
+    "msg": "city pill shows the short label"
+   },
+   {
+    "expect": "SZ_I18N.locale !== 'en' || document.querySelector('.city-pill span').textContent === 'Kuala Lumpur'",
+    "msg": "English pill shows the city, not the country"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "SZ.overlay.depth() === 1 && !!SZ.overlay.top().el.querySelector('.region-sheet')",
+    "msg": "picker is an SZ.overlay sheet"
+   },
+   {
+    "expect": "document.querySelectorAll('.region-sheet .region-row .region-tag').length === 6",
+    "msg": "six service cities in 'Available now'"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-row[data-id=\"MY|76497\"][aria-current=true]')",
+    "msg": "selected row has aria-current"
+   },
+   {
+    "expect": "document.querySelector('.region-sheet [data-region-status]').textContent.trim().length > 0",
+    "msg": "result count in the live region"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet [data-action=region-locate]')",
+    "msg": "current-location chip"
+   }
+  ]
+ },
+ {
+  "name": "regions-search-select",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "kajang"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-row[data-id=\"MY|161573\"]')",
+    "msg": "Kajang found inside Malaysia"
+   },
+   {
+    "shot": "results"
+   },
+   {
+    "click": ".region-sheet .region-row[data-id=\"MY|161573\"]"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-summary') && document.activeElement?.classList.contains('region-summary-title')",
+    "msg": "confirm view with focus on its title"
+   },
+   {
+    "shot": "confirm"
+   },
+   {
+    "click": ".region-sheet [data-action=region-confirm]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.depth() === 0 && state.city === '加影' && state.location.cityEn === 'Kajang' && state.location.stateEn === 'Selangor'",
+    "msg": "location saved with source and English names"
+   },
+   {
+    "expect": "state.recentLocations[0].cityId === '161573'",
+    "msg": "added to recent places"
+   },
+   {
+    "expect": "document.querySelector('.city-pill span').textContent === (SZ_I18N.locale === 'en' ? 'Kajang' : '加影')",
+    "msg": "pill updated in the active language"
+   },
+   {
+    "eval": "SZ.actions.dispatch('city'), true"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-recent-chip[aria-current=true]')",
+    "msg": "recent chip for the current place"
+   }
+  ]
+ },
+ {
+  "name": "regions-data-fixes",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "klang"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "(() => { const r = document.querySelector('.region-sheet .region-row[data-id=\"MY|76539\"]'); return !!r && !/游泳池/.test(r.textContent) && !document.querySelector('.region-sheet .region-row[data-id=\"MY|161584\"]'); })()",
+    "msg": "Port Klang has one row and a correct name"
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "sup"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!document.querySelector('.region-sheet .region-row[data-id=\"MY|76492\"]')",
+    "msg": "junk alias 'Sup' no longer matches Kuah"
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "槟城"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-row[data-id=\"MY|76447\"]')",
+    "msg": "Penang city found by its Chinese name"
+   },
+   {
+    "expect": "ShizhongRegions.normalize({ countryCode: 'MY', cityId: '161584', cityName: '' }).cityId === '76539'",
+    "msg": "merged duplicate id resolves"
+   }
+  ]
+ },
+ {
+  "name": "regions-fuzzy",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "kuala lumpar"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-row[data-id=\"MY|76497\"]')",
+    "msg": "typo still finds Kuala Lumpur"
+   }
+  ]
+ },
+ {
+  "name": "regions-global",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": ".region-sheet [data-action=region-countries]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-continents') && !!document.querySelector('.region-sheet .region-row[data-action=region-country][data-id=MY]')",
+    "msg": "worldwide list"
+   },
+   {
+    "shot": "countries"
+   },
+   {
+    "type": ".region-sheet [data-region-query]",
+    "value": "tokyo"
+   },
+   {
+    "wait": 1200
+   },
+   {
+    "expect": "document.querySelectorAll('.region-sheet .region-row[data-action=region-hit]').length > 0",
+    "msg": "worldwide city results"
+   },
+   {
+    "click": ".region-sheet .region-row[data-action=region-hit]"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-summary') && !window.SHIZHONG_REGION_CHUNKS?.JP",
+    "msg": "choosing a search result does not download the country"
+   },
+   {
+    "click": ".region-sheet [data-action=region-confirm]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "state.location.countryCode === 'JP' && !!state.location.cityEn && !!state.location.countryEn",
+    "msg": "abroad location saved"
+   }
+  ]
+ },
+ {
+  "name": "regions-field-push",
+  "hash": "me",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "eval": "window.__loc = state.location.cityId, SZ.actions.dispatch('edit-profile'), true"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "type": ".flows-form [name=bio]",
+    "value": "draft kept"
+   },
+   {
+    "click": ".flows-form [data-action=region-field]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth() === 2 && !!SZ.overlay.layers()[0].el.querySelector('.flows-form')",
+    "msg": "picker pushed over the form, form stays in the stack"
+   },
+   {
+    "click": ".region-sheet .region-row[data-id=\"MY|76447\"]"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-note')",
+    "msg": "confirm view"
+   },
+   {
+    "click": ".region-sheet [data-action=region-confirm]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "SZ.overlay.depth() === 1 && document.querySelector('.flows-form [name=city]').value === '槟城' && document.querySelector('.flows-form [name=bio]').value === 'draft kept'",
+    "msg": "field filled, draft kept"
+   },
+   {
+    "expect": "JSON.parse(document.querySelector('.flows-form [name=locationData]').value).cityEn === 'Penang'",
+    "msg": "field keeps the full location"
+   },
+   {
+    "expect": "state.location.cityId === window.__loc",
+    "msg": "state untouched until the form is saved"
+   },
+   {
+    "expect": "document.activeElement?.matches('[data-action=region-field]')",
+    "msg": "focus back on the field"
+   }
+  ]
+ },
+ {
+  "name": "regions-pick-api",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "eval": "window.__before = state.city, ShizhongRegions.pick({ selected: null }).then(l => (window.__picked = l)), true"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth() === 1",
+    "msg": "pick opens the picker"
+   },
+   {
+    "click": ".region-sheet .region-row[data-id=\"MY|76450\"]"
+   },
+   {
+    "click": ".region-sheet [data-action=region-confirm]"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "expect": "window.__picked && window.__picked.cityName === '怡保' && window.__picked.cityEn === 'Ipoh' && state.city === window.__before",
+    "msg": "promise resolves with the location, no state change"
+   },
+   {
+    "eval": "ShizhongRegions.pick().then(l => (window.__picked2 = l === null ? 'null' : l)), true"
+   },
+   {
+    "wait": 300
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "window.__picked2 === 'null' && SZ.overlay.depth() === 0",
+    "msg": "closing resolves null"
+   }
+  ]
+ },
+ {
+  "name": "regions-locate",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "eval": "navigator.geolocation.getCurrentPosition = ok => setTimeout(() => ok({ coords: { latitude: 5.414, longitude: 100.329 } }), 50), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": ".region-sheet [data-action=region-locate]"
+   },
+   {
+    "wait": 600
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-summary-extra') && document.querySelector('.region-sheet .region-summary-title').textContent === (SZ_I18N.locale === 'en' ? 'Penang' : '槟城')",
+    "msg": "nearest town to the position"
+   }
+  ]
+ },
+ {
+  "name": "regions-custom",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "click": ".region-sheet [data-action=region-custom]"
+   },
+   {
+    "type": ".region-sheet [name=city]",
+    "value": ""
+   },
+   {
+    "click": ".region-sheet [data-action=region-custom-save]"
+   },
+   {
+    "expect": "!document.querySelector('.region-sheet .form-error').hidden",
+    "msg": "required city error"
+   },
+   {
+    "shot": "error"
+   },
+   {
+    "type": ".region-sheet [name=city]",
+    "value": "Bukit Beruntung"
+   },
+   {
+    "click": ".region-sheet [data-action=region-custom-save]"
+   },
+   {
+    "click": ".region-sheet [data-action=region-confirm]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "state.location.custom && state.city === 'Bukit Beruntung'",
+    "msg": "custom place saved"
+   }
+  ]
+ },
+ {
+  "name": "regions-state-filter",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "eval": "(() => { const s = document.querySelector('.region-sheet [data-region-state]'); s.value = '1936'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet [data-action=region-use-state]') && !!document.querySelector('.region-sheet .region-row[data-id=\"MY|76490\"]')",
+    "msg": "Sabah towns and 'choose the whole state'"
+   },
+   {
+    "eval": "document.querySelector('.region-sheet [data-region-query]').focus(), document.querySelector('.region-sheet [data-region-query]').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })), true"
+   },
+   {
+    "expect": "document.activeElement?.matches('.region-row')",
+    "msg": "arrow key enters the list"
+   },
+   {
+    "eval": "document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })), true"
+   },
+   {
+    "expect": "document.activeElement?.matches('.region-row') && document.activeElement !== document.querySelector('.region-sheet .region-results [data-row]')",
+    "msg": "arrow key moves to the next row"
+   }
+  ]
+ },
+ {
+  "name": "regions-info",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 500
+   },
+   {
+    "eval": "SZ.overlay.top().el.querySelector('.region-scroll').scrollTo(0, 1e6), true"
+   },
+   {
+    "shot": "footer"
+   },
+   {
+    "click": ".region-sheet [data-action=region-info]"
+   },
+   {
+    "expect": "!!document.querySelector('.region-sheet .region-pane-title')",
+    "msg": "about the data"
+   }
+  ]
+ },
+ {
+  "name": "regions-back-button",
+  "hash": "home",
+  "steps": [
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), render(), true"
+   },
+   {
+    "click": ".city-pill[data-action=city]"
+   },
+   {
+    "wait": 400
+   },
+   {
+    "back": true
+   },
+   {
+    "wait": 500
+   },
+   {
+    "expect": "SZ.overlay.depth() === 0 && location.hash === '#home'",
+    "msg": "back closes the picker"
+   },
+   {
+    "eval": "ShizhongRegions.applyLocation(ShizhongRegions.serviceLocation('吉隆坡')), state.recentLocations = [], SZ.store.save(), true"
    }
   ]
  }

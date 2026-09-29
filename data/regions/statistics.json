@@ -1329,10 +1329,10 @@
     {
       "code": "MY",
       "states": 16,
-      "cities": 223,
-      "bytes": 17785,
-      "gzipBytes": 6531,
-      "sha256": "4f7d64652e0539d46c36a71fed4950032f4eb3dcad09631e6888c148e4a451f2"
+      "cities": 218,
+      "bytes": 17495,
+      "gzipBytes": 6383,
+      "sha256": "b2687a38973b5e07753464b52abb357b8187723e9a51259f084cc9f7782899bc"
     },
     {
       "code": "MZ",
@@ -2272,5 +2272,16 @@
         null
       ]
     ]
+  },
+  "malaysiaReview": {
+    "notes": "CHANGES-MY.md",
+    "mergedIds": {
+      "76438": 76455,
+      "161559": 76411,
+      "161567": 76419,
+      "161572": 76451,
+      "161584": 76539
+    },
+    "citiesAfterReview": 218
   }
 }
